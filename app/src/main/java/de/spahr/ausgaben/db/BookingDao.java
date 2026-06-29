@@ -30,4 +30,7 @@ public interface BookingDao {
 
     @Query("UPDATE booking SET exported = 1 WHERE id IN (:ids)")
     void markExported(List<Long> ids);
+
+    @Query("DELETE FROM booking")
+    void deleteAll();
 }

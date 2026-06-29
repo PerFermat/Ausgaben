@@ -1,0 +1,8 @@
+<?xml version="1.0" encoding="utf-8"?>
+<resources>
+    <!-- Akzent-Textfarbe für Outlined-/Dialog-Buttons: weiß im Dunkelmodus (sonst unlesbar) -->
+    <color name="button_accent">#FFFFFF</color>
+    <!-- Etwas hellere Signalfarben für besseren Kontrast auf dunklem Grund -->
+    <color name="income_green">#81C784</color>
+    <color name="expense_red">#EF9A9A</color>
+</resources>

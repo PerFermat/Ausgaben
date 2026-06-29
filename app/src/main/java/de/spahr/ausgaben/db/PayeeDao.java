@@ -15,4 +15,7 @@ public interface PayeeDao {
 
     @Query("SELECT name FROM payee ORDER BY name COLLATE NOCASE ASC")
     List<String> getAllNames();
+
+    @Query("DELETE FROM payee")
+    void deleteAll();
 }

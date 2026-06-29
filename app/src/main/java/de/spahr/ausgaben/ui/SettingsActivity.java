@@ -1,5 +1,6 @@
 package de.spahr.ausgaben.ui;
 
+import android.content.Intent;
 import android.net.Uri;
 import android.os.Bundle;
 import android.widget.ArrayAdapter;
@@ -12,6 +13,7 @@ import androidx.appcompat.app.AppCompatDelegate;
 
 import com.google.android.material.appbar.MaterialToolbar;
 import com.google.android.material.button.MaterialButton;
+import com.google.android.material.dialog.MaterialAlertDialogBuilder;
 import com.google.android.material.materialswitch.MaterialSwitch;
 import com.google.android.material.textfield.MaterialAutoCompleteTextView;
 import com.google.android.material.textfield.TextInputEditText;
@@ -51,6 +53,7 @@ public class SettingsActivity extends AppCompatActivity {
 
     private ActivityResultLauncher<String[]> importLauncher;
     private ActivityResultLauncher<String> backupLauncher;
+    private ActivityResultLauncher<String[]> restoreLauncher;
 
     @Override
     protected void onCreate(Bundle savedInstanceState) {
@@ -100,6 +103,8 @@ public class SettingsActivity extends AppCompatActivity {
         ((MaterialButton) findViewById(R.id.btnExportAll)).setOnClickListener(v -> exportAll());
         ((MaterialButton) findViewById(R.id.btnBackup)).setOnClickListener(
                 v -> backupLauncher.launch("ausgaben-backup-" + timestamp() + ".db"));
+        ((MaterialButton) findViewById(R.id.btnRestore)).setOnClickListener(v -> confirmRestore());
+        ((MaterialButton) findViewById(R.id.btnReset)).setOnClickListener(v -> confirmReset());
     }
 
     private void registerLaunchers() {
@@ -117,6 +122,98 @@ public class SettingsActivity extends AppCompatActivity {
                         doBackup(uri);
                     }
                 });
+        restoreLauncher = registerForActivityResult(
+                new ActivityResultContracts.OpenDocument(),
+                uri -> {
+                    if (uri != null) {
+                        doRestore(uri);
+                    }
+                });
+    }
+
+    private void confirmReset() {
+        new MaterialAlertDialogBuilder(this, R.style.ThemeOverlay_Ausgaben_Dialog)
+                .setTitle(R.string.reset_confirm_title)
+                .setMessage(R.string.reset_confirm_message)
+                .setPositiveButton(R.string.reset_db, (d, w) -> repository.resetBookingData(() ->
+                        Toast.makeText(this, R.string.reset_done, Toast.LENGTH_LONG).show()))
+                .setNegativeButton(R.string.cancel, null)
+                .show();
+    }
+
+    private void confirmRestore() {
+        new MaterialAlertDialogBuilder(this, R.style.ThemeOverlay_Ausgaben_Dialog)
+                .setTitle(R.string.restore_confirm_title)
+                .setMessage(R.string.restore_confirm_message)
+                .setPositiveButton(R.string.restore_db, (d, w) ->
+                        restoreLauncher.launch(new String[]{"application/octet-stream", "application/x-sqlite3", "*/*"}))
+                .setNegativeButton(R.string.cancel, null)
+                .show();
+    }
+
+    private void doRestore(Uri uri) {
+        new Thread(() -> {
+            try {
+                byte[] data = readBytes(uri);
+                if (!isSqlite(data)) {
+                    runOnUiThread(() -> Toast.makeText(this, R.string.restore_invalid, Toast.LENGTH_LONG).show());
+                    return;
+                }
+                AppDatabase.closeInstance();
+                File dbFile = getDatabasePath("ausgaben.db");
+                deleteIfExists(dbFile);
+                deleteIfExists(new File(dbFile.getPath() + "-wal"));
+                deleteIfExists(new File(dbFile.getPath() + "-shm"));
+                try (java.io.FileOutputStream out = new java.io.FileOutputStream(dbFile)) {
+                    out.write(data);
+                }
+                // Neu öffnen (führt ggf. Migration aus)
+                AppDatabase.getInstance(this);
+                runOnUiThread(() -> {
+                    Toast.makeText(this, R.string.restore_done, Toast.LENGTH_LONG).show();
+                    Intent i = new Intent(this, MainActivity.class);
+                    i.setFlags(Intent.FLAG_ACTIVITY_NEW_TASK | Intent.FLAG_ACTIVITY_CLEAR_TASK);
+                    startActivity(i);
+                });
+            } catch (Exception e) {
+                String msg = e.getMessage() == null ? e.toString() : e.getMessage();
+                runOnUiThread(() -> Toast.makeText(this,
+                        getString(R.string.restore_failed, msg), Toast.LENGTH_LONG).show());
+            }
+        }).start();
+    }
+
+    private boolean isSqlite(byte[] data) {
+        // SQLite-Magic: "SQLite format 3" gefolgt von einem Null-Byte (16 Bytes).
+        byte[] header = "SQLite format 3".getBytes(StandardCharsets.US_ASCII);
+        if (data.length < header.length + 1) {
+            return false;
+        }
+        for (int i = 0; i < header.length; i++) {
+            if (data[i] != header[i]) {
+                return false;
+            }
+        }
+        return data[header.length] == 0;
+    }
+
+    private void deleteIfExists(File f) {
+        if (f.exists()) {
+            //noinspection ResultOfMethodCallIgnored
+            f.delete();
+        }
+    }
+
+    private byte[] readBytes(Uri uri) throws Exception {
+        try (InputStream is = getContentResolver().openInputStream(uri)) {
+            ByteArrayOutputStream bos = new ByteArrayOutputStream();
+            byte[] buf = new byte[8192];
+            int n;
+            while (is != null && (n = is.read(buf)) > 0) {
+                bos.write(buf, 0, n);
+            }
+            return bos.toByteArray();
+        }
     }
 
     private void save() {

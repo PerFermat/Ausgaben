@@ -8,4 +8,6 @@
     <color name="expense_red">#C62828</color>
     <color name="income_green">#2E7D32</color>
     <color name="grey_text">#757575</color>
+    <!-- Akzent-Textfarbe für Outlined-/Dialog-Buttons: grün im Hell-Modus -->
+    <color name="button_accent">#1B5E20</color>
 </resources>

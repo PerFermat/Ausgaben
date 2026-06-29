@@ -24,15 +24,23 @@
     <string name="filter_title">Buchungen filtern</string>
     <string name="filter_apply">Anwenden</string>
     <string name="filter_reset">Zurücksetzen</string>
+    <string name="cancel">Abbrechen</string>
     <string name="filter_active">Filter aktiv (%1$d)</string>
 
-    <!-- Bearbeiten -->
+    <!-- Neue Buchung / Bearbeiten -->
+    <string name="new_booking">Neue Buchung</string>
+    <string name="new_booking_title">Neue Buchung</string>
+    <string name="update_booking">Buchung ändern</string>
+    <string name="delete_booking">Buchung löschen</string>
     <string name="edit_title">Buchung bearbeiten</string>
     <string name="delete">Löschen</string>
     <string name="delete_confirm_title">Buchung löschen?</string>
     <string name="delete_confirm_message">Diese Buchung wird dauerhaft entfernt.</string>
     <string name="booking_updated">Buchung aktualisiert</string>
     <string name="booking_deleted">Buchung gelöscht</string>
+
+    <!-- Saldo -->
+    <string name="balance">Saldo: %1$s</string>
 
     <!-- Auswertung -->
     <string name="analysis_title">Auswertung</string>
@@ -50,6 +58,16 @@
     <string name="import_csv">CSV importieren (kMyMoney)</string>
     <string name="export_all">Kompletter Export auf Nextcloud</string>
     <string name="backup_db">Datenbank sichern</string>
+    <string name="restore_db">Datenbank wiederherstellen</string>
+    <string name="reset_db">Datenbank zurücksetzen</string>
+    <string name="restore_confirm_title">Datenbank wiederherstellen?</string>
+    <string name="restore_confirm_message">Die aktuellen Daten werden durch das Backup ersetzt.</string>
+    <string name="restore_done">Datenbank wiederhergestellt</string>
+    <string name="restore_failed">Wiederherstellung fehlgeschlagen: %1$s</string>
+    <string name="restore_invalid">Keine gültige Datenbank-Datei</string>
+    <string name="reset_confirm_title">Datenbank zurücksetzen?</string>
+    <string name="reset_confirm_message">Alle Buchungen sowie die Konto- und Empfängerlisten werden gelöscht. Einstellungen bleiben erhalten.</string>
+    <string name="reset_done">Datenbank zurückgesetzt</string>
     <string name="password_saved_hint">•••••• (gespeichert)</string>
     <string name="import_done">%1$d Buchung(en) importiert</string>
     <string name="import_failed">Import fehlgeschlagen: %1$s</string>

@@ -15,4 +15,7 @@ public interface AccountDao {
 
     @Query("SELECT name FROM account ORDER BY name COLLATE NOCASE ASC")
     List<String> getAllNames();
+
+    @Query("DELETE FROM account")
+    void deleteAll();
 }

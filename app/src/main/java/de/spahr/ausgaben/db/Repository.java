@@ -91,6 +91,18 @@ public class Repository {
         });
     }
 
+    /** Löscht alle Buchungen sowie die Konto-/Empfänger-Vorschlagslisten (Einstellungen bleiben). */
+    public void resetBookingData(final Runnable onDone) {
+        executor.execute(() -> {
+            bookingDao.deleteAll();
+            accountDao.deleteAll();
+            payeeDao.deleteAll();
+            if (onDone != null) {
+                mainHandler.post(onDone);
+            }
+        });
+    }
+
     public void getAllBookings(final Callback<List<Booking>> callback) {
         executor.execute(() -> {
             final List<Booking> result = bookingDao.getAllBookings();

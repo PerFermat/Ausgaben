@@ -20,8 +20,7 @@ import de.spahr.ausgaben.db.Booking;
 public class BookingAdapter extends RecyclerView.Adapter<BookingAdapter.VH> {
 
     public interface Listener {
-        void onClick(Booking b);
-
+        /** Wird bei langem Druck auf eine Buchung ausgelöst (Bearbeiten). */
         void onLongClick(Booking b);
     }
 
@@ -74,11 +73,6 @@ public class BookingAdapter extends RecyclerView.Adapter<BookingAdapter.VH> {
 
         h.exported.setVisibility(b.exported ? View.VISIBLE : View.GONE);
 
-        h.itemView.setOnClickListener(v -> {
-            if (listener != null) {
-                listener.onClick(b);
-            }
-        });
         h.itemView.setOnLongClickListener(v -> {
             if (listener != null) {
                 listener.onLongClick(b);

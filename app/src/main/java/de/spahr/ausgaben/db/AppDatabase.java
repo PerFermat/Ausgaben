@@ -43,4 +43,16 @@ public abstract class AppDatabase extends RoomDatabase {
         }
         return instance;
     }
+
+    /** Schließt die offene Datenbank und verwirft die Singleton-Instanz (für Restore). */
+    public static void closeInstance() {
+        synchronized (AppDatabase.class) {
+            if (instance != null) {
+                if (instance.isOpen()) {
+                    instance.close();
+                }
+                instance = null;
+            }
+        }
+    }
 }

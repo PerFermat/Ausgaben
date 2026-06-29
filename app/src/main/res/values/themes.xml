@@ -8,4 +8,15 @@
         <item name="colorOnSecondary">@color/white</item>
         <item name="android:statusBarColor">@color/green_dark</item>
     </style>
+
+    <!-- Toolbar-Icons (Aktionen + Überlauf-Punkte) immer weiß auf grünem Grund.
+         Nur die Icon-Tönung anpassen; das Überlauf-Menü nutzt weiter das App-Theme (lesbar in beiden Modi). -->
+    <style name="ThemeOverlay.Ausgaben.Toolbar" parent="">
+        <item name="colorControlNormal">@color/white</item>
+    </style>
+
+    <!-- Bestätigungs-/Filter-Dialoge: Button-Text grün (hell) / weiß (dunkel) -->
+    <style name="ThemeOverlay.Ausgaben.Dialog" parent="ThemeOverlay.Material3.MaterialAlertDialog">
+        <item name="colorPrimary">@color/button_accent</item>
+    </style>
 </resources>

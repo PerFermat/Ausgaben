@@ -9,7 +9,8 @@
         android:id="@+id/toolbar"
         android:layout_width="match_parent"
         android:layout_height="?attr/actionBarSize"
-        android:background="?attr/colorPrimary"
+        android:background="@color/green_primary"
+        android:theme="@style/ThemeOverlay.Ausgaben.Toolbar"
         app:navigationIcon="@drawable/ic_back"
         app:title="@string/settings_title"
         app:titleTextColor="@color/white" />
@@ -102,6 +103,9 @@
                 android:id="@+id/editDefaultAccount"
                 android:layout_width="match_parent"
                 android:layout_height="wrap_content"
+                android:minHeight="64dp"
+                android:paddingVertical="14dp"
+                android:textSize="18sp"
                 android:completionThreshold="1"
                 android:inputType="textCapWords" />
         </com.google.android.material.textfield.TextInputLayout>
@@ -148,6 +152,8 @@
             android:layout_width="match_parent"
             android:layout_height="wrap_content"
             android:layout_marginTop="8dp"
+            android:textColor="@color/button_accent"
+            app:strokeColor="@color/button_accent"
             android:text="@string/import_csv" />
 
         <com.google.android.material.button.MaterialButton
@@ -156,6 +162,8 @@
             android:layout_width="match_parent"
             android:layout_height="wrap_content"
             android:layout_marginTop="8dp"
+            android:textColor="@color/button_accent"
+            app:strokeColor="@color/button_accent"
             android:text="@string/export_all" />
 
         <com.google.android.material.button.MaterialButton
@@ -164,7 +172,29 @@
             android:layout_width="match_parent"
             android:layout_height="wrap_content"
             android:layout_marginTop="8dp"
+            android:textColor="@color/button_accent"
+            app:strokeColor="@color/button_accent"
             android:text="@string/backup_db" />
+
+        <com.google.android.material.button.MaterialButton
+            android:id="@+id/btnRestore"
+            style="?attr/materialButtonOutlinedStyle"
+            android:layout_width="match_parent"
+            android:layout_height="wrap_content"
+            android:layout_marginTop="8dp"
+            android:textColor="@color/button_accent"
+            app:strokeColor="@color/button_accent"
+            android:text="@string/restore_db" />
+
+        <com.google.android.material.button.MaterialButton
+            android:id="@+id/btnReset"
+            style="?attr/materialButtonOutlinedStyle"
+            android:layout_width="match_parent"
+            android:layout_height="wrap_content"
+            android:layout_marginTop="8dp"
+            android:textColor="@color/expense_red"
+            app:strokeColor="@color/expense_red"
+            android:text="@string/reset_db" />
 
     </LinearLayout>
     </ScrollView>

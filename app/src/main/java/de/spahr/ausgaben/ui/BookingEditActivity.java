@@ -2,15 +2,16 @@ package de.spahr.ausgaben.ui;
 
 import android.app.DatePickerDialog;
 import android.os.Bundle;
+import android.view.View;
 import android.widget.ArrayAdapter;
 import android.widget.Toast;
 
-import androidx.appcompat.app.AlertDialog;
 import androidx.appcompat.app.AppCompatActivity;
 
 import com.google.android.material.appbar.MaterialToolbar;
 import com.google.android.material.button.MaterialButton;
 import com.google.android.material.button.MaterialButtonToggleGroup;
+import com.google.android.material.dialog.MaterialAlertDialogBuilder;
 import com.google.android.material.textfield.MaterialAutoCompleteTextView;
 import com.google.android.material.textfield.TextInputEditText;
 
@@ -23,20 +24,30 @@ import java.util.Locale;
 import de.spahr.ausgaben.R;
 import de.spahr.ausgaben.db.Booking;
 import de.spahr.ausgaben.db.Repository;
+import de.spahr.ausgaben.settings.SettingsStore;
 
+/**
+ * Vereinheitlichter Editor für Neueingabe und Bearbeitung.
+ * - Neu-Modus (kein {@link #EXTRA_BOOKING_ID}): leeres Formular, ein Button „Neue Buchung".
+ * - Bearbeiten-Modus: Felder geladen, drei Buttons „Neue Buchung" / „Buchung ändern" / „Buchung löschen".
+ */
 public class BookingEditActivity extends AppCompatActivity {
 
     public static final String EXTRA_BOOKING_ID = "booking_id";
 
     private Repository repository;
-    private Booking booking;
+    private SettingsStore settings;
+    private Booking booking; // null = Neu-Modus
 
+    private MaterialToolbar toolbar;
     private MaterialButtonToggleGroup toggleType;
     private TextInputEditText editAmount;
     private MaterialAutoCompleteTextView editPayee;
     private MaterialAutoCompleteTextView editAccount;
     private TextInputEditText editNote;
     private TextInputEditText editDate;
+    private MaterialButton btnUpdate;
+    private MaterialButton btnDelete;
 
     private final SimpleDateFormat dateDisplay = new SimpleDateFormat("dd.MM.yyyy", Locale.GERMANY);
     private final Calendar selectedDate = Calendar.getInstance();
@@ -46,10 +57,11 @@ public class BookingEditActivity extends AppCompatActivity {
         super.onCreate(savedInstanceState);
         setContentView(R.layout.activity_edit_booking);
 
-        MaterialToolbar toolbar = findViewById(R.id.toolbar);
+        toolbar = findViewById(R.id.toolbar);
         toolbar.setNavigationOnClickListener(v -> finish());
 
         repository = new Repository(this);
+        settings = new SettingsStore(this);
 
         toggleType = findViewById(R.id.toggleType);
         editAmount = findViewById(R.id.editAmount);
@@ -60,28 +72,47 @@ public class BookingEditActivity extends AppCompatActivity {
         editDate = findViewById(R.id.editDate);
         editDate.setOnClickListener(v -> showDatePicker());
 
+        btnUpdate = findViewById(R.id.btnUpdate);
+        btnDelete = findViewById(R.id.btnDelete);
+
         repository.getPayeeNames(names -> editPayee.setAdapter(
                 new ArrayAdapter<>(this, android.R.layout.simple_list_item_1, names)));
         repository.getAccountNames(names -> editAccount.setAdapter(
                 new ArrayAdapter<>(this, android.R.layout.simple_list_item_1, names)));
 
-        findViewById(R.id.btnSave).setOnClickListener(v -> save());
-        findViewById(R.id.btnDelete).setOnClickListener(v -> confirmDelete());
+        findViewById(R.id.btnSaveNew).setOnClickListener(v -> saveAsNew());
+        btnUpdate.setOnClickListener(v -> update());
+        btnDelete.setOnClickListener(v -> confirmDelete());
 
         long id = getIntent().getLongExtra(EXTRA_BOOKING_ID, -1);
         if (id < 0) {
-            finish();
-            return;
+            setupNewMode();
+        } else {
+            repository.getBookingById(id, this::bindEditMode);
         }
-        repository.getBookingById(id, this::bind);
     }
 
-    private void bind(Booking b) {
+    private void setupNewMode() {
+        booking = null;
+        toolbar.setTitle(R.string.new_booking_title);
+        toggleType.check(R.id.btnExpense);
+        selectedDate.setTime(new java.util.Date());
+        updateDateField();
+        String def = settings.getDefaultAccount();
+        if (!def.isEmpty()) {
+            editAccount.setText(def, false);
+        }
+        btnUpdate.setVisibility(View.GONE);
+        btnDelete.setVisibility(View.GONE);
+    }
+
+    private void bindEditMode(Booking b) {
         if (b == null) {
             finish();
             return;
         }
         booking = b;
+        toolbar.setTitle(R.string.edit_title);
         toggleType.check(b.isIncome ? R.id.btnIncome : R.id.btnExpense);
         editAmount.setText(formatCents(b.amountCents));
         editPayee.setText(b.payee);
@@ -89,6 +120,8 @@ public class BookingEditActivity extends AppCompatActivity {
         editNote.setText(b.note);
         selectedDate.setTimeInMillis(b.createdAt);
         updateDateField();
+        btnUpdate.setVisibility(View.VISIBLE);
+        btnDelete.setVisibility(View.VISIBLE);
     }
 
     private void updateDateField() {
@@ -105,33 +138,27 @@ public class BookingEditActivity extends AppCompatActivity {
                 selectedDate.get(Calendar.DAY_OF_MONTH)).show();
     }
 
-    private void save() {
+    /** Legt aus den aktuellen Feldwerten eine NEUE Buchung an (auch als „Duplizieren" im Bearbeiten-Modus). */
+    private void saveAsNew() {
+        Booking b = readValidFields(new Booking());
+        if (b == null) {
+            return;
+        }
+        b.exported = false;
+        repository.saveBooking(b, () -> {
+            Toast.makeText(this, R.string.booking_saved, Toast.LENGTH_SHORT).show();
+            finish();
+        });
+    }
+
+    /** Aktualisiert die bestehende Buchung. */
+    private void update() {
         if (booking == null) {
             return;
         }
-        Long cents = parseAmountToCents(textOf(editAmount));
-        if (cents == null || cents <= 0) {
-            Toast.makeText(this, R.string.error_amount, Toast.LENGTH_SHORT).show();
+        if (readValidFields(booking) == null) {
             return;
         }
-        String payee = textOf(editPayee).trim();
-        if (payee.isEmpty()) {
-            Toast.makeText(this, R.string.error_payee, Toast.LENGTH_SHORT).show();
-            return;
-        }
-        String account = textOf(editAccount).trim();
-        if (account.isEmpty()) {
-            Toast.makeText(this, R.string.error_account, Toast.LENGTH_SHORT).show();
-            return;
-        }
-
-        booking.amountCents = cents;
-        booking.isIncome = toggleType.getCheckedButtonId() == R.id.btnIncome;
-        booking.payee = payee;
-        booking.account = account;
-        booking.note = textOf(editNote).trim();
-        booking.createdAt = composeTimestamp();
-
         repository.updateBooking(booking, () -> {
             Toast.makeText(this, R.string.booking_updated, Toast.LENGTH_SHORT).show();
             finish();
@@ -142,26 +169,54 @@ public class BookingEditActivity extends AppCompatActivity {
         if (booking == null) {
             return;
         }
-        new AlertDialog.Builder(this)
+        new MaterialAlertDialogBuilder(this, R.style.ThemeOverlay_Ausgaben_Dialog)
                 .setTitle(R.string.delete_confirm_title)
                 .setMessage(R.string.delete_confirm_message)
                 .setPositiveButton(R.string.delete, (d, w) -> repository.deleteBooking(booking.id, () -> {
                     Toast.makeText(this, R.string.booking_deleted, Toast.LENGTH_SHORT).show();
                     finish();
                 }))
-                .setNegativeButton(android.R.string.cancel, null)
+                .setNegativeButton(R.string.cancel, null)
                 .show();
     }
 
-    /** Behält die ursprüngliche Uhrzeit der Buchung bei, ändert nur das Datum. */
+    /** Validiert die Felder und schreibt sie in {@code target}; gibt null bei Fehler zurück. */
+    private Booking readValidFields(Booking target) {
+        Long cents = parseAmountToCents(textOf(editAmount));
+        if (cents == null || cents <= 0) {
+            Toast.makeText(this, R.string.error_amount, Toast.LENGTH_SHORT).show();
+            return null;
+        }
+        String payee = textOf(editPayee).trim();
+        if (payee.isEmpty()) {
+            Toast.makeText(this, R.string.error_payee, Toast.LENGTH_SHORT).show();
+            return null;
+        }
+        String account = textOf(editAccount).trim();
+        if (account.isEmpty()) {
+            Toast.makeText(this, R.string.error_account, Toast.LENGTH_SHORT).show();
+            return null;
+        }
+        target.amountCents = cents;
+        target.isIncome = toggleType.getCheckedButtonId() == R.id.btnIncome;
+        target.payee = payee;
+        target.account = account;
+        target.note = textOf(editNote).trim();
+        target.createdAt = composeTimestamp();
+        return target;
+    }
+
+    /** Gewähltes Datum mit Uhrzeit kombinieren: Originalzeit beibehalten, sonst aktuelle Uhrzeit. */
     private long composeTimestamp() {
-        Calendar original = Calendar.getInstance();
-        original.setTimeInMillis(booking.createdAt);
+        Calendar time = Calendar.getInstance();
+        if (booking != null) {
+            time.setTimeInMillis(booking.createdAt);
+        }
         Calendar c = (Calendar) selectedDate.clone();
-        c.set(Calendar.HOUR_OF_DAY, original.get(Calendar.HOUR_OF_DAY));
-        c.set(Calendar.MINUTE, original.get(Calendar.MINUTE));
-        c.set(Calendar.SECOND, original.get(Calendar.SECOND));
-        c.set(Calendar.MILLISECOND, original.get(Calendar.MILLISECOND));
+        c.set(Calendar.HOUR_OF_DAY, time.get(Calendar.HOUR_OF_DAY));
+        c.set(Calendar.MINUTE, time.get(Calendar.MINUTE));
+        c.set(Calendar.SECOND, time.get(Calendar.SECOND));
+        c.set(Calendar.MILLISECOND, time.get(Calendar.MILLISECOND));
         return c.getTimeInMillis();
     }
 

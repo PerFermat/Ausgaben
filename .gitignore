@@ -9,3 +9,8 @@
 /captures/
 .externalNativeBuild/
 .cxx/
+
+# Eclipse / IDE project files
+.project
+.classpath
+.settings/

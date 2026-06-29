@@ -15,6 +15,7 @@ import androidx.recyclerview.widget.RecyclerView;
 
 import com.google.android.material.dialog.MaterialAlertDialogBuilder;
 import com.google.android.material.floatingactionbutton.ExtendedFloatingActionButton;
+import com.google.android.material.floatingactionbutton.FloatingActionButton;
 import com.google.android.material.textfield.MaterialAutoCompleteTextView;
 import com.google.android.material.textfield.TextInputEditText;
 
@@ -68,6 +69,20 @@ public class MainActivity extends AppCompatActivity {
         ExtendedFloatingActionButton fab = findViewById(R.id.fabNew);
         fab.setOnClickListener(v ->
                 startActivity(new Intent(this, BookingEditActivity.class)));
+
+        FloatingActionButton fabScrollTop = findViewById(R.id.fabScrollTop);
+        fabScrollTop.setOnClickListener(v -> recycler.smoothScrollToPosition(0));
+        recycler.addOnScrollListener(new RecyclerView.OnScrollListener() {
+            @Override
+            public void onScrolled(@NonNull RecyclerView rv, int dx, int dy) {
+                // Sichtbar, sobald die Liste nach unten gescrollt wurde.
+                if (rv.canScrollVertically(-1)) {
+                    fabScrollTop.show();
+                } else {
+                    fabScrollTop.hide();
+                }
+            }
+        });
     }
 
     @Override
@@ -207,7 +222,12 @@ public class MainActivity extends AppCompatActivity {
             showFilterDialog();
             return true;
         } else if (id == R.id.action_analysis) {
-            startActivity(new Intent(this, AnalysisActivity.class));
+            Intent i = new Intent(this, AnalysisActivity.class);
+            i.putExtra(AnalysisActivity.EXTRA_FILTER_PAYEE, filterPayee);
+            i.putExtra(AnalysisActivity.EXTRA_FILTER_ACCOUNT, filterAccount);
+            i.putExtra(AnalysisActivity.EXTRA_FILTER_AMOUNT,
+                    filterAmountCents == null ? -1L : filterAmountCents);
+            startActivity(i);
             return true;
         } else if (id == R.id.action_settings) {
             startActivity(new Intent(this, SettingsActivity.class));

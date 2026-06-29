@@ -5,4 +5,6 @@
     <!-- Etwas hellere Signalfarben für besseren Kontrast auf dunklem Grund -->
     <color name="income_green">#81C784</color>
     <color name="expense_red">#EF9A9A</color>
+    <!-- Diagramm-Text (Werte/Achsen): weiß im Dunkelmodus -->
+    <color name="chart_text">#FFFFFF</color>
 </resources>

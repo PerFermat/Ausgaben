@@ -1,6 +1,11 @@
 package de.spahr.ausgaben.ui;
 
+import android.content.res.Configuration;
 import android.os.Bundle;
+import android.text.Editable;
+import android.text.TextWatcher;
+import android.view.MotionEvent;
+import android.widget.TextView;
 
 import androidx.appcompat.app.AppCompatActivity;
 
@@ -10,14 +15,18 @@ import com.github.mikephil.charting.data.BarData;
 import com.github.mikephil.charting.data.BarDataSet;
 import com.github.mikephil.charting.data.BarEntry;
 import com.github.mikephil.charting.formatter.IndexAxisValueFormatter;
+import com.github.mikephil.charting.listener.ChartTouchListener;
+import com.github.mikephil.charting.listener.OnChartGestureListener;
 import com.google.android.material.appbar.MaterialToolbar;
 import com.google.android.material.button.MaterialButtonToggleGroup;
+import com.google.android.material.floatingactionbutton.FloatingActionButton;
+import com.google.android.material.textfield.TextInputEditText;
 
 import java.text.SimpleDateFormat;
 import java.util.ArrayList;
 import java.util.Calendar;
 import java.util.Date;
-import java.util.LinkedHashMap;
+import java.util.HashMap;
 import java.util.List;
 import java.util.Locale;
 import java.util.Map;
@@ -28,18 +37,29 @@ import de.spahr.ausgaben.db.Repository;
 
 public class AnalysisActivity extends AppCompatActivity {
 
+    public static final String EXTRA_FILTER_PAYEE = "filter_payee";
+    public static final String EXTRA_FILTER_ACCOUNT = "filter_account";
+    public static final String EXTRA_FILTER_AMOUNT = "filter_amount_cents";
+
     private enum Granularity {DAY, WEEK, MONTH, YEAR}
 
-    /** Wie viele Perioden (Balken) maximal angezeigt werden. */
-    private static final int MAX_BUCKETS = 12;
+    private static final int DEFAULT_BARS = 12;
+    private static final int MAX_BARS = 100;
 
     private Repository repository;
     private BarChart chart;
-    private android.widget.TextView textTotal;
-    private MaterialButtonToggleGroup toggle;
+    private TextView textTotal;
+    private TextInputEditText editBarCount;
+    private FloatingActionButton fabScrollRight;
 
-    private List<Booking> bookings = new ArrayList<>();
+    private List<Booking> allBookings = new ArrayList<>();
     private Granularity granularity = Granularity.MONTH;
+    private int barCount = DEFAULT_BARS;
+    private int lastIndex = 0;
+
+    private String filterPayee = "";
+    private String filterAccount = "";
+    private long filterAmountCents = -1;
 
     @Override
     protected void onCreate(Bundle savedInstanceState) {
@@ -49,20 +69,20 @@ public class AnalysisActivity extends AppCompatActivity {
         MaterialToolbar toolbar = findViewById(R.id.toolbar);
         toolbar.setNavigationOnClickListener(v -> finish());
 
+        filterPayee = orEmpty(getIntent().getStringExtra(EXTRA_FILTER_PAYEE));
+        filterAccount = orEmpty(getIntent().getStringExtra(EXTRA_FILTER_ACCOUNT));
+        filterAmountCents = getIntent().getLongExtra(EXTRA_FILTER_AMOUNT, -1);
+
         repository = new Repository(this);
         chart = findViewById(R.id.barChart);
         textTotal = findViewById(R.id.textTotal);
-        toggle = findViewById(R.id.toggleGranularity);
+        editBarCount = findViewById(R.id.editBarCount);
+        fabScrollRight = findViewById(R.id.fabScrollRight);
 
-        chart.getDescription().setEnabled(false);
-        chart.getAxisRight().setEnabled(false);
-        chart.getLegend().setEnabled(false);
-        chart.setFitBars(true);
-        XAxis x = chart.getXAxis();
-        x.setPosition(XAxis.XAxisPosition.BOTTOM);
-        x.setGranularity(1f);
-        x.setDrawGridLines(false);
+        setupChart();
+        setupBarCountField();
 
+        MaterialButtonToggleGroup toggle = findViewById(R.id.toggleGranularity);
         toggle.check(R.id.btnMonth);
         toggle.addOnButtonCheckedListener((group, checkedId, isChecked) -> {
             if (!isChecked) {
@@ -80,83 +100,285 @@ public class AnalysisActivity extends AppCompatActivity {
             renderChart();
         });
 
+        fabScrollRight.setOnClickListener(v -> {
+            chart.moveViewToX(lastIndex);
+            updateScrollRightVisibility();
+        });
+
         repository.getAllBookings(result -> {
-            bookings = result;
+            allBookings = result;
             renderChart();
         });
     }
 
+    private void setupChart() {
+        chart.getDescription().setEnabled(false);
+        chart.getAxisRight().setEnabled(false);
+        chart.getLegend().setEnabled(false);
+        chart.setFitBars(true);
+        chart.setScaleEnabled(false);
+        chart.setPinchZoom(false);
+        chart.setDoubleTapToZoomEnabled(false);
+        chart.setDragEnabled(true);
+
+        int chartText = getColor(R.color.chart_text);
+        XAxis x = chart.getXAxis();
+        x.setPosition(XAxis.XAxisPosition.BOTTOM);
+        x.setDrawGridLines(false);
+        x.setAvoidFirstLastClipping(true);
+        x.setTextColor(chartText);
+        x.setTextSize(12f);
+        chart.getAxisLeft().setTextColor(chartText);
+        chart.getAxisLeft().setTextSize(12f);
+
+        chart.setOnChartGestureListener(new OnChartGestureListener() {
+            @Override
+            public void onChartGestureStart(MotionEvent me, ChartTouchListener.ChartGesture g) {
+            }
+
+            @Override
+            public void onChartGestureEnd(MotionEvent me, ChartTouchListener.ChartGesture g) {
+                updateScrollRightVisibility();
+            }
+
+            @Override
+            public void onChartLongPressed(MotionEvent me) {
+            }
+
+            @Override
+            public void onChartDoubleTapped(MotionEvent me) {
+            }
+
+            @Override
+            public void onChartSingleTapped(MotionEvent me) {
+            }
+
+            @Override
+            public void onChartFling(MotionEvent e1, MotionEvent e2, float vx, float vy) {
+            }
+
+            @Override
+            public void onChartScale(MotionEvent me, float sx, float sy) {
+            }
+
+            @Override
+            public void onChartTranslate(MotionEvent me, float dx, float dy) {
+                updateScrollRightVisibility();
+            }
+        });
+    }
+
+    private void setupBarCountField() {
+        editBarCount.addTextChangedListener(new TextWatcher() {
+            @Override
+            public void beforeTextChanged(CharSequence s, int a, int b, int c) {
+            }
+
+            @Override
+            public void onTextChanged(CharSequence s, int a, int b, int c) {
+            }
+
+            @Override
+            public void afterTextChanged(Editable s) {
+                Integer n = parseInt(s.toString());
+                if (n == null) {
+                    return;
+                }
+                int clamped = Math.max(1, Math.min(MAX_BARS, n));
+                if (clamped != barCount) {
+                    barCount = clamped;
+                    renderChart();
+                }
+            }
+        });
+    }
+
     private void renderChart() {
-        // Netto je Periode (Einnahmen − Ausgaben), chronologisch.
-        Map<String, Long> buckets = new LinkedHashMap<>();
-        // chronologisch sortieren: getAllBookings liefert absteigend -> rückwärts iterieren
-        for (int i = bookings.size() - 1; i >= 0; i--) {
-            Booking b = bookings.get(i);
-            String key = bucketKey(b.createdAt);
-            long signed = b.isIncome ? b.amountCents : -b.amountCents;
-            Long cur = buckets.get(key);
-            buckets.put(key, (cur == null ? 0L : cur) + signed);
+        List<Booking> filtered = applyFilter(allBookings);
+
+        long total = 0;
+        for (Booking b : filtered) {
+            total += b.isIncome ? b.amountCents : -b.amountCents;
+        }
+        textTotal.setText(getString(R.string.analysis_total, formatEuro(total)));
+
+        if (filtered.isEmpty()) {
+            chart.clear();
+            chart.invalidate();
+            fabScrollRight.hide();
+            return;
         }
 
-        List<String> keys = new ArrayList<>(buckets.keySet());
-        // nur die letzten MAX_BUCKETS Perioden
-        int from = Math.max(0, keys.size() - MAX_BUCKETS);
-        keys = keys.subList(from, keys.size());
+        long minMs = Long.MAX_VALUE;
+        long maxMs = Long.MIN_VALUE;
+        Map<Long, Long> netByPeriod = new HashMap<>();
+        for (Booking b : filtered) {
+            long ps = periodStart(b.createdAt);
+            long signed = b.isIncome ? b.amountCents : -b.amountCents;
+            Long cur = netByPeriod.get(ps);
+            netByPeriod.put(ps, (cur == null ? 0L : cur) + signed);
+            if (ps < minMs) minMs = ps;
+            if (ps > maxMs) maxMs = ps;
+        }
+
+        // Kontinuierliche Perioden von früheste bis späteste (mit Lücken).
+        List<Long> periods = new ArrayList<>();
+        Calendar cur = Calendar.getInstance();
+        cur.setTimeInMillis(minMs);
+        while (cur.getTimeInMillis() <= maxMs && periods.size() <= 5000) {
+            periods.add(cur.getTimeInMillis());
+            advance(cur);
+        }
 
         List<BarEntry> entries = new ArrayList<>();
         List<Integer> colors = new ArrayList<>();
         List<String> labels = new ArrayList<>();
-        long totalCents = 0;
         int green = getColor(R.color.income_green);
         int red = getColor(R.color.expense_red);
-        for (int i = 0; i < keys.size(); i++) {
-            long cents = buckets.get(keys.get(i));
-            totalCents += cents;
-            entries.add(new BarEntry(i, cents / 100f));
-            colors.add(cents >= 0 ? green : red);
-            labels.add(keys.get(i));
+        for (int i = 0; i < periods.size(); i++) {
+            long ps = periods.get(i);
+            labels.add(label(ps));
+            Long net = netByPeriod.get(ps);
+            if (net != null) {
+                entries.add(new BarEntry(i, net / 100f));
+                colors.add(net >= 0 ? green : red);
+            }
         }
-
-        // Gesamtbetrag über ALLE Buchungen (nicht nur sichtbare Balken)
-        long overall = 0;
-        for (Booking b : bookings) {
-            overall += b.isIncome ? b.amountCents : -b.amountCents;
-        }
-        textTotal.setText(getString(R.string.analysis_total, formatEuro(overall)));
-
-        if (entries.isEmpty()) {
-            chart.clear();
-            chart.invalidate();
-            return;
-        }
+        lastIndex = periods.size() - 1;
 
         BarDataSet set = new BarDataSet(entries, "");
         set.setColors(colors);
-        set.setValueTextSize(9f);
+        set.setValueTextColor(getColor(R.color.chart_text));
+        set.setValueTextSize(12f);
         BarData data = new BarData(set);
         data.setBarWidth(0.6f);
         chart.setData(data);
-        chart.getXAxis().setValueFormatter(new IndexAxisValueFormatter(labels));
-        chart.getXAxis().setLabelCount(labels.size());
-        chart.setVisibleXRangeMaximum(MAX_BUCKETS);
+
+        XAxis x = chart.getXAxis();
+        x.setValueFormatter(new IndexAxisValueFormatter(labels));
+        // Immer ~6 (Querformat ~12) gleichverteilte Labels: Abstand = Balken pro Label.
+        boolean landscape = getResources().getConfiguration().orientation
+                == Configuration.ORIENTATION_LANDSCAPE;
+        int labelTarget = landscape ? 12 : 6;
+        int step = Math.max(1, Math.round((float) barCount / labelTarget));
+        x.setGranularity(step);
+        x.setGranularityEnabled(true);
+        x.setLabelCount(Math.min(25, Math.max(2, periods.size())), false);
+
+        chart.setVisibleXRangeMaximum(barCount);
+        chart.setVisibleXRangeMinimum(Math.min(barCount, periods.size()));
+        chart.moveViewToX(lastIndex);
         chart.invalidate();
-        chart.animateY(400);
+        updateScrollRightVisibility();
     }
 
-    private String bucketKey(long millis) {
+    private void updateScrollRightVisibility() {
+        chart.post(() -> {
+            if (chart.getData() == null) {
+                fabScrollRight.hide();
+                return;
+            }
+            boolean atRight = chart.getHighestVisibleX() >= lastIndex - 0.5f;
+            if (atRight) {
+                fabScrollRight.hide();
+            } else {
+                fabScrollRight.show();
+            }
+        });
+    }
+
+    // ---- Filter (gleiche Logik wie MainActivity.applyFilter) ----
+
+    private List<Booking> applyFilter(List<Booking> source) {
+        List<Booking> out = new ArrayList<>();
+        for (Booking b : source) {
+            if (!filterPayee.isEmpty()
+                    && !b.payee.toLowerCase(Locale.GERMANY).contains(filterPayee.toLowerCase(Locale.GERMANY))) {
+                continue;
+            }
+            if (!filterAccount.isEmpty() && !b.account.equalsIgnoreCase(filterAccount)) {
+                continue;
+            }
+            if (filterAmountCents >= 0 && b.amountCents != filterAmountCents) {
+                continue;
+            }
+            out.add(b);
+        }
+        return out;
+    }
+
+    // ---- Perioden-Hilfen ----
+
+    private long periodStart(long millis) {
         Calendar c = Calendar.getInstance();
         c.setTimeInMillis(millis);
+        c.set(Calendar.HOUR_OF_DAY, 0);
+        c.set(Calendar.MINUTE, 0);
+        c.set(Calendar.SECOND, 0);
+        c.set(Calendar.MILLISECOND, 0);
+        switch (granularity) {
+            case WEEK:
+                c.set(Calendar.DAY_OF_WEEK, c.getFirstDayOfWeek());
+                break;
+            case MONTH:
+                c.set(Calendar.DAY_OF_MONTH, 1);
+                break;
+            case YEAR:
+                c.set(Calendar.DAY_OF_YEAR, 1);
+                break;
+            case DAY:
+            default:
+                break;
+        }
+        return c.getTimeInMillis();
+    }
+
+    private void advance(Calendar c) {
+        switch (granularity) {
+            case WEEK:
+                c.add(Calendar.DAY_OF_MONTH, 7);
+                break;
+            case MONTH:
+                c.add(Calendar.MONTH, 1);
+                break;
+            case YEAR:
+                c.add(Calendar.YEAR, 1);
+                break;
+            case DAY:
+            default:
+                c.add(Calendar.DAY_OF_MONTH, 1);
+                break;
+        }
+    }
+
+    private String label(long periodStartMs) {
+        Calendar c = Calendar.getInstance();
+        c.setTimeInMillis(periodStartMs);
         switch (granularity) {
             case DAY:
-                return new SimpleDateFormat("dd.MM.yy", Locale.GERMANY).format(new Date(millis));
+                return new SimpleDateFormat("dd.MM.", Locale.GERMANY).format(new Date(periodStartMs));
             case WEEK:
-                return "KW" + c.get(Calendar.WEEK_OF_YEAR) + "/" + (c.get(Calendar.YEAR) % 100);
+                return String.format(Locale.GERMANY, "%02d/%02d",
+                        c.get(Calendar.WEEK_OF_YEAR), c.get(Calendar.YEAR) % 100);
             case YEAR:
                 return String.valueOf(c.get(Calendar.YEAR));
             case MONTH:
             default:
-                return new SimpleDateFormat("MM.yy", Locale.GERMANY).format(new Date(millis));
+                return String.format(Locale.GERMANY, "%02d/%02d",
+                        c.get(Calendar.MONTH) + 1, c.get(Calendar.YEAR) % 100);
         }
+    }
+
+    private Integer parseInt(String s) {
+        try {
+            return Integer.parseInt(s.trim());
+        } catch (NumberFormatException e) {
+            return null;
+        }
+    }
+
+    private String orEmpty(String s) {
+        return s == null ? "" : s;
     }
 
     private String formatEuro(long signedCents) {

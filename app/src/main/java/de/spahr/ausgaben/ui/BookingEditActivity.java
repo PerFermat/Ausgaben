@@ -46,6 +46,7 @@ public class BookingEditActivity extends AppCompatActivity {
     private MaterialAutoCompleteTextView editAccount;
     private TextInputEditText editNote;
     private TextInputEditText editDate;
+    private MaterialButton btnToday;
     private MaterialButton btnUpdate;
     private MaterialButton btnDelete;
 
@@ -71,6 +72,12 @@ public class BookingEditActivity extends AppCompatActivity {
         editNote = findViewById(R.id.editNote);
         editDate = findViewById(R.id.editDate);
         editDate.setOnClickListener(v -> showDatePicker());
+
+        btnToday = findViewById(R.id.btnToday);
+        btnToday.setOnClickListener(v -> {
+            selectedDate.setTime(new java.util.Date());
+            updateDateField();
+        });
 
         btnUpdate = findViewById(R.id.btnUpdate);
         btnDelete = findViewById(R.id.btnDelete);
@@ -126,6 +133,14 @@ public class BookingEditActivity extends AppCompatActivity {
 
     private void updateDateField() {
         editDate.setText(dateDisplay.format(selectedDate.getTime()));
+        // „Heute"-Button nur zeigen, wenn das gewählte Datum nicht der heutige Tag ist.
+        btnToday.setVisibility(isToday(selectedDate) ? View.GONE : View.VISIBLE);
+    }
+
+    private boolean isToday(Calendar c) {
+        Calendar now = Calendar.getInstance();
+        return c.get(Calendar.YEAR) == now.get(Calendar.YEAR)
+                && c.get(Calendar.DAY_OF_YEAR) == now.get(Calendar.DAY_OF_YEAR);
     }
 
     private void showDatePicker() {

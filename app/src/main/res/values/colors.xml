@@ -10,4 +10,6 @@
     <color name="grey_text">#757575</color>
     <!-- Akzent-Textfarbe für Outlined-/Dialog-Buttons: grün im Hell-Modus -->
     <color name="button_accent">#1B5E20</color>
+    <!-- Diagramm-Text (Werte/Achsen): schwarz im Hell-Modus -->
+    <color name="chart_text">#000000</color>
 </resources>

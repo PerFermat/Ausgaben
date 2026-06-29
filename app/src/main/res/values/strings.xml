@@ -10,6 +10,8 @@
     <string name="note_hint">Notiz (optional)</string>
     <string name="date_hint">Datum</string>
     <string name="save">Speichern</string>
+    <string name="today">Heute</string>
+    <string name="scroll_top">Nach oben</string>
     <string name="bookings_title">Buchungen</string>
     <string name="exported_badge">exportiert</string>
     <string name="duplicated">Werte übernommen – anpassen und speichern</string>
@@ -50,6 +52,8 @@
     <string name="granularity_year">Jahr</string>
     <string name="analysis_total">Gesamt: %1$s</string>
     <string name="analysis_empty">Keine Buchungen für die Auswertung</string>
+    <string name="bar_count_label">Balken</string>
+    <string name="scroll_right">Nach rechts</string>
 
     <!-- Daten / Einstellungen -->
     <string name="data_section">Daten</string>

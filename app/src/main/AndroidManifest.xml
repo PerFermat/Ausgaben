@@ -1,0 +1,43 @@
+<?xml version="1.0" encoding="utf-8"?>
+<manifest xmlns:android="http://schemas.android.com/apk/res/android">
+
+    <uses-permission android:name="android.permission.INTERNET" />
+
+    <application
+        android:name=".AusgabenApp"
+        android:allowBackup="true"
+        android:icon="@mipmap/ic_launcher"
+        android:label="@string/app_name"
+        android:supportsRtl="true"
+        android:theme="@style/Theme.Ausgaben">
+
+        <activity
+            android:name=".ui.MainActivity"
+            android:exported="true">
+            <intent-filter>
+                <action android:name="android.intent.action.MAIN" />
+                <category android:name="android.intent.category.LAUNCHER" />
+            </intent-filter>
+        </activity>
+
+        <activity
+            android:name=".ui.SettingsActivity"
+            android:exported="false"
+            android:label="@string/settings_title"
+            android:parentActivityName=".ui.MainActivity" />
+
+        <activity
+            android:name=".ui.BookingEditActivity"
+            android:exported="false"
+            android:label="@string/edit_title"
+            android:parentActivityName=".ui.MainActivity" />
+
+        <activity
+            android:name=".ui.AnalysisActivity"
+            android:exported="false"
+            android:label="@string/analysis_title"
+            android:parentActivityName=".ui.MainActivity" />
+
+    </application>
+
+</manifest>

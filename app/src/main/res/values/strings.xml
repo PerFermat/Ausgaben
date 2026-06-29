@@ -1,0 +1,82 @@
+<resources>
+    <string name="app_name">Ausgaben</string>
+
+    <!-- Hauptbildschirm -->
+    <string name="type_expense">Ausgabe</string>
+    <string name="type_income">Einnahme</string>
+    <string name="amount_hint">Betrag (€)</string>
+    <string name="payee_hint">Geldempfänger</string>
+    <string name="account_hint">Konto</string>
+    <string name="note_hint">Notiz (optional)</string>
+    <string name="date_hint">Datum</string>
+    <string name="save">Speichern</string>
+    <string name="bookings_title">Buchungen</string>
+    <string name="exported_badge">exportiert</string>
+    <string name="duplicated">Werte übernommen – anpassen und speichern</string>
+
+    <!-- Menü -->
+    <string name="action_export">Exportieren</string>
+    <string name="action_filter">Filtern</string>
+    <string name="action_analysis">Auswertung</string>
+    <string name="action_settings">Einstellungen</string>
+
+    <!-- Filter -->
+    <string name="filter_title">Buchungen filtern</string>
+    <string name="filter_apply">Anwenden</string>
+    <string name="filter_reset">Zurücksetzen</string>
+    <string name="filter_active">Filter aktiv (%1$d)</string>
+
+    <!-- Bearbeiten -->
+    <string name="edit_title">Buchung bearbeiten</string>
+    <string name="delete">Löschen</string>
+    <string name="delete_confirm_title">Buchung löschen?</string>
+    <string name="delete_confirm_message">Diese Buchung wird dauerhaft entfernt.</string>
+    <string name="booking_updated">Buchung aktualisiert</string>
+    <string name="booking_deleted">Buchung gelöscht</string>
+
+    <!-- Auswertung -->
+    <string name="analysis_title">Auswertung</string>
+    <string name="granularity_day">Tag</string>
+    <string name="granularity_week">Woche</string>
+    <string name="granularity_month">Monat</string>
+    <string name="granularity_year">Jahr</string>
+    <string name="analysis_total">Gesamt: %1$s</string>
+    <string name="analysis_empty">Keine Buchungen für die Auswertung</string>
+
+    <!-- Daten / Einstellungen -->
+    <string name="data_section">Daten</string>
+    <string name="appearance_section">Darstellung</string>
+    <string name="dark_mode">Dunkles Design</string>
+    <string name="import_csv">CSV importieren (kMyMoney)</string>
+    <string name="export_all">Kompletter Export auf Nextcloud</string>
+    <string name="backup_db">Datenbank sichern</string>
+    <string name="password_saved_hint">•••••• (gespeichert)</string>
+    <string name="import_done">%1$d Buchung(en) importiert</string>
+    <string name="import_failed">Import fehlgeschlagen: %1$s</string>
+    <string name="backup_done">Backup gespeichert</string>
+    <string name="backup_failed">Backup fehlgeschlagen: %1$s</string>
+    <string name="export_all_running">Kompletter Export läuft…</string>
+
+    <!-- Einstellungen -->
+    <string name="settings_title">Einstellungen</string>
+    <string name="nextcloud_section">Nextcloud (WebDAV)</string>
+    <string name="nextcloud_url_hint">Basis-URL (z. B. https://cloud.example.com)</string>
+    <string name="nextcloud_user_hint">Benutzername</string>
+    <string name="nextcloud_password_hint">App-Passwort</string>
+    <string name="nextcloud_folder_hint">Zielordner (optional, z. B. Finanzen)</string>
+    <string name="default_account_section">Standardkonto</string>
+    <string name="default_account_hint">Standardkonto</string>
+    <string name="settings_save">Speichern</string>
+    <string name="settings_saved">Einstellungen gespeichert</string>
+
+    <!-- Meldungen -->
+    <string name="error_amount">Bitte einen gültigen Betrag > 0 eingeben</string>
+    <string name="error_payee">Bitte einen Empfänger eingeben</string>
+    <string name="error_account">Bitte ein Konto eingeben</string>
+    <string name="booking_saved">Buchung gespeichert</string>
+    <string name="export_none">Keine neuen Buchungen zum Exportieren</string>
+    <string name="export_running">Export läuft…</string>
+    <string name="export_success">Exportiert &amp; auf Nextcloud hochgeladen</string>
+    <string name="export_no_config">Bitte zuerst die Nextcloud-Zugangsdaten in den Einstellungen hinterlegen</string>
+    <string name="export_failed">Export fehlgeschlagen: %1$s</string>
+</resources>

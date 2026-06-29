@@ -1,0 +1,49 @@
+<?xml version="1.0" encoding="utf-8"?>
+<LinearLayout xmlns:android="http://schemas.android.com/apk/res/android"
+    android:layout_width="match_parent"
+    android:layout_height="wrap_content"
+    android:orientation="vertical"
+    android:paddingHorizontal="24dp"
+    android:paddingTop="8dp">
+
+    <com.google.android.material.textfield.TextInputLayout
+        android:layout_width="match_parent"
+        android:layout_height="wrap_content"
+        android:hint="@string/payee_hint">
+
+        <com.google.android.material.textfield.MaterialAutoCompleteTextView
+            android:id="@+id/filterPayee"
+            android:layout_width="match_parent"
+            android:layout_height="wrap_content"
+            android:completionThreshold="1"
+            android:inputType="text" />
+    </com.google.android.material.textfield.TextInputLayout>
+
+    <com.google.android.material.textfield.TextInputLayout
+        android:layout_width="match_parent"
+        android:layout_height="wrap_content"
+        android:layout_marginTop="8dp"
+        android:hint="@string/account_hint">
+
+        <com.google.android.material.textfield.MaterialAutoCompleteTextView
+            android:id="@+id/filterAccount"
+            android:layout_width="match_parent"
+            android:layout_height="wrap_content"
+            android:completionThreshold="1"
+            android:inputType="text" />
+    </com.google.android.material.textfield.TextInputLayout>
+
+    <com.google.android.material.textfield.TextInputLayout
+        android:layout_width="match_parent"
+        android:layout_height="wrap_content"
+        android:layout_marginTop="8dp"
+        android:hint="@string/amount_hint">
+
+        <com.google.android.material.textfield.TextInputEditText
+            android:id="@+id/filterAmount"
+            android:layout_width="match_parent"
+            android:layout_height="wrap_content"
+            android:inputType="numberDecimal" />
+    </com.google.android.material.textfield.TextInputLayout>
+
+</LinearLayout>

@@ -1,0 +1,69 @@
+<?xml version="1.0" encoding="utf-8"?>
+<LinearLayout xmlns:android="http://schemas.android.com/apk/res/android"
+    android:layout_width="match_parent"
+    android:layout_height="wrap_content"
+    android:orientation="horizontal"
+    android:paddingVertical="12dp"
+    android:gravity="center_vertical">
+
+    <LinearLayout
+        android:layout_width="0dp"
+        android:layout_height="wrap_content"
+        android:layout_weight="1"
+        android:orientation="vertical">
+
+        <TextView
+            android:id="@+id/textPayee"
+            android:layout_width="wrap_content"
+            android:layout_height="wrap_content"
+            android:textSize="16sp"
+            android:textStyle="bold" />
+
+        <TextView
+            android:id="@+id/textAccount"
+            android:layout_width="wrap_content"
+            android:layout_height="wrap_content"
+            android:textColor="@color/grey_text"
+            android:textSize="13sp" />
+
+        <TextView
+            android:id="@+id/textDate"
+            android:layout_width="wrap_content"
+            android:layout_height="wrap_content"
+            android:textColor="@color/grey_text"
+            android:textSize="12sp" />
+
+        <TextView
+            android:id="@+id/textNote"
+            android:layout_width="wrap_content"
+            android:layout_height="wrap_content"
+            android:textColor="@color/grey_text"
+            android:textSize="13sp"
+            android:textStyle="italic"
+            android:visibility="gone" />
+    </LinearLayout>
+
+    <LinearLayout
+        android:layout_width="wrap_content"
+        android:layout_height="wrap_content"
+        android:orientation="vertical"
+        android:gravity="end">
+
+        <TextView
+            android:id="@+id/textAmount"
+            android:layout_width="wrap_content"
+            android:layout_height="wrap_content"
+            android:textSize="16sp"
+            android:textStyle="bold" />
+
+        <TextView
+            android:id="@+id/textExported"
+            android:layout_width="wrap_content"
+            android:layout_height="wrap_content"
+            android:text="@string/exported_badge"
+            android:textColor="@color/income_green"
+            android:textSize="11sp"
+            android:visibility="gone" />
+    </LinearLayout>
+
+</LinearLayout>

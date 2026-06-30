@@ -44,8 +44,10 @@ public class BookingEditActivity extends AppCompatActivity {
     private TextInputEditText editAmount;
     private MaterialAutoCompleteTextView editPayee;
     private MaterialAutoCompleteTextView editAccount;
+    private MaterialAutoCompleteTextView editCategory;
     private TextInputEditText editNote;
     private TextInputEditText editDate;
+    private com.google.android.material.materialswitch.MaterialSwitch switchExported;
     private MaterialButton btnToday;
     private MaterialButton btnUpdate;
     private MaterialButton btnDelete;
@@ -69,8 +71,10 @@ public class BookingEditActivity extends AppCompatActivity {
         editAmount.setKeyListener(android.text.method.DigitsKeyListener.getInstance("0123456789.,"));
         editPayee = findViewById(R.id.editPayee);
         editAccount = findViewById(R.id.editAccount);
+        editCategory = findViewById(R.id.editCategory);
         editNote = findViewById(R.id.editNote);
         editDate = findViewById(R.id.editDate);
+        switchExported = findViewById(R.id.switchExported);
         editDate.setOnClickListener(v -> showDatePicker());
 
         btnToday = findViewById(R.id.btnToday);
@@ -85,6 +89,8 @@ public class BookingEditActivity extends AppCompatActivity {
         repository.getPayeeNames(names -> editPayee.setAdapter(
                 new ArrayAdapter<>(this, android.R.layout.simple_list_item_1, names)));
         repository.getAccountNames(names -> editAccount.setAdapter(
+                new ArrayAdapter<>(this, android.R.layout.simple_list_item_1, names)));
+        repository.getCategoryNames(names -> editCategory.setAdapter(
                 new ArrayAdapter<>(this, android.R.layout.simple_list_item_1, names)));
 
         findViewById(R.id.btnSaveNew).setOnClickListener(v -> saveAsNew());
@@ -109,6 +115,7 @@ public class BookingEditActivity extends AppCompatActivity {
         if (!def.isEmpty()) {
             editAccount.setText(def, false);
         }
+        switchExported.setVisibility(View.GONE);
         btnUpdate.setVisibility(View.GONE);
         btnDelete.setVisibility(View.GONE);
     }
@@ -124,9 +131,12 @@ public class BookingEditActivity extends AppCompatActivity {
         editAmount.setText(formatCents(b.amountCents));
         editPayee.setText(b.payee);
         editAccount.setText(b.account, false);
+        editCategory.setText(b.category, false);
         editNote.setText(b.note);
         selectedDate.setTimeInMillis(b.createdAt);
         updateDateField();
+        switchExported.setVisibility(View.VISIBLE);
+        switchExported.setChecked(b.exported);
         btnUpdate.setVisibility(View.VISIBLE);
         btnDelete.setVisibility(View.VISIBLE);
     }
@@ -174,6 +184,7 @@ public class BookingEditActivity extends AppCompatActivity {
         if (readValidFields(booking) == null) {
             return;
         }
+        booking.exported = switchExported.isChecked();
         repository.updateBooking(booking, () -> {
             Toast.makeText(this, R.string.booking_updated, Toast.LENGTH_SHORT).show();
             finish();
@@ -216,6 +227,7 @@ public class BookingEditActivity extends AppCompatActivity {
         target.isIncome = toggleType.getCheckedButtonId() == R.id.btnIncome;
         target.payee = payee;
         target.account = account;
+        target.category = textOf(editCategory).trim();
         target.note = textOf(editNote).trim();
         target.createdAt = composeTimestamp();
         return target;

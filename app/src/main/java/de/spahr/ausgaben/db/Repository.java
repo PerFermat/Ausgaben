@@ -91,6 +91,28 @@ public class Repository {
         });
     }
 
+    /**
+     * Ersetzt den Import eines Kontos: löscht zuerst alle bereits exportierten Buchungen dieses Kontos
+     * und fügt anschließend die importierten Buchungen ein. Liefert die Anzahl eingefügter Buchungen.
+     */
+    public void replaceImport(final String account, final List<Booking> bookings,
+                              final Callback<Integer> callback) {
+        executor.execute(() -> {
+            if (account != null && !account.trim().isEmpty()) {
+                bookingDao.deleteExportedByAccount(account.trim());
+            }
+            for (Booking b : bookings) {
+                if (!b.payee.trim().isEmpty()) {
+                    payeeDao.insertIfAbsent(new Payee(b.payee));
+                }
+                accountDao.insertIfAbsent(new Account(b.account));
+                bookingDao.insert(b);
+            }
+            final int count = bookings.size();
+            mainHandler.post(() -> callback.onResult(count));
+        });
+    }
+
     /** Löscht alle Buchungen sowie die Konto-/Empfänger-Vorschlagslisten (Einstellungen bleiben). */
     public void resetBookingData(final Runnable onDone) {
         executor.execute(() -> {
@@ -120,6 +142,13 @@ public class Repository {
     public void getAccountNames(final Callback<List<String>> callback) {
         executor.execute(() -> {
             final List<String> result = accountDao.getAllNames();
+            mainHandler.post(() -> callback.onResult(result));
+        });
+    }
+
+    public void getCategoryNames(final Callback<List<String>> callback) {
+        executor.execute(() -> {
+            final List<String> result = bookingDao.getDistinctCategories();
             mainHandler.post(() -> callback.onResult(result));
         });
     }

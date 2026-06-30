@@ -1,7 +1,16 @@
 package de.spahr.ausgaben.net;
 
+import android.util.Xml;
+
+import org.xmlpull.v1.XmlPullParser;
+import org.xmlpull.v1.XmlPullParserException;
+
 import java.io.IOException;
+import java.io.StringReader;
+import java.net.URLDecoder;
 import java.nio.charset.StandardCharsets;
+import java.util.ArrayList;
+import java.util.List;
 
 import okhttp3.Credentials;
 import okhttp3.MediaType;
@@ -9,11 +18,13 @@ import okhttp3.OkHttpClient;
 import okhttp3.Request;
 import okhttp3.RequestBody;
 import okhttp3.Response;
+import okhttp3.ResponseBody;
 
-/** Lädt eine Datei per WebDAV (HTTP PUT) auf eine Nextcloud-Instanz hoch. */
+/** WebDAV-Client für Nextcloud: Hochladen (PUT), Auflisten (PROPFIND) und Herunterladen (GET). */
 public class NextcloudUploader {
 
     private static final MediaType CSV = MediaType.parse("text/csv; charset=utf-8");
+    private static final MediaType XML = MediaType.parse("application/xml; charset=utf-8");
 
     private final OkHttpClient client = new OkHttpClient();
 
@@ -38,6 +49,138 @@ public class NextcloudUploader {
                 throw new IOException("HTTP " + response.code() + " " + response.message());
             }
         }
+    }
+
+    /**
+     * Listet die CSV-Dateinamen im angegebenen Nextcloud-Ordner per WebDAV-PROPFIND.
+     *
+     * @throws IOException bei Netzwerk-/HTTP-Fehlern
+     */
+    public List<String> listCsvFiles(String baseUrl, String user, String password, String folder)
+            throws IOException {
+        String url = buildFolderUrl(baseUrl, user, folder);
+        String body = "<?xml version=\"1.0\"?><d:propfind xmlns:d=\"DAV:\">"
+                + "<d:prop><d:resourcetype/></d:prop></d:propfind>";
+        Request request = new Request.Builder()
+                .url(url)
+                .header("Authorization", Credentials.basic(user, password))
+                .header("Depth", "1")
+                .method("PROPFIND", RequestBody.create(body, XML))
+                .build();
+
+        try (Response response = client.newCall(request).execute()) {
+            ResponseBody rb = response.body();
+            String xml = rb == null ? "" : rb.string();
+            if (!response.isSuccessful()) {
+                throw new IOException("HTTP " + response.code() + " " + response.message());
+            }
+            return parseCsvNames(xml);
+        }
+    }
+
+    /** Lädt den Textinhalt einer Datei aus dem Ordner herunter. */
+    public String downloadText(String baseUrl, String user, String password, String folder,
+                               String fileName) throws IOException {
+        String url = buildUrl(baseUrl, user, folder, fileName);
+        Request request = new Request.Builder()
+                .url(url)
+                .header("Authorization", Credentials.basic(user, password))
+                .get()
+                .build();
+        try (Response response = client.newCall(request).execute()) {
+            ResponseBody rb = response.body();
+            String content = rb == null ? "" : rb.string();
+            if (!response.isSuccessful()) {
+                throw new IOException("HTTP " + response.code() + " " + response.message());
+            }
+            return content;
+        }
+    }
+
+    /** Extrahiert aus der Multistatus-Antwort die Dateinamen mit Endung .csv (ohne Collections). */
+    private List<String> parseCsvNames(String xml) throws IOException {
+        List<String> names = new ArrayList<>();
+        try {
+            XmlPullParser parser = Xml.newPullParser();
+            parser.setFeature(XmlPullParser.FEATURE_PROCESS_NAMESPACES, false);
+            parser.setInput(new StringReader(xml));
+            int event = parser.getEventType();
+            String currentHref = null;
+            boolean isCollection = false;
+            while (event != XmlPullParser.END_DOCUMENT) {
+                String name = parser.getName();
+                if (event == XmlPullParser.START_TAG && name != null) {
+                    String local = localName(name);
+                    if (local.equals("response")) {
+                        currentHref = null;
+                        isCollection = false;
+                    } else if (local.equals("href")) {
+                        currentHref = parser.nextText();
+                    } else if (local.equals("collection")) {
+                        isCollection = true;
+                    }
+                } else if (event == XmlPullParser.END_TAG && "response".equals(localName(name))) {
+                    if (currentHref != null && !isCollection) {
+                        String fileName = lastSegment(currentHref);
+                        if (fileName.toLowerCase().endsWith(".csv")) {
+                            names.add(fileName);
+                        }
+                    }
+                }
+                event = parser.next();
+            }
+        } catch (XmlPullParserException e) {
+            throw new IOException("Antwort konnte nicht gelesen werden", e);
+        }
+        return names;
+    }
+
+    private String localName(String qName) {
+        if (qName == null) {
+            return "";
+        }
+        int i = qName.indexOf(':');
+        return (i >= 0 ? qName.substring(i + 1) : qName).toLowerCase();
+    }
+
+    private String lastSegment(String href) {
+        String h = href;
+        while (h.endsWith("/")) {
+            h = h.substring(0, h.length() - 1);
+        }
+        int slash = h.lastIndexOf('/');
+        String seg = slash >= 0 ? h.substring(slash + 1) : h;
+        try {
+            return URLDecoder.decode(seg, "UTF-8");
+        } catch (Exception e) {
+            return seg;
+        }
+    }
+
+    private String buildFolderUrl(String baseUrl, String user, String folder) {
+        String base = baseUrl.trim();
+        while (base.endsWith("/")) {
+            base = base.substring(0, base.length() - 1);
+        }
+        StringBuilder sb = new StringBuilder(base)
+                .append("/remote.php/dav/files/")
+                .append(encodePath(user));
+        String cleanFolder = folder == null ? "" : folder.trim();
+        while (cleanFolder.startsWith("/")) {
+            cleanFolder = cleanFolder.substring(1);
+        }
+        while (cleanFolder.endsWith("/")) {
+            cleanFolder = cleanFolder.substring(0, cleanFolder.length() - 1);
+        }
+        if (!cleanFolder.isEmpty()) {
+            for (String part : cleanFolder.split("/")) {
+                if (!part.isEmpty()) {
+                    sb.append("/").append(encodePath(part));
+                }
+            }
+        }
+        sb.append("/");
+        return sb.toString();
     }
 
     private String buildUrl(String baseUrl, String user, String folder, String fileName) {

@@ -33,4 +33,10 @@ public interface BookingDao {
 
     @Query("DELETE FROM booking")
     void deleteAll();
+
+    @Query("DELETE FROM booking WHERE account = :account AND exported = 1")
+    void deleteExportedByAccount(String account);
+
+    @Query("SELECT DISTINCT category FROM booking WHERE category != '' ORDER BY category COLLATE NOCASE ASC")
+    List<String> getDistinctCategories();
 }

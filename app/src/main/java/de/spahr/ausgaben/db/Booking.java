@@ -31,6 +31,10 @@ public class Booking {
     public String account = "";
 
     @NonNull
+    @ColumnInfo(name = "category")
+    public String category = "";
+
+    @NonNull
     @ColumnInfo(name = "note")
     public String note = "";
 

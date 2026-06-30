@@ -26,6 +26,12 @@ import de.spahr.ausgaben.db.Booking;
 public class CsvImporter {
 
     private final SimpleDateFormat isoDate = new SimpleDateFormat("yyyy-MM-dd", Locale.GERMANY);
+    private String parsedAccount = "";
+
+    /** Kontoname aus der zuletzt geparsten Datei (Zeile „Kontentyp:…"). */
+    public String getParsedAccount() {
+        return parsedAccount;
+    }
 
     /** Parst den Dateiinhalt. Wirft {@link IllegalArgumentException} bei unbrauchbarem Aufbau. */
     public List<Booking> parse(String content) {
@@ -54,6 +60,7 @@ public class CsvImporter {
         if (headerIndex < 0) {
             throw new IllegalArgumentException("Kopfzeile (beginnend mit 'Datum;') nicht gefunden");
         }
+        parsedAccount = account;
 
         List<Booking> result = new ArrayList<>();
         for (int i = headerIndex + 1; i < lines.length; i++) {
@@ -68,6 +75,7 @@ public class CsvImporter {
             String dateStr = fields.get(0).trim();
             String payee = fields.get(1).trim();
             String amountStr = fields.get(2).trim();
+            String category = fields.size() > 3 ? fields.get(3).trim() : "";
             String note = fields.size() > 4 ? fields.get(4).trim() : "";
 
             Long cents = parseAmountToCents(amountStr);
@@ -81,6 +89,7 @@ public class CsvImporter {
             b.isIncome = cents >= 0;
             b.payee = payee;
             b.account = account;
+            b.category = category;
             b.note = note;
             b.createdAt = when;
             b.exported = true;

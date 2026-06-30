@@ -1,6 +1,7 @@
 package de.spahr.ausgaben.ui;
 
 import android.content.Intent;
+import android.net.Uri;
 import android.os.Bundle;
 import android.view.LayoutInflater;
 import android.view.View;
@@ -8,6 +9,8 @@ import android.widget.ArrayAdapter;
 import android.widget.TextView;
 import android.widget.Toast;
 
+import androidx.activity.result.ActivityResultLauncher;
+import androidx.activity.result.contract.ActivityResultContracts;
 import androidx.annotation.NonNull;
 import androidx.appcompat.app.AppCompatActivity;
 import androidx.recyclerview.widget.LinearLayoutManager;
@@ -44,6 +47,8 @@ public class MainActivity extends AppCompatActivity {
     private String filterAccount = "";
     private Long filterAmountCents = null;
 
+    private ActivityResultLauncher<Uri> exportTreeLauncher;
+
     @Override
     protected void onCreate(Bundle savedInstanceState) {
         super.onCreate(savedInstanceState);
@@ -69,6 +74,17 @@ public class MainActivity extends AppCompatActivity {
         ExtendedFloatingActionButton fab = findViewById(R.id.fabNew);
         fab.setOnClickListener(v ->
                 startActivity(new Intent(this, BookingEditActivity.class)));
+
+        exportTreeLauncher = registerForActivityResult(
+                new ActivityResultContracts.OpenDocumentTree(), uri -> {
+                    if (uri != null) {
+                        getContentResolver().takePersistableUriPermission(uri,
+                                Intent.FLAG_GRANT_READ_URI_PERMISSION
+                                        | Intent.FLAG_GRANT_WRITE_URI_PERMISSION);
+                        settings.setLocalExportTree(uri.toString());
+                        runExport();
+                    }
+                });
 
         FloatingActionButton fabScrollTop = findViewById(R.id.fabScrollTop);
         fabScrollTop.setOnClickListener(v -> recycler.smoothScrollToPosition(0));
@@ -237,8 +253,19 @@ public class MainActivity extends AppCompatActivity {
     }
 
     private void doExport() {
+        // Ohne Nextcloud-Config lokal exportieren; ggf. zuerst Zielordner wählen.
+        if (!settings.hasNextcloudConfig() && settings.getLocalExportTree().isEmpty()) {
+            Toast.makeText(this, R.string.choose_export_folder, Toast.LENGTH_LONG).show();
+            exportTreeLauncher.launch(null);
+            return;
+        }
+        runExport();
+    }
+
+    private void runExport() {
         Toast.makeText(this, R.string.export_running, Toast.LENGTH_SHORT).show();
-        new ExportCoordinator(this, repository, settings).exportUnexported((message, refreshNeeded) -> {
+        String tree = settings.hasNextcloudConfig() ? null : settings.getLocalExportTree();
+        new ExportCoordinator(this, repository, settings, tree).exportUnexported((message, refreshNeeded) -> {
             Toast.makeText(this, message, Toast.LENGTH_LONG).show();
             if (refreshNeeded) {
                 refreshBookings();

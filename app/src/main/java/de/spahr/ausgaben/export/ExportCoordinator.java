@@ -1,9 +1,13 @@
 package de.spahr.ausgaben.export;
 
 import android.content.Context;
+import android.net.Uri;
+
+import androidx.documentfile.provider.DocumentFile;
 
 import java.io.File;
 import java.io.FileOutputStream;
+import java.io.OutputStream;
 import java.nio.charset.StandardCharsets;
 import java.util.ArrayList;
 import java.util.LinkedHashMap;
@@ -17,7 +21,8 @@ import de.spahr.ausgaben.settings.SettingsStore;
 
 /**
  * Bündelt den CSV-Export: gruppiert Buchungen nach Konto, erzeugt pro Konto eine Datei
- * (<Konto>-<Zeitstempel>.csv), speichert sie lokal und lädt sie auf Nextcloud hoch.
+ * (<Konto>-<Zeitstempel>.csv). Mit Nextcloud-Konfiguration wird hochgeladen, sonst lokal in einen
+ * per SAF gewählten Ordner geschrieben.
  */
 public class ExportCoordinator {
 
@@ -29,11 +34,19 @@ public class ExportCoordinator {
     private final Context appContext;
     private final Repository repository;
     private final SettingsStore settings;
+    private final String localTreeUri;
 
     public ExportCoordinator(Context context, Repository repository, SettingsStore settings) {
+        this(context, repository, settings, null);
+    }
+
+    /** {@code localTreeUri} = Ziel-Ordner (SAF-Tree) für den lokalen Export ohne Nextcloud. */
+    public ExportCoordinator(Context context, Repository repository, SettingsStore settings,
+                             String localTreeUri) {
         this.appContext = context.getApplicationContext();
         this.repository = repository;
         this.settings = settings;
+        this.localTreeUri = localTreeUri;
     }
 
     /** Normaler Export: nur unexportierte Buchungen; markiert sie nach Erfolg als exportiert. */
@@ -48,8 +61,9 @@ public class ExportCoordinator {
 
     private void run(boolean onlyUnexported, ResultListener listener) {
         repository.executor().execute(() -> {
-            if (!settings.hasNextcloudConfig()) {
-                post(listener, "Bitte zuerst die Nextcloud-Zugangsdaten in den Einstellungen hinterlegen", false);
+            boolean upload = settings.hasNextcloudConfig();
+            if (!upload && (localTreeUri == null || localTreeUri.isEmpty())) {
+                post(listener, "Kein Zielordner gewählt", false);
                 return;
             }
 
@@ -77,6 +91,8 @@ public class ExportCoordinator {
 
             CsvExporter exporter = new CsvExporter();
             NextcloudUploader uploader = new NextcloudUploader();
+            DocumentFile targetDir = upload ? null
+                    : DocumentFile.fromTreeUri(appContext, Uri.parse(localTreeUri));
             int okAccounts = 0;
             int okBookings = 0;
             boolean marked = false;
@@ -87,9 +103,13 @@ public class ExportCoordinator {
                 String content = exporter.build(accountBookings);
                 String fileName = exporter.buildFileName(entry.getKey());
                 try {
-                    saveLocalCopy(fileName, content);
-                    uploader.upload(settings.getUrl(), settings.getUser(), settings.getPassword(),
-                            settings.getFolder(), fileName, content);
+                    if (upload) {
+                        saveLocalCopy(fileName, content);
+                        uploader.upload(settings.getUrl(), settings.getUser(), settings.getPassword(),
+                                settings.getFolder(), fileName, content);
+                    } else {
+                        writeToTree(targetDir, fileName, content);
+                    }
 
                     if (onlyUnexported) {
                         List<Long> ids = new ArrayList<>();
@@ -110,7 +130,7 @@ public class ExportCoordinator {
             StringBuilder sb = new StringBuilder();
             if (okAccounts > 0) {
                 sb.append(okBookings).append(" Buchung(en) in ").append(okAccounts)
-                        .append(" Datei(en) hochgeladen");
+                        .append(upload ? " Datei(en) hochgeladen" : " Datei(en) lokal gespeichert");
             }
             if (!errors.isEmpty()) {
                 if (sb.length() > 0) {
@@ -120,6 +140,22 @@ public class ExportCoordinator {
             }
             post(listener, sb.toString(), marked);
         });
+    }
+
+    private void writeToTree(DocumentFile dir, String fileName, String content) throws java.io.IOException {
+        if (dir == null || !dir.canWrite()) {
+            throw new java.io.IOException("Zielordner nicht beschreibbar");
+        }
+        DocumentFile file = dir.createFile("text/csv", fileName);
+        if (file == null) {
+            throw new java.io.IOException("Datei konnte nicht angelegt werden");
+        }
+        try (OutputStream os = appContext.getContentResolver().openOutputStream(file.getUri())) {
+            if (os == null) {
+                throw new java.io.IOException("Kein Schreibzugriff");
+            }
+            os.write(content.getBytes(StandardCharsets.UTF_8));
+        }
     }
 
     private void saveLocalCopy(String fileName, String content) throws java.io.IOException {

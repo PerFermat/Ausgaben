@@ -16,7 +16,8 @@ public class CsvExporter {
 
     private static final String SEPARATOR = ";";
     private static final String NEWLINE = "\r\n";
-    private static final String[] HEADER = {"Datum", "Empfänger", "Konto", "Typ", "Betrag", "Notiz"};
+    private static final String[] HEADER =
+            {"Datum", "Empfänger", "Konto", "Typ", "Betrag", "Notiz", "Kategorie"};
 
     private final SimpleDateFormat dateFormat = new SimpleDateFormat("dd.MM.yyyy", Locale.GERMANY);
     private final SimpleDateFormat timestampFormat = new SimpleDateFormat("yyyyMMdd-HHmmss", Locale.GERMANY);
@@ -34,7 +35,8 @@ public class CsvExporter {
                     b.account,
                     typ,
                     formatAmount(b.amountCents, b.isIncome),
-                    b.note
+                    b.note,
+                    b.category
             })).append(NEWLINE);
         }
         return sb.toString();

@@ -8,6 +8,8 @@
     <string name="payee_hint">Geldempfänger</string>
     <string name="account_hint">Konto</string>
     <string name="note_hint">Notiz (optional)</string>
+    <string name="category_hint">Kategorie (optional)</string>
+    <string name="mark_exported">Als exportiert markiert</string>
     <string name="date_hint">Datum</string>
     <string name="save">Speichern</string>
     <string name="today">Heute</string>
@@ -73,8 +75,13 @@
     <string name="reset_confirm_message">Alle Buchungen sowie die Konto- und Empfängerlisten werden gelöscht. Einstellungen bleiben erhalten.</string>
     <string name="reset_done">Datenbank zurückgesetzt</string>
     <string name="password_saved_hint">•••••• (gespeichert)</string>
-    <string name="import_done">%1$d Buchung(en) importiert</string>
+    <string name="import_done">%1$d Buchung(en) importiert (Konto ersetzt)</string>
     <string name="import_failed">Import fehlgeschlagen: %1$s</string>
+    <string name="nextcloud_import_folder_hint">Import-Ordner (Nextcloud)</string>
+    <string name="loading_files">Dateiliste wird geladen…</string>
+    <string name="no_files">Keine CSV-Dateien im Import-Ordner gefunden</string>
+    <string name="choose_import_file">Importdatei wählen</string>
+    <string name="choose_export_folder">Bitte Zielordner für den Export wählen</string>
     <string name="backup_done">Backup gespeichert</string>
     <string name="backup_failed">Backup fehlgeschlagen: %1$s</string>
     <string name="export_all_running">Kompletter Export läuft…</string>

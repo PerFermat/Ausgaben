@@ -27,7 +27,6 @@ import java.io.OutputStream;
 import java.nio.charset.StandardCharsets;
 import java.text.SimpleDateFormat;
 import java.util.Date;
-import java.util.List;
 import java.util.Locale;
 
 import de.spahr.ausgaben.R;
@@ -36,6 +35,7 @@ import de.spahr.ausgaben.db.Booking;
 import de.spahr.ausgaben.db.Repository;
 import de.spahr.ausgaben.export.CsvImporter;
 import de.spahr.ausgaben.export.ExportCoordinator;
+import de.spahr.ausgaben.net.NextcloudUploader;
 import de.spahr.ausgaben.settings.SettingsStore;
 
 public class SettingsActivity extends AppCompatActivity {
@@ -48,12 +48,14 @@ public class SettingsActivity extends AppCompatActivity {
     private TextInputEditText editPassword;
     private TextInputLayout passwordLayout;
     private TextInputEditText editFolder;
+    private TextInputEditText editImportFolder;
     private MaterialAutoCompleteTextView editDefaultAccount;
     private MaterialSwitch switchDarkMode;
 
     private ActivityResultLauncher<String[]> importLauncher;
     private ActivityResultLauncher<String> backupLauncher;
     private ActivityResultLauncher<String[]> restoreLauncher;
+    private ActivityResultLauncher<Uri> exportTreeLauncher;
 
     @Override
     protected void onCreate(Bundle savedInstanceState) {
@@ -71,12 +73,14 @@ public class SettingsActivity extends AppCompatActivity {
         editPassword = findViewById(R.id.editPassword);
         passwordLayout = findViewById(R.id.passwordLayout);
         editFolder = findViewById(R.id.editFolder);
+        editImportFolder = findViewById(R.id.editImportFolder);
         editDefaultAccount = findViewById(R.id.editDefaultAccount);
         switchDarkMode = findViewById(R.id.switchDarkMode);
 
         editUrl.setText(settings.getUrl());
         editUser.setText(settings.getUser());
         editFolder.setText(settings.getFolder());
+        editImportFolder.setText(settings.getImportFolder());
         editDefaultAccount.setText(settings.getDefaultAccount(), false);
 
         // Passwort wird nie angezeigt; nur ein Hinweis, wenn eines gespeichert ist.
@@ -98,8 +102,7 @@ public class SettingsActivity extends AppCompatActivity {
 
         MaterialButton btnSave = findViewById(R.id.btnSaveSettings);
         btnSave.setOnClickListener(v -> save());
-        ((MaterialButton) findViewById(R.id.btnImport)).setOnClickListener(
-                v -> importLauncher.launch(new String[]{"text/*", "text/csv", "text/comma-separated-values", "application/octet-stream"}));
+        ((MaterialButton) findViewById(R.id.btnImport)).setOnClickListener(v -> onImportClicked());
         ((MaterialButton) findViewById(R.id.btnExportAll)).setOnClickListener(v -> exportAll());
         ((MaterialButton) findViewById(R.id.btnBackup)).setOnClickListener(
                 v -> backupLauncher.launch("ausgaben-backup-" + timestamp() + ".db"));
@@ -129,6 +132,89 @@ public class SettingsActivity extends AppCompatActivity {
                         doRestore(uri);
                     }
                 });
+        exportTreeLauncher = registerForActivityResult(
+                new ActivityResultContracts.OpenDocumentTree(),
+                uri -> {
+                    if (uri != null) {
+                        getContentResolver().takePersistableUriPermission(uri,
+                                Intent.FLAG_GRANT_READ_URI_PERMISSION
+                                        | Intent.FLAG_GRANT_WRITE_URI_PERMISSION);
+                        settings.setLocalExportTree(uri.toString());
+                        runExportAll();
+                    }
+                });
+    }
+
+    // ---- Import (Nextcloud-Liste oder lokaler Picker) ----
+
+    private void onImportClicked() {
+        if (settings.hasNextcloudConfig()) {
+            loadNextcloudFileList();
+        } else {
+            importLauncher.launch(new String[]{
+                    "text/*", "text/csv", "text/comma-separated-values", "application/octet-stream"});
+        }
+    }
+
+    private void loadNextcloudFileList() {
+        Toast.makeText(this, R.string.loading_files, Toast.LENGTH_SHORT).show();
+        new Thread(() -> {
+            try {
+                java.util.List<String> files = new NextcloudUploader().listCsvFiles(
+                        settings.getUrl(), settings.getUser(), settings.getPassword(),
+                        settings.getImportFolder());
+                runOnUiThread(() -> {
+                    if (files.isEmpty()) {
+                        Toast.makeText(this, R.string.no_files, Toast.LENGTH_LONG).show();
+                    } else {
+                        showFilePickDialog(files);
+                    }
+                });
+            } catch (Exception e) {
+                String msg = e.getMessage() == null ? e.toString() : e.getMessage();
+                runOnUiThread(() -> Toast.makeText(this,
+                        getString(R.string.import_failed, msg), Toast.LENGTH_LONG).show());
+            }
+        }).start();
+    }
+
+    private void showFilePickDialog(java.util.List<String> files) {
+        String[] items = files.toArray(new String[0]);
+        new MaterialAlertDialogBuilder(this, R.style.ThemeOverlay_Ausgaben_Dialog)
+                .setTitle(R.string.choose_import_file)
+                .setItems(items, (d, which) -> downloadAndImport(items[which]))
+                .setNegativeButton(R.string.cancel, null)
+                .show();
+    }
+
+    private void downloadAndImport(String fileName) {
+        new Thread(() -> {
+            try {
+                String content = new NextcloudUploader().downloadText(
+                        settings.getUrl(), settings.getUser(), settings.getPassword(),
+                        settings.getImportFolder(), fileName);
+                processImport(content);
+            } catch (Exception e) {
+                String msg = e.getMessage() == null ? e.toString() : e.getMessage();
+                runOnUiThread(() -> Toast.makeText(this,
+                        getString(R.string.import_failed, msg), Toast.LENGTH_LONG).show());
+            }
+        }).start();
+    }
+
+    /** Parst den Inhalt und ersetzt die exportierten Buchungen des Kontos. Aufruf aus Hintergrund-Thread. */
+    private void processImport(String content) {
+        try {
+            CsvImporter importer = new CsvImporter();
+            java.util.List<Booking> bookings = importer.parse(content);
+            String account = importer.getParsedAccount();
+            runOnUiThread(() -> repository.replaceImport(account, bookings, count ->
+                    Toast.makeText(this, getString(R.string.import_done, count), Toast.LENGTH_LONG).show()));
+        } catch (Exception e) {
+            String msg = e.getMessage() == null ? e.toString() : e.getMessage();
+            runOnUiThread(() -> Toast.makeText(this,
+                    getString(R.string.import_failed, msg), Toast.LENGTH_LONG).show());
+        }
     }
 
     private void confirmReset() {
@@ -226,6 +312,7 @@ public class SettingsActivity extends AppCompatActivity {
                 textOf(editUser),
                 textOf(editPassword),
                 textOf(editFolder),
+                textOf(editImportFolder),
                 defaultAccount);
 
         repository.ensureAccount(defaultAccount);
@@ -235,18 +322,25 @@ public class SettingsActivity extends AppCompatActivity {
     }
 
     private void exportAll() {
+        if (!settings.hasNextcloudConfig() && settings.getLocalExportTree().isEmpty()) {
+            Toast.makeText(this, R.string.choose_export_folder, Toast.LENGTH_LONG).show();
+            exportTreeLauncher.launch(null);
+            return;
+        }
+        runExportAll();
+    }
+
+    private void runExportAll() {
         Toast.makeText(this, R.string.export_all_running, Toast.LENGTH_SHORT).show();
-        new ExportCoordinator(this, repository, settings).exportAll(
+        String tree = settings.hasNextcloudConfig() ? null : settings.getLocalExportTree();
+        new ExportCoordinator(this, repository, settings, tree).exportAll(
                 (message, refreshNeeded) -> Toast.makeText(this, message, Toast.LENGTH_LONG).show());
     }
 
     private void doImport(Uri uri) {
         new Thread(() -> {
             try {
-                String content = readText(uri);
-                List<Booking> bookings = new CsvImporter().parse(content);
-                runOnUiThread(() -> repository.importBookings(bookings, count ->
-                        Toast.makeText(this, getString(R.string.import_done, count), Toast.LENGTH_LONG).show()));
+                processImport(readText(uri));
             } catch (Exception e) {
                 String msg = e.getMessage() == null ? e.toString() : e.getMessage();
                 runOnUiThread(() -> Toast.makeText(this,

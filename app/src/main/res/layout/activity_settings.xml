@@ -162,16 +162,6 @@
             android:textStyle="bold" />
 
         <com.google.android.material.button.MaterialButton
-            android:id="@+id/btnImport"
-            style="?attr/materialButtonOutlinedStyle"
-            android:layout_width="match_parent"
-            android:layout_height="wrap_content"
-            android:layout_marginTop="8dp"
-            android:textColor="@color/button_accent"
-            app:strokeColor="@color/button_accent"
-            android:text="@string/import_csv" />
-
-        <com.google.android.material.button.MaterialButton
             android:id="@+id/btnExportAll"
             style="?attr/materialButtonOutlinedStyle"
             android:layout_width="match_parent"

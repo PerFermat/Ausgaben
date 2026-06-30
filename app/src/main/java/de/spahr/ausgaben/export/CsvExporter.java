@@ -22,9 +22,10 @@ public class CsvExporter {
     private final SimpleDateFormat dateFormat = new SimpleDateFormat("dd.MM.yyyy", Locale.GERMANY);
     private final SimpleDateFormat timestampFormat = new SimpleDateFormat("yyyyMMdd-HHmmss", Locale.GERMANY);
 
-    /** Baut den CSV-Inhalt für die übergebenen Buchungen. */
-    public String build(List<Booking> bookings) {
+    /** Baut den CSV-Inhalt für die übergebenen Buchungen, beginnend mit "Kontentyp:<Konto>" + Leerzeile. */
+    public String build(String account, List<Booking> bookings) {
         StringBuilder sb = new StringBuilder();
+        sb.append("Kontentyp:").append(account == null ? "" : account).append(NEWLINE).append(NEWLINE);
         sb.append(joinRow(HEADER)).append(NEWLINE);
         for (Booking b : bookings) {
             String datum = dateFormat.format(new Date(b.createdAt));

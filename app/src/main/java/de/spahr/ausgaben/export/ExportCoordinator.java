@@ -100,7 +100,7 @@ public class ExportCoordinator {
 
             for (Map.Entry<String, List<Booking>> entry : byAccount.entrySet()) {
                 List<Booking> accountBookings = entry.getValue();
-                String content = exporter.build(accountBookings);
+                String content = exporter.build(entry.getKey(), accountBookings);
                 String fileName = exporter.buildFileName(entry.getKey());
                 try {
                     if (upload) {

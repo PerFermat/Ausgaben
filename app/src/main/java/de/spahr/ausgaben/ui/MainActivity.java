@@ -22,8 +22,11 @@ import com.google.android.material.floatingactionbutton.FloatingActionButton;
 import com.google.android.material.textfield.MaterialAutoCompleteTextView;
 import com.google.android.material.textfield.TextInputEditText;
 
+import java.io.ByteArrayOutputStream;
+import java.io.InputStream;
 import java.math.BigDecimal;
 import java.math.RoundingMode;
+import java.nio.charset.StandardCharsets;
 import java.util.ArrayList;
 import java.util.List;
 import java.util.Locale;
@@ -31,7 +34,9 @@ import java.util.Locale;
 import de.spahr.ausgaben.R;
 import de.spahr.ausgaben.db.Booking;
 import de.spahr.ausgaben.db.Repository;
+import de.spahr.ausgaben.export.CsvImporter;
 import de.spahr.ausgaben.export.ExportCoordinator;
+import de.spahr.ausgaben.net.NextcloudUploader;
 import de.spahr.ausgaben.settings.SettingsStore;
 
 public class MainActivity extends AppCompatActivity {
@@ -48,6 +53,7 @@ public class MainActivity extends AppCompatActivity {
     private Long filterAmountCents = null;
 
     private ActivityResultLauncher<Uri> exportTreeLauncher;
+    private ActivityResultLauncher<String[]> importLauncher;
 
     @Override
     protected void onCreate(Bundle savedInstanceState) {
@@ -83,6 +89,12 @@ public class MainActivity extends AppCompatActivity {
                                         | Intent.FLAG_GRANT_WRITE_URI_PERMISSION);
                         settings.setLocalExportTree(uri.toString());
                         runExport();
+                    }
+                });
+        importLauncher = registerForActivityResult(
+                new ActivityResultContracts.OpenDocument(), uri -> {
+                    if (uri != null) {
+                        doImportLocal(uri);
                     }
                 });
 
@@ -231,7 +243,10 @@ public class MainActivity extends AppCompatActivity {
     @Override
     public boolean onOptionsItemSelected(@NonNull android.view.MenuItem item) {
         int id = item.getItemId();
-        if (id == R.id.action_export) {
+        if (id == R.id.action_import) {
+            onImportClicked();
+            return true;
+        } else if (id == R.id.action_export) {
             doExport();
             return true;
         } else if (id == R.id.action_filter) {
@@ -271,5 +286,103 @@ public class MainActivity extends AppCompatActivity {
                 refreshBookings();
             }
         });
+    }
+
+    // ---- Import (Nextcloud-Liste oder lokaler Picker) ----
+
+    private void onImportClicked() {
+        if (settings.hasNextcloudConfig()) {
+            loadNextcloudFileList();
+        } else {
+            importLauncher.launch(new String[]{
+                    "text/*", "text/csv", "text/comma-separated-values", "application/octet-stream"});
+        }
+    }
+
+    private void loadNextcloudFileList() {
+        Toast.makeText(this, R.string.loading_files, Toast.LENGTH_SHORT).show();
+        new Thread(() -> {
+            try {
+                List<String> files = new NextcloudUploader().listCsvFiles(
+                        settings.getUrl(), settings.getUser(), settings.getPassword(),
+                        settings.getImportFolder());
+                runOnUiThread(() -> {
+                    if (files.isEmpty()) {
+                        Toast.makeText(this, R.string.no_files, Toast.LENGTH_LONG).show();
+                    } else {
+                        showFilePickDialog(files);
+                    }
+                });
+            } catch (Exception e) {
+                final String msg = e.getMessage() == null ? e.toString() : e.getMessage();
+                runOnUiThread(() -> Toast.makeText(this,
+                        getString(R.string.import_failed, msg), Toast.LENGTH_LONG).show());
+            }
+        }).start();
+    }
+
+    private void showFilePickDialog(List<String> files) {
+        String[] items = files.toArray(new String[0]);
+        new MaterialAlertDialogBuilder(this, R.style.ThemeOverlay_Ausgaben_Dialog)
+                .setTitle(R.string.choose_import_file)
+                .setItems(items, (d, which) -> downloadAndImport(items[which]))
+                .setNegativeButton(R.string.cancel, null)
+                .show();
+    }
+
+    private void downloadAndImport(String fileName) {
+        new Thread(() -> {
+            try {
+                String content = new NextcloudUploader().downloadText(
+                        settings.getUrl(), settings.getUser(), settings.getPassword(),
+                        settings.getImportFolder(), fileName);
+                processImport(content);
+            } catch (Exception e) {
+                final String msg = e.getMessage() == null ? e.toString() : e.getMessage();
+                runOnUiThread(() -> Toast.makeText(this,
+                        getString(R.string.import_failed, msg), Toast.LENGTH_LONG).show());
+            }
+        }).start();
+    }
+
+    private void doImportLocal(Uri uri) {
+        new Thread(() -> {
+            try {
+                processImport(readText(uri));
+            } catch (Exception e) {
+                final String msg = e.getMessage() == null ? e.toString() : e.getMessage();
+                runOnUiThread(() -> Toast.makeText(this,
+                        getString(R.string.import_failed, msg), Toast.LENGTH_LONG).show());
+            }
+        }).start();
+    }
+
+    /** Parst den Inhalt und ersetzt die exportierten Buchungen des Kontos. Aufruf aus Hintergrund-Thread. */
+    private void processImport(String content) {
+        try {
+            CsvImporter importer = new CsvImporter();
+            List<Booking> bookings = importer.parse(content);
+            String account = importer.getParsedAccount();
+            runOnUiThread(() -> repository.replaceImport(account, bookings, count -> {
+                Toast.makeText(this, getString(R.string.import_done, count), Toast.LENGTH_LONG).show();
+                refreshBookings();
+            }));
+        } catch (Exception e) {
+            final String msg = e.getMessage() == null ? e.toString() : e.getMessage();
+            runOnUiThread(() -> Toast.makeText(this,
+                    getString(R.string.import_failed, msg), Toast.LENGTH_LONG).show());
+        }
+    }
+
+    private String readText(Uri uri) throws Exception {
+        try (InputStream is = getContentResolver().openInputStream(uri)) {
+            ByteArrayOutputStream bos = new ByteArrayOutputStream();
+            byte[] buf = new byte[8192];
+            int n;
+            while (is != null && (n = is.read(buf)) > 0) {
+                bos.write(buf, 0, n);
+            }
+            return new String(bos.toByteArray(), StandardCharsets.UTF_8);
+        }
     }
 }

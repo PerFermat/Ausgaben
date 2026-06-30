@@ -19,6 +19,7 @@
     <string name="duplicated">Werte übernommen – anpassen und speichern</string>
 
     <!-- Menü -->
+    <string name="action_import">Importieren</string>
     <string name="action_export">Exportieren</string>
     <string name="action_filter">Filtern</string>
     <string name="action_analysis">Auswertung</string>

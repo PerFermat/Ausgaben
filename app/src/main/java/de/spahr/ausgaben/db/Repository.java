@@ -239,27 +239,30 @@ public class Repository {
      * (Empfänger „Unbekannt", Kategorie „Sonstiges", Konto {@code account}).
      */
     public void saveReconcile(final String place, final long targetCents, final String account,
-                              final Runnable onDone) {
+                              final boolean createBooking, final Runnable onDone) {
         executor.execute(() -> {
             long current = placeEntryDao.getBalance(place);
             long diff = targetCents - current;
             if (diff != 0) {
                 long now = System.currentTimeMillis();
                 placeEntryDao.insert(new PlaceEntry(place, diff, now, "reconcile"));
-                Booking b = new Booking();
-                b.amountCents = Math.abs(diff);
-                b.isIncome = diff >= 0;
-                b.payee = "Unbekannt";
-                b.account = account == null ? "" : account;
-                b.category = "Sonstiges";
-                b.note = "Kassensturz " + place;
-                b.createdAt = now;
-                b.exported = false;
-                if (!b.account.isEmpty()) {
-                    accountDao.insertIfAbsent(new Account(b.account));
+                // Ohne Buchung: nur der Ort-Saldo wird gesetzt; die Differenz erscheint in „ohne Ort".
+                if (createBooking) {
+                    Booking b = new Booking();
+                    b.amountCents = Math.abs(diff);
+                    b.isIncome = diff >= 0;
+                    b.payee = "Unbekannt";
+                    b.account = account == null ? "" : account;
+                    b.category = "Sonstiges";
+                    b.note = "Kassensturz " + place;
+                    b.createdAt = now;
+                    b.exported = false;
+                    if (!b.account.isEmpty()) {
+                        accountDao.insertIfAbsent(new Account(b.account));
+                    }
+                    payeeDao.insertIfAbsent(new Payee(b.payee));
+                    bookingDao.insert(b);
                 }
-                payeeDao.insertIfAbsent(new Payee(b.payee));
-                bookingDao.insert(b);
             }
             if (onDone != null) {
                 mainHandler.post(onDone);

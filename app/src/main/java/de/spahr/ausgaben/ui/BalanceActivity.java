@@ -181,6 +181,8 @@ public class BalanceActivity extends AppCompatActivity {
         View view = LayoutInflater.from(this).inflate(R.layout.dialog_reconcile, null, false);
         MaterialAutoCompleteTextView place = view.findViewById(R.id.reconcilePlace);
         TextInputEditText amount = view.findViewById(R.id.reconcileAmount);
+        com.google.android.material.checkbox.MaterialCheckBox createBooking =
+                view.findViewById(R.id.reconcileCreateBooking);
         amount.setKeyListener(android.text.method.DigitsKeyListener.getInstance("0123456789.,"));
 
         place.setAdapter(new ArrayAdapter<>(this, android.R.layout.simple_list_item_1, places));
@@ -196,7 +198,8 @@ public class BalanceActivity extends AppCompatActivity {
                         Toast.makeText(this, R.string.error_amount, Toast.LENGTH_SHORT).show();
                         return;
                     }
-                    repository.saveReconcile(p, cents, settings.getDefaultAccount(), this::refresh);
+                    repository.saveReconcile(p, cents, settings.getDefaultAccount(),
+                            createBooking.isChecked(), this::refresh);
                 })
                 .setNegativeButton(R.string.cancel, null)
                 .show();

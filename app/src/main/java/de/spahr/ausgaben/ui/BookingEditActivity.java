@@ -190,6 +190,26 @@ public class BookingEditActivity extends AppCompatActivity {
         }
         b.exported = false;
         String place = editPlace.getText() == null ? "" : editPlace.getText().toString();
+
+        if (!isToday(selectedDate)) {
+            String dateStr = dateDisplay.format(selectedDate.getTime());
+            new MaterialAlertDialogBuilder(this, R.style.ThemeOverlay_Ausgaben_Dialog)
+                    .setTitle(R.string.date_confirm_title)
+                    .setMessage(getString(R.string.date_confirm_message, dateStr))
+                    .setPositiveButton(getString(R.string.date_use_given, dateStr),
+                            (d, w) -> persistNew(b, place))
+                    .setNegativeButton(R.string.date_use_today, (d, w) -> {
+                        b.createdAt = System.currentTimeMillis();
+                        persistNew(b, place);
+                    })
+                    .setNeutralButton(R.string.cancel, null)
+                    .show();
+        } else {
+            persistNew(b, place);
+        }
+    }
+
+    private void persistNew(Booking b, String place) {
         repository.saveBookingWithPlace(b, place, () -> {
             Toast.makeText(this, R.string.booking_saved, Toast.LENGTH_SHORT).show();
             finish();

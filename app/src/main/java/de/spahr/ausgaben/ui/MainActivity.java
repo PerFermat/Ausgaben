@@ -214,12 +214,17 @@ public class MainActivity extends AppCompatActivity {
             accountLabel = getString(R.string.saldo_total);
         }
         saldoViews.add(new SaldoView(VIEW_TOTAL, accountLabel, totalBalance));
+        // Orte mit Saldo 0 werden beim Durchschalten übersprungen (nicht aufgenommen).
         for (String place : placesStore.getPlaces()) {
             long bal = placeBalances.containsKey(place) ? placeBalances.get(place) : 0L;
-            saldoViews.add(new SaldoView(VIEW_PLACE_PREFIX + place, place, bal));
+            if (bal != 0) {
+                saldoViews.add(new SaldoView(VIEW_PLACE_PREFIX + place, place, bal));
+            }
         }
-        saldoViews.add(new SaldoView(VIEW_NOPLACE, getString(R.string.no_place),
-                totalBalance - allPlaceEntrySum));
+        long ohneOrt = totalBalance - allPlaceEntrySum;
+        if (ohneOrt != 0) {
+            saldoViews.add(new SaldoView(VIEW_NOPLACE, getString(R.string.no_place), ohneOrt));
+        }
         if (isFilterActive()) {
             saldoViews.add(new SaldoView(VIEW_FILTERED, getString(R.string.saldo_filtered), filteredSum));
         }
@@ -244,6 +249,19 @@ public class MainActivity extends AppCompatActivity {
         }
         saldoIndex = (saldoIndex + 1) % saldoViews.size();
         showSaldo();
+        flashSaldoBar();
+    }
+
+    /** Kurzes Aufhellen der (dauerhaft grauen) Saldo-Leiste beim Wechsel. */
+    private void flashSaldoBar() {
+        final View bar = findViewById(R.id.saldoHeader);
+        int from = getColor(R.color.saldo_bar_flash);
+        int to = getColor(R.color.saldo_bar_bg);
+        android.animation.ValueAnimator anim = android.animation.ValueAnimator.ofObject(
+                new android.animation.ArgbEvaluator(), from, to);
+        anim.setDuration(350);
+        anim.addUpdateListener(a -> bar.setBackgroundColor((int) a.getAnimatedValue()));
+        anim.start();
     }
 
     private int indexOfFilteredView() {
@@ -299,6 +317,7 @@ public class MainActivity extends AppCompatActivity {
                     if (isFilterActive()) {
                         saldoIndex = indexOfFilteredView();
                         showSaldo();
+                        flashSaldoBar();
                     }
                 })
                 .setNeutralButton(R.string.filter_reset, (d, w) -> {
@@ -308,6 +327,7 @@ public class MainActivity extends AppCompatActivity {
                     saldoIndex = 0;
                     applyFilter();
                     showSaldo();
+                    flashSaldoBar();
                 })
                 .setNegativeButton(R.string.cancel, null)
                 .show();

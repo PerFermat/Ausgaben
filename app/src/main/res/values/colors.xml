@@ -14,4 +14,7 @@
     <color name="chart_text">#000000</color>
     <!-- Diagramm-Linie (laufender Saldo) -->
     <color name="chart_line">#1565C0</color>
+    <!-- Saldo-Leiste: dauerhaft grau, beim Wechsel kurz heller -->
+    <color name="saldo_bar_bg">#E0E0E0</color>
+    <color name="saldo_bar_flash">#F5F5F5</color>
 </resources>

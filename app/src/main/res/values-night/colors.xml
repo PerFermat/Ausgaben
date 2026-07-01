@@ -8,4 +8,6 @@
     <!-- Diagramm-Text (Werte/Achsen): weiß im Dunkelmodus -->
     <color name="chart_text">#FFFFFF</color>
     <color name="chart_line">#64B5F6</color>
+    <color name="saldo_bar_bg">#3A3A3A</color>
+    <color name="saldo_bar_flash">#565656</color>
 </resources>

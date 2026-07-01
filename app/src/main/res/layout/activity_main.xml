@@ -28,7 +28,7 @@
             android:paddingVertical="12dp"
             android:clickable="true"
             android:focusable="true"
-            android:background="?attr/selectableItemBackground"
+            android:background="@color/saldo_bar_bg"
             android:foreground="?attr/selectableItemBackground">
 
             <TextView

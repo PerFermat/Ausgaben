@@ -21,9 +21,13 @@ import java.text.SimpleDateFormat;
 import java.util.Calendar;
 import java.util.Locale;
 
+import java.util.ArrayList;
+import java.util.List;
+
 import de.spahr.ausgaben.R;
 import de.spahr.ausgaben.db.Booking;
 import de.spahr.ausgaben.db.Repository;
+import de.spahr.ausgaben.settings.PlacesStore;
 import de.spahr.ausgaben.settings.SettingsStore;
 
 /**
@@ -37,6 +41,7 @@ public class BookingEditActivity extends AppCompatActivity {
 
     private Repository repository;
     private SettingsStore settings;
+    private PlacesStore placesStore;
     private Booking booking; // null = Neu-Modus
 
     private MaterialToolbar toolbar;
@@ -45,6 +50,7 @@ public class BookingEditActivity extends AppCompatActivity {
     private MaterialAutoCompleteTextView editPayee;
     private MaterialAutoCompleteTextView editAccount;
     private MaterialAutoCompleteTextView editCategory;
+    private MaterialAutoCompleteTextView editPlace;
     private TextInputEditText editNote;
     private TextInputEditText editDate;
     private com.google.android.material.materialswitch.MaterialSwitch switchExported;
@@ -65,6 +71,7 @@ public class BookingEditActivity extends AppCompatActivity {
 
         repository = new Repository(this);
         settings = new SettingsStore(this);
+        placesStore = new PlacesStore(this);
 
         toggleType = findViewById(R.id.toggleType);
         editAmount = findViewById(R.id.editAmount);
@@ -72,6 +79,7 @@ public class BookingEditActivity extends AppCompatActivity {
         editPayee = findViewById(R.id.editPayee);
         editAccount = findViewById(R.id.editAccount);
         editCategory = findViewById(R.id.editCategory);
+        editPlace = findViewById(R.id.editPlace);
         editNote = findViewById(R.id.editNote);
         editDate = findViewById(R.id.editDate);
         switchExported = findViewById(R.id.switchExported);
@@ -92,6 +100,8 @@ public class BookingEditActivity extends AppCompatActivity {
                 new ArrayAdapter<>(this, android.R.layout.simple_list_item_1, names)));
         repository.getCategoryNames(names -> editCategory.setAdapter(
                 new ArrayAdapter<>(this, android.R.layout.simple_list_item_1, names)));
+
+        setupPlaceDropdown();
 
         findViewById(R.id.btnSaveNew).setOnClickListener(v -> saveAsNew());
         btnUpdate.setOnClickListener(v -> update());
@@ -163,6 +173,15 @@ public class BookingEditActivity extends AppCompatActivity {
                 selectedDate.get(Calendar.DAY_OF_MONTH)).show();
     }
 
+    private void setupPlaceDropdown() {
+        List<String> options = new ArrayList<>(placesStore.getPlaces());
+        options.add(PlacesStore.NO_PLACE);
+        editPlace.setAdapter(new ArrayAdapter<>(this, android.R.layout.simple_list_item_1, options));
+        String def = placesStore.getDefaultPlace();
+        String preset = (!def.isEmpty() && options.contains(def)) ? def : PlacesStore.NO_PLACE;
+        editPlace.setText(preset, false);
+    }
+
     /** Legt aus den aktuellen Feldwerten eine NEUE Buchung an (auch als „Duplizieren" im Bearbeiten-Modus). */
     private void saveAsNew() {
         Booking b = readValidFields(new Booking());
@@ -170,7 +189,8 @@ public class BookingEditActivity extends AppCompatActivity {
             return;
         }
         b.exported = false;
-        repository.saveBooking(b, () -> {
+        String place = editPlace.getText() == null ? "" : editPlace.getText().toString();
+        repository.saveBookingWithPlace(b, place, () -> {
             Toast.makeText(this, R.string.booking_saved, Toast.LENGTH_SHORT).show();
             finish();
         });

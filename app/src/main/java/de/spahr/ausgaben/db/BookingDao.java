@@ -34,6 +34,10 @@ public interface BookingDao {
     @Query("DELETE FROM booking")
     void deleteAll();
 
+    /** Gesamtsaldo aller Buchungen (Einnahmen − Ausgaben). */
+    @Query("SELECT COALESCE(SUM(CASE WHEN is_income THEN amount_cents ELSE -amount_cents END), 0) FROM booking")
+    long getTotalBalance();
+
     @Query("DELETE FROM booking WHERE account = :account AND exported = 1")
     void deleteExportedByAccount(String account);
 

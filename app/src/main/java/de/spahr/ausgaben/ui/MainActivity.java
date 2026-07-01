@@ -33,24 +33,53 @@ import java.util.Locale;
 
 import de.spahr.ausgaben.R;
 import de.spahr.ausgaben.db.Booking;
+import de.spahr.ausgaben.db.PlaceBalance;
 import de.spahr.ausgaben.db.Repository;
 import de.spahr.ausgaben.export.CsvImporter;
 import de.spahr.ausgaben.export.ExportCoordinator;
 import de.spahr.ausgaben.net.NextcloudUploader;
+import de.spahr.ausgaben.settings.PlacesStore;
 import de.spahr.ausgaben.settings.SettingsStore;
 
 public class MainActivity extends AppCompatActivity {
 
     private Repository repository;
     private SettingsStore settings;
+    private PlacesStore placesStore;
 
     private BookingAdapter adapter;
     private TextView textBalance;
+    private TextView textSaldoLabel;
 
     private List<Booking> allBookings = new ArrayList<>();
+    private java.util.Map<String, Long> placeBalances = new java.util.LinkedHashMap<>();
+    private long totalBalance = 0;
+    private long allPlaceEntrySum = 0;
+    private long filteredSum = 0;
+    private final List<SaldoView> saldoViews = new ArrayList<>();
+    private int saldoIndex = 0;
+
     private String filterPayee = "";
     private String filterAccount = "";
     private Long filterAmountCents = null;
+
+    /** Eine Sicht in der Saldo-Leiste. key: TOTAL | PLACE:<name> | NOPLACE | FILTERED */
+    private static final class SaldoView {
+        final String key;
+        final String label;
+        final long cents;
+
+        SaldoView(String key, String label, long cents) {
+            this.key = key;
+            this.label = label;
+            this.cents = cents;
+        }
+    }
+
+    public static final String VIEW_TOTAL = "TOTAL";
+    public static final String VIEW_NOPLACE = "NOPLACE";
+    public static final String VIEW_FILTERED = "FILTERED";
+    public static final String VIEW_PLACE_PREFIX = "PLACE:";
 
     private ActivityResultLauncher<Uri> exportTreeLauncher;
     private ActivityResultLauncher<String[]> importLauncher;
@@ -64,8 +93,11 @@ public class MainActivity extends AppCompatActivity {
 
         repository = new Repository(this);
         settings = new SettingsStore(this);
+        placesStore = new PlacesStore(this);
 
         textBalance = findViewById(R.id.textBalance);
+        textSaldoLabel = findViewById(R.id.textSaldoLabel);
+        findViewById(R.id.saldoHeader).setOnClickListener(v -> cycleSaldo());
 
         RecyclerView recycler = findViewById(R.id.recyclerBookings);
         recycler.setLayoutManager(new LinearLayoutManager(this));
@@ -122,7 +154,15 @@ public class MainActivity extends AppCompatActivity {
     private void refreshBookings() {
         repository.getAllBookings(result -> {
             allBookings = result;
-            applyFilter();
+            repository.getPlaceBalances(pb -> {
+                placeBalances = new java.util.LinkedHashMap<>();
+                allPlaceEntrySum = 0;
+                for (PlaceBalance b : pb) {
+                    placeBalances.put(b.place, b.balanceCents);
+                    allPlaceEntrySum += b.balanceCents;
+                }
+                applyFilter();
+            });
         });
     }
 
@@ -130,36 +170,96 @@ public class MainActivity extends AppCompatActivity {
 
     private void applyFilter() {
         List<Booking> filtered = new ArrayList<>();
-        long balance = 0;
+        filteredSum = 0;
+        totalBalance = 0;
         for (Booking b : allBookings) {
-            if (!filterPayee.isEmpty()
-                    && !b.payee.toLowerCase(Locale.GERMANY).contains(filterPayee.toLowerCase(Locale.GERMANY))) {
-                continue;
+            totalBalance += b.isIncome ? b.amountCents : -b.amountCents;
+            if (matchesFilter(b)) {
+                filtered.add(b);
+                filteredSum += b.isIncome ? b.amountCents : -b.amountCents;
             }
-            if (!filterAccount.isEmpty() && !b.account.equalsIgnoreCase(filterAccount)) {
-                continue;
-            }
-            if (filterAmountCents != null && b.amountCents != filterAmountCents) {
-                continue;
-            }
-            filtered.add(b);
-            balance += b.isIncome ? b.amountCents : -b.amountCents;
         }
         adapter.setItems(filtered);
-        updateBalance(balance);
+        buildSaldoViews();
+        showSaldo();
 
-        boolean active = !filterPayee.isEmpty() || !filterAccount.isEmpty() || filterAmountCents != null;
+        boolean active = isFilterActive();
         if (getSupportActionBar() != null) {
             getSupportActionBar().setSubtitle(active
                     ? getString(R.string.filter_active, filtered.size()) : null);
         }
     }
 
-    private void updateBalance(long signedCents) {
-        textBalance.setText(getString(R.string.balance, formatEuro(signedCents)));
-        int color = signedCents < 0
-                ? getColor(R.color.expense_red) : getColor(R.color.income_green);
-        textBalance.setTextColor(color);
+    private boolean matchesFilter(Booking b) {
+        if (!filterPayee.isEmpty()
+                && !b.payee.toLowerCase(Locale.GERMANY).contains(filterPayee.toLowerCase(Locale.GERMANY))) {
+            return false;
+        }
+        if (!filterAccount.isEmpty() && !b.account.equalsIgnoreCase(filterAccount)) {
+            return false;
+        }
+        return filterAmountCents == null || b.amountCents == filterAmountCents;
+    }
+
+    private boolean isFilterActive() {
+        return !filterPayee.isEmpty() || !filterAccount.isEmpty() || filterAmountCents != null;
+    }
+
+    // ---- Saldo-Leiste (Durchschalten) ----
+
+    private void buildSaldoViews() {
+        saldoViews.clear();
+        String accountLabel = settings.getDefaultAccount();
+        if (accountLabel.isEmpty()) {
+            accountLabel = getString(R.string.saldo_total);
+        }
+        saldoViews.add(new SaldoView(VIEW_TOTAL, accountLabel, totalBalance));
+        for (String place : placesStore.getPlaces()) {
+            long bal = placeBalances.containsKey(place) ? placeBalances.get(place) : 0L;
+            saldoViews.add(new SaldoView(VIEW_PLACE_PREFIX + place, place, bal));
+        }
+        saldoViews.add(new SaldoView(VIEW_NOPLACE, getString(R.string.no_place),
+                totalBalance - allPlaceEntrySum));
+        if (isFilterActive()) {
+            saldoViews.add(new SaldoView(VIEW_FILTERED, getString(R.string.saldo_filtered), filteredSum));
+        }
+        if (saldoIndex >= saldoViews.size()) {
+            saldoIndex = 0;
+        }
+    }
+
+    private void showSaldo() {
+        if (saldoViews.isEmpty()) {
+            return;
+        }
+        SaldoView v = saldoViews.get(saldoIndex % saldoViews.size());
+        textSaldoLabel.setText(v.label);
+        textBalance.setText(getString(R.string.balance, formatEuro(v.cents)));
+        textBalance.setTextColor(v.cents < 0 ? getColor(R.color.expense_red) : getColor(R.color.income_green));
+    }
+
+    private void cycleSaldo() {
+        if (saldoViews.isEmpty()) {
+            return;
+        }
+        saldoIndex = (saldoIndex + 1) % saldoViews.size();
+        showSaldo();
+    }
+
+    private int indexOfFilteredView() {
+        for (int i = 0; i < saldoViews.size(); i++) {
+            if (VIEW_FILTERED.equals(saldoViews.get(i).key)) {
+                return i;
+            }
+        }
+        return 0;
+    }
+
+    private String currentViewKey() {
+        if (saldoViews.isEmpty()) {
+            return VIEW_TOTAL;
+        }
+        return saldoViews.get(saldoIndex % saldoViews.size()).key;
     }
 
     private String formatEuro(long signedCents) {
@@ -195,12 +295,19 @@ public class MainActivity extends AppCompatActivity {
                     filterAccount = textOf(fAccount).trim();
                     filterAmountCents = parseAmountToCents(textOf(fAmount));
                     applyFilter();
+                    // Filter angelegt/geändert → automatisch die gefilterte Summe anzeigen.
+                    if (isFilterActive()) {
+                        saldoIndex = indexOfFilteredView();
+                        showSaldo();
+                    }
                 })
                 .setNeutralButton(R.string.filter_reset, (d, w) -> {
                     filterPayee = "";
                     filterAccount = "";
                     filterAmountCents = null;
+                    saldoIndex = 0;
                     applyFilter();
+                    showSaldo();
                 })
                 .setNegativeButton(R.string.cancel, null)
                 .show();
@@ -258,7 +365,11 @@ public class MainActivity extends AppCompatActivity {
             i.putExtra(AnalysisActivity.EXTRA_FILTER_ACCOUNT, filterAccount);
             i.putExtra(AnalysisActivity.EXTRA_FILTER_AMOUNT,
                     filterAmountCents == null ? -1L : filterAmountCents);
+            i.putExtra(AnalysisActivity.EXTRA_VIEW_KEY, currentViewKey());
             startActivity(i);
+            return true;
+        } else if (id == R.id.action_balance) {
+            startActivity(new Intent(this, BalanceActivity.class));
             return true;
         } else if (id == R.id.action_settings) {
             startActivity(new Intent(this, SettingsActivity.class));

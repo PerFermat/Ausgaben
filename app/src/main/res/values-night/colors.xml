@@ -7,4 +7,5 @@
     <color name="expense_red">#EF9A9A</color>
     <!-- Diagramm-Text (Werte/Achsen): weiß im Dunkelmodus -->
     <color name="chart_text">#FFFFFF</color>
+    <color name="chart_line">#64B5F6</color>
 </resources>

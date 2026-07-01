@@ -5,41 +5,54 @@ import android.os.Bundle;
 import android.text.Editable;
 import android.text.TextWatcher;
 import android.view.MotionEvent;
+import android.widget.ArrayAdapter;
 import android.widget.TextView;
 
 import androidx.appcompat.app.AppCompatActivity;
 
-import com.github.mikephil.charting.charts.BarChart;
+import com.github.mikephil.charting.charts.CombinedChart;
 import com.github.mikephil.charting.components.XAxis;
 import com.github.mikephil.charting.data.BarData;
 import com.github.mikephil.charting.data.BarDataSet;
 import com.github.mikephil.charting.data.BarEntry;
+import com.github.mikephil.charting.data.CombinedData;
+import com.github.mikephil.charting.data.Entry;
+import com.github.mikephil.charting.data.LineData;
+import com.github.mikephil.charting.data.LineDataSet;
 import com.github.mikephil.charting.formatter.IndexAxisValueFormatter;
 import com.github.mikephil.charting.listener.ChartTouchListener;
 import com.github.mikephil.charting.listener.OnChartGestureListener;
 import com.google.android.material.appbar.MaterialToolbar;
 import com.google.android.material.button.MaterialButtonToggleGroup;
 import com.google.android.material.floatingactionbutton.FloatingActionButton;
+import com.google.android.material.textfield.MaterialAutoCompleteTextView;
 import com.google.android.material.textfield.TextInputEditText;
 
 import java.text.SimpleDateFormat;
 import java.util.ArrayList;
 import java.util.Calendar;
+import java.util.Collections;
+import java.util.Comparator;
 import java.util.Date;
 import java.util.HashMap;
+import java.util.HashSet;
 import java.util.List;
 import java.util.Locale;
 import java.util.Map;
+import java.util.Set;
 
 import de.spahr.ausgaben.R;
 import de.spahr.ausgaben.db.Booking;
+import de.spahr.ausgaben.db.PlaceEntry;
 import de.spahr.ausgaben.db.Repository;
+import de.spahr.ausgaben.settings.PlacesStore;
 
 public class AnalysisActivity extends AppCompatActivity {
 
     public static final String EXTRA_FILTER_PAYEE = "filter_payee";
     public static final String EXTRA_FILTER_ACCOUNT = "filter_account";
     public static final String EXTRA_FILTER_AMOUNT = "filter_amount_cents";
+    public static final String EXTRA_VIEW_KEY = "view_key";
 
     private enum Granularity {DAY, WEEK, MONTH, YEAR}
 
@@ -47,12 +60,17 @@ public class AnalysisActivity extends AppCompatActivity {
     private static final int MAX_BARS = 100;
 
     private Repository repository;
-    private BarChart chart;
+    private CombinedChart chart;
     private TextView textTotal;
     private TextInputEditText editBarCount;
     private FloatingActionButton fabScrollRight;
+    private MaterialAutoCompleteTextView viewSelector;
 
     private List<Booking> allBookings = new ArrayList<>();
+    private List<PlaceEntry> allPlaceEntries = new ArrayList<>();
+    private boolean bookingsLoaded = false;
+    private boolean placesLoaded = false;
+
     private Granularity granularity = Granularity.MONTH;
     private int barCount = DEFAULT_BARS;
     private int lastIndex = 0;
@@ -60,6 +78,10 @@ public class AnalysisActivity extends AppCompatActivity {
     private String filterPayee = "";
     private String filterAccount = "";
     private long filterAmountCents = -1;
+
+    private final List<String> viewKeys = new ArrayList<>();
+    private final List<String> viewLabels = new ArrayList<>();
+    private String viewKey = MainActivity.VIEW_TOTAL;
 
     @Override
     protected void onCreate(Bundle savedInstanceState) {
@@ -72,15 +94,21 @@ public class AnalysisActivity extends AppCompatActivity {
         filterPayee = orEmpty(getIntent().getStringExtra(EXTRA_FILTER_PAYEE));
         filterAccount = orEmpty(getIntent().getStringExtra(EXTRA_FILTER_ACCOUNT));
         filterAmountCents = getIntent().getLongExtra(EXTRA_FILTER_AMOUNT, -1);
+        viewKey = orEmpty(getIntent().getStringExtra(EXTRA_VIEW_KEY));
+        if (viewKey.isEmpty()) {
+            viewKey = MainActivity.VIEW_TOTAL;
+        }
 
         repository = new Repository(this);
         chart = findViewById(R.id.barChart);
         textTotal = findViewById(R.id.textTotal);
         editBarCount = findViewById(R.id.editBarCount);
         fabScrollRight = findViewById(R.id.fabScrollRight);
+        viewSelector = findViewById(R.id.viewSelector);
 
         setupChart();
         setupBarCountField();
+        setupViewSelector();
 
         MaterialButtonToggleGroup toggle = findViewById(R.id.toggleGranularity);
         toggle.check(R.id.btnMonth);
@@ -107,121 +135,118 @@ public class AnalysisActivity extends AppCompatActivity {
 
         repository.getAllBookings(result -> {
             allBookings = result;
+            bookingsLoaded = true;
+            if (placesLoaded) renderChart();
+        });
+        repository.getAllPlaceEntries(result -> {
+            allPlaceEntries = result;
+            placesLoaded = true;
+            if (bookingsLoaded) renderChart();
+        });
+    }
+
+    private void setupViewSelector() {
+        viewKeys.clear();
+        viewLabels.clear();
+        viewKeys.add(MainActivity.VIEW_TOTAL);
+        viewLabels.add(getString(R.string.saldo_total));
+        for (String place : new PlacesStore(this).getPlaces()) {
+            viewKeys.add(MainActivity.VIEW_PLACE_PREFIX + place);
+            viewLabels.add(place);
+        }
+        viewKeys.add(MainActivity.VIEW_NOPLACE);
+        viewLabels.add(getString(R.string.no_place));
+        if (isFilterActive()) {
+            viewKeys.add(MainActivity.VIEW_FILTERED);
+            viewLabels.add(getString(R.string.saldo_filtered));
+        }
+        if (!viewKeys.contains(viewKey)) {
+            viewKey = MainActivity.VIEW_TOTAL;
+        }
+        viewSelector.setAdapter(new ArrayAdapter<>(this, android.R.layout.simple_list_item_1, viewLabels));
+        viewSelector.setText(viewLabels.get(viewKeys.indexOf(viewKey)), false);
+        viewSelector.setOnItemClickListener((parent, view, position, id) -> {
+            viewKey = viewKeys.get(position);
             renderChart();
         });
     }
 
-    private void setupChart() {
-        chart.getDescription().setEnabled(false);
-        chart.getAxisRight().setEnabled(false);
-        chart.getLegend().setEnabled(false);
-        chart.setFitBars(true);
-        chart.setScaleEnabled(false);
-        chart.setPinchZoom(false);
-        chart.setDoubleTapToZoomEnabled(false);
-        chart.setDragEnabled(true);
-
-        int chartText = getColor(R.color.chart_text);
-        XAxis x = chart.getXAxis();
-        x.setPosition(XAxis.XAxisPosition.BOTTOM);
-        x.setDrawGridLines(false);
-        x.setAvoidFirstLastClipping(true);
-        x.setTextColor(chartText);
-        x.setTextSize(12f);
-        chart.getAxisLeft().setTextColor(chartText);
-        chart.getAxisLeft().setTextSize(12f);
-
-        chart.setOnChartGestureListener(new OnChartGestureListener() {
-            @Override
-            public void onChartGestureStart(MotionEvent me, ChartTouchListener.ChartGesture g) {
-            }
-
-            @Override
-            public void onChartGestureEnd(MotionEvent me, ChartTouchListener.ChartGesture g) {
-                updateScrollRightVisibility();
-            }
-
-            @Override
-            public void onChartLongPressed(MotionEvent me) {
-            }
-
-            @Override
-            public void onChartDoubleTapped(MotionEvent me) {
-            }
-
-            @Override
-            public void onChartSingleTapped(MotionEvent me) {
-            }
-
-            @Override
-            public void onChartFling(MotionEvent e1, MotionEvent e2, float vx, float vy) {
-            }
-
-            @Override
-            public void onChartScale(MotionEvent me, float sx, float sy) {
-            }
-
-            @Override
-            public void onChartTranslate(MotionEvent me, float dx, float dy) {
-                updateScrollRightVisibility();
-            }
-        });
+    private boolean isFilterActive() {
+        return !filterPayee.isEmpty() || !filterAccount.isEmpty() || filterAmountCents >= 0;
     }
 
-    private void setupBarCountField() {
-        editBarCount.addTextChangedListener(new TextWatcher() {
-            @Override
-            public void beforeTextChanged(CharSequence s, int a, int b, int c) {
-            }
+    // ---- Ereignisstrom je Sicht (Zeit, vorzeichenbehaftete Cent) ----
 
-            @Override
-            public void onTextChanged(CharSequence s, int a, int b, int c) {
-            }
-
-            @Override
-            public void afterTextChanged(Editable s) {
-                Integer n = parseInt(s.toString());
-                if (n == null) {
-                    return;
-                }
-                int clamped = Math.max(1, Math.min(MAX_BARS, n));
-                if (clamped != barCount) {
-                    barCount = clamped;
-                    renderChart();
+    private List<long[]> eventsForView() {
+        List<long[]> events = new ArrayList<>();
+        if (viewKey.startsWith(MainActivity.VIEW_PLACE_PREFIX)) {
+            String place = viewKey.substring(MainActivity.VIEW_PLACE_PREFIX.length());
+            for (PlaceEntry e : allPlaceEntries) {
+                if (e.place.equals(place)) {
+                    events.add(new long[]{e.createdAt, e.amountCents});
                 }
             }
-        });
+        } else if (viewKey.equals(MainActivity.VIEW_NOPLACE)) {
+            for (Booking b : allBookings) {
+                events.add(new long[]{b.createdAt, b.isIncome ? b.amountCents : -b.amountCents});
+            }
+            for (PlaceEntry e : allPlaceEntries) {
+                events.add(new long[]{e.createdAt, -e.amountCents});
+            }
+        } else { // TOTAL oder FILTERED (über Buchungen)
+            boolean onlyFiltered = viewKey.equals(MainActivity.VIEW_FILTERED);
+            for (Booking b : allBookings) {
+                if (onlyFiltered && !matchesFilter(b)) {
+                    continue;
+                }
+                events.add(new long[]{b.createdAt, b.isIncome ? b.amountCents : -b.amountCents});
+            }
+        }
+        Collections.sort(events, Comparator.comparingLong(a -> a[0]));
+        return events;
+    }
+
+    private boolean matchesFilter(Booking b) {
+        if (!filterPayee.isEmpty()
+                && !b.payee.toLowerCase(Locale.GERMANY).contains(filterPayee.toLowerCase(Locale.GERMANY))) {
+            return false;
+        }
+        if (!filterAccount.isEmpty() && !b.account.equalsIgnoreCase(filterAccount)) {
+            return false;
+        }
+        return filterAmountCents < 0 || b.amountCents == filterAmountCents;
     }
 
     private void renderChart() {
-        List<Booking> filtered = applyFilter(allBookings);
+        List<long[]> events = eventsForView();
 
         long total = 0;
-        for (Booking b : filtered) {
-            total += b.isIncome ? b.amountCents : -b.amountCents;
+        for (long[] e : events) {
+            total += e[1];
         }
         textTotal.setText(getString(R.string.analysis_total, formatEuro(total)));
 
-        if (filtered.isEmpty()) {
+        if (events.isEmpty()) {
             chart.clear();
             chart.invalidate();
             fabScrollRight.hide();
             return;
         }
 
+        // Netto + Vorhandensein je Periode
+        Map<Long, Long> netByPeriod = new HashMap<>();
+        Set<Long> hasEvent = new HashSet<>();
         long minMs = Long.MAX_VALUE;
         long maxMs = Long.MIN_VALUE;
-        Map<Long, Long> netByPeriod = new HashMap<>();
-        for (Booking b : filtered) {
-            long ps = periodStart(b.createdAt);
-            long signed = b.isIncome ? b.amountCents : -b.amountCents;
-            Long cur = netByPeriod.get(ps);
-            netByPeriod.put(ps, (cur == null ? 0L : cur) + signed);
+        for (long[] e : events) {
+            long ps = periodStart(e[0]);
+            Long curVal = netByPeriod.get(ps);
+            netByPeriod.put(ps, (curVal == null ? 0L : curVal) + e[1]);
+            hasEvent.add(ps);
             if (ps < minMs) minMs = ps;
             if (ps > maxMs) maxMs = ps;
         }
 
-        // Kontinuierliche Perioden von früheste bis späteste (mit Lücken).
         List<Long> periods = new ArrayList<>();
         Calendar cur = Calendar.getInstance();
         cur.setTimeInMillis(minMs);
@@ -230,33 +255,54 @@ public class AnalysisActivity extends AppCompatActivity {
             advance(cur);
         }
 
-        List<BarEntry> entries = new ArrayList<>();
-        List<Integer> colors = new ArrayList<>();
+        List<BarEntry> barEntries = new ArrayList<>();
+        List<Integer> barColors = new ArrayList<>();
+        List<Entry> lineEntries = new ArrayList<>();
         List<String> labels = new ArrayList<>();
         int green = getColor(R.color.income_green);
         int red = getColor(R.color.expense_red);
+        long running = 0;
         for (int i = 0; i < periods.size(); i++) {
             long ps = periods.get(i);
             labels.add(label(ps));
             Long net = netByPeriod.get(ps);
-            if (net != null) {
-                entries.add(new BarEntry(i, net / 100f));
-                colors.add(net >= 0 ? green : red);
+            long netVal = net == null ? 0L : net;
+            running += netVal;
+            if (hasEvent.contains(ps)) {
+                barEntries.add(new BarEntry(i, netVal / 100f));
+                barColors.add(netVal >= 0 ? green : red);
             }
+            lineEntries.add(new Entry(i, running / 100f));
         }
         lastIndex = periods.size() - 1;
 
-        BarDataSet set = new BarDataSet(entries, "");
-        set.setColors(colors);
-        set.setValueTextColor(getColor(R.color.chart_text));
-        set.setValueTextSize(12f);
-        BarData data = new BarData(set);
-        data.setBarWidth(0.6f);
-        chart.setData(data);
+        int chartText = getColor(R.color.chart_text);
+
+        BarDataSet barSet = new BarDataSet(barEntries, "");
+        barSet.setColors(barColors);
+        barSet.setValueTextColor(chartText);
+        barSet.setValueTextSize(11f);
+        BarData barData = new BarData(barSet);
+        barData.setBarWidth(0.6f);
+
+        LineDataSet lineSet = new LineDataSet(lineEntries, "");
+        int lineColor = getColor(R.color.chart_line);
+        lineSet.setColor(lineColor);
+        lineSet.setLineWidth(2.2f);
+        lineSet.setDrawCircles(false);
+        lineSet.setDrawValues(false);
+        lineSet.setMode(LineDataSet.Mode.LINEAR);
+        LineData lineData = new LineData(lineSet);
+
+        CombinedData combined = new CombinedData();
+        combined.setData(barData);
+        combined.setData(lineData);
+        chart.setData(combined);
 
         XAxis x = chart.getXAxis();
         x.setValueFormatter(new IndexAxisValueFormatter(labels));
-        // Immer ~6 (Querformat ~12) gleichverteilte Labels: Abstand = Balken pro Label.
+        x.setAxisMinimum(-0.5f);
+        x.setAxisMaximum(periods.size() - 0.5f);
         boolean landscape = getResources().getConfiguration().orientation
                 == Configuration.ORIENTATION_LANDSCAPE;
         int labelTarget = landscape ? 12 : 6;
@@ -272,6 +318,62 @@ public class AnalysisActivity extends AppCompatActivity {
         updateScrollRightVisibility();
     }
 
+    private void setupChart() {
+        chart.getDescription().setEnabled(false);
+        chart.getAxisRight().setEnabled(false);
+        chart.getLegend().setEnabled(false);
+        chart.setScaleEnabled(false);
+        chart.setPinchZoom(false);
+        chart.setDoubleTapToZoomEnabled(false);
+        chart.setDragEnabled(true);
+        chart.setDrawOrder(new CombinedChart.DrawOrder[]{
+                CombinedChart.DrawOrder.BAR, CombinedChart.DrawOrder.LINE});
+
+        int chartText = getColor(R.color.chart_text);
+        XAxis x = chart.getXAxis();
+        x.setPosition(XAxis.XAxisPosition.BOTTOM);
+        x.setDrawGridLines(false);
+        x.setAvoidFirstLastClipping(true);
+        x.setTextColor(chartText);
+        x.setTextSize(12f);
+        chart.getAxisLeft().setTextColor(chartText);
+        chart.getAxisLeft().setTextSize(12f);
+
+        chart.setOnChartGestureListener(new OnChartGestureListener() {
+            @Override public void onChartGestureStart(MotionEvent me, ChartTouchListener.ChartGesture g) { }
+            @Override public void onChartGestureEnd(MotionEvent me, ChartTouchListener.ChartGesture g) {
+                updateScrollRightVisibility();
+            }
+            @Override public void onChartLongPressed(MotionEvent me) { }
+            @Override public void onChartDoubleTapped(MotionEvent me) { }
+            @Override public void onChartSingleTapped(MotionEvent me) { }
+            @Override public void onChartFling(MotionEvent e1, MotionEvent e2, float vx, float vy) { }
+            @Override public void onChartScale(MotionEvent me, float sx, float sy) { }
+            @Override public void onChartTranslate(MotionEvent me, float dx, float dy) {
+                updateScrollRightVisibility();
+            }
+        });
+    }
+
+    private void setupBarCountField() {
+        editBarCount.addTextChangedListener(new TextWatcher() {
+            @Override public void beforeTextChanged(CharSequence s, int a, int b, int c) { }
+            @Override public void onTextChanged(CharSequence s, int a, int b, int c) { }
+            @Override
+            public void afterTextChanged(Editable s) {
+                Integer n = parseInt(s.toString());
+                if (n == null) {
+                    return;
+                }
+                int clamped = Math.max(1, Math.min(MAX_BARS, n));
+                if (clamped != barCount) {
+                    barCount = clamped;
+                    renderChart();
+                }
+            }
+        });
+    }
+
     private void updateScrollRightVisibility() {
         chart.post(() -> {
             if (chart.getData() == null) {
@@ -285,26 +387,6 @@ public class AnalysisActivity extends AppCompatActivity {
                 fabScrollRight.show();
             }
         });
-    }
-
-    // ---- Filter (gleiche Logik wie MainActivity.applyFilter) ----
-
-    private List<Booking> applyFilter(List<Booking> source) {
-        List<Booking> out = new ArrayList<>();
-        for (Booking b : source) {
-            if (!filterPayee.isEmpty()
-                    && !b.payee.toLowerCase(Locale.GERMANY).contains(filterPayee.toLowerCase(Locale.GERMANY))) {
-                continue;
-            }
-            if (!filterAccount.isEmpty() && !b.account.equalsIgnoreCase(filterAccount)) {
-                continue;
-            }
-            if (filterAmountCents >= 0 && b.amountCents != filterAmountCents) {
-                continue;
-            }
-            out.add(b);
-        }
-        return out;
     }
 
     // ---- Perioden-Hilfen ----

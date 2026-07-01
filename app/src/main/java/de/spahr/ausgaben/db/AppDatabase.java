@@ -9,7 +9,8 @@ import androidx.room.RoomDatabase;
 import androidx.room.migration.Migration;
 import androidx.sqlite.db.SupportSQLiteDatabase;
 
-@Database(entities = {Booking.class, Account.class, Payee.class}, version = 3, exportSchema = false)
+@Database(entities = {Booking.class, Account.class, Payee.class, PlaceEntry.class},
+        version = 4, exportSchema = false)
 public abstract class AppDatabase extends RoomDatabase {
 
     /** v1 → v2: Notiz-Spalte ergänzen (bestehende Buchungen bleiben erhalten). */
@@ -28,11 +29,26 @@ public abstract class AppDatabase extends RoomDatabase {
         }
     };
 
+    /** v3 → v4: Orts-Bewegungsjournal (Bargeld-Orte) anlegen. */
+    static final Migration MIGRATION_3_4 = new Migration(3, 4) {
+        @Override
+        public void migrate(@NonNull SupportSQLiteDatabase db) {
+            db.execSQL("CREATE TABLE IF NOT EXISTS place_entry ("
+                    + "id INTEGER PRIMARY KEY AUTOINCREMENT NOT NULL, "
+                    + "place TEXT NOT NULL, "
+                    + "amount_cents INTEGER NOT NULL, "
+                    + "created_at INTEGER NOT NULL, "
+                    + "type TEXT NOT NULL)");
+        }
+    };
+
     public abstract BookingDao bookingDao();
 
     public abstract AccountDao accountDao();
 
     public abstract PayeeDao payeeDao();
+
+    public abstract PlaceEntryDao placeEntryDao();
 
     private static volatile AppDatabase instance;
 
@@ -44,7 +60,7 @@ public abstract class AppDatabase extends RoomDatabase {
                                     context.getApplicationContext(),
                                     AppDatabase.class,
                                     "ausgaben.db")
-                            .addMigrations(MIGRATION_1_2, MIGRATION_2_3)
+                            .addMigrations(MIGRATION_1_2, MIGRATION_2_3, MIGRATION_3_4)
                             .build();
                 }
             }

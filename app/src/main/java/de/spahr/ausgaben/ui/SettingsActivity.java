@@ -3,7 +3,12 @@ package de.spahr.ausgaben.ui;
 import android.content.Intent;
 import android.net.Uri;
 import android.os.Bundle;
+import android.view.Gravity;
+import android.view.View;
 import android.widget.ArrayAdapter;
+import android.widget.EditText;
+import android.widget.LinearLayout;
+import android.widget.TextView;
 import android.widget.Toast;
 
 import androidx.activity.result.ActivityResultLauncher;
@@ -33,12 +38,17 @@ import de.spahr.ausgaben.R;
 import de.spahr.ausgaben.db.AppDatabase;
 import de.spahr.ausgaben.db.Repository;
 import de.spahr.ausgaben.export.ExportCoordinator;
+import de.spahr.ausgaben.settings.PlacesStore;
 import de.spahr.ausgaben.settings.SettingsStore;
 
 public class SettingsActivity extends AppCompatActivity {
 
     private SettingsStore settings;
     private Repository repository;
+    private PlacesStore placesStore;
+
+    private LinearLayout placesContainer;
+    private MaterialAutoCompleteTextView editDefaultPlace;
 
     private TextInputEditText editUrl;
     private TextInputEditText editUser;
@@ -103,6 +113,106 @@ public class SettingsActivity extends AppCompatActivity {
                 v -> backupLauncher.launch("ausgaben-backup-" + timestamp() + ".db"));
         ((MaterialButton) findViewById(R.id.btnRestore)).setOnClickListener(v -> confirmRestore());
         ((MaterialButton) findViewById(R.id.btnReset)).setOnClickListener(v -> confirmReset());
+
+        setupPlaces();
+    }
+
+    // ---- Orte (Bargeld-Bestände) ----
+
+    private void setupPlaces() {
+        placesStore = new PlacesStore(this);
+        placesContainer = findViewById(R.id.placesContainer);
+        editDefaultPlace = findViewById(R.id.editDefaultPlace);
+
+        EditText editNewPlace = findViewById(R.id.editNewPlace);
+        ((MaterialButton) findViewById(R.id.btnAddPlace)).setOnClickListener(v -> {
+            String name = editNewPlace.getText() == null ? "" : editNewPlace.getText().toString().trim();
+            if (!name.isEmpty()) {
+                placesStore.addPlace(name);
+                editNewPlace.setText("");
+                refreshPlaces();
+            }
+        });
+
+        editDefaultPlace.setOnItemClickListener((parent, view, position, id) -> {
+            String sel = (String) parent.getItemAtPosition(position);
+            placesStore.setDefaultPlace(PlacesStore.NO_PLACE.equals(sel) ? "" : sel);
+        });
+
+        refreshPlaces();
+    }
+
+    private void refreshPlaces() {
+        java.util.List<String> places = placesStore.getPlaces();
+
+        // Zeilen je Ort (Name antippen = umbenennen, Button = entfernen)
+        placesContainer.removeAllViews();
+        for (String place : places) {
+            LinearLayout row = new LinearLayout(this);
+            row.setOrientation(LinearLayout.HORIZONTAL);
+            row.setGravity(Gravity.CENTER_VERTICAL);
+
+            TextView name = new TextView(this);
+            name.setText(place);
+            name.setTextSize(16f);
+            name.setPadding(0, 24, 0, 24);
+            LinearLayout.LayoutParams lp = new LinearLayout.LayoutParams(
+                    0, LinearLayout.LayoutParams.WRAP_CONTENT, 1f);
+            name.setLayoutParams(lp);
+            name.setOnClickListener(v -> renamePlaceDialog(place));
+
+            MaterialButton remove = new MaterialButton(this,
+                    null, com.google.android.material.R.attr.materialButtonOutlinedStyle);
+            remove.setText(R.string.remove);
+            remove.setTextColor(getColor(R.color.expense_red));
+            remove.setStrokeColor(android.content.res.ColorStateList.valueOf(getColor(R.color.expense_red)));
+            remove.setOnClickListener(v -> confirmRemovePlace(place));
+
+            row.addView(name);
+            row.addView(remove);
+            placesContainer.addView(row);
+        }
+
+        // Standardort-Dropdown
+        java.util.List<String> options = new java.util.ArrayList<>(places);
+        options.add(PlacesStore.NO_PLACE);
+        editDefaultPlace.setAdapter(new ArrayAdapter<>(this, android.R.layout.simple_list_item_1, options));
+        String def = placesStore.getDefaultPlace();
+        editDefaultPlace.setText(def.isEmpty() ? PlacesStore.NO_PLACE : def, false);
+    }
+
+    private void renamePlaceDialog(String oldName) {
+        EditText input = new EditText(this);
+        input.setText(oldName);
+        input.setSelectAllOnFocus(true);
+        int pad = (int) (20 * getResources().getDisplayMetrics().density);
+        android.widget.FrameLayout frame = new android.widget.FrameLayout(this);
+        frame.setPadding(pad, pad / 2, pad, 0);
+        frame.addView(input);
+        new MaterialAlertDialogBuilder(this, R.style.ThemeOverlay_Ausgaben_Dialog)
+                .setTitle(R.string.place_rename_title)
+                .setView(frame)
+                .setPositiveButton(R.string.rename, (d, w) -> {
+                    String newName = input.getText().toString().trim();
+                    if (!newName.isEmpty() && !newName.equals(oldName)) {
+                        placesStore.renamePlace(oldName, newName);
+                        repository.renamePlaceEntries(oldName, newName, this::refreshPlaces);
+                    }
+                })
+                .setNegativeButton(R.string.cancel, null)
+                .show();
+    }
+
+    private void confirmRemovePlace(String place) {
+        new MaterialAlertDialogBuilder(this, R.style.ThemeOverlay_Ausgaben_Dialog)
+                .setTitle(R.string.place_remove_title)
+                .setMessage(getString(R.string.place_remove_message, place))
+                .setPositiveButton(R.string.remove, (d, w) -> {
+                    placesStore.removePlace(place);
+                    repository.deletePlaceEntries(place, this::refreshPlaces);
+                })
+                .setNegativeButton(R.string.cancel, null)
+                .show();
     }
 
     private void registerLaunchers() {

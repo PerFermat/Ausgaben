@@ -9,6 +9,7 @@
     <string name="account_hint">Konto</string>
     <string name="note_hint">Notiz (optional)</string>
     <string name="category_hint">Kategorie (optional)</string>
+    <string name="place_hint">Ort (nur Bestand)</string>
     <string name="mark_exported">Als exportiert markiert</string>
     <string name="date_hint">Datum</string>
     <string name="save">Speichern</string>
@@ -23,7 +24,30 @@
     <string name="action_export">Exportieren</string>
     <string name="action_filter">Filtern</string>
     <string name="action_analysis">Auswertung</string>
+    <string name="action_balance">Bestände</string>
     <string name="action_settings">Einstellungen</string>
+
+    <!-- Saldo-Leiste -->
+    <string name="saldo_total">Gesamt</string>
+    <string name="saldo_filtered">Gefiltert</string>
+    <string name="no_place">ohne Ort</string>
+
+    <!-- Bestände / Umbuchen / Kassensturz / Verlauf -->
+    <string name="balance_title">Bestände</string>
+    <string name="transfer_title">Umbuchen</string>
+    <string name="transfer_do">Umbuchen</string>
+    <string name="transfer_from">Von</string>
+    <string name="transfer_to">Nach</string>
+    <string name="transfer_invalid">Ungültige Umbuchung</string>
+    <string name="reconcile_title">Kassensturz</string>
+    <string name="reconcile_do">Übernehmen</string>
+    <string name="reconcile_place">Ort</string>
+    <string name="reconcile_actual">Ist-Betrag (€)</string>
+    <string name="no_places_defined">Bitte zuerst Orte in den Einstellungen anlegen</string>
+    <string name="no_movements">Keine Bewegungen</string>
+    <string name="movement_booking">Buchung</string>
+    <string name="movement_transfer">Umbuchung</string>
+    <string name="movement_reconcile">Kassensturz</string>
 
     <!-- Filter -->
     <string name="filter_title">Buchungen filtern</string>
@@ -57,6 +81,7 @@
     <string name="analysis_empty">Keine Buchungen für die Auswertung</string>
     <string name="bar_count_label">Balken</string>
     <string name="scroll_right">Nach rechts</string>
+    <string name="analysis_view">Sicht</string>
 
     <!-- Daten / Einstellungen -->
     <string name="data_section">Daten</string>
@@ -75,6 +100,17 @@
     <string name="reset_confirm_title">Datenbank zurücksetzen?</string>
     <string name="reset_confirm_message">Alle Buchungen sowie die Konto- und Empfängerlisten werden gelöscht. Einstellungen bleiben erhalten.</string>
     <string name="reset_done">Datenbank zurückgesetzt</string>
+
+    <!-- Orte -->
+    <string name="places_section">Orte (Bargeld-Bestände)</string>
+    <string name="place_add_hint">Neuer Ort</string>
+    <string name="place_add">Hinzufügen</string>
+    <string name="default_place_hint">Standardort (neue Buchung)</string>
+    <string name="place_remove_title">Ort entfernen?</string>
+    <string name="place_remove_message">„%1$s" und seine Bewegungen werden entfernt (fließen nach „ohne Ort").</string>
+    <string name="place_rename_title">Ort umbenennen</string>
+    <string name="rename">Umbenennen</string>
+    <string name="remove">Entfernen</string>
     <string name="password_saved_hint">•••••• (gespeichert)</string>
     <string name="import_done">%1$d Buchung(en) importiert (Konto ersetzt)</string>
     <string name="import_failed">Import fehlgeschlagen: %1$s</string>

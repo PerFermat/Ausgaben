@@ -12,4 +12,6 @@
     <color name="button_accent">#1B5E20</color>
     <!-- Diagramm-Text (Werte/Achsen): schwarz im Hell-Modus -->
     <color name="chart_text">#000000</color>
+    <!-- Diagramm-Linie (laufender Saldo) -->
+    <color name="chart_line">#1565C0</color>
 </resources>

@@ -26,6 +26,8 @@ public class KmyImporter {
 
     private final KmyDocument doc;
     private final SimpleDateFormat dateFormat = new SimpleDateFormat("yyyy-MM-dd", Locale.US);
+    /** Beginn von morgen (lokale Mitternacht): Buchungen ab hier gelten als vorgemerkt/zukünftig. */
+    private final long futureCutoff = startOfTomorrow();
 
     public KmyImporter(KmyDocument doc) {
         this.doc = doc;
@@ -110,8 +112,21 @@ public class KmyImporter {
         b.payee = payeeId.isEmpty() ? "" : orEmpty(doc.payeeName(payeeId));
         b.note = !own[3].isEmpty() ? own[3] : txMemo;
         b.createdAt = parseDate(postdate, entrydate);
+        if (b.createdAt >= futureCutoff) {
+            return null; // vorgemerkte/zukünftige Buchung – nicht importieren
+        }
         b.exported = true;
         return b;
+    }
+
+    private static long startOfTomorrow() {
+        java.util.Calendar c = java.util.Calendar.getInstance();
+        c.set(java.util.Calendar.HOUR_OF_DAY, 0);
+        c.set(java.util.Calendar.MINUTE, 0);
+        c.set(java.util.Calendar.SECOND, 0);
+        c.set(java.util.Calendar.MILLISECOND, 0);
+        c.add(java.util.Calendar.DAY_OF_MONTH, 1);
+        return c.getTimeInMillis();
     }
 
     /** KMyMoney-Betrag „num/den" → Cent (gerundet, mit Vorzeichen). */

@@ -51,7 +51,10 @@ public class AnalysisActivity extends AppCompatActivity {
 
     public static final String EXTRA_FILTER_PAYEE = "filter_payee";
     public static final String EXTRA_FILTER_ACCOUNT = "filter_account";
-    public static final String EXTRA_FILTER_AMOUNT = "filter_amount_cents";
+    public static final String EXTRA_FILTER_CATEGORY = "filter_category";
+    public static final String EXTRA_FILTER_CATEGORY_MAIN = "filter_category_main";
+    public static final String EXTRA_FILTER_AMOUNT_FROM = "filter_amount_from";
+    public static final String EXTRA_FILTER_AMOUNT_TO = "filter_amount_to";
     public static final String EXTRA_VIEW_KEY = "view_key";
 
     private enum Granularity {DAY, WEEK, MONTH, YEAR}
@@ -77,7 +80,10 @@ public class AnalysisActivity extends AppCompatActivity {
 
     private String filterPayee = "";
     private String filterAccount = "";
-    private long filterAmountCents = -1;
+    private String filterCategory = "";
+    private boolean filterCategoryIsMain = false;
+    private Long filterAmountFrom = null;
+    private Long filterAmountTo = null;
 
     private final List<String> viewKeys = new ArrayList<>();
     private final List<String> viewLabels = new ArrayList<>();
@@ -93,7 +99,12 @@ public class AnalysisActivity extends AppCompatActivity {
 
         filterPayee = orEmpty(getIntent().getStringExtra(EXTRA_FILTER_PAYEE));
         filterAccount = orEmpty(getIntent().getStringExtra(EXTRA_FILTER_ACCOUNT));
-        filterAmountCents = getIntent().getLongExtra(EXTRA_FILTER_AMOUNT, -1);
+        filterCategory = orEmpty(getIntent().getStringExtra(EXTRA_FILTER_CATEGORY));
+        filterCategoryIsMain = getIntent().getBooleanExtra(EXTRA_FILTER_CATEGORY_MAIN, false);
+        long from = getIntent().getLongExtra(EXTRA_FILTER_AMOUNT_FROM, Long.MIN_VALUE);
+        long to = getIntent().getLongExtra(EXTRA_FILTER_AMOUNT_TO, Long.MAX_VALUE);
+        filterAmountFrom = from == Long.MIN_VALUE ? null : from;
+        filterAmountTo = to == Long.MAX_VALUE ? null : to;
         viewKey = orEmpty(getIntent().getStringExtra(EXTRA_VIEW_KEY));
         if (viewKey.isEmpty()) {
             viewKey = MainActivity.VIEW_TOTAL;
@@ -172,7 +183,8 @@ public class AnalysisActivity extends AppCompatActivity {
     }
 
     private boolean isFilterActive() {
-        return !filterPayee.isEmpty() || !filterAccount.isEmpty() || filterAmountCents >= 0;
+        return !filterPayee.isEmpty() || !filterAccount.isEmpty() || !filterCategory.isEmpty()
+                || filterAmountFrom != null || filterAmountTo != null;
     }
 
     // ---- Ereignisstrom je Sicht (Zeit, vorzeichenbehaftete Cent) ----
@@ -214,7 +226,25 @@ public class AnalysisActivity extends AppCompatActivity {
         if (!filterAccount.isEmpty() && !b.account.equalsIgnoreCase(filterAccount)) {
             return false;
         }
-        return filterAmountCents < 0 || b.amountCents == filterAmountCents;
+        if (!filterCategory.isEmpty() && !categoryMatches(b.category)) {
+            return false;
+        }
+        if (filterAmountFrom != null && b.amountCents < filterAmountFrom) {
+            return false;
+        }
+        return filterAmountTo == null || b.amountCents <= filterAmountTo;
+    }
+
+    private boolean categoryMatches(String cat) {
+        if (cat == null) {
+            return false;
+        }
+        if (filterCategoryIsMain) {
+            return cat.equalsIgnoreCase(filterCategory)
+                    || cat.toLowerCase(Locale.GERMANY).startsWith(
+                            filterCategory.toLowerCase(Locale.GERMANY) + ":");
+        }
+        return cat.equalsIgnoreCase(filterCategory);
     }
 
     private void renderChart() {

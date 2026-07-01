@@ -64,7 +64,12 @@ public class MainActivity extends AppCompatActivity {
 
     private String filterPayee = "";
     private String filterAccount = "";
-    private Long filterAmountCents = null;
+    private String filterCategory = "";
+    private boolean filterCategoryIsMain = false;
+    private Long filterAmountFrom = null;
+    private Long filterAmountTo = null;
+
+    private List<String> allCategories = new ArrayList<>();
 
     /** Eine Sicht in der Saldo-Leiste. key: TOTAL | PLACE:<name> | NOPLACE | FILTERED */
     private static final class SaldoView {
@@ -155,6 +160,7 @@ public class MainActivity extends AppCompatActivity {
     }
 
     private void refreshBookings() {
+        repository.getCategoryNames(cats -> allCategories = cats);
         repository.getAllBookings(result -> {
             allBookings = result;
             repository.getPlaceBalances(pb -> {
@@ -201,11 +207,31 @@ public class MainActivity extends AppCompatActivity {
         if (!filterAccount.isEmpty() && !b.account.equalsIgnoreCase(filterAccount)) {
             return false;
         }
-        return filterAmountCents == null || b.amountCents == filterAmountCents;
+        if (!filterCategory.isEmpty() && !categoryMatches(b.category)) {
+            return false;
+        }
+        if (filterAmountFrom != null && b.amountCents < filterAmountFrom) {
+            return false;
+        }
+        return filterAmountTo == null || b.amountCents <= filterAmountTo;
+    }
+
+    private boolean categoryMatches(String cat) {
+        if (cat == null) {
+            cat = "";
+        }
+        if (filterCategoryIsMain) {
+            // Hauptkategorie: exakt oder als Präfix inkl. Unterkategorien.
+            return cat.equalsIgnoreCase(filterCategory)
+                    || cat.toLowerCase(Locale.GERMANY).startsWith(
+                            filterCategory.toLowerCase(Locale.GERMANY) + ":");
+        }
+        return cat.equalsIgnoreCase(filterCategory);
     }
 
     private boolean isFilterActive() {
-        return !filterPayee.isEmpty() || !filterAccount.isEmpty() || filterAmountCents != null;
+        return !filterPayee.isEmpty() || !filterAccount.isEmpty() || !filterCategory.isEmpty()
+                || filterAmountFrom != null || filterAmountTo != null;
     }
 
     // ---- Saldo-Leiste (Durchschalten) ----
@@ -294,8 +320,12 @@ public class MainActivity extends AppCompatActivity {
         View view = LayoutInflater.from(this).inflate(R.layout.dialog_filter, null, false);
         MaterialAutoCompleteTextView fPayee = view.findViewById(R.id.filterPayee);
         MaterialAutoCompleteTextView fAccount = view.findViewById(R.id.filterAccount);
-        TextInputEditText fAmount = view.findViewById(R.id.filterAmount);
-        fAmount.setKeyListener(android.text.method.DigitsKeyListener.getInstance("0123456789.,"));
+        MaterialAutoCompleteTextView fCategory = view.findViewById(R.id.filterCategory);
+        com.google.android.material.slider.RangeSlider slider = view.findViewById(R.id.filterAmountSlider);
+        TextInputEditText fFrom = view.findViewById(R.id.filterAmountFrom);
+        TextInputEditText fTo = view.findViewById(R.id.filterAmountTo);
+        fFrom.setKeyListener(android.text.method.DigitsKeyListener.getInstance("0123456789.,"));
+        fTo.setKeyListener(android.text.method.DigitsKeyListener.getInstance("0123456789.,"));
 
         repository.getPayeeNames(names -> fPayee.setAdapter(
                 new ArrayAdapter<>(this, android.R.layout.simple_list_item_1, names)));
@@ -304,8 +334,88 @@ public class MainActivity extends AppCompatActivity {
 
         fPayee.setText(filterPayee);
         fAccount.setText(filterAccount, false);
-        if (filterAmountCents != null) {
-            fAmount.setText(formatCents(filterAmountCents));
+
+        // Kategorie-Baum
+        final String[] catValue = {filterCategory};
+        final boolean[] catIsMain = {filterCategoryIsMain};
+        CategoryFilterAdapter catAdapter =
+                new CategoryFilterAdapter(this, getString(R.string.category_all), allCategories);
+        fCategory.setAdapter(catAdapter);
+        fCategory.setText(filterCategory, false);
+        fCategory.setOnItemClickListener((parent, v, pos, id) -> {
+            CategoryFilterAdapter.CatItem it = catAdapter.getItem(pos);
+            if (it != null) {
+                catValue[0] = it.value;
+                catIsMain[0] = it.isMain;
+                fCategory.setText(it.value, false);
+            }
+        });
+
+        // Betrag-Range
+        long dMin = Long.MAX_VALUE;
+        long dMax = Long.MIN_VALUE;
+        for (Booking b : allBookings) {
+            if (b.amountCents < dMin) dMin = b.amountCents;
+            if (b.amountCents > dMax) dMax = b.amountCents;
+        }
+        final long dataMin = dMin;
+        final long dataMax = dMax;
+        final boolean hasRange = !allBookings.isEmpty() && dataMax > dataMin;
+        if (hasRange) {
+            float minE = dataMin / 100f;
+            float maxE = dataMax / 100f;
+            slider.setValueFrom(minE);
+            slider.setValueTo(maxE);
+            float curFrom = filterAmountFrom != null ? filterAmountFrom / 100f : minE;
+            float curTo = filterAmountTo != null ? filterAmountTo / 100f : maxE;
+            curFrom = Math.max(minE, Math.min(maxE, curFrom));
+            curTo = Math.max(minE, Math.min(maxE, curTo));
+            if (curFrom > curTo) {
+                curFrom = minE;
+                curTo = maxE;
+            }
+            slider.setValues(curFrom, curTo);
+            slider.setLabelFormatter(value -> formatEuro(Math.round(value * 100)));
+
+            final boolean[] syncing = {false};
+            fFrom.setText(formatCents(Math.round(curFrom * 100)));
+            fTo.setText(formatCents(Math.round(curTo * 100)));
+
+            slider.addOnChangeListener((s, val, fromUser) -> {
+                if (syncing[0]) return;
+                syncing[0] = true;
+                java.util.List<Float> vals = s.getValues();
+                fFrom.setText(formatCents(Math.round(vals.get(0) * 100)));
+                fTo.setText(formatCents(Math.round(vals.get(1) * 100)));
+                syncing[0] = false;
+            });
+
+            android.text.TextWatcher tw = new android.text.TextWatcher() {
+                @Override public void beforeTextChanged(CharSequence s, int a, int b, int c) { }
+                @Override public void onTextChanged(CharSequence s, int a, int b, int c) { }
+                @Override public void afterTextChanged(android.text.Editable e) {
+                    if (syncing[0]) return;
+                    Long fromC = parseAmountToCents(textOf(fFrom));
+                    Long toC = parseAmountToCents(textOf(fTo));
+                    if (fromC == null || toC == null) return;
+                    float f = Math.max(dataMin, Math.min(dataMax, fromC)) / 100f;
+                    float t = Math.max(dataMin, Math.min(dataMax, toC)) / 100f;
+                    if (f > t) return;
+                    syncing[0] = true;
+                    slider.setValues(f, t);
+                    syncing[0] = false;
+                }
+            };
+            fFrom.addTextChangedListener(tw);
+            fTo.addTextChangedListener(tw);
+        } else {
+            // Kein sinnvoller Bereich (0/1 Buchung oder alle gleich) → deaktivieren.
+            slider.setValueFrom(0f);
+            slider.setValueTo(1f);
+            slider.setValues(0f, 1f);
+            slider.setEnabled(false);
+            fFrom.setEnabled(false);
+            fTo.setEnabled(false);
         }
 
         new MaterialAlertDialogBuilder(this, R.style.ThemeOverlay_Ausgaben_Dialog)
@@ -314,7 +424,23 @@ public class MainActivity extends AppCompatActivity {
                 .setPositiveButton(R.string.filter_apply, (d, w) -> {
                     filterPayee = textOf(fPayee).trim();
                     filterAccount = textOf(fAccount).trim();
-                    filterAmountCents = parseAmountToCents(textOf(fAmount));
+                    filterCategory = catValue[0] == null ? "" : catValue[0].trim();
+                    filterCategoryIsMain = catIsMain[0];
+                    if (hasRange) {
+                        java.util.List<Float> vals = slider.getValues();
+                        long fromC = Math.round(vals.get(0) * 100);
+                        long toC = Math.round(vals.get(1) * 100);
+                        if (fromC <= dataMin && toC >= dataMax) {
+                            filterAmountFrom = null;
+                            filterAmountTo = null;
+                        } else {
+                            filterAmountFrom = fromC;
+                            filterAmountTo = toC;
+                        }
+                    } else {
+                        filterAmountFrom = null;
+                        filterAmountTo = null;
+                    }
                     applyFilter();
                     // Filter angelegt/geändert → automatisch die gefilterte Summe anzeigen.
                     if (isFilterActive()) {
@@ -326,7 +452,10 @@ public class MainActivity extends AppCompatActivity {
                 .setNeutralButton(R.string.filter_reset, (d, w) -> {
                     filterPayee = "";
                     filterAccount = "";
-                    filterAmountCents = null;
+                    filterCategory = "";
+                    filterCategoryIsMain = false;
+                    filterAmountFrom = null;
+                    filterAmountTo = null;
                     saldoIndex = 0;
                     applyFilter();
                     showSaldo();
@@ -386,8 +515,12 @@ public class MainActivity extends AppCompatActivity {
             Intent i = new Intent(this, AnalysisActivity.class);
             i.putExtra(AnalysisActivity.EXTRA_FILTER_PAYEE, filterPayee);
             i.putExtra(AnalysisActivity.EXTRA_FILTER_ACCOUNT, filterAccount);
-            i.putExtra(AnalysisActivity.EXTRA_FILTER_AMOUNT,
-                    filterAmountCents == null ? -1L : filterAmountCents);
+            i.putExtra(AnalysisActivity.EXTRA_FILTER_CATEGORY, filterCategory);
+            i.putExtra(AnalysisActivity.EXTRA_FILTER_CATEGORY_MAIN, filterCategoryIsMain);
+            i.putExtra(AnalysisActivity.EXTRA_FILTER_AMOUNT_FROM,
+                    filterAmountFrom == null ? Long.MIN_VALUE : filterAmountFrom);
+            i.putExtra(AnalysisActivity.EXTRA_FILTER_AMOUNT_TO,
+                    filterAmountTo == null ? Long.MAX_VALUE : filterAmountTo);
             i.putExtra(AnalysisActivity.EXTRA_VIEW_KEY, currentViewKey());
             startActivity(i);
             return true;

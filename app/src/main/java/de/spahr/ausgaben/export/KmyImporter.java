@@ -49,6 +49,7 @@ public class KmyImporter {
 
             int event = parser.getEventType();
             String postdate = null;
+            String entrydate = null;
             String txMemo = "";
             List<String[]> splits = null; // je Split: {account, value, payeeId, memo}
             while (event != XmlPullParser.END_DOCUMENT) {
@@ -56,6 +57,7 @@ public class KmyImporter {
                     String tag = parser.getName();
                     if ("TRANSACTION".equals(tag)) {
                         postdate = parser.getAttributeValue(null, "postdate");
+                        entrydate = parser.getAttributeValue(null, "entrydate");
                         txMemo = orEmpty(parser.getAttributeValue(null, "memo"));
                         splits = new ArrayList<>();
                     } else if ("SPLIT".equals(tag) && splits != null) {
@@ -66,7 +68,7 @@ public class KmyImporter {
                                 orEmpty(parser.getAttributeValue(null, "memo"))});
                     }
                 } else if (event == XmlPullParser.END_TAG && "TRANSACTION".equals(parser.getName())) {
-                    Booking b = toBooking(accountId, accountName, postdate, txMemo, splits);
+                    Booking b = toBooking(accountId, accountName, postdate, entrydate, txMemo, splits);
                     if (b != null) {
                         out.add(b);
                     }
@@ -80,8 +82,8 @@ public class KmyImporter {
         return out;
     }
 
-    private Booking toBooking(String accountId, String accountName, String postdate, String txMemo,
-                              List<String[]> splits) {
+    private Booking toBooking(String accountId, String accountName, String postdate, String entrydate,
+                              String txMemo, List<String[]> splits) {
         if (splits == null) {
             return null;
         }
@@ -107,7 +109,7 @@ public class KmyImporter {
         String payeeId = !own[2].isEmpty() ? own[2] : (counter == null ? "" : counter[2]);
         b.payee = payeeId.isEmpty() ? "" : orEmpty(doc.payeeName(payeeId));
         b.note = !own[3].isEmpty() ? own[3] : txMemo;
-        b.createdAt = parseDate(postdate);
+        b.createdAt = parseDate(postdate, entrydate);
         b.exported = true;
         return b;
     }
@@ -132,14 +134,28 @@ public class KmyImporter {
         }
     }
 
-    private long parseDate(String s) {
+    /**
+     * postdate → Cent-Zeit; bei leerem/ungültigem postdate auf entrydate zurückfallen, sonst {@code 0}
+     * (Epoche), damit Buchungen ohne Datum ans Ende (statt mit „heute" an den Anfang) sortiert werden.
+     */
+    private long parseDate(String postdate, String entrydate) {
+        long t = parseOne(postdate);
+        if (t >= 0) {
+            return t;
+        }
+        t = parseOne(entrydate);
+        return t >= 0 ? t : 0L;
+    }
+
+    /** Parst „yyyy-MM-dd" oder liefert -1 bei leer/ungültig. */
+    private long parseOne(String s) {
         if (s == null || s.trim().isEmpty()) {
-            return System.currentTimeMillis();
+            return -1;
         }
         try {
             return dateFormat.parse(s.trim()).getTime();
         } catch (ParseException e) {
-            return System.currentTimeMillis();
+            return -1;
         }
     }
 

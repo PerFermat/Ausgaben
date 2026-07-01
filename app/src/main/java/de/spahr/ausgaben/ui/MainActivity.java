@@ -473,35 +473,8 @@ public class MainActivity extends AppCompatActivity {
             Toast.makeText(this, R.string.kmy_path_missing, Toast.LENGTH_LONG).show();
             return;
         }
-        final String folder = folderOf(path);
-        showProgress(getString(R.string.progress_loading));
-        new Thread(() -> {
-            try {
-                List<String> files = new NextcloudUploader().listFiles(settings.getUrl(),
-                        settings.getUser(), settings.getPassword(), folder, "kmy");
-                runOnUiThread(() -> {
-                    dismissProgress();
-                    if (files.isEmpty()) {
-                        Toast.makeText(this, R.string.kmy_no_files, Toast.LENGTH_LONG).show();
-                    } else if (files.size() == 1) {
-                        downloadKmyAndChooseAccount(folder, files.get(0));
-                    } else {
-                        String[] items = files.toArray(new String[0]);
-                        new MaterialAlertDialogBuilder(this, R.style.ThemeOverlay_Ausgaben_Dialog)
-                                .setTitle(R.string.choose_import_file)
-                                .setItems(items, (d, w) -> downloadKmyAndChooseAccount(folder, items[w]))
-                                .setNegativeButton(R.string.cancel, null)
-                                .show();
-                    }
-                });
-            } catch (Exception e) {
-                final String msg = e.getMessage() == null ? e.toString() : e.getMessage();
-                runOnUiThread(() -> {
-                    dismissProgress();
-                    Toast.makeText(this, getString(R.string.import_failed, msg), Toast.LENGTH_LONG).show();
-                });
-            }
-        }).start();
+        // Immer die in den Einstellungen hinterlegte Datei verwenden (keine Dateiauswahl).
+        downloadKmyAndChooseAccount(folderOf(path), fileOf(path));
     }
 
     private void downloadKmyAndChooseAccount(String folder, String fileName) {
@@ -574,6 +547,12 @@ public class MainActivity extends AppCompatActivity {
         String p = path.trim();
         int slash = p.lastIndexOf('/');
         return slash < 0 ? "" : p.substring(0, slash);
+    }
+
+    private static String fileOf(String path) {
+        String p = path.trim();
+        int slash = p.lastIndexOf('/');
+        return slash < 0 ? p : p.substring(slash + 1);
     }
 
     // ---- Fortschrittsdialog ----

@@ -37,6 +37,9 @@ import de.spahr.ausgaben.db.PlaceBalance;
 import de.spahr.ausgaben.db.Repository;
 import de.spahr.ausgaben.export.CsvImporter;
 import de.spahr.ausgaben.export.ExportCoordinator;
+import de.spahr.ausgaben.export.KmyDocument;
+import de.spahr.ausgaben.export.KmyExportCoordinator;
+import de.spahr.ausgaben.export.KmyImporter;
 import de.spahr.ausgaben.net.NextcloudUploader;
 import de.spahr.ausgaben.settings.PlacesStore;
 import de.spahr.ausgaben.settings.SettingsStore;
@@ -399,6 +402,10 @@ public class MainActivity extends AppCompatActivity {
     }
 
     private void doExport() {
+        if (settings.isKmyMode()) {
+            runKmyExport();
+            return;
+        }
         // Ohne Nextcloud-Config lokal exportieren; ggf. zuerst Zielordner wählen.
         if (!settings.hasNextcloudConfig() && settings.getLocalExportTree().isEmpty()) {
             Toast.makeText(this, R.string.choose_export_folder, Toast.LENGTH_LONG).show();
@@ -406,6 +413,26 @@ public class MainActivity extends AppCompatActivity {
             return;
         }
         runExport();
+    }
+
+    private void runKmyExport() {
+        showProgress(getString(R.string.progress_exporting));
+        new KmyExportCoordinator(this, repository, settings).exportUnexported(
+                new KmyExportCoordinator.Listener() {
+                    @Override
+                    public void onProgress(String stage) {
+                        updateProgress(stage);
+                    }
+
+                    @Override
+                    public void onComplete(String message, boolean refreshNeeded) {
+                        dismissProgress();
+                        Toast.makeText(MainActivity.this, message, Toast.LENGTH_LONG).show();
+                        if (refreshNeeded) {
+                            refreshBookings();
+                        }
+                    }
+                });
     }
 
     private void runExport() {
@@ -422,11 +449,164 @@ public class MainActivity extends AppCompatActivity {
     // ---- Import (Nextcloud-Liste oder lokaler Picker) ----
 
     private void onImportClicked() {
+        if (settings.isKmyMode()) {
+            startKmyImport();
+            return;
+        }
         if (settings.hasNextcloudConfig()) {
             loadNextcloudFileList();
         } else {
             importLauncher.launch(new String[]{
                     "text/*", "text/csv", "text/comma-separated-values", "application/octet-stream"});
+        }
+    }
+
+    // ---- KMyMoney-Import (.kmy) ----
+
+    private void startKmyImport() {
+        if (!settings.hasNextcloudConfig()) {
+            Toast.makeText(this, R.string.export_no_config, Toast.LENGTH_LONG).show();
+            return;
+        }
+        String path = settings.getKmyPath();
+        if (path.isEmpty()) {
+            Toast.makeText(this, R.string.kmy_path_missing, Toast.LENGTH_LONG).show();
+            return;
+        }
+        final String folder = folderOf(path);
+        showProgress(getString(R.string.progress_loading));
+        new Thread(() -> {
+            try {
+                List<String> files = new NextcloudUploader().listFiles(settings.getUrl(),
+                        settings.getUser(), settings.getPassword(), folder, "kmy");
+                runOnUiThread(() -> {
+                    dismissProgress();
+                    if (files.isEmpty()) {
+                        Toast.makeText(this, R.string.kmy_no_files, Toast.LENGTH_LONG).show();
+                    } else if (files.size() == 1) {
+                        downloadKmyAndChooseAccount(folder, files.get(0));
+                    } else {
+                        String[] items = files.toArray(new String[0]);
+                        new MaterialAlertDialogBuilder(this, R.style.ThemeOverlay_Ausgaben_Dialog)
+                                .setTitle(R.string.choose_import_file)
+                                .setItems(items, (d, w) -> downloadKmyAndChooseAccount(folder, items[w]))
+                                .setNegativeButton(R.string.cancel, null)
+                                .show();
+                    }
+                });
+            } catch (Exception e) {
+                final String msg = e.getMessage() == null ? e.toString() : e.getMessage();
+                runOnUiThread(() -> {
+                    dismissProgress();
+                    Toast.makeText(this, getString(R.string.import_failed, msg), Toast.LENGTH_LONG).show();
+                });
+            }
+        }).start();
+    }
+
+    private void downloadKmyAndChooseAccount(String folder, String fileName) {
+        showProgress(getString(R.string.progress_download));
+        new Thread(() -> {
+            try {
+                byte[] raw = new NextcloudUploader().downloadBytes(settings.getUrl(),
+                        settings.getUser(), settings.getPassword(), folder, fileName);
+                KmyDocument doc = new KmyDocument(raw);
+                KmyImporter importer = new KmyImporter(doc);
+                List<String> accounts = importer.accountNames();
+                runOnUiThread(() -> {
+                    dismissProgress();
+                    if (accounts.isEmpty()) {
+                        Toast.makeText(this, R.string.kmy_no_files, Toast.LENGTH_LONG).show();
+                    } else {
+                        chooseAccountForImport(importer, accounts);
+                    }
+                });
+            } catch (Exception e) {
+                final String msg = e.getMessage() == null ? e.toString() : e.getMessage();
+                runOnUiThread(() -> {
+                    dismissProgress();
+                    Toast.makeText(this, getString(R.string.import_failed, msg), Toast.LENGTH_LONG).show();
+                });
+            }
+        }).start();
+    }
+
+    private void chooseAccountForImport(KmyImporter importer, List<String> accounts) {
+        String[] items = accounts.toArray(new String[0]);
+        new MaterialAlertDialogBuilder(this, R.style.ThemeOverlay_Ausgaben_Dialog)
+                .setTitle(R.string.kmy_choose_account)
+                .setItems(items, (d, w) -> confirmKmyImport(importer, items[w]))
+                .setNegativeButton(R.string.cancel, null)
+                .show();
+    }
+
+    private void confirmKmyImport(KmyImporter importer, String account) {
+        new MaterialAlertDialogBuilder(this, R.style.ThemeOverlay_Ausgaben_Dialog)
+                .setTitle(R.string.kmy_replace_title)
+                .setMessage(getString(R.string.kmy_replace_message, account))
+                .setPositiveButton(R.string.kmy_import_replace, (d, w) -> runKmyImport(importer, account))
+                .setNegativeButton(R.string.cancel, null)
+                .show();
+    }
+
+    private void runKmyImport(KmyImporter importer, String account) {
+        showProgress(getString(R.string.progress_importing));
+        new Thread(() -> {
+            try {
+                List<Booking> bookings = importer.bookingsForAccount(account);
+                runOnUiThread(() -> repository.replaceImport(account, bookings, count -> {
+                    dismissProgress();
+                    Toast.makeText(this, getString(R.string.kmy_import_done, count, account),
+                            Toast.LENGTH_LONG).show();
+                    refreshBookings();
+                }));
+            } catch (Exception e) {
+                final String msg = e.getMessage() == null ? e.toString() : e.getMessage();
+                runOnUiThread(() -> {
+                    dismissProgress();
+                    Toast.makeText(this, getString(R.string.import_failed, msg), Toast.LENGTH_LONG).show();
+                });
+            }
+        }).start();
+    }
+
+    private static String folderOf(String path) {
+        String p = path.trim();
+        int slash = p.lastIndexOf('/');
+        return slash < 0 ? "" : p.substring(0, slash);
+    }
+
+    // ---- Fortschrittsdialog ----
+
+    private androidx.appcompat.app.AlertDialog progressDialog;
+    private TextView progressTextView;
+
+    private void showProgress(String text) {
+        if (progressDialog != null && progressDialog.isShowing()) {
+            updateProgress(text);
+            return;
+        }
+        View view = LayoutInflater.from(this).inflate(R.layout.dialog_progress, null, false);
+        progressTextView = view.findViewById(R.id.progressText);
+        progressTextView.setText(text);
+        progressDialog = new MaterialAlertDialogBuilder(this, R.style.ThemeOverlay_Ausgaben_Dialog)
+                .setView(view)
+                .setCancelable(false)
+                .create();
+        progressDialog.show();
+    }
+
+    private void updateProgress(String text) {
+        if (progressTextView != null) {
+            progressTextView.setText(text);
+        }
+    }
+
+    private void dismissProgress() {
+        if (progressDialog != null) {
+            progressDialog.dismiss();
+            progressDialog = null;
+            progressTextView = null;
         }
     }
 

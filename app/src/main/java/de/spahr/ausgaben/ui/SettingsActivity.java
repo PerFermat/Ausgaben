@@ -56,6 +56,8 @@ public class SettingsActivity extends AppCompatActivity {
     private TextInputLayout passwordLayout;
     private TextInputEditText editFolder;
     private TextInputEditText editImportFolder;
+    private MaterialAutoCompleteTextView editExportMode;
+    private TextInputEditText editKmyPath;
     private MaterialAutoCompleteTextView editDefaultAccount;
     private MaterialSwitch switchDarkMode;
 
@@ -80,6 +82,8 @@ public class SettingsActivity extends AppCompatActivity {
         passwordLayout = findViewById(R.id.passwordLayout);
         editFolder = findViewById(R.id.editFolder);
         editImportFolder = findViewById(R.id.editImportFolder);
+        editExportMode = findViewById(R.id.editExportMode);
+        editKmyPath = findViewById(R.id.editKmyPath);
         editDefaultAccount = findViewById(R.id.editDefaultAccount);
         switchDarkMode = findViewById(R.id.switchDarkMode);
 
@@ -87,6 +91,8 @@ public class SettingsActivity extends AppCompatActivity {
         editUser.setText(settings.getUser());
         editFolder.setText(settings.getFolder());
         editImportFolder.setText(settings.getImportFolder());
+        editKmyPath.setText(settings.getKmyPath());
+        setupExportMode();
         editDefaultAccount.setText(settings.getDefaultAccount(), false);
 
         // Passwort wird nie angezeigt; nur ein Hinweis, wenn eines gespeichert ist.
@@ -115,6 +121,21 @@ public class SettingsActivity extends AppCompatActivity {
         ((MaterialButton) findViewById(R.id.btnReset)).setOnClickListener(v -> confirmReset());
 
         setupPlaces();
+    }
+
+    private String selectedExportMode = SettingsStore.MODE_CSV;
+
+    /** Dropdown „Export-/Import-Format" mit zwei Optionen (CSV / KMyMoney-.kmy). */
+    private void setupExportMode() {
+        String csvLabel = getString(R.string.export_mode_csv);
+        String kmyLabel = getString(R.string.export_mode_kmy);
+        editExportMode.setAdapter(new ArrayAdapter<>(this, android.R.layout.simple_list_item_1,
+                new String[]{csvLabel, kmyLabel}));
+        selectedExportMode = settings.getExportMode();
+        editExportMode.setText(
+                SettingsStore.MODE_KMY.equals(selectedExportMode) ? kmyLabel : csvLabel, false);
+        editExportMode.setOnItemClickListener((parent, view, position, id) ->
+                selectedExportMode = position == 1 ? SettingsStore.MODE_KMY : SettingsStore.MODE_CSV);
     }
 
     // ---- Orte (Bargeld-Bestände) ----
@@ -339,7 +360,9 @@ public class SettingsActivity extends AppCompatActivity {
                 textOf(editPassword),
                 textOf(editFolder),
                 textOf(editImportFolder),
-                defaultAccount);
+                defaultAccount,
+                selectedExportMode,
+                textOf(editKmyPath));
 
         repository.ensureAccount(defaultAccount);
 

@@ -24,6 +24,13 @@ public class SettingsStore {
     private static final String KEY_DEFAULT_ACCOUNT = "default_account";
     private static final String KEY_NIGHT_MODE = "night_mode";
     private static final String KEY_LOCAL_EXPORT_TREE = "local_export_tree";
+    private static final String KEY_EXPORT_MODE = "export_mode";
+    private static final String KEY_KMY_PATH = "kmy_path";
+
+    /** Export-/Import-Modus: kMyMoney-CSV wie bisher. */
+    public static final String MODE_CSV = "csv";
+    /** Export-/Import-Modus: direkt in eine KMyMoney-.kmy-Datei. */
+    public static final String MODE_KMY = "kmy";
 
     private final SharedPreferences prefs;
     private final SharedPreferences secret;
@@ -104,6 +111,20 @@ public class SettingsStore {
         return !getUrl().isEmpty() && !getUser().isEmpty() && hasPassword();
     }
 
+    /** {@link #MODE_CSV} (Standard) oder {@link #MODE_KMY}. */
+    public String getExportMode() {
+        return prefs.getString(KEY_EXPORT_MODE, MODE_CSV);
+    }
+
+    public boolean isKmyMode() {
+        return MODE_KMY.equals(getExportMode());
+    }
+
+    /** Relativer Nextcloud-Pfad zur .kmy inkl. Dateiname, z. B. {@code KMyMoney/gdyx.kmy}. */
+    public String getKmyPath() {
+        return prefs.getString(KEY_KMY_PATH, "").trim();
+    }
+
     /** Standard: dem System folgen, bis der Nutzer aktiv umschaltet. */
     public int getNightMode() {
         return prefs.getInt(KEY_NIGHT_MODE, AppCompatDelegate.MODE_NIGHT_FOLLOW_SYSTEM);
@@ -122,13 +143,15 @@ public class SettingsStore {
      * ein nicht-leeres ersetzt es (verschlüsselt).
      */
     public void save(String url, String user, String password, String folder, String importFolder,
-                     String defaultAccount) {
+                     String defaultAccount, String exportMode, String kmyPath) {
         prefs.edit()
                 .putString(KEY_URL, url == null ? "" : url.trim())
                 .putString(KEY_USER, user == null ? "" : user.trim())
                 .putString(KEY_FOLDER, folder == null ? "" : folder.trim())
                 .putString(KEY_IMPORT_FOLDER, importFolder == null ? "" : importFolder.trim())
                 .putString(KEY_DEFAULT_ACCOUNT, defaultAccount == null ? "" : defaultAccount.trim())
+                .putString(KEY_EXPORT_MODE, MODE_KMY.equals(exportMode) ? MODE_KMY : MODE_CSV)
+                .putString(KEY_KMY_PATH, kmyPath == null ? "" : kmyPath.trim())
                 .apply();
         if (password != null && !password.isEmpty()) {
             secret.edit().putString(KEY_PASSWORD, password).apply();

@@ -19,3 +19,6 @@
 /keystore.properties
 /*.jks
 /*.keystore
+
+# Signierte Release-APK (Artefakt)
+*.apk

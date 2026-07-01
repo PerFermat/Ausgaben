@@ -25,6 +25,7 @@ public class NextcloudUploader {
 
     private static final MediaType CSV = MediaType.parse("text/csv; charset=utf-8");
     private static final MediaType XML = MediaType.parse("application/xml; charset=utf-8");
+    private static final MediaType OCTET = MediaType.parse("application/octet-stream");
 
     private final OkHttpClient client = new OkHttpClient();
 
@@ -51,6 +52,23 @@ public class NextcloudUploader {
         }
     }
 
+    /** Lädt {@code content} (Rohbytes) unter {@code fileName} hoch, z. B. eine gepackte .kmy. */
+    public void uploadBytes(String baseUrl, String user, String password, String folder,
+                            String fileName, byte[] content) throws IOException {
+        String url = buildUrl(baseUrl, user, folder, fileName);
+        RequestBody body = RequestBody.create(content, OCTET);
+        Request request = new Request.Builder()
+                .url(url)
+                .header("Authorization", Credentials.basic(user, password))
+                .put(body)
+                .build();
+        try (Response response = client.newCall(request).execute()) {
+            if (!response.isSuccessful()) {
+                throw new IOException("HTTP " + response.code() + " " + response.message());
+            }
+        }
+    }
+
     /**
      * Listet die CSV-Dateinamen im angegebenen Nextcloud-Ordner per WebDAV-PROPFIND.
      *
@@ -58,6 +76,12 @@ public class NextcloudUploader {
      */
     public List<String> listCsvFiles(String baseUrl, String user, String password, String folder)
             throws IOException {
+        return listFiles(baseUrl, user, password, folder, "csv");
+    }
+
+    /** Listet die Dateinamen mit der angegebenen Endung (ohne Punkt, z. B. "csv" oder "kmy"). */
+    public List<String> listFiles(String baseUrl, String user, String password, String folder,
+                                  String ext) throws IOException {
         String url = buildFolderUrl(baseUrl, user, folder);
         String body = "<?xml version=\"1.0\"?><d:propfind xmlns:d=\"DAV:\">"
                 + "<d:prop><d:resourcetype/></d:prop></d:propfind>";
@@ -74,7 +98,7 @@ public class NextcloudUploader {
             if (!response.isSuccessful()) {
                 throw new IOException("HTTP " + response.code() + " " + response.message());
             }
-            return parseCsvNames(xml);
+            return parseNames(xml, ext);
         }
     }
 
@@ -97,8 +121,28 @@ public class NextcloudUploader {
         }
     }
 
-    /** Extrahiert aus der Multistatus-Antwort die Dateinamen mit Endung .csv (ohne Collections). */
-    private List<String> parseCsvNames(String xml) throws IOException {
+    /** Lädt die Rohbytes einer Datei aus dem Ordner herunter (z. B. eine gepackte .kmy). */
+    public byte[] downloadBytes(String baseUrl, String user, String password, String folder,
+                                String fileName) throws IOException {
+        String url = buildUrl(baseUrl, user, folder, fileName);
+        Request request = new Request.Builder()
+                .url(url)
+                .header("Authorization", Credentials.basic(user, password))
+                .get()
+                .build();
+        try (Response response = client.newCall(request).execute()) {
+            ResponseBody rb = response.body();
+            byte[] content = rb == null ? new byte[0] : rb.bytes();
+            if (!response.isSuccessful()) {
+                throw new IOException("HTTP " + response.code() + " " + response.message());
+            }
+            return content;
+        }
+    }
+
+    /** Extrahiert aus der Multistatus-Antwort die Dateinamen mit der Endung {@code ext} (ohne Collections). */
+    private List<String> parseNames(String xml, String ext) throws IOException {
+        String suffix = "." + ext.toLowerCase();
         List<String> names = new ArrayList<>();
         try {
             XmlPullParser parser = Xml.newPullParser();
@@ -122,7 +166,7 @@ public class NextcloudUploader {
                 } else if (event == XmlPullParser.END_TAG && "response".equals(localName(name))) {
                     if (currentHref != null && !isCollection) {
                         String fileName = lastSegment(currentHref);
-                        if (fileName.toLowerCase().endsWith(".csv")) {
+                        if (fileName.toLowerCase().endsWith(suffix)) {
                             names.add(fileName);
                         }
                     }

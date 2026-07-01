@@ -50,6 +50,7 @@ public class KmyImporter {
             parser.setInput(new StringReader(doc.xml()));
 
             int event = parser.getEventType();
+            boolean inLedger = false; // nur echte Buchungen aus <TRANSACTIONS>, nicht aus <SCHEDULES>
             String postdate = null;
             String entrydate = null;
             String txMemo = "";
@@ -57,24 +58,31 @@ public class KmyImporter {
             while (event != XmlPullParser.END_DOCUMENT) {
                 if (event == XmlPullParser.START_TAG) {
                     String tag = parser.getName();
-                    if ("TRANSACTION".equals(tag)) {
+                    if ("TRANSACTIONS".equals(tag)) {
+                        inLedger = true;
+                    } else if (inLedger && "TRANSACTION".equals(tag)) {
                         postdate = parser.getAttributeValue(null, "postdate");
                         entrydate = parser.getAttributeValue(null, "entrydate");
                         txMemo = orEmpty(parser.getAttributeValue(null, "memo"));
                         splits = new ArrayList<>();
-                    } else if ("SPLIT".equals(tag) && splits != null) {
+                    } else if (inLedger && "SPLIT".equals(tag) && splits != null) {
                         splits.add(new String[]{
                                 orEmpty(parser.getAttributeValue(null, "account")),
                                 orEmpty(parser.getAttributeValue(null, "value")),
                                 orEmpty(parser.getAttributeValue(null, "payee")),
                                 orEmpty(parser.getAttributeValue(null, "memo"))});
                     }
-                } else if (event == XmlPullParser.END_TAG && "TRANSACTION".equals(parser.getName())) {
-                    Booking b = toBooking(accountId, accountName, postdate, entrydate, txMemo, splits);
-                    if (b != null) {
-                        out.add(b);
+                } else if (event == XmlPullParser.END_TAG) {
+                    String tag = parser.getName();
+                    if ("TRANSACTIONS".equals(tag)) {
+                        break; // Hauptbuch vollständig gelesen; <SCHEDULES> (geplante Buchungen) ignorieren
+                    } else if (inLedger && "TRANSACTION".equals(tag)) {
+                        Booking b = toBooking(accountId, accountName, postdate, entrydate, txMemo, splits);
+                        if (b != null) {
+                            out.add(b);
+                        }
+                        splits = null;
                     }
-                    splits = null;
                 }
                 event = parser.next();
             }

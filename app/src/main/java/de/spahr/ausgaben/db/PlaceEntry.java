@@ -17,6 +17,11 @@ public class PlaceEntry {
     @PrimaryKey(autoGenerate = true)
     public long id;
 
+    /** Konto, zu dem der Ort gehört (Orte sind kontobezogen). */
+    @NonNull
+    @ColumnInfo(name = "account")
+    public String account = "";
+
     @NonNull
     @ColumnInfo(name = "place")
     public String place = "";
@@ -36,7 +41,9 @@ public class PlaceEntry {
     public PlaceEntry() {
     }
 
-    public PlaceEntry(@NonNull String place, long amountCents, long createdAt, @NonNull String type) {
+    public PlaceEntry(@NonNull String account, @NonNull String place, long amountCents,
+                      long createdAt, @NonNull String type) {
+        this.account = account;
         this.place = place;
         this.amountCents = amountCents;
         this.createdAt = createdAt;

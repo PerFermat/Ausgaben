@@ -84,7 +84,8 @@ public class AnalysisActivity extends AppCompatActivity {
     private Long filterAmountTo = null;
 
     private String defaultAccount = "";
-    private String defaultPlace = "";
+    /** Trennt Konto und Ort im View-Key (nicht in Namen enthalten). */
+    private static final String PLACE_SEP = "\u001f";
 
     private final List<String> viewKeys = new ArrayList<>();
     private final List<String> viewLabels = new ArrayList<>();
@@ -112,7 +113,6 @@ public class AnalysisActivity extends AppCompatActivity {
 
         repository = new Repository(this);
         defaultAccount = new de.spahr.ausgaben.settings.SettingsStore(this).getDefaultAccount();
-        defaultPlace = new PlacesStore(this).getDefaultPlace();
         chart = findViewById(R.id.barChart);
         textTotal = findViewById(R.id.textTotal);
         editBarCount = findViewById(R.id.editBarCount);
@@ -175,15 +175,22 @@ public class AnalysisActivity extends AppCompatActivity {
             viewKeys.add(MainActivity.VIEW_ACCOUNT_PREFIX + acc);
             viewLabels.add(acc);
         }
-        // Jeder Ort (Standardort = Residual → als „ohne Ort" separat)
-        for (String place : new PlacesStore(this).getPlaces()) {
-            if (!place.equals(defaultPlace)) {
-                viewKeys.add(MainActivity.VIEW_PLACE_PREFIX + place);
-                viewLabels.add(place);
+        // Orte je Konto (Standardort = Residual → als „ohne Ort" je Konto separat).
+        PlacesStore ps = new PlacesStore(this);
+        for (String acc : accounts) {
+            String def = ps.getDefaultPlace(acc);
+            List<String> pl = ps.getPlaces(acc);
+            for (String place : pl) {
+                if (!place.equals(def)) {
+                    viewKeys.add(MainActivity.VIEW_PLACE_PREFIX + acc + PLACE_SEP + place);
+                    viewLabels.add(acc + " · " + place);
+                }
+            }
+            if (!pl.isEmpty()) {
+                viewKeys.add(MainActivity.VIEW_NOPLACE + PLACE_SEP + acc);
+                viewLabels.add(acc + " · " + getString(R.string.no_place));
             }
         }
-        viewKeys.add(MainActivity.VIEW_NOPLACE);
-        viewLabels.add(getString(R.string.no_place));
         if (isFilterActive()) {
             viewKeys.add(MainActivity.VIEW_FILTERED);
             viewLabels.add(getString(R.string.saldo_filtered));
@@ -216,21 +223,29 @@ public class AnalysisActivity extends AppCompatActivity {
                 }
             }
         } else if (viewKey.startsWith(MainActivity.VIEW_PLACE_PREFIX)) {
-            String place = viewKey.substring(MainActivity.VIEW_PLACE_PREFIX.length());
+            String rest = viewKey.substring(MainActivity.VIEW_PLACE_PREFIX.length());
+            int i = rest.indexOf(PLACE_SEP);
+            String acc = i < 0 ? "" : rest.substring(0, i);
+            String place = i < 0 ? rest : rest.substring(i + PLACE_SEP.length());
             for (PlaceEntry e : allPlaceEntries) {
-                if (e.place.equals(place)) {
+                if (e.account.equalsIgnoreCase(acc) && e.place.equals(place)) {
                     events.add(new long[]{e.createdAt, e.amountCents});
                 }
             }
-        } else if (viewKey.equals(MainActivity.VIEW_NOPLACE)) {
-            // „ohne Ort" = Rest des Standardkontos: dessen Buchungen − alle Ort-Bewegungen.
+        } else if (viewKey.startsWith(MainActivity.VIEW_NOPLACE)) {
+            // „ohne Ort" eines Kontos = dessen Buchungen − dessen Ort-Bewegungen (Rest/Standardort).
+            String acc = viewKey.length() > MainActivity.VIEW_NOPLACE.length()
+                    ? viewKey.substring(MainActivity.VIEW_NOPLACE.length() + PLACE_SEP.length())
+                    : defaultAccount;
             for (Booking b : allBookings) {
-                if (defaultAccount.isEmpty() || b.account.equalsIgnoreCase(defaultAccount)) {
+                if (acc.isEmpty() || b.account.equalsIgnoreCase(acc)) {
                     events.add(new long[]{b.createdAt, b.isIncome ? b.amountCents : -b.amountCents});
                 }
             }
             for (PlaceEntry e : allPlaceEntries) {
-                events.add(new long[]{e.createdAt, -e.amountCents});
+                if (acc.isEmpty() || e.account.equalsIgnoreCase(acc)) {
+                    events.add(new long[]{e.createdAt, -e.amountCents});
+                }
             }
         } else { // TOTAL oder FILTERED (über Buchungen)
             boolean onlyFiltered = viewKey.equals(MainActivity.VIEW_FILTERED);

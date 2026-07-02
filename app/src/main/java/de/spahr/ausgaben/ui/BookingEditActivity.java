@@ -101,7 +101,9 @@ public class BookingEditActivity extends AppCompatActivity {
         repository.getCategoryNames(names -> editCategory.setAdapter(
                 new ArrayAdapter<>(this, android.R.layout.simple_list_item_1, names)));
 
-        setupPlaceDropdown();
+        // Ort-Dropdown folgt dem gewählten Konto.
+        editAccount.setOnItemClickListener((parent, view, position, id) ->
+                setupPlaceDropdown(textOf(editAccount).trim()));
 
         findViewById(R.id.btnSaveNew).setOnClickListener(v -> saveAsNew());
         btnUpdate.setOnClickListener(v -> update());
@@ -125,6 +127,7 @@ public class BookingEditActivity extends AppCompatActivity {
         if (!def.isEmpty()) {
             editAccount.setText(def, false);
         }
+        setupPlaceDropdown(def);
         switchExported.setVisibility(View.GONE);
         btnUpdate.setVisibility(View.GONE);
         btnDelete.setVisibility(View.GONE);
@@ -141,6 +144,7 @@ public class BookingEditActivity extends AppCompatActivity {
         editAmount.setText(formatCents(b.amountCents));
         editPayee.setText(b.payee);
         editAccount.setText(b.account, false);
+        setupPlaceDropdown(b.account);
         editCategory.setText(b.category, false);
         editNote.setText(b.note);
         selectedDate.setTimeInMillis(b.createdAt);
@@ -173,11 +177,12 @@ public class BookingEditActivity extends AppCompatActivity {
                 selectedDate.get(Calendar.DAY_OF_MONTH)).show();
     }
 
-    private void setupPlaceDropdown() {
-        List<String> options = new ArrayList<>(placesStore.getPlaces());
+    /** Ort-Dropdown auf die Orte des gewählten Kontos setzen; Vorauswahl = Standardort des Kontos. */
+    private void setupPlaceDropdown(String account) {
+        List<String> options = new ArrayList<>(placesStore.getPlaces(account));
         options.add(PlacesStore.NO_PLACE);
         editPlace.setAdapter(new ArrayAdapter<>(this, android.R.layout.simple_list_item_1, options));
-        String def = placesStore.getDefaultPlace();
+        String def = placesStore.getDefaultPlace(account);
         String preset = (!def.isEmpty() && options.contains(def)) ? def : PlacesStore.NO_PLACE;
         editPlace.setText(preset, false);
     }
@@ -210,7 +215,12 @@ public class BookingEditActivity extends AppCompatActivity {
     }
 
     private void persistNew(Booking b, String place) {
-        repository.saveBookingWithPlace(b, place, () -> {
+        // Standardort des Kontos = Rest-Topf → keine explizite Ort-Bewegung (fließt automatisch dorthin).
+        String p = place;
+        if (p != null && p.equals(placesStore.getDefaultPlace(b.account))) {
+            p = "";
+        }
+        repository.saveBookingWithPlace(b, p, () -> {
             Toast.makeText(this, R.string.booking_saved, Toast.LENGTH_SHORT).show();
             finish();
         });

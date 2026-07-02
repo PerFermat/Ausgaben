@@ -129,6 +129,7 @@
 
     <!-- Orte -->
     <string name="places_section">Orte (Bargeld-Bestände)</string>
+    <string name="places_account_hint">Konto</string>
     <string name="place_add_hint">Neuer Ort</string>
     <string name="place_add">Hinzufügen</string>
     <string name="default_place_hint">Standardort (neue Buchung)</string>

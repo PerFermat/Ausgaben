@@ -116,6 +116,10 @@ public class MainActivity extends AppCompatActivity {
         settings = new SettingsStore(this);
         placesStore = new PlacesStore(this);
 
+        // Einmalige Migration: früher globale Orte + Ort-Bewegungen dem Standardkonto zuordnen.
+        placesStore.migrateLegacyGlobalPlaces(settings.getDefaultAccount());
+        repository.migratePlaceEntryAccounts(settings.getDefaultAccount());
+
         // Navigations-Schublade (Konten) links
         drawerLayout = findViewById(R.id.drawerLayout);
         androidx.appcompat.app.ActionBarDrawerToggle toggle =
@@ -218,15 +222,20 @@ public class MainActivity extends AppCompatActivity {
         repository.getAccountNames(this::populateAccountDrawer);
         repository.getAllBookings(result -> {
             allBookings = result;
-            repository.getPlaceBalances(pb -> {
-                placeBalances = new java.util.LinkedHashMap<>();
-                allPlaceEntrySum = 0;
-                for (PlaceBalance b : pb) {
-                    placeBalances.put(b.place, b.balanceCents);
-                    allPlaceEntrySum += b.balanceCents;
-                }
-                applyFilter();
-            });
+            reloadPlacesAndApply();
+        });
+    }
+
+    /** Lädt die Ort-Salden des aktuell gewählten Kontos und baut Liste/Saldo neu auf. */
+    private void reloadPlacesAndApply() {
+        repository.getPlaceBalances(selectedAccount, pb -> {
+            placeBalances = new java.util.LinkedHashMap<>();
+            allPlaceEntrySum = 0;
+            for (PlaceBalance b : pb) {
+                placeBalances.put(b.place, b.balanceCents);
+                allPlaceEntrySum += b.balanceCents;
+            }
+            applyFilter();
         });
     }
 
@@ -252,7 +261,7 @@ public class MainActivity extends AppCompatActivity {
         accountInitialized = true;
         saldoIndex = 0;
         updateAccountUi();
-        applyFilter();
+        reloadPlacesAndApply();
     }
 
     /** Aktualisiert Toolbar-Titel und markiert den gewählten Schubladen-Eintrag. */
@@ -340,17 +349,17 @@ public class MainActivity extends AppCompatActivity {
         }
         // 2. Gesamt (alle Konten)
         saldoViews.add(new SaldoView(VIEW_TOTAL, getString(R.string.saldo_total), totalBalance));
-        // 3. Orte – nur wenn das Standardkonto gewählt ist; Standardort = Rest-Topf.
-        String defaultAccount = settings.getDefaultAccount();
-        if (!defaultAccount.isEmpty() && defaultAccount.equalsIgnoreCase(selectedAccount)) {
-            String standardort = placesStore.getDefaultPlace();
+        // 3. Orte des gewählten Kontos (Standardort = Rest-Topf des Kontos).
+        if (!selectedAccount.isEmpty()) {
+            List<String> places = placesStore.getPlaces(selectedAccount);
+            String standardort = placesStore.getDefaultPlace(selectedAccount);
             long otherSum = 0;
-            for (String place : placesStore.getPlaces()) {
+            for (String place : places) {
                 if (!place.equals(standardort)) {
                     otherSum += placeBalances.containsKey(place) ? placeBalances.get(place) : 0L;
                 }
             }
-            for (String place : placesStore.getPlaces()) {
+            for (String place : places) {
                 long bal = place.equals(standardort)
                         ? selectedAccountBalance - otherSum
                         : (placeBalances.containsKey(place) ? placeBalances.get(place) : 0L);

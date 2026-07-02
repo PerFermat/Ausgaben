@@ -49,6 +49,9 @@ public class SettingsActivity extends AppCompatActivity {
 
     private LinearLayout placesContainer;
     private MaterialAutoCompleteTextView editDefaultPlace;
+    private MaterialAutoCompleteTextView editPlacesAccount;
+    /** Konto, dessen Orte gerade in den Einstellungen verwaltet werden. */
+    private String placesAccount = "";
 
     private TextInputEditText editUrl;
     private TextInputEditText editUser;
@@ -145,12 +148,28 @@ public class SettingsActivity extends AppCompatActivity {
         placesStore = new PlacesStore(this);
         placesContainer = findViewById(R.id.placesContainer);
         editDefaultPlace = findViewById(R.id.editDefaultPlace);
+        editPlacesAccount = findViewById(R.id.editPlacesAccount);
+
+        // Konto-Auswahl für die Orte-Verwaltung (Default = Standardkonto).
+        placesAccount = settings.getDefaultAccount();
+        repository.getAccountNames(names -> {
+            if (placesAccount.isEmpty() && !names.isEmpty()) {
+                placesAccount = names.get(0);
+            }
+            editPlacesAccount.setAdapter(new ArrayAdapter<>(this, android.R.layout.simple_list_item_1, names));
+            editPlacesAccount.setText(placesAccount, false);
+            refreshPlaces();
+        });
+        editPlacesAccount.setOnItemClickListener((parent, view, position, id) -> {
+            placesAccount = (String) parent.getItemAtPosition(position);
+            refreshPlaces();
+        });
 
         EditText editNewPlace = findViewById(R.id.editNewPlace);
         ((MaterialButton) findViewById(R.id.btnAddPlace)).setOnClickListener(v -> {
             String name = editNewPlace.getText() == null ? "" : editNewPlace.getText().toString().trim();
-            if (!name.isEmpty()) {
-                placesStore.addPlace(name);
+            if (!name.isEmpty() && !placesAccount.isEmpty()) {
+                placesStore.addPlace(placesAccount, name);
                 editNewPlace.setText("");
                 refreshPlaces();
             }
@@ -158,14 +177,15 @@ public class SettingsActivity extends AppCompatActivity {
 
         editDefaultPlace.setOnItemClickListener((parent, view, position, id) -> {
             String sel = (String) parent.getItemAtPosition(position);
-            placesStore.setDefaultPlace(PlacesStore.NO_PLACE.equals(sel) ? "" : sel);
+            placesStore.setDefaultPlace(placesAccount, PlacesStore.NO_PLACE.equals(sel) ? "" : sel);
         });
 
         refreshPlaces();
     }
 
     private void refreshPlaces() {
-        java.util.List<String> places = placesStore.getPlaces();
+        java.util.List<String> places = placesAccount.isEmpty()
+                ? new java.util.ArrayList<>() : placesStore.getPlaces(placesAccount);
 
         // Zeilen je Ort (Name antippen = umbenennen, Button = entfernen)
         placesContainer.removeAllViews();
@@ -195,11 +215,11 @@ public class SettingsActivity extends AppCompatActivity {
             placesContainer.addView(row);
         }
 
-        // Standardort-Dropdown
+        // Standardort-Dropdown (für das gewählte Konto)
         java.util.List<String> options = new java.util.ArrayList<>(places);
         options.add(PlacesStore.NO_PLACE);
         editDefaultPlace.setAdapter(new ArrayAdapter<>(this, android.R.layout.simple_list_item_1, options));
-        String def = placesStore.getDefaultPlace();
+        String def = placesAccount.isEmpty() ? "" : placesStore.getDefaultPlace(placesAccount);
         editDefaultPlace.setText(def.isEmpty() ? PlacesStore.NO_PLACE : def, false);
     }
 
@@ -217,8 +237,8 @@ public class SettingsActivity extends AppCompatActivity {
                 .setPositiveButton(R.string.rename, (d, w) -> {
                     String newName = input.getText().toString().trim();
                     if (!newName.isEmpty() && !newName.equals(oldName)) {
-                        placesStore.renamePlace(oldName, newName);
-                        repository.renamePlaceEntries(oldName, newName, this::refreshPlaces);
+                        placesStore.renamePlace(placesAccount, oldName, newName);
+                        repository.renamePlaceEntries(placesAccount, oldName, newName, this::refreshPlaces);
                     }
                 })
                 .setNegativeButton(R.string.cancel, null)
@@ -230,8 +250,8 @@ public class SettingsActivity extends AppCompatActivity {
                 .setTitle(R.string.place_remove_title)
                 .setMessage(getString(R.string.place_remove_message, place))
                 .setPositiveButton(R.string.remove, (d, w) -> {
-                    placesStore.removePlace(place);
-                    repository.deletePlaceEntries(place, this::refreshPlaces);
+                    placesStore.removePlace(placesAccount, place);
+                    repository.deletePlaceEntries(placesAccount, place, this::refreshPlaces);
                 })
                 .setNegativeButton(R.string.cancel, null)
                 .show();
@@ -285,9 +305,14 @@ public class SettingsActivity extends AppCompatActivity {
         new MaterialAlertDialogBuilder(this, R.style.ThemeOverlay_Ausgaben_Dialog)
                 .setTitle(R.string.delete_account_confirm_title)
                 .setMessage(getString(R.string.delete_account_confirm_message, account))
-                .setPositiveButton(R.string.delete, (d, w) -> repository.deleteAccount(account, () ->
-                        Toast.makeText(this, getString(R.string.delete_account_done, account),
-                                Toast.LENGTH_LONG).show()))
+                .setPositiveButton(R.string.delete, (d, w) -> repository.deleteAccount(account, () -> {
+                    placesStore.removeAccount(account);
+                    if (account.equals(placesAccount)) {
+                        placesAccount = settings.getDefaultAccount();
+                    }
+                    Toast.makeText(this, getString(R.string.delete_account_done, account),
+                            Toast.LENGTH_LONG).show();
+                }))
                 .setNegativeButton(R.string.cancel, null)
                 .show();
     }

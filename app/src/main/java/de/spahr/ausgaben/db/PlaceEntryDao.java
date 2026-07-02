@@ -12,29 +12,41 @@ public interface PlaceEntryDao {
     @Insert
     long insert(PlaceEntry entry);
 
-    /** Saldo je Ort (Summe der Bewegungen). */
-    @Query("SELECT place AS place, SUM(amount_cents) AS balance_cents FROM place_entry GROUP BY place")
-    List<PlaceBalance> getBalances();
+    /** Saldo je Ort eines Kontos (Summe der Bewegungen). */
+    @Query("SELECT place AS place, SUM(amount_cents) AS balance_cents FROM place_entry "
+            + "WHERE account = :account GROUP BY place")
+    List<PlaceBalance> getBalances(String account);
 
-    /** Aktueller Saldo eines einzelnen Ortes. */
-    @Query("SELECT COALESCE(SUM(amount_cents), 0) FROM place_entry WHERE place = :place")
-    long getBalance(String place);
+    /** Saldo je (Konto, Ort) über alle Konten – für die Bestände-Gruppenliste. */
+    @Query("SELECT account AS account, place AS place, SUM(amount_cents) AS balance_cents "
+            + "FROM place_entry GROUP BY account, place")
+    List<PlaceBalance> getAllBalances();
 
-    /** Summe aller Ort-Bewegungen (für „ohne Ort" = Gesamtsumme − diese Summe). */
-    @Query("SELECT COALESCE(SUM(amount_cents), 0) FROM place_entry")
-    long getTotal();
+    /** Aktueller Saldo eines einzelnen Ortes eines Kontos. */
+    @Query("SELECT COALESCE(SUM(amount_cents), 0) FROM place_entry "
+            + "WHERE account = :account AND place = :place")
+    long getBalance(String account, String place);
 
     /** Bewegungen eines Ortes, chronologisch aufsteigend (für den Verlauf). */
-    @Query("SELECT * FROM place_entry WHERE place = :place ORDER BY created_at ASC, id ASC")
-    List<PlaceEntry> getByPlace(String place);
+    @Query("SELECT * FROM place_entry WHERE account = :account AND place = :place "
+            + "ORDER BY created_at ASC, id ASC")
+    List<PlaceEntry> getByPlace(String account, String place);
 
     /** Alle Bewegungen, chronologisch aufsteigend (für die Auswertung). */
     @Query("SELECT * FROM place_entry ORDER BY created_at ASC, id ASC")
     List<PlaceEntry> getAll();
 
-    @Query("UPDATE place_entry SET place = :newName WHERE place = :oldName")
-    void renamePlace(String oldName, String newName);
+    @Query("UPDATE place_entry SET place = :newName WHERE account = :account AND place = :oldName")
+    void renamePlace(String account, String oldName, String newName);
 
-    @Query("DELETE FROM place_entry WHERE place = :place")
-    void deleteByPlace(String place);
+    @Query("DELETE FROM place_entry WHERE account = :account AND place = :place")
+    void deleteByPlace(String account, String place);
+
+    /** Ordnet noch nicht zugeordnete Bewegungen (account = '') einmalig dem Standardkonto zu. */
+    @Query("UPDATE place_entry SET account = :account WHERE account = ''")
+    void assignEmptyAccount(String account);
+
+    /** Löscht alle Bewegungen eines Kontos (beim Löschen eines Kontos). */
+    @Query("DELETE FROM place_entry WHERE account = :account")
+    void deleteByAccount(String account);
 }

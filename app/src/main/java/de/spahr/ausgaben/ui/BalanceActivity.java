@@ -27,6 +27,7 @@ import java.util.Locale;
 import java.util.Map;
 
 import de.spahr.ausgaben.R;
+import de.spahr.ausgaben.db.Booking;
 import de.spahr.ausgaben.db.PlaceBalance;
 import de.spahr.ausgaben.db.Repository;
 import de.spahr.ausgaben.settings.PlacesStore;
@@ -40,10 +41,12 @@ public class BalanceActivity extends AppCompatActivity {
     private SettingsStore settings;
     private LinearLayout container;
 
-    private Map<String, Long> balances = new LinkedHashMap<>();
+    /** Konto → Kontosaldo. */
+    private final LinkedHashMap<String, Long> accountBalances = new LinkedHashMap<>();
+    /** Konto → (Ort → Saldo). */
+    private final Map<String, Map<String, Long>> placeBalances = new LinkedHashMap<>();
+    private List<String> accountsOrder = new ArrayList<>();
     private long total = 0;
-    private long allPlaceSum = 0;
-    private long defaultAccountBalance = 0;
 
     @Override
     protected void onCreate(Bundle savedInstanceState) {
@@ -71,73 +74,100 @@ public class BalanceActivity extends AppCompatActivity {
     private void refresh() {
         repository.getTotalBalance(t -> {
             total = t;
-            repository.getAccountBalance(settings.getDefaultAccount(), ab -> {
-                defaultAccountBalance = ab;
-                repository.getPlaceBalances(pb -> {
-                    balances = new LinkedHashMap<>();
-                    allPlaceSum = 0;
-                    for (PlaceBalance b : pb) {
-                        balances.put(b.place, b.balanceCents);
-                        allPlaceSum += b.balanceCents;
+            repository.getAccountNames(names -> {
+                accountsOrder = names;
+                repository.getAllBookings(bks -> {
+                    accountBalances.clear();
+                    for (Booking b : bks) {
+                        long s = b.isIncome ? b.amountCents : -b.amountCents;
+                        Long prev = accountBalances.get(b.account);
+                        accountBalances.put(b.account, (prev == null ? 0L : prev) + s);
                     }
-                    render();
+                    repository.getAllPlaceBalances(pb -> {
+                        placeBalances.clear();
+                        for (PlaceBalance p : pb) {
+                            Map<String, Long> m = placeBalances.get(p.account);
+                            if (m == null) {
+                                m = new LinkedHashMap<>();
+                                placeBalances.put(p.account, m);
+                            }
+                            m.put(p.place, p.balanceCents);
+                        }
+                        render();
+                    });
                 });
             });
         });
     }
 
+    /** Gruppenliste: je Konto (fett + Saldo) → dessen Orte (eingerückt + Saldo) → Trennstrich; am Ende Gesamt. */
     private void render() {
         container.removeAllViews();
-        String defaultAccount = settings.getDefaultAccount();
-        String standardort = placesStore.getDefaultPlace();
-        // Orte-Topf = Saldo des Standardkontos (Orte gelten nur fürs Standardkonto).
-        long pool = defaultAccount.isEmpty() ? total : defaultAccountBalance;
-        java.util.List<String> places = placesStore.getPlaces();
-        boolean residualOnPlace = !standardort.isEmpty() && places.contains(standardort);
+        for (final String account : accountsOrder) {
+            long accBal = accountBalances.containsKey(account) ? accountBalances.get(account) : 0L;
+            addRow(account, accBal, true, false, false, null);
 
-        long otherSum = 0;
-        for (String place : places) {
-            if (!place.equals(standardort)) {
-                otherSum += balances.containsKey(place) ? balances.get(place) : 0L;
+            Map<String, Long> pbal = placeBalances.get(account);
+            List<String> places = placesStore.getPlaces(account);
+            String standardort = placesStore.getDefaultPlace(account);
+            boolean residualOnPlace = !standardort.isEmpty() && places.contains(standardort);
+
+            long otherSum = 0;
+            for (String p : places) {
+                if (!p.equals(standardort)) {
+                    otherSum += placeBal(pbal, p);
+                }
             }
+            for (final String place : places) {
+                long bal = (residualOnPlace && place.equals(standardort))
+                        ? accBal - otherSum
+                        : placeBal(pbal, place);
+                addRow(place, bal, false, true, true, v -> openHistory(account, place));
+            }
+            if (!residualOnPlace && !places.isEmpty()) {
+                long sum = 0;
+                for (String p : places) {
+                    sum += placeBal(pbal, p);
+                }
+                long rest = accBal - sum;
+                if (rest != 0) {
+                    addRow(getString(R.string.no_place), rest, false, true, false, null);
+                }
+            }
+            addDivider();
         }
+        addRow(getString(R.string.saldo_total), total, true, false, false, null);
+    }
 
-        for (String place : places) {
-            long bal = (residualOnPlace && place.equals(standardort))
-                    ? pool - otherSum
-                    : (balances.containsKey(place) ? balances.get(place) : 0L);
-            addRow(place, bal, true, v -> {
-                Intent i = new Intent(this, PlaceHistoryActivity.class);
-                i.putExtra(PlaceHistoryActivity.EXTRA_PLACE, place);
-                startActivity(i);
-            });
-        }
-        // Fallback, falls kein Standardort definiert ist: Rest als „ohne Ort".
-        if (!residualOnPlace) {
-            addRow(getString(R.string.no_place), pool - allPlaceSum, false, null);
-        }
+    private long placeBal(Map<String, Long> map, String place) {
+        return map != null && map.containsKey(place) ? map.get(place) : 0L;
+    }
 
+    private void openHistory(String account, String place) {
+        Intent i = new Intent(this, PlaceHistoryActivity.class);
+        i.putExtra(PlaceHistoryActivity.EXTRA_ACCOUNT, account);
+        i.putExtra(PlaceHistoryActivity.EXTRA_PLACE, place);
+        startActivity(i);
+    }
+
+    private void addDivider() {
         View divider = new View(this);
         LinearLayout.LayoutParams dp = new LinearLayout.LayoutParams(
                 LinearLayout.LayoutParams.MATCH_PARENT, 2);
-        dp.topMargin = 16;
-        dp.bottomMargin = 8;
+        dp.topMargin = 12;
+        dp.bottomMargin = 4;
         divider.setLayoutParams(dp);
         divider.setBackgroundColor(getColor(R.color.grey_text));
         container.addView(divider);
-
-        // Standardkonto-Saldo (= Summe der Orte) und Gesamt über alle Konten.
-        if (!defaultAccount.isEmpty()) {
-            addRow(defaultAccount, pool, false, null);
-        }
-        addRow(getString(R.string.saldo_total), total, false, null);
     }
 
-    private void addRow(String label, long cents, boolean clickable, View.OnClickListener onClick) {
+    private void addRow(String label, long cents, boolean bold, boolean indent,
+                        boolean clickable, View.OnClickListener onClick) {
         LinearLayout row = new LinearLayout(this);
         row.setOrientation(LinearLayout.HORIZONTAL);
         row.setGravity(Gravity.CENTER_VERTICAL);
-        row.setPadding(0, 28, 0, 28);
+        int lead = indent ? Math.round(24 * getResources().getDisplayMetrics().density) : 0;
+        row.setPadding(lead, indent ? 16 : 22, 0, indent ? 16 : 22);
         if (clickable) {
             row.setClickable(true);
             row.setOnClickListener(onClick);
@@ -148,14 +178,18 @@ public class BalanceActivity extends AppCompatActivity {
 
         TextView name = new TextView(this);
         name.setText(label);
-        name.setTextSize(17f);
+        name.setTextSize(bold ? 17f : 16f);
+        name.setTypeface(android.graphics.Typeface.DEFAULT, bold ? android.graphics.Typeface.BOLD
+                : android.graphics.Typeface.NORMAL);
         name.setLayoutParams(new LinearLayout.LayoutParams(0,
                 LinearLayout.LayoutParams.WRAP_CONTENT, 1f));
 
         TextView value = new TextView(this);
         value.setText(formatEuro(cents));
-        value.setTextSize(17f);
+        value.setTextSize(bold ? 17f : 16f);
         value.setGravity(Gravity.END);
+        value.setTypeface(android.graphics.Typeface.MONOSPACE, bold ? android.graphics.Typeface.BOLD
+                : android.graphics.Typeface.NORMAL);
         value.setTextColor(cents < 0 ? getColor(R.color.expense_red) : getColor(R.color.income_green));
 
         row.addView(name);
@@ -166,19 +200,25 @@ public class BalanceActivity extends AppCompatActivity {
     // ---- Umbuchen ----
 
     private void showTransferDialog() {
+        if (accountsOrder.isEmpty()) {
+            Toast.makeText(this, R.string.no_accounts, Toast.LENGTH_LONG).show();
+            return;
+        }
         View view = LayoutInflater.from(this).inflate(R.layout.dialog_transfer, null, false);
+        MaterialAutoCompleteTextView accountField = view.findViewById(R.id.transferAccount);
         MaterialAutoCompleteTextView from = view.findViewById(R.id.transferFrom);
         MaterialAutoCompleteTextView to = view.findViewById(R.id.transferTo);
         TextInputEditText amount = view.findViewById(R.id.transferAmount);
         amount.setKeyListener(android.text.method.DigitsKeyListener.getInstance("0123456789.,"));
 
-        List<String> options = placeOptions();
-        from.setAdapter(new ArrayAdapter<>(this, android.R.layout.simple_list_item_1, options));
-        to.setAdapter(new ArrayAdapter<>(this, android.R.layout.simple_list_item_1, options));
-        if (!options.isEmpty()) {
-            from.setText(options.get(0), false);
-            to.setText(options.get(options.size() - 1), false);
-        }
+        accountField.setAdapter(new ArrayAdapter<>(this, android.R.layout.simple_list_item_1, accountsOrder));
+        final String[] account = {startAccount()};
+        accountField.setText(account[0], false);
+        fillTransferPlaces(from, to, account[0]);
+        accountField.setOnItemClickListener((p, v, pos, id) -> {
+            account[0] = (String) p.getItemAtPosition(pos);
+            fillTransferPlaces(from, to, account[0]);
+        });
 
         new MaterialAlertDialogBuilder(this, R.style.ThemeOverlay_Ausgaben_Dialog)
                 .setTitle(R.string.transfer_title)
@@ -191,29 +231,53 @@ public class BalanceActivity extends AppCompatActivity {
                         Toast.makeText(this, R.string.transfer_invalid, Toast.LENGTH_SHORT).show();
                         return;
                     }
-                    repository.saveTransfer(f, t, cents, this::refresh);
+                    repository.saveTransfer(account[0], f, t, cents, this::refresh);
                 })
                 .setNegativeButton(R.string.cancel, null)
                 .show();
     }
 
+    /** Von/Nach-Dropdowns auf die Orte des Kontos setzen; „Nach" = Standardort des Kontos. */
+    private void fillTransferPlaces(MaterialAutoCompleteTextView from, MaterialAutoCompleteTextView to,
+                                    String account) {
+        List<String> options = placeOptions(account);
+        from.setAdapter(new ArrayAdapter<>(this, android.R.layout.simple_list_item_1, options));
+        to.setAdapter(new ArrayAdapter<>(this, android.R.layout.simple_list_item_1, options));
+        String standardort = placesStore.getDefaultPlace(account);
+        String toPreset = (!standardort.isEmpty() && options.contains(standardort))
+                ? standardort : options.get(options.size() - 1);
+        to.setText(toPreset, false);
+        // „Von" auf den ersten Ort, der nicht dem „Nach"-Ort entspricht.
+        String fromPreset = options.get(0);
+        if (fromPreset.equals(toPreset) && options.size() > 1) {
+            fromPreset = options.get(1);
+        }
+        from.setText(fromPreset, false);
+    }
+
     // ---- Kassensturz ----
 
     private void showReconcileDialog() {
-        List<String> places = placesStore.getPlaces();
-        if (places.isEmpty()) {
-            Toast.makeText(this, R.string.no_places_defined, Toast.LENGTH_LONG).show();
+        if (accountsOrder.isEmpty()) {
+            Toast.makeText(this, R.string.no_accounts, Toast.LENGTH_LONG).show();
             return;
         }
         View view = LayoutInflater.from(this).inflate(R.layout.dialog_reconcile, null, false);
+        MaterialAutoCompleteTextView accountField = view.findViewById(R.id.reconcileAccount);
         MaterialAutoCompleteTextView place = view.findViewById(R.id.reconcilePlace);
         TextInputEditText amount = view.findViewById(R.id.reconcileAmount);
         com.google.android.material.checkbox.MaterialCheckBox createBooking =
                 view.findViewById(R.id.reconcileCreateBooking);
         amount.setKeyListener(android.text.method.DigitsKeyListener.getInstance("0123456789.,"));
 
-        place.setAdapter(new ArrayAdapter<>(this, android.R.layout.simple_list_item_1, places));
-        place.setText(places.get(0), false);
+        accountField.setAdapter(new ArrayAdapter<>(this, android.R.layout.simple_list_item_1, accountsOrder));
+        final String[] account = {startAccount()};
+        accountField.setText(account[0], false);
+        fillReconcilePlaces(place, account[0]);
+        accountField.setOnItemClickListener((p, v, pos, id) -> {
+            account[0] = (String) p.getItemAtPosition(pos);
+            fillReconcilePlaces(place, account[0]);
+        });
 
         new MaterialAlertDialogBuilder(this, R.style.ThemeOverlay_Ausgaben_Dialog)
                 .setTitle(R.string.reconcile_title)
@@ -225,15 +289,29 @@ public class BalanceActivity extends AppCompatActivity {
                         Toast.makeText(this, R.string.error_amount, Toast.LENGTH_SHORT).show();
                         return;
                     }
-                    repository.saveReconcile(p, cents, settings.getDefaultAccount(),
-                            createBooking.isChecked(), this::refresh);
+                    repository.saveReconcile(account[0], p, cents, createBooking.isChecked(), this::refresh);
                 })
                 .setNegativeButton(R.string.cancel, null)
                 .show();
     }
 
-    private List<String> placeOptions() {
-        List<String> options = new ArrayList<>(placesStore.getPlaces());
+    private void fillReconcilePlaces(MaterialAutoCompleteTextView place, String account) {
+        List<String> places = placesStore.getPlaces(account);
+        place.setAdapter(new ArrayAdapter<>(this, android.R.layout.simple_list_item_1, places));
+        place.setText(places.isEmpty() ? "" : places.get(0), false);
+    }
+
+    /** Standardkonto, sonst das erste vorhandene Konto. */
+    private String startAccount() {
+        String def = settings.getDefaultAccount();
+        if (!def.isEmpty() && accountsOrder.contains(def)) {
+            return def;
+        }
+        return accountsOrder.get(0);
+    }
+
+    private List<String> placeOptions(String account) {
+        List<String> options = new ArrayList<>(placesStore.getPlaces(account));
         options.add(PlacesStore.NO_PLACE);
         return options;
     }

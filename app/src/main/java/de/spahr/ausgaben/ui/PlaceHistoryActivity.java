@@ -22,6 +22,7 @@ import de.spahr.ausgaben.db.Repository;
 public class PlaceHistoryActivity extends AppCompatActivity {
 
     public static final String EXTRA_PLACE = "place";
+    public static final String EXTRA_ACCOUNT = "account";
 
     private final SimpleDateFormat dateFormat = new SimpleDateFormat("dd.MM.yyyy", Locale.GERMANY);
 
@@ -34,11 +35,15 @@ public class PlaceHistoryActivity extends AppCompatActivity {
         toolbar.setNavigationOnClickListener(v -> finish());
 
         String place = getIntent().getStringExtra(EXTRA_PLACE);
+        String account = getIntent().getStringExtra(EXTRA_ACCOUNT);
         toolbar.setTitle(place == null ? "" : place);
+        if (account != null && !account.isEmpty()) {
+            toolbar.setSubtitle(account);
+        }
 
         LinearLayout container = findViewById(R.id.historyContainer);
         Repository repository = new Repository(this);
-        repository.getPlaceHistory(place, entries -> render(container, entries));
+        repository.getPlaceHistory(account, place, entries -> render(container, entries));
     }
 
     private void render(LinearLayout container, List<PlaceEntry> entries) {

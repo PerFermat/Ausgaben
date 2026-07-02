@@ -151,6 +151,7 @@ public class Repository {
         executor.execute(() -> {
             if (account != null && !account.trim().isEmpty()) {
                 bookingDao.deleteAllByAccount(account.trim());
+                placeEntryDao.deleteByAccount(account.trim());
                 accountDao.deleteByName(account.trim());
             }
             if (onDone != null) {
@@ -216,8 +217,9 @@ public class Repository {
     }
 
     /**
-     * Speichert eine neue Buchung und verschiebt zusätzlich den Saldo des gewählten Ortes
-     * (Ort wird NICHT an der Buchung gespeichert). Bei „ohne Ort" keine Ort-Bewegung.
+     * Speichert eine neue Buchung und verschiebt zusätzlich den Saldo des gewählten Ortes (kontobezogen;
+     * Ort = Konto der Buchung). Ort wird NICHT an der Buchung gespeichert; „ohne Ort"/Standardort → keine
+     * explizite Ort-Bewegung (fließt automatisch in den Standardort-Rest).
      */
     public void saveBookingWithPlace(final Booking booking, final String place, final Runnable onDone) {
         executor.execute(() -> {
@@ -226,12 +228,21 @@ public class Repository {
             bookingDao.insert(booking);
             if (isRealPlace(place)) {
                 long signed = booking.isIncome ? booking.amountCents : -booking.amountCents;
-                placeEntryDao.insert(new PlaceEntry(place.trim(), signed, booking.createdAt, "booking"));
+                placeEntryDao.insert(new PlaceEntry(booking.account, place.trim(), signed,
+                        booking.createdAt, "booking"));
             }
             if (onDone != null) {
                 mainHandler.post(onDone);
             }
         });
+    }
+
+    /** Ordnet noch nicht zugeordnete Ort-Bewegungen einmalig dem Standardkonto zu (Migration v4→v5). */
+    public void migratePlaceEntryAccounts(final String defaultAccount) {
+        if (defaultAccount == null || defaultAccount.trim().isEmpty()) {
+            return;
+        }
+        executor.execute(() -> placeEntryDao.assignEmptyAccount(defaultAccount.trim()));
     }
 
     public void getTotalBalance(final Callback<Long> callback) {
@@ -249,16 +260,27 @@ public class Repository {
         });
     }
 
-    public void getPlaceBalances(final Callback<List<PlaceBalance>> callback) {
+    /** Ort-Salden eines Kontos. */
+    public void getPlaceBalances(final String account, final Callback<List<PlaceBalance>> callback) {
         executor.execute(() -> {
-            final List<PlaceBalance> result = placeEntryDao.getBalances();
+            final List<PlaceBalance> result = placeEntryDao.getBalances(account == null ? "" : account);
             mainHandler.post(() -> callback.onResult(result));
         });
     }
 
-    public void getPlaceHistory(final String place, final Callback<List<PlaceEntry>> callback) {
+    /** Ort-Salden je (Konto, Ort) über alle Konten (für die Bestände-Gruppenliste). */
+    public void getAllPlaceBalances(final Callback<List<PlaceBalance>> callback) {
         executor.execute(() -> {
-            final List<PlaceEntry> result = placeEntryDao.getByPlace(place);
+            final List<PlaceBalance> result = placeEntryDao.getAllBalances();
+            mainHandler.post(() -> callback.onResult(result));
+        });
+    }
+
+    public void getPlaceHistory(final String account, final String place,
+                                final Callback<List<PlaceEntry>> callback) {
+        executor.execute(() -> {
+            final List<PlaceEntry> result = placeEntryDao.getByPlace(
+                    account == null ? "" : account, place);
             mainHandler.post(() -> callback.onResult(result));
         });
     }
@@ -270,15 +292,16 @@ public class Repository {
         });
     }
 
-    /** Umbuchen zwischen Orten (keine Buchung). „ohne Ort" lässt die jeweilige Seite aus. */
-    public void saveTransfer(final String from, final String to, final long cents, final Runnable onDone) {
+    /** Umbuchen zwischen Orten desselben Kontos (keine Buchung). */
+    public void saveTransfer(final String account, final String from, final String to,
+                             final long cents, final Runnable onDone) {
         executor.execute(() -> {
             long now = System.currentTimeMillis();
             if (isRealPlace(from)) {
-                placeEntryDao.insert(new PlaceEntry(from.trim(), -cents, now, "transfer"));
+                placeEntryDao.insert(new PlaceEntry(account, from.trim(), -cents, now, "transfer"));
             }
             if (isRealPlace(to)) {
-                placeEntryDao.insert(new PlaceEntry(to.trim(), cents, now, "transfer"));
+                placeEntryDao.insert(new PlaceEntry(account, to.trim(), cents, now, "transfer"));
             }
             if (onDone != null) {
                 mainHandler.post(onDone);
@@ -287,18 +310,18 @@ public class Repository {
     }
 
     /**
-     * Kassensturz: setzt den Ort-Saldo auf {@code targetCents} und bucht die Differenz
-     * (Empfänger „Unbekannt", Kategorie „Sonstiges", Konto {@code account}).
+     * Kassensturz: setzt den Saldo eines Ortes (im Konto {@code account}) auf {@code targetCents} und
+     * bucht die Differenz optional als Buchung auf dieses Konto (Empfänger „Unbekannt", Kategorie
+     * „Sonstiges").
      */
-    public void saveReconcile(final String place, final long targetCents, final String account,
+    public void saveReconcile(final String account, final String place, final long targetCents,
                               final boolean createBooking, final Runnable onDone) {
         executor.execute(() -> {
-            long current = placeEntryDao.getBalance(place);
+            long current = placeEntryDao.getBalance(account == null ? "" : account, place);
             long diff = targetCents - current;
             if (diff != 0) {
                 long now = System.currentTimeMillis();
-                placeEntryDao.insert(new PlaceEntry(place, diff, now, "reconcile"));
-                // Ohne Buchung: nur der Ort-Saldo wird gesetzt; die Differenz erscheint in „ohne Ort".
+                placeEntryDao.insert(new PlaceEntry(account, place, diff, now, "reconcile"));
                 if (createBooking) {
                     Booking b = new Booking();
                     b.amountCents = Math.abs(diff);
@@ -322,18 +345,19 @@ public class Repository {
         });
     }
 
-    public void renamePlaceEntries(final String oldName, final String newName, final Runnable onDone) {
+    public void renamePlaceEntries(final String account, final String oldName, final String newName,
+                                   final Runnable onDone) {
         executor.execute(() -> {
-            placeEntryDao.renamePlace(oldName, newName);
+            placeEntryDao.renamePlace(account == null ? "" : account, oldName, newName);
             if (onDone != null) {
                 mainHandler.post(onDone);
             }
         });
     }
 
-    public void deletePlaceEntries(final String place, final Runnable onDone) {
+    public void deletePlaceEntries(final String account, final String place, final Runnable onDone) {
         executor.execute(() -> {
-            placeEntryDao.deleteByPlace(place);
+            placeEntryDao.deleteByPlace(account == null ? "" : account, place);
             if (onDone != null) {
                 mainHandler.post(onDone);
             }

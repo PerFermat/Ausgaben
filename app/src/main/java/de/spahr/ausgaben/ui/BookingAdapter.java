@@ -53,8 +53,10 @@ public class BookingAdapter extends RecyclerView.Adapter<BookingAdapter.VH> {
     public void onBindViewHolder(@NonNull VH h, int position) {
         Booking b = items.get(position);
         h.payee.setText(b.payee.isEmpty() ? "—" : b.payee);
-        h.account.setText(b.account);
-        h.date.setText(dateFormat.format(new Date(b.createdAt)));
+        // Konto und Datum in einer kompakten Zeile (kMyMoney-Stil): „Konto · TT.MM.JJJJ HH:mm".
+        String date = dateFormat.format(new Date(b.createdAt));
+        h.account.setText(b.account.isEmpty() ? date : b.account + " · " + date);
+        h.date.setVisibility(View.GONE);
 
         if (b.note == null || b.note.isEmpty()) {
             h.note.setVisibility(View.GONE);

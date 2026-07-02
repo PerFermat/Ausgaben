@@ -51,11 +51,16 @@ public class KmyExporter {
                 result.skipped.add(label(b) + ": Konto nicht gefunden (" + b.account + ")");
                 continue;
             }
-            String categoryId = b.category == null ? null : doc.categoryId(b.category);
-            if (categoryId == null) {
-                String cat = b.category == null || b.category.trim().isEmpty() ? "ohne" : b.category;
-                result.skipped.add(label(b) + ": Kategorie nicht gefunden (" + cat + ")");
-                continue;
+            // Leere Kategorie ist erlaubt → wird als nicht zugeordnete Ein-Split-Buchung geschrieben.
+            // Nur eine gesetzte, aber unbekannte Kategorie wird übersprungen (Tippfehler).
+            String cat = b.category == null ? "" : b.category.trim();
+            String categoryId = null;
+            if (!cat.isEmpty()) {
+                categoryId = doc.categoryId(cat);
+                if (categoryId == null) {
+                    result.skipped.add(label(b) + ": Kategorie nicht gefunden (" + cat + ")");
+                    continue;
+                }
             }
 
             String payeeId = "";
@@ -102,12 +107,16 @@ public class KmyExporter {
                                       long signedCents, String memo) {
         String m = esc(memo);
         String cash = fraction(signedCents);
-        String cat = fraction(-signedCents);
+        StringBuilder splits = new StringBuilder();
+        splits.append(split("S0001", assetId, payeeId, cash, m));
+        // Ohne Kategorie: nur der Konto-Split (nicht zugeordnete Buchung, wie KMyMoney es speichert).
+        if (categoryId != null && !categoryId.isEmpty()) {
+            splits.append(split("S0002", categoryId, payeeId, fraction(-signedCents), m));
+        }
         return "<TRANSACTION postdate=\"" + postdate + "\" entrydate=\"" + entrydate + "\" memo=\"" + m
                 + "\" id=\"" + txId + "\" commodity=\"EUR\">"
                 + "<SPLITS>"
-                + split("S0001", assetId, payeeId, cash, m)
-                + split("S0002", categoryId, payeeId, cat, m)
+                + splits
                 + "</SPLITS>"
                 + "</TRANSACTION>";
     }

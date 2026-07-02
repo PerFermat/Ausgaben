@@ -3,7 +3,7 @@
     android:layout_width="match_parent"
     android:layout_height="wrap_content"
     android:orientation="horizontal"
-    android:paddingVertical="12dp"
+    android:paddingVertical="10dp"
     android:gravity="center_vertical">
 
     <LinearLayout
@@ -53,6 +53,7 @@
             android:id="@+id/textAmount"
             android:layout_width="wrap_content"
             android:layout_height="wrap_content"
+            android:fontFamily="monospace"
             android:textSize="16sp"
             android:textStyle="bold" />
 

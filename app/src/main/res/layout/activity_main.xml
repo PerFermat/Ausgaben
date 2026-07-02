@@ -16,6 +16,7 @@
             android:background="@color/green_primary"
             android:theme="@style/ThemeOverlay.Ausgaben.Toolbar"
             app:title="@string/app_name"
+            app:titleMarginStart="8dp"
             app:titleTextColor="@color/white" />
 
         <LinearLayout
@@ -44,6 +45,7 @@
                 android:id="@+id/textBalance"
                 android:layout_width="wrap_content"
                 android:layout_height="wrap_content"
+                android:fontFamily="monospace"
                 android:textSize="16sp"
                 android:textStyle="bold" />
         </LinearLayout>

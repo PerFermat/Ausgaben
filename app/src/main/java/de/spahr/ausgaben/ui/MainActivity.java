@@ -97,7 +97,15 @@ public class MainActivity extends AppCompatActivity {
         super.onCreate(savedInstanceState);
         setContentView(R.layout.activity_main);
 
-        setSupportActionBar(findViewById(R.id.toolbar));
+        com.google.android.material.appbar.MaterialToolbar toolbar = findViewById(R.id.toolbar);
+        setSupportActionBar(toolbar);
+        // kMyMoney-Logo im Header, aber kleiner: das App-Icon per Inset auf ~60 % skalieren.
+        android.graphics.drawable.Drawable logo =
+                androidx.core.content.ContextCompat.getDrawable(this, R.mipmap.ic_launcher);
+        if (logo != null) {
+            int inset = Math.round(logo.getIntrinsicWidth() * 0.32f);
+            toolbar.setLogo(new android.graphics.drawable.InsetDrawable(logo, inset));
+        }
 
         repository = new Repository(this);
         settings = new SettingsStore(this);
@@ -109,6 +117,16 @@ public class MainActivity extends AppCompatActivity {
 
         RecyclerView recycler = findViewById(R.id.recyclerBookings);
         recycler.setLayoutManager(new LinearLayoutManager(this));
+        // Haarfeine Trennlinien zwischen den Buchungen (kMyMoney-Ledger-Optik).
+        com.google.android.material.divider.MaterialDividerItemDecoration divider =
+                new com.google.android.material.divider.MaterialDividerItemDecoration(
+                        this, com.google.android.material.divider.MaterialDividerItemDecoration.VERTICAL);
+        divider.setDividerColor(getColor(R.color.list_divider));
+        divider.setDividerThickness(Math.max(1, Math.round(getResources().getDisplayMetrics().density)));
+        divider.setDividerInsetStart(0);
+        divider.setDividerInsetEnd(0);
+        divider.setLastItemDecorated(false);
+        recycler.addItemDecoration(divider);
         adapter = new BookingAdapter();
         adapter.setListener(b -> {
             Intent i = new Intent(MainActivity.this, BookingEditActivity.class);

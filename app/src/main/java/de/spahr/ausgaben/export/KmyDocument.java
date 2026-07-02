@@ -98,6 +98,17 @@ public class KmyDocument {
         return payeeIdToName.get(id);
     }
 
+    /** Anzeigename eines beliebigen Kontos (auch Depot/Aktie/ETF), für Investment-Umbuchungen. */
+    public String accountNameById(String id) {
+        return accountName.get(id);
+    }
+
+    /** KMyMoney-Kontotyp eines Kontos (15 = Aktie/ETF), sonst 0. */
+    public int accountTypeOf(String id) {
+        Integer t = accountType.get(id);
+        return t == null ? 0 : t;
+    }
+
     public long maxTransactionNumber() {
         return maxTransactionNumber;
     }

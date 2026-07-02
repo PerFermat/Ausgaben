@@ -38,8 +38,16 @@ public interface BookingDao {
     @Query("SELECT COALESCE(SUM(CASE WHEN is_income THEN amount_cents ELSE -amount_cents END), 0) FROM booking")
     long getTotalBalance();
 
+    /** Saldo eines einzelnen Kontos (Einnahmen − Ausgaben). */
+    @Query("SELECT COALESCE(SUM(CASE WHEN is_income THEN amount_cents ELSE -amount_cents END), 0) "
+            + "FROM booking WHERE account = :account")
+    long getBalanceByAccount(String account);
+
     @Query("DELETE FROM booking WHERE account = :account AND exported = 1")
     void deleteExportedByAccount(String account);
+
+    @Query("DELETE FROM booking WHERE account = :account")
+    void deleteAllByAccount(String account);
 
     @Query("SELECT DISTINCT category FROM booking WHERE category != '' ORDER BY category COLLATE NOCASE ASC")
     List<String> getDistinctCategories();

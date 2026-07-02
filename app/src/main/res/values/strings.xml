@@ -32,6 +32,17 @@
     <string name="saldo_filtered">Gefiltert</string>
     <string name="no_place">ohne Ort</string>
 
+    <!-- Konten-Schublade -->
+    <string name="account_all">Alle Konten</string>
+    <string name="accounts_title">Konten</string>
+    <string name="drawer_open">Konten öffnen</string>
+    <string name="drawer_close">Konten schließen</string>
+    <string name="add_account">Neues Konto hinzufügen</string>
+    <string name="kmy_import_all_title">Alle Konten importieren?</string>
+    <string name="kmy_import_all_message">Alle Konten werden aus der KMyMoney-Datei aktualisiert (bereits exportierte Buchungen werden ersetzt).</string>
+    <string name="kmy_import_done_multi">%1$d Buchung(en) in %2$d Konto/Konten importiert</string>
+    <string name="kmy_account_not_found">Konto nicht in der KMyMoney-Datei</string>
+
     <!-- Bestände / Umbuchen / Kassensturz / Verlauf -->
     <string name="balance_title">Bestände</string>
     <string name="transfer_title">Umbuchen</string>
@@ -109,6 +120,12 @@
     <string name="reset_confirm_title">Datenbank zurücksetzen?</string>
     <string name="reset_confirm_message">Alle Buchungen sowie die Konto- und Empfängerlisten werden gelöscht. Einstellungen bleiben erhalten.</string>
     <string name="reset_done">Datenbank zurückgesetzt</string>
+    <string name="delete_account">Konto löschen</string>
+    <string name="delete_account_choose">Konto zum Löschen wählen</string>
+    <string name="delete_account_confirm_title">Konto löschen?</string>
+    <string name="delete_account_confirm_message">Alle Buchungen des Kontos „%1$s" werden dauerhaft gelöscht.</string>
+    <string name="delete_account_done">Konto „%1$s" gelöscht</string>
+    <string name="no_accounts">Keine Konten vorhanden</string>
 
     <!-- Orte -->
     <string name="places_section">Orte (Bargeld-Bestände)</string>

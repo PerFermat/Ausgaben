@@ -118,6 +118,7 @@ public class SettingsActivity extends AppCompatActivity {
         ((MaterialButton) findViewById(R.id.btnBackup)).setOnClickListener(
                 v -> backupLauncher.launch("ausgaben-backup-" + timestamp() + ".db"));
         ((MaterialButton) findViewById(R.id.btnRestore)).setOnClickListener(v -> confirmRestore());
+        ((MaterialButton) findViewById(R.id.btnDeleteAccount)).setOnClickListener(v -> chooseAccountToDelete());
         ((MaterialButton) findViewById(R.id.btnReset)).setOnClickListener(v -> confirmReset());
 
         setupPlaces();
@@ -262,6 +263,33 @@ public class SettingsActivity extends AppCompatActivity {
                         runExportAll();
                     }
                 });
+    }
+
+    /** „Konto löschen": Konto wählen → bestätigen → alle Buchungen + Konto entfernen. */
+    private void chooseAccountToDelete() {
+        repository.getAccountNames(names -> {
+            if (names.isEmpty()) {
+                Toast.makeText(this, R.string.no_accounts, Toast.LENGTH_LONG).show();
+                return;
+            }
+            String[] items = names.toArray(new String[0]);
+            new MaterialAlertDialogBuilder(this, R.style.ThemeOverlay_Ausgaben_Dialog)
+                    .setTitle(R.string.delete_account_choose)
+                    .setItems(items, (d, w) -> confirmDeleteAccount(items[w]))
+                    .setNegativeButton(R.string.cancel, null)
+                    .show();
+        });
+    }
+
+    private void confirmDeleteAccount(String account) {
+        new MaterialAlertDialogBuilder(this, R.style.ThemeOverlay_Ausgaben_Dialog)
+                .setTitle(R.string.delete_account_confirm_title)
+                .setMessage(getString(R.string.delete_account_confirm_message, account))
+                .setPositiveButton(R.string.delete, (d, w) -> repository.deleteAccount(account, () ->
+                        Toast.makeText(this, getString(R.string.delete_account_done, account),
+                                Toast.LENGTH_LONG).show()))
+                .setNegativeButton(R.string.cancel, null)
+                .show();
     }
 
     private void confirmReset() {

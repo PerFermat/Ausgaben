@@ -115,6 +115,50 @@ public class Repository {
         });
     }
 
+    /**
+     * Ersetzt den Import mehrerer Konten in einem Durchgang: je Konto zuerst die bereits exportierten
+     * Buchungen löschen, dann die importierten einfügen. Liefert {@code [Konten, Buchungen]}.
+     */
+    public void replaceImportAccounts(final java.util.LinkedHashMap<String, List<Booking>> byAccount,
+                                      final Callback<int[]> callback) {
+        executor.execute(() -> {
+            int accounts = 0;
+            int inserted = 0;
+            for (java.util.Map.Entry<String, List<Booking>> e : byAccount.entrySet()) {
+                String account = e.getKey();
+                if (account != null && !account.trim().isEmpty()) {
+                    bookingDao.deleteExportedByAccount(account.trim());
+                    accountDao.insertIfAbsent(new Account(account.trim()));
+                }
+                for (Booking b : e.getValue()) {
+                    if (!b.payee.trim().isEmpty()) {
+                        payeeDao.insertIfAbsent(new Payee(b.payee));
+                    }
+                    accountDao.insertIfAbsent(new Account(b.account));
+                    bookingDao.insert(b);
+                    inserted++;
+                }
+                accounts++;
+            }
+            final int fa = accounts;
+            final int fi = inserted;
+            mainHandler.post(() -> callback.onResult(new int[]{fa, fi}));
+        });
+    }
+
+    /** Löscht ein komplettes Konto: alle Buchungen dieses Kontos und den Konto-Eintrag selbst. */
+    public void deleteAccount(final String account, final Runnable onDone) {
+        executor.execute(() -> {
+            if (account != null && !account.trim().isEmpty()) {
+                bookingDao.deleteAllByAccount(account.trim());
+                accountDao.deleteByName(account.trim());
+            }
+            if (onDone != null) {
+                mainHandler.post(onDone);
+            }
+        });
+    }
+
     /** Löscht alle Buchungen sowie die Konto-/Empfänger-Vorschlagslisten (Einstellungen bleiben). */
     public void resetBookingData(final Runnable onDone) {
         executor.execute(() -> {
@@ -193,6 +237,14 @@ public class Repository {
     public void getTotalBalance(final Callback<Long> callback) {
         executor.execute(() -> {
             final long result = bookingDao.getTotalBalance();
+            mainHandler.post(() -> callback.onResult(result));
+        });
+    }
+
+    /** Saldo eines einzelnen Kontos (für „Orte nur fürs Standardkonto"). */
+    public void getAccountBalance(final String account, final Callback<Long> callback) {
+        executor.execute(() -> {
+            final long result = bookingDao.getBalanceByAccount(account == null ? "" : account);
             mainHandler.post(() -> callback.onResult(result));
         });
     }

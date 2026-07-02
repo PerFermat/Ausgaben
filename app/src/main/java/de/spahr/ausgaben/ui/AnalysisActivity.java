@@ -50,7 +50,6 @@ import de.spahr.ausgaben.settings.PlacesStore;
 public class AnalysisActivity extends AppCompatActivity {
 
     public static final String EXTRA_FILTER_PAYEE = "filter_payee";
-    public static final String EXTRA_FILTER_ACCOUNT = "filter_account";
     public static final String EXTRA_FILTER_CATEGORY = "filter_category";
     public static final String EXTRA_FILTER_CATEGORY_MAIN = "filter_category_main";
     public static final String EXTRA_FILTER_AMOUNT_FROM = "filter_amount_from";
@@ -79,11 +78,13 @@ public class AnalysisActivity extends AppCompatActivity {
     private int lastIndex = 0;
 
     private String filterPayee = "";
-    private String filterAccount = "";
     private String filterCategory = "";
     private boolean filterCategoryIsMain = false;
     private Long filterAmountFrom = null;
     private Long filterAmountTo = null;
+
+    private String defaultAccount = "";
+    private String defaultPlace = "";
 
     private final List<String> viewKeys = new ArrayList<>();
     private final List<String> viewLabels = new ArrayList<>();
@@ -98,7 +99,6 @@ public class AnalysisActivity extends AppCompatActivity {
         toolbar.setNavigationOnClickListener(v -> finish());
 
         filterPayee = orEmpty(getIntent().getStringExtra(EXTRA_FILTER_PAYEE));
-        filterAccount = orEmpty(getIntent().getStringExtra(EXTRA_FILTER_ACCOUNT));
         filterCategory = orEmpty(getIntent().getStringExtra(EXTRA_FILTER_CATEGORY));
         filterCategoryIsMain = getIntent().getBooleanExtra(EXTRA_FILTER_CATEGORY_MAIN, false);
         long from = getIntent().getLongExtra(EXTRA_FILTER_AMOUNT_FROM, Long.MIN_VALUE);
@@ -111,6 +111,8 @@ public class AnalysisActivity extends AppCompatActivity {
         }
 
         repository = new Repository(this);
+        defaultAccount = new de.spahr.ausgaben.settings.SettingsStore(this).getDefaultAccount();
+        defaultPlace = new PlacesStore(this).getDefaultPlace();
         chart = findViewById(R.id.barChart);
         textTotal = findViewById(R.id.textTotal);
         editBarCount = findViewById(R.id.editBarCount);
@@ -119,7 +121,6 @@ public class AnalysisActivity extends AppCompatActivity {
 
         setupChart();
         setupBarCountField();
-        setupViewSelector();
 
         MaterialButtonToggleGroup toggle = findViewById(R.id.toggleGranularity);
         toggle.check(R.id.btnMonth);
@@ -147,6 +148,7 @@ public class AnalysisActivity extends AppCompatActivity {
         repository.getAllBookings(result -> {
             allBookings = result;
             bookingsLoaded = true;
+            setupViewSelector();
             if (placesLoaded) renderChart();
         });
         repository.getAllPlaceEntries(result -> {
@@ -159,11 +161,26 @@ public class AnalysisActivity extends AppCompatActivity {
     private void setupViewSelector() {
         viewKeys.clear();
         viewLabels.clear();
+        // Gesamt (alle Konten)
         viewKeys.add(MainActivity.VIEW_TOTAL);
         viewLabels.add(getString(R.string.saldo_total));
+        // Jedes Konto (aus den vorhandenen Buchungen, stabile Reihenfolge)
+        java.util.LinkedHashSet<String> accounts = new java.util.LinkedHashSet<>();
+        for (Booking b : allBookings) {
+            if (b.account != null && !b.account.isEmpty()) {
+                accounts.add(b.account);
+            }
+        }
+        for (String acc : accounts) {
+            viewKeys.add(MainActivity.VIEW_ACCOUNT_PREFIX + acc);
+            viewLabels.add(acc);
+        }
+        // Jeder Ort (Standardort = Residual → als „ohne Ort" separat)
         for (String place : new PlacesStore(this).getPlaces()) {
-            viewKeys.add(MainActivity.VIEW_PLACE_PREFIX + place);
-            viewLabels.add(place);
+            if (!place.equals(defaultPlace)) {
+                viewKeys.add(MainActivity.VIEW_PLACE_PREFIX + place);
+                viewLabels.add(place);
+            }
         }
         viewKeys.add(MainActivity.VIEW_NOPLACE);
         viewLabels.add(getString(R.string.no_place));
@@ -183,7 +200,7 @@ public class AnalysisActivity extends AppCompatActivity {
     }
 
     private boolean isFilterActive() {
-        return !filterPayee.isEmpty() || !filterAccount.isEmpty() || !filterCategory.isEmpty()
+        return !filterPayee.isEmpty() || !filterCategory.isEmpty()
                 || filterAmountFrom != null || filterAmountTo != null;
     }
 
@@ -191,7 +208,14 @@ public class AnalysisActivity extends AppCompatActivity {
 
     private List<long[]> eventsForView() {
         List<long[]> events = new ArrayList<>();
-        if (viewKey.startsWith(MainActivity.VIEW_PLACE_PREFIX)) {
+        if (viewKey.startsWith(MainActivity.VIEW_ACCOUNT_PREFIX)) {
+            String account = viewKey.substring(MainActivity.VIEW_ACCOUNT_PREFIX.length());
+            for (Booking b : allBookings) {
+                if (b.account.equalsIgnoreCase(account)) {
+                    events.add(new long[]{b.createdAt, b.isIncome ? b.amountCents : -b.amountCents});
+                }
+            }
+        } else if (viewKey.startsWith(MainActivity.VIEW_PLACE_PREFIX)) {
             String place = viewKey.substring(MainActivity.VIEW_PLACE_PREFIX.length());
             for (PlaceEntry e : allPlaceEntries) {
                 if (e.place.equals(place)) {
@@ -199,8 +223,11 @@ public class AnalysisActivity extends AppCompatActivity {
                 }
             }
         } else if (viewKey.equals(MainActivity.VIEW_NOPLACE)) {
+            // „ohne Ort" = Rest des Standardkontos: dessen Buchungen − alle Ort-Bewegungen.
             for (Booking b : allBookings) {
-                events.add(new long[]{b.createdAt, b.isIncome ? b.amountCents : -b.amountCents});
+                if (defaultAccount.isEmpty() || b.account.equalsIgnoreCase(defaultAccount)) {
+                    events.add(new long[]{b.createdAt, b.isIncome ? b.amountCents : -b.amountCents});
+                }
             }
             for (PlaceEntry e : allPlaceEntries) {
                 events.add(new long[]{e.createdAt, -e.amountCents});
@@ -221,9 +248,6 @@ public class AnalysisActivity extends AppCompatActivity {
     private boolean matchesFilter(Booking b) {
         if (!filterPayee.isEmpty()
                 && !b.payee.toLowerCase(Locale.GERMANY).contains(filterPayee.toLowerCase(Locale.GERMANY))) {
-            return false;
-        }
-        if (!filterAccount.isEmpty() && !b.account.equalsIgnoreCase(filterAccount)) {
             return false;
         }
         if (!filterCategory.isEmpty() && !categoryMatches(b.category)) {

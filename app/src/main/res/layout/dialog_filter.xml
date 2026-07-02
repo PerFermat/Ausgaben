@@ -28,23 +28,6 @@
                 android:inputType="text" />
         </com.google.android.material.textfield.TextInputLayout>
 
-        <com.google.android.material.textfield.TextInputLayout
-            android:layout_width="match_parent"
-            android:layout_height="wrap_content"
-            android:layout_marginTop="8dp"
-            android:hint="@string/account_hint">
-
-            <com.google.android.material.textfield.MaterialAutoCompleteTextView
-                android:id="@+id/filterAccount"
-                android:layout_width="match_parent"
-                android:layout_height="wrap_content"
-                android:minHeight="64dp"
-                android:paddingVertical="14dp"
-                android:paddingStart="16dp"
-                android:paddingEnd="16dp"
-                android:completionThreshold="1"
-                android:inputType="text" />
-        </com.google.android.material.textfield.TextInputLayout>
 
         <com.google.android.material.textfield.TextInputLayout
             style="@style/Widget.Material3.TextInputLayout.OutlinedBox.ExposedDropdownMenu"

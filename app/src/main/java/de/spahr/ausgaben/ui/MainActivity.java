@@ -63,7 +63,6 @@ public class MainActivity extends AppCompatActivity {
     private int saldoIndex = 0;
 
     private String filterPayee = "";
-    private String filterAccount = "";
     private String filterCategory = "";
     private boolean filterCategoryIsMain = false;
     private Long filterAmountFrom = null;
@@ -71,7 +70,18 @@ public class MainActivity extends AppCompatActivity {
 
     private List<String> allCategories = new ArrayList<>();
 
-    /** Eine Sicht in der Saldo-Leiste. key: TOTAL | PLACE:<name> | NOPLACE | FILTERED */
+    /** Gewähltes Konto (leer = „Alle Konten"). Standard beim Start = Standardkonto. */
+    private String selectedAccount = "";
+    private boolean accountInitialized = false;
+    private long selectedAccountBalance = 0;
+    /** Aktuell in der App vorhandene Konten (für „Alle Konten aktualisieren"). */
+    private final List<String> appAccounts = new ArrayList<>();
+
+    private androidx.drawerlayout.widget.DrawerLayout drawerLayout;
+    private androidx.recyclerview.widget.RecyclerView accountList;
+    private AccountDrawerAdapter accountAdapter;
+
+    /** Eine Sicht in der Saldo-Leiste. key: ACCOUNT | TOTAL | PLACE:<name> | FILTERED */
     private static final class SaldoView {
         final String key;
         final String label;
@@ -88,6 +98,7 @@ public class MainActivity extends AppCompatActivity {
     public static final String VIEW_NOPLACE = "NOPLACE";
     public static final String VIEW_FILTERED = "FILTERED";
     public static final String VIEW_PLACE_PREFIX = "PLACE:";
+    public static final String VIEW_ACCOUNT_PREFIX = "ACCOUNT:";
 
     private ActivityResultLauncher<Uri> exportTreeLauncher;
     private ActivityResultLauncher<String[]> importLauncher;
@@ -99,17 +110,42 @@ public class MainActivity extends AppCompatActivity {
 
         com.google.android.material.appbar.MaterialToolbar toolbar = findViewById(R.id.toolbar);
         setSupportActionBar(toolbar);
-        // kMyMoney-Logo im Header, aber kleiner: das App-Icon per Inset auf ~60 % skalieren.
-        android.graphics.drawable.Drawable logo =
-                androidx.core.content.ContextCompat.getDrawable(this, R.mipmap.ic_launcher);
-        if (logo != null) {
-            int inset = Math.round(logo.getIntrinsicWidth() * 0.32f);
-            toolbar.setLogo(new android.graphics.drawable.InsetDrawable(logo, inset));
-        }
+        // Kein Logo mehr in der Toolbar; das kMyMoney-Logo sitzt im Kopf der Konten-Schublade.
 
         repository = new Repository(this);
         settings = new SettingsStore(this);
         placesStore = new PlacesStore(this);
+
+        // Navigations-Schublade (Konten) links
+        drawerLayout = findViewById(R.id.drawerLayout);
+        androidx.appcompat.app.ActionBarDrawerToggle toggle =
+                new androidx.appcompat.app.ActionBarDrawerToggle(this, drawerLayout, toolbar,
+                        R.string.drawer_open, R.string.drawer_close);
+        drawerLayout.addDrawerListener(toggle);
+        toggle.syncState();
+        toggle.getDrawerArrowDrawable().setColor(getColor(R.color.white));
+
+        accountList = findViewById(R.id.accountList);
+        accountList.setLayoutManager(new LinearLayoutManager(this));
+        accountAdapter = new AccountDrawerAdapter(getString(R.string.account_all),
+                new AccountDrawerAdapter.Listener() {
+                    @Override
+                    public void onSelect(String account, boolean isAll) {
+                        selectAccount(account);
+                        drawerLayout.closeDrawers();
+                    }
+
+                    @Override
+                    public void onImport(String account, boolean isAll) {
+                        drawerLayout.closeDrawers();
+                        onImportRequested(account, isAll);
+                    }
+                });
+        accountList.setAdapter(accountAdapter);
+        findViewById(R.id.addAccount).setOnClickListener(v -> {
+            drawerLayout.closeDrawers();
+            onAddAccountClicked();
+        });
 
         textBalance = findViewById(R.id.textBalance);
         textSaldoLabel = findViewById(R.id.textSaldoLabel);
@@ -179,6 +215,7 @@ public class MainActivity extends AppCompatActivity {
 
     private void refreshBookings() {
         repository.getCategoryNames(cats -> allCategories = cats);
+        repository.getAccountNames(this::populateAccountDrawer);
         repository.getAllBookings(result -> {
             allBookings = result;
             repository.getPlaceBalances(pb -> {
@@ -193,17 +230,56 @@ public class MainActivity extends AppCompatActivity {
         });
     }
 
+    // ---- Konten-Schublade ----
+
+    /** Füllt die Schublade mit „Alle Konten" + allen Konten; wählt beim ersten Mal das Standardkonto. */
+    private void populateAccountDrawer(List<String> names) {
+        appAccounts.clear();
+        if (names != null) {
+            appAccounts.addAll(names);
+        }
+        accountAdapter.setAccounts(names);
+        if (!accountInitialized) {
+            String def = settings.getDefaultAccount();
+            selectedAccount = def == null ? "" : def.trim();
+            accountInitialized = true;
+        }
+        updateAccountUi();
+    }
+
+    private void selectAccount(String name) {
+        selectedAccount = name == null ? "" : name;
+        accountInitialized = true;
+        saldoIndex = 0;
+        updateAccountUi();
+        applyFilter();
+    }
+
+    /** Aktualisiert Toolbar-Titel und markiert den gewählten Schubladen-Eintrag. */
+    private void updateAccountUi() {
+        if (getSupportActionBar() != null) {
+            getSupportActionBar().setTitle(
+                    selectedAccount.isEmpty() ? getString(R.string.account_all) : selectedAccount);
+        }
+        accountAdapter.setSelected(selectedAccount);
+    }
+
     // ---- Filter ----
 
     private void applyFilter() {
         List<Booking> filtered = new ArrayList<>();
         filteredSum = 0;
         totalBalance = 0;
+        selectedAccountBalance = 0;
         for (Booking b : allBookings) {
-            totalBalance += b.isIncome ? b.amountCents : -b.amountCents;
+            long signed = b.isIncome ? b.amountCents : -b.amountCents;
+            totalBalance += signed;
+            if (selectedAccount.isEmpty() || b.account.equalsIgnoreCase(selectedAccount)) {
+                selectedAccountBalance += signed;
+            }
             if (matchesFilter(b)) {
                 filtered.add(b);
-                filteredSum += b.isIncome ? b.amountCents : -b.amountCents;
+                filteredSum += signed;
             }
         }
         adapter.setItems(filtered);
@@ -218,11 +294,12 @@ public class MainActivity extends AppCompatActivity {
     }
 
     private boolean matchesFilter(Booking b) {
-        if (!filterPayee.isEmpty()
-                && !b.payee.toLowerCase(Locale.GERMANY).contains(filterPayee.toLowerCase(Locale.GERMANY))) {
+        // Konto ist jetzt die primäre Auswahl (Schublade), „" = alle Konten.
+        if (!selectedAccount.isEmpty() && !b.account.equalsIgnoreCase(selectedAccount)) {
             return false;
         }
-        if (!filterAccount.isEmpty() && !b.account.equalsIgnoreCase(filterAccount)) {
+        if (!filterPayee.isEmpty()
+                && !b.payee.toLowerCase(Locale.GERMANY).contains(filterPayee.toLowerCase(Locale.GERMANY))) {
             return false;
         }
         if (!filterCategory.isEmpty() && !categoryMatches(b.category)) {
@@ -248,7 +325,7 @@ public class MainActivity extends AppCompatActivity {
     }
 
     private boolean isFilterActive() {
-        return !filterPayee.isEmpty() || !filterAccount.isEmpty() || !filterCategory.isEmpty()
+        return !filterPayee.isEmpty() || !filterCategory.isEmpty()
                 || filterAmountFrom != null || filterAmountTo != null;
     }
 
@@ -256,22 +333,33 @@ public class MainActivity extends AppCompatActivity {
 
     private void buildSaldoViews() {
         saldoViews.clear();
-        String accountLabel = settings.getDefaultAccount();
-        if (accountLabel.isEmpty()) {
-            accountLabel = getString(R.string.saldo_total);
+        // 1. Saldo des gewählten Kontos (außer bei „Alle Konten")
+        if (!selectedAccount.isEmpty()) {
+            saldoViews.add(new SaldoView(VIEW_ACCOUNT_PREFIX + selectedAccount, selectedAccount,
+                    selectedAccountBalance));
         }
-        saldoViews.add(new SaldoView(VIEW_TOTAL, accountLabel, totalBalance));
-        // Orte mit Saldo 0 werden beim Durchschalten übersprungen (nicht aufgenommen).
-        for (String place : placesStore.getPlaces()) {
-            long bal = placeBalances.containsKey(place) ? placeBalances.get(place) : 0L;
-            if (bal != 0) {
-                saldoViews.add(new SaldoView(VIEW_PLACE_PREFIX + place, place, bal));
+        // 2. Gesamt (alle Konten)
+        saldoViews.add(new SaldoView(VIEW_TOTAL, getString(R.string.saldo_total), totalBalance));
+        // 3. Orte – nur wenn das Standardkonto gewählt ist; Standardort = Rest-Topf.
+        String defaultAccount = settings.getDefaultAccount();
+        if (!defaultAccount.isEmpty() && defaultAccount.equalsIgnoreCase(selectedAccount)) {
+            String standardort = placesStore.getDefaultPlace();
+            long otherSum = 0;
+            for (String place : placesStore.getPlaces()) {
+                if (!place.equals(standardort)) {
+                    otherSum += placeBalances.containsKey(place) ? placeBalances.get(place) : 0L;
+                }
+            }
+            for (String place : placesStore.getPlaces()) {
+                long bal = place.equals(standardort)
+                        ? selectedAccountBalance - otherSum
+                        : (placeBalances.containsKey(place) ? placeBalances.get(place) : 0L);
+                if (bal != 0) {
+                    saldoViews.add(new SaldoView(VIEW_PLACE_PREFIX + place, place, bal));
+                }
             }
         }
-        long ohneOrt = totalBalance - allPlaceEntrySum;
-        if (ohneOrt != 0) {
-            saldoViews.add(new SaldoView(VIEW_NOPLACE, getString(R.string.no_place), ohneOrt));
-        }
+        // 4. Gefiltert
         if (isFilterActive()) {
             saldoViews.add(new SaldoView(VIEW_FILTERED, getString(R.string.saldo_filtered), filteredSum));
         }
@@ -337,7 +425,6 @@ public class MainActivity extends AppCompatActivity {
     private void showFilterDialog() {
         View view = LayoutInflater.from(this).inflate(R.layout.dialog_filter, null, false);
         MaterialAutoCompleteTextView fPayee = view.findViewById(R.id.filterPayee);
-        MaterialAutoCompleteTextView fAccount = view.findViewById(R.id.filterAccount);
         MaterialAutoCompleteTextView fCategory = view.findViewById(R.id.filterCategory);
         com.google.android.material.slider.RangeSlider slider = view.findViewById(R.id.filterAmountSlider);
         TextInputEditText fFrom = view.findViewById(R.id.filterAmountFrom);
@@ -347,11 +434,8 @@ public class MainActivity extends AppCompatActivity {
 
         repository.getPayeeNames(names -> fPayee.setAdapter(
                 new ArrayAdapter<>(this, android.R.layout.simple_list_item_1, names)));
-        repository.getAccountNames(names -> fAccount.setAdapter(
-                new ArrayAdapter<>(this, android.R.layout.simple_list_item_1, names)));
 
         fPayee.setText(filterPayee);
-        fAccount.setText(filterAccount, false);
 
         // Kategorie-Baum
         final String[] catValue = {filterCategory};
@@ -441,7 +525,6 @@ public class MainActivity extends AppCompatActivity {
                 .setView(view)
                 .setPositiveButton(R.string.filter_apply, (d, w) -> {
                     filterPayee = textOf(fPayee).trim();
-                    filterAccount = textOf(fAccount).trim();
                     filterCategory = catValue[0] == null ? "" : catValue[0].trim();
                     filterCategoryIsMain = catIsMain[0];
                     if (hasRange) {
@@ -469,7 +552,6 @@ public class MainActivity extends AppCompatActivity {
                 })
                 .setNeutralButton(R.string.filter_reset, (d, w) -> {
                     filterPayee = "";
-                    filterAccount = "";
                     filterCategory = "";
                     filterCategoryIsMain = false;
                     filterAmountFrom = null;
@@ -520,10 +602,7 @@ public class MainActivity extends AppCompatActivity {
     @Override
     public boolean onOptionsItemSelected(@NonNull android.view.MenuItem item) {
         int id = item.getItemId();
-        if (id == R.id.action_import) {
-            onImportClicked();
-            return true;
-        } else if (id == R.id.action_export) {
+        if (id == R.id.action_export) {
             doExport();
             return true;
         } else if (id == R.id.action_filter) {
@@ -532,7 +611,6 @@ public class MainActivity extends AppCompatActivity {
         } else if (id == R.id.action_analysis) {
             Intent i = new Intent(this, AnalysisActivity.class);
             i.putExtra(AnalysisActivity.EXTRA_FILTER_PAYEE, filterPayee);
-            i.putExtra(AnalysisActivity.EXTRA_FILTER_ACCOUNT, filterAccount);
             i.putExtra(AnalysisActivity.EXTRA_FILTER_CATEGORY, filterCategory);
             i.putExtra(AnalysisActivity.EXTRA_FILTER_CATEGORY_MAIN, filterCategoryIsMain);
             i.putExtra(AnalysisActivity.EXTRA_FILTER_AMOUNT_FROM,
@@ -597,24 +675,42 @@ public class MainActivity extends AppCompatActivity {
         });
     }
 
-    // ---- Import (Nextcloud-Liste oder lokaler Picker) ----
+    // ---- Import (Schublade: langer Tipp = importieren) ----
 
-    private void onImportClicked() {
-        if (settings.isKmyMode()) {
-            startKmyImport();
+    /** Langer Tipp auf ein Konto (bzw. „Alle Konten") in der Schublade. */
+    private void onImportRequested(String account, boolean isAll) {
+        if (!settings.isKmyMode()) {
+            startCsvImport();
             return;
         }
-        if (settings.hasNextcloudConfig()) {
-            loadNextcloudFileList();
-        } else {
-            importLauncher.launch(new String[]{
-                    "text/*", "text/csv", "text/comma-separated-values", "application/octet-stream"});
+        if (!settings.hasNextcloudConfig()) {
+            Toast.makeText(this, R.string.export_no_config, Toast.LENGTH_LONG).show();
+            return;
         }
+        if (settings.getKmyPath().isEmpty()) {
+            Toast.makeText(this, R.string.kmy_path_missing, Toast.LENGTH_LONG).show();
+            return;
+        }
+        MaterialAlertDialogBuilder b = new MaterialAlertDialogBuilder(this, R.style.ThemeOverlay_Ausgaben_Dialog)
+                .setNegativeButton(R.string.cancel, null);
+        if (isAll) {
+            b.setTitle(R.string.kmy_import_all_title)
+                    .setMessage(R.string.kmy_import_all_message)
+                    .setPositiveButton(R.string.kmy_import_replace, (d, w) -> runKmyImport(null));
+        } else {
+            b.setTitle(R.string.kmy_replace_title)
+                    .setMessage(getString(R.string.kmy_replace_message, account))
+                    .setPositiveButton(R.string.kmy_import_replace, (d, w) -> runKmyImport(account));
+        }
+        b.show();
     }
 
-    // ---- KMyMoney-Import (.kmy) ----
-
-    private void startKmyImport() {
+    /** „Neues Konto hinzufügen": lädt die .kmy und zeigt den Konto-Auswahldialog. */
+    private void onAddAccountClicked() {
+        if (!settings.isKmyMode()) {
+            startCsvImport();
+            return;
+        }
         if (!settings.hasNextcloudConfig()) {
             Toast.makeText(this, R.string.export_no_config, Toast.LENGTH_LONG).show();
             return;
@@ -624,21 +720,15 @@ public class MainActivity extends AppCompatActivity {
             Toast.makeText(this, R.string.kmy_path_missing, Toast.LENGTH_LONG).show();
             return;
         }
-        // Immer die in den Einstellungen hinterlegte Datei verwenden (keine Dateiauswahl).
-        downloadKmyAndChooseAccount(folderOf(path), fileOf(path));
-    }
-
-    private void downloadKmyAndChooseAccount(String folder, String fileName) {
         showProgress(getString(R.string.progress_download));
         new Thread(() -> {
             try {
                 byte[] raw = new NextcloudUploader().downloadBytes(settings.getUrl(),
-                        settings.getUser(), settings.getPassword(), folder, fileName);
-                KmyDocument doc = new KmyDocument(raw);
-                KmyImporter importer = new KmyImporter(doc);
-                List<String> accounts = importer.accountNames();
+                        settings.getUser(), settings.getPassword(), folderOf(path), fileOf(path));
+                KmyImporter importer = new KmyImporter(new KmyDocument(raw));
                 runOnUiThread(() -> {
                     dismissProgress();
+                    List<String> accounts = importer.accountNames();
                     if (accounts.isEmpty()) {
                         Toast.makeText(this, R.string.kmy_no_files, Toast.LENGTH_LONG).show();
                     } else {
@@ -646,11 +736,7 @@ public class MainActivity extends AppCompatActivity {
                     }
                 });
             } catch (Exception e) {
-                final String msg = e.getMessage() == null ? e.toString() : e.getMessage();
-                runOnUiThread(() -> {
-                    dismissProgress();
-                    Toast.makeText(this, getString(R.string.import_failed, msg), Toast.LENGTH_LONG).show();
-                });
+                postImportError(e);
             }
         }).start();
     }
@@ -659,39 +745,98 @@ public class MainActivity extends AppCompatActivity {
         String[] items = accounts.toArray(new String[0]);
         new MaterialAlertDialogBuilder(this, R.style.ThemeOverlay_Ausgaben_Dialog)
                 .setTitle(R.string.kmy_choose_account)
-                .setItems(items, (d, w) -> confirmKmyImport(importer, items[w]))
+                .setItems(items, (d, w) -> {
+                    showProgress(getString(R.string.progress_importing));
+                    List<String> one = new ArrayList<>();
+                    one.add(items[w]);
+                    new Thread(() -> replaceFromImporter(importer, one)).start();
+                })
                 .setNegativeButton(R.string.cancel, null)
                 .show();
     }
 
-    private void confirmKmyImport(KmyImporter importer, String account) {
-        new MaterialAlertDialogBuilder(this, R.style.ThemeOverlay_Ausgaben_Dialog)
-                .setTitle(R.string.kmy_replace_title)
-                .setMessage(getString(R.string.kmy_replace_message, account))
-                .setPositiveButton(R.string.kmy_import_replace, (d, w) -> runKmyImport(importer, account))
-                .setNegativeButton(R.string.cancel, null)
-                .show();
-    }
-
-    private void runKmyImport(KmyImporter importer, String account) {
-        showProgress(getString(R.string.progress_importing));
+    /** Lädt die .kmy und importiert ein Konto ({@code null} = alle bereits vorhandenen App-Konten). */
+    private void runKmyImport(final String account) {
+        showProgress(getString(R.string.progress_download));
         new Thread(() -> {
+            KmyImporter importer;
             try {
-                List<Booking> bookings = importer.bookingsForAccount(account);
-                runOnUiThread(() -> repository.replaceImport(account, bookings, count -> {
-                    dismissProgress();
-                    Toast.makeText(this, getString(R.string.kmy_import_done, count, account),
-                            Toast.LENGTH_LONG).show();
-                    refreshBookings();
-                }));
+                String path = settings.getKmyPath();
+                byte[] raw = new NextcloudUploader().downloadBytes(settings.getUrl(),
+                        settings.getUser(), settings.getPassword(), folderOf(path), fileOf(path));
+                importer = new KmyImporter(new KmyDocument(raw));
             } catch (Exception e) {
-                final String msg = e.getMessage() == null ? e.toString() : e.getMessage();
+                postImportError(e);
+                return;
+            }
+            List<String> available = importer.accountNames();
+            List<String> targets = new ArrayList<>();
+            if (account == null) {
+                // Nur bereits vorhandene App-Konten, die es auch in der .kmy gibt (keine neuen anlegen).
+                for (String acc : appAccounts) {
+                    if (containsIgnoreCase(available, acc)) {
+                        targets.add(acc);
+                    }
+                }
+            } else if (containsIgnoreCase(available, account)) {
+                targets.add(account);
+            }
+            if (targets.isEmpty()) {
                 runOnUiThread(() -> {
                     dismissProgress();
-                    Toast.makeText(this, getString(R.string.import_failed, msg), Toast.LENGTH_LONG).show();
+                    Toast.makeText(this, R.string.kmy_account_not_found, Toast.LENGTH_LONG).show();
                 });
+                return;
             }
+            runOnUiThread(() -> updateProgress(getString(R.string.progress_importing)));
+            replaceFromImporter(importer, targets);
         }).start();
+    }
+
+    /** Baut die Buchungen der Zielkonten und ersetzt sie in der DB. Läuft im Hintergrund-Thread. */
+    private void replaceFromImporter(KmyImporter importer, List<String> accounts) {
+        try {
+            java.util.LinkedHashMap<String, List<Booking>> map = new java.util.LinkedHashMap<>();
+            for (String acc : accounts) {
+                map.put(acc, importer.bookingsForAccount(acc));
+            }
+            runOnUiThread(() -> repository.replaceImportAccounts(map, res -> {
+                dismissProgress();
+                Toast.makeText(this, getString(R.string.kmy_import_done_multi, res[1], res[0]),
+                        Toast.LENGTH_LONG).show();
+                refreshBookings();
+            }));
+        } catch (Exception e) {
+            postImportError(e);
+        }
+    }
+
+    private static boolean containsIgnoreCase(List<String> list, String name) {
+        for (String s : list) {
+            if (s.equalsIgnoreCase(name)) {
+                return true;
+            }
+        }
+        return false;
+    }
+
+    private void postImportError(Exception e) {
+        final String msg = e.getMessage() == null ? e.toString() : e.getMessage();
+        runOnUiThread(() -> {
+            dismissProgress();
+            Toast.makeText(this, getString(R.string.import_failed, msg), Toast.LENGTH_LONG).show();
+        });
+    }
+
+    // ---- CSV-Import (Nextcloud-Liste oder lokaler Picker) ----
+
+    private void startCsvImport() {
+        if (settings.hasNextcloudConfig()) {
+            loadNextcloudFileList();
+        } else {
+            importLauncher.launch(new String[]{
+                    "text/*", "text/csv", "text/comma-separated-values", "application/octet-stream"});
+        }
     }
 
     private static String folderOf(String path) {

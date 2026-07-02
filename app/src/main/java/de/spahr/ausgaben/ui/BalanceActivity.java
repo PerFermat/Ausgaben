@@ -43,6 +43,7 @@ public class BalanceActivity extends AppCompatActivity {
     private Map<String, Long> balances = new LinkedHashMap<>();
     private long total = 0;
     private long allPlaceSum = 0;
+    private long defaultAccountBalance = 0;
 
     @Override
     protected void onCreate(Bundle savedInstanceState) {
@@ -70,29 +71,51 @@ public class BalanceActivity extends AppCompatActivity {
     private void refresh() {
         repository.getTotalBalance(t -> {
             total = t;
-            repository.getPlaceBalances(pb -> {
-                balances = new LinkedHashMap<>();
-                allPlaceSum = 0;
-                for (PlaceBalance b : pb) {
-                    balances.put(b.place, b.balanceCents);
-                    allPlaceSum += b.balanceCents;
-                }
-                render();
+            repository.getAccountBalance(settings.getDefaultAccount(), ab -> {
+                defaultAccountBalance = ab;
+                repository.getPlaceBalances(pb -> {
+                    balances = new LinkedHashMap<>();
+                    allPlaceSum = 0;
+                    for (PlaceBalance b : pb) {
+                        balances.put(b.place, b.balanceCents);
+                        allPlaceSum += b.balanceCents;
+                    }
+                    render();
+                });
             });
         });
     }
 
     private void render() {
         container.removeAllViews();
-        for (String place : placesStore.getPlaces()) {
-            long bal = balances.containsKey(place) ? balances.get(place) : 0L;
+        String defaultAccount = settings.getDefaultAccount();
+        String standardort = placesStore.getDefaultPlace();
+        // Orte-Topf = Saldo des Standardkontos (Orte gelten nur fürs Standardkonto).
+        long pool = defaultAccount.isEmpty() ? total : defaultAccountBalance;
+        java.util.List<String> places = placesStore.getPlaces();
+        boolean residualOnPlace = !standardort.isEmpty() && places.contains(standardort);
+
+        long otherSum = 0;
+        for (String place : places) {
+            if (!place.equals(standardort)) {
+                otherSum += balances.containsKey(place) ? balances.get(place) : 0L;
+            }
+        }
+
+        for (String place : places) {
+            long bal = (residualOnPlace && place.equals(standardort))
+                    ? pool - otherSum
+                    : (balances.containsKey(place) ? balances.get(place) : 0L);
             addRow(place, bal, true, v -> {
                 Intent i = new Intent(this, PlaceHistoryActivity.class);
                 i.putExtra(PlaceHistoryActivity.EXTRA_PLACE, place);
                 startActivity(i);
             });
         }
-        addRow(getString(R.string.no_place), total - allPlaceSum, false, null);
+        // Fallback, falls kein Standardort definiert ist: Rest als „ohne Ort".
+        if (!residualOnPlace) {
+            addRow(getString(R.string.no_place), pool - allPlaceSum, false, null);
+        }
 
         View divider = new View(this);
         LinearLayout.LayoutParams dp = new LinearLayout.LayoutParams(
@@ -103,6 +126,10 @@ public class BalanceActivity extends AppCompatActivity {
         divider.setBackgroundColor(getColor(R.color.grey_text));
         container.addView(divider);
 
+        // Standardkonto-Saldo (= Summe der Orte) und Gesamt über alle Konten.
+        if (!defaultAccount.isEmpty()) {
+            addRow(defaultAccount, pool, false, null);
+        }
         addRow(getString(R.string.saldo_total), total, false, null);
     }
 

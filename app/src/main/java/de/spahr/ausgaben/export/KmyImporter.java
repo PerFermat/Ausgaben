@@ -116,6 +116,23 @@ public class KmyImporter {
         b.category = counter == null ? "" : orEmpty(doc.categoryPath(counter[0]));
         String payeeId = !own[2].isEmpty() ? own[2] : (counter == null ? "" : counter[2]);
         b.payee = payeeId.isEmpty() ? "" : orEmpty(doc.payeeName(payeeId));
+        // Kein Empfänger (Investment/Umbuchung)? Namen als Empfänger übernehmen, statt „—":
+        if (b.payee.isEmpty()) {
+            // 1) Aktien-/ETF-Konto (Typ 15) unter den Splits – deckt Kauf, Kauf-mit-Gebühr und Dividende ab.
+            String stockName = null;
+            for (String[] s : splits) {
+                if (doc.accountTypeOf(s[0]) == 15) {
+                    stockName = doc.accountNameById(s[0]);
+                    break;
+                }
+            }
+            if (stockName != null && !stockName.trim().isEmpty()) {
+                b.payee = stockName.trim();
+            } else if (b.category.isEmpty() && counter != null) {
+                // 2) sonstige Umbuchung ohne Kategorie → Name des Gegenkontos.
+                b.payee = orEmpty(doc.accountNameById(counter[0])).trim();
+            }
+        }
         b.note = !own[3].isEmpty() ? own[3] : txMemo;
         b.createdAt = parseDate(postdate, entrydate);
         b.exported = true;

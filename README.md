@@ -14,10 +14,20 @@ synchronisieren – entweder als **kMyMoney-CSV** oder direkt in eine **kMyMoney
   dürfen negativ sein.
 - **Umbuchung** (Kontotransfer): zwei Konten (Von/Nach) + optionaler Zahlungsempfänger; legt eine
   verknüpfte Buchung in beiden Konten an.
+- **GPS-Koordinaten in der Notiz**: bei einer *neuen* Buchung erscheinen die aktuellen Koordinaten
+  bereits während der Eingabe im Notizfeld als `GPS: lat, lon` (sichtbar und editierbar; der übrige
+  Notiztext bleibt erhalten, während man tippt wird nicht überschrieben). Nur mit erteilter Standort-
+  Berechtigung und rein lokal – die Position wird nicht an einen externen Dienst gesendet. Ohne
+  Berechtigung/Position bleibt das Feld leer; bestehende Buchungen werden nicht angefasst.
 - **Sprach-Schnellerfassung**: langer Druck auf **„Neue Buchung"** öffnet die Spracheingabe. Sagt man
   z. B. „Frisör 20 €", wird die zuletzt passende Buchung als Vorlage geöffnet (Empfänger, Konto,
   Kategorie(n), Notiz, Buchungsart) – mit heutigem Datum und dem gesprochenen Betrag. Die Empfängersuche
   ist unscharf (findet „Frisör Frank" auch bei „Friseur").
+- **Gelernte Namenskorrekturen**: wird ein gesprochener Empfänger in den Buchungen nicht gefunden und man
+  ändert ihn beim Speichern, fragt die App, ob sie sich die Korrektur merken soll. Kommt derselbe (falsch
+  erkannte) Name später erneut, wird zuerst in den Buchungen und dann in den gemerkten Korrekturen
+  gesucht (gleiche unscharfe Logik) und der richtige Empfänger automatisch übernommen – auch für die
+  Wear-Erfassung. So lässt sich z. B. „immer sprach" dauerhaft dem Empfänger „Emma Spahr" zuordnen.
 
 ### Übersicht & Auswertung
 - Mehrere **Konten** über eine Navigationsschublade; Liste und Saldo je Konto oder „Alle Konten".
@@ -54,8 +64,10 @@ Ein zusätzliches Modul `:wear` erlaubt das Erfassen einer Bargeldausgabe per Sp
 Wear-OS-Uhr („Frisör 20 Euro"). Die Uhr nimmt nur den Text auf; die eigentliche Verarbeitung (derselbe
 Parser wie am Phone) und die Buchungsanlage passieren auf dem Smartphone.
 
-- **Uhr**: ein Screen mit Mikrofon-Button + Wear-Tile („Widget"). Nach der Aufnahme wird der Text lokal
-  gespeichert (Status PENDING) und sofort übertragen. Ist das Phone offline, steht unter dem Button
+- **Uhr**: ein Screen „Buchung erfassen" mit drei Typ-Knöpfen (Einnahme grün, Umbuchung gelb, Ausgabe
+  rot) + Wear-Tile („Widget"). Nach der Typwahl startet die Sprache; der erkannte Text wird 10 Sekunden
+  mit „Abbrechen" angezeigt und – falls nicht abgebrochen – ohne weitere Aktion verarbeitet. Der Typ
+  wird mitübertragen und auf dem Phone erzwungen. Ist das Phone offline, steht unter den Knöpfen
   „x Buchungen noch nicht übertragen".
 - **Offline & Sync**: Die Übertragung läuft **vollautomatisch** über die Wear Data Layer API
   (`MessageClient`). Ist das Phone nicht erreichbar, bleibt der Eintrag PENDING und wird bei

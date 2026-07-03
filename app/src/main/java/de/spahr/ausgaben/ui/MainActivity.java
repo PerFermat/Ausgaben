@@ -265,13 +265,16 @@ public class MainActivity extends AppCompatActivity {
             return;
         }
         final long amount = parsed.amountCents == null ? -1 : parsed.amountCents;
-        repository.findBookingForVoice(parsed.payee, b -> {
+        repository.resolveVoice(parsed.payee, res -> {
             Intent i = new Intent(this, BookingEditActivity.class);
-            if (b != null) {
-                i.putExtra(BookingEditActivity.EXTRA_TEMPLATE_BOOKING_ID, b.id);
+            if (res.booking != null) {
+                i.putExtra(BookingEditActivity.EXTRA_TEMPLATE_BOOKING_ID, res.booking.id);
             } else {
-                i.putExtra(BookingEditActivity.EXTRA_PREFILL_PAYEE, parsed.payee);
-                Toast.makeText(this, getString(R.string.voice_not_found, parsed.payee),
+                i.putExtra(BookingEditActivity.EXTRA_PREFILL_PAYEE, res.payee);
+                // Ursprünglich Gesprochenes mitgeben: bei Änderung des Empfängers kann eine Korrektur
+                // gelernt werden (der Name wurde in den Buchungen nicht gefunden).
+                i.putExtra(BookingEditActivity.EXTRA_VOICE_SPOKEN_PAYEE, parsed.payee);
+                Toast.makeText(this, getString(R.string.voice_not_found, res.payee),
                         Toast.LENGTH_SHORT).show();
             }
             i.putExtra(BookingEditActivity.EXTRA_VOICE_AMOUNT_CENTS, amount);

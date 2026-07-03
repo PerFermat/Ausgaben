@@ -1,8 +1,14 @@
 <resources>
     <string name="app_name">Ausgaben</string>
-    <string name="wear_title">Ausgabe erfassen</string>
-    <string name="wear_prompt">Ausgabe sagen, z. B. „Frisör 20 Euro"</string>
-    <string name="wear_mic">Ausgabe per Sprache erfassen</string>
+    <string name="wear_title">Buchung erfassen</string>
+    <string name="wear_type_income">Einnahme</string>
+    <string name="wear_type_transfer">Umbuchung</string>
+    <string name="wear_type_expense">Ausgabe</string>
+    <string name="wear_cancel">Abbrechen</string>
+    <string name="wear_prompt">Buchung sagen, z. B. „Frisör 20 Euro"</string>
+    <string name="wear_listening">Sprich jetzt…</string>
+    <string name="wear_not_understood">Nicht verstanden</string>
+    <string name="wear_no_mic">Mikrofon-Berechtigung nötig</string>
     <string name="wear_no_recognizer">Keine Spracherkennung verfügbar</string>
 
     <plurals name="wear_pending">

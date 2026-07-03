@@ -1,12 +1,17 @@
 package de.spahr.ausgaben.ui;
 
+import android.Manifest;
 import android.app.DatePickerDialog;
+import android.content.pm.PackageManager;
 import android.os.Bundle;
 import android.view.View;
 import android.widget.ArrayAdapter;
 import android.widget.Toast;
 
+import androidx.activity.result.ActivityResultLauncher;
+import androidx.activity.result.contract.ActivityResultContracts;
 import androidx.appcompat.app.AppCompatActivity;
+import androidx.core.content.ContextCompat;
 
 import com.google.android.material.appbar.MaterialToolbar;
 import com.google.android.material.button.MaterialButton;
@@ -28,6 +33,7 @@ import de.spahr.ausgaben.R;
 import de.spahr.ausgaben.db.Booking;
 import de.spahr.ausgaben.db.BookingSplit;
 import de.spahr.ausgaben.db.Repository;
+import de.spahr.ausgaben.location.LocationTagger;
 import de.spahr.ausgaben.settings.PlacesStore;
 import de.spahr.ausgaben.settings.SettingsStore;
 
@@ -45,6 +51,8 @@ public class BookingEditActivity extends AppCompatActivity {
     public static final String EXTRA_VOICE_AMOUNT_CENTS = "voice_amount_cents";
     /** Vorbelegter Empfänger (falls keine Vorlage gefunden wurde). */
     public static final String EXTRA_PREFILL_PAYEE = "prefill_payee";
+    /** Ursprünglich gesprochener Empfänger – zum Anbieten einer Namenskorrektur beim Speichern. */
+    public static final String EXTRA_VOICE_SPOKEN_PAYEE = "voice_spoken_payee";
 
     private Repository repository;
     private SettingsStore settings;
@@ -75,6 +83,13 @@ public class BookingEditActivity extends AppCompatActivity {
     private MaterialButton btnSaveNew;
     private MaterialButton btnUpdate;
     private MaterialButton btnDelete;
+
+    /** GPS-Anhang an die Notiz – nur im Neu-Modus aktiv (bei bestehenden Buchungen bleibt der Ort unberührt). */
+    private LocationTagger locationTagger;
+    private ActivityResultLauncher<String> locationPermissionLauncher;
+
+    /** Ursprünglich gesprochener Empfänger (aus der Sprach-Erfassung) – für die Korrektur-Nachfrage. */
+    private String voiceSpokenPayee;
 
     private ArrayAdapter<String> categoryAdapter;
     /** Unterdrückt die dynamische Split-Logik während des programmatischen Befüllens. */
@@ -158,6 +173,27 @@ public class BookingEditActivity extends AppCompatActivity {
         long templateId = getIntent().getLongExtra(EXTRA_TEMPLATE_BOOKING_ID, -1);
         long id = getIntent().getLongExtra(EXTRA_BOOKING_ID, -1);
         long voiceAmount = getIntent().getLongExtra(EXTRA_VOICE_AMOUNT_CENTS, -1);
+        voiceSpokenPayee = getIntent().getStringExtra(EXTRA_VOICE_SPOKEN_PAYEE);
+
+        // Nur bei NEUEN Buchungen: Standort vorwärmen und ggf. Berechtigung anfragen, damit beim
+        // Speichern Koordinaten an die Notiz angehängt werden können.
+        if (id < 0) {
+            locationTagger = new LocationTagger(this);
+            locationTagger.setOnLocationUpdate(this::refreshNoteLocation);
+            locationPermissionLauncher = registerForActivityResult(
+                    new ActivityResultContracts.RequestPermission(), granted -> {
+                        if (granted) {
+                            locationTagger.start();
+                            refreshNoteLocation();
+                        }
+                    });
+            if (hasLocationPermission()) {
+                locationTagger.start();
+            } else {
+                locationPermissionLauncher.launch(Manifest.permission.ACCESS_FINE_LOCATION);
+            }
+        }
+
         if (templateId >= 0) {
             // Sprach-Schnellerfassung: neue Buchung aus Vorlage vorbefüllen.
             final Long amount = voiceAmount >= 0 ? voiceAmount : null;
@@ -175,6 +211,75 @@ public class BookingEditActivity extends AppCompatActivity {
                 editAmount.setText(formatCents(voiceAmount));
             }
         }
+    }
+
+    @Override
+    protected void onResume() {
+        super.onResume();
+        if (locationTagger != null && hasLocationPermission()) {
+            locationTagger.start();
+            refreshNoteLocation();
+        }
+    }
+
+    @Override
+    protected void onPause() {
+        super.onPause();
+        if (locationTagger != null) {
+            locationTagger.stop();
+        }
+    }
+
+    private boolean hasLocationPermission() {
+        return ContextCompat.checkSelfPermission(this, Manifest.permission.ACCESS_FINE_LOCATION)
+                == PackageManager.PERMISSION_GRANTED
+                || ContextCompat.checkSelfPermission(this, Manifest.permission.ACCESS_COARSE_LOCATION)
+                == PackageManager.PERMISSION_GRANTED;
+    }
+
+    /**
+     * Zeigt die aktuellen Koordinaten als „GPS: lat, lon" bereits im Notizfeld an (nur Neu-Modus). Ein
+     * vorhandener GPS-Zusatz wird durch den frischeren ersetzt, der übrige Notiztext bleibt erhalten.
+     * Während der Nutzer im Feld tippt (Fokus), wird nicht überschrieben; ohne Standort passiert nichts.
+     */
+    private void refreshNoteLocation() {
+        if (locationTagger == null || editNote == null || editNote.hasFocus()) {
+            return;
+        }
+        String coords = locationTagger.currentCoordinates();
+        if (coords == null) {
+            return;
+        }
+        String current = textOf(editNote);
+        String base = current.replaceAll("\\s*GPS:.*$", "").replaceAll("\\s+$", "");
+        String updated = base.isEmpty() ? "GPS: " + coords : base + " GPS: " + coords;
+        if (!updated.equals(current)) {
+            editNote.setText(updated);
+        }
+    }
+
+    /**
+     * Bietet an, eine Namenskorrektur zu lernen, falls der Empfänger gegenüber dem gesprochenen Begriff
+     * geändert wurde (nur wenn dieser in den Buchungen nicht gefunden wurde – dann ist {@code
+     * voiceSpokenPayee} gesetzt). In jedem Fall wird anschließend {@code proceed} ausgeführt.
+     */
+    private void maybeAskCorrection(String finalPayee, Runnable proceed) {
+        String spoken = voiceSpokenPayee == null ? "" : voiceSpokenPayee.trim();
+        String corrected = finalPayee == null ? "" : finalPayee.trim();
+        if (spoken.isEmpty() || corrected.isEmpty() || spoken.equalsIgnoreCase(corrected)) {
+            proceed.run();
+            return;
+        }
+        new MaterialAlertDialogBuilder(this, R.style.ThemeOverlay_Ausgaben_Dialog)
+                .setTitle(R.string.correction_title)
+                .setMessage(getString(R.string.correction_message, spoken, corrected))
+                .setCancelable(false)
+                .setPositiveButton(R.string.correction_save, (d, w) -> {
+                    repository.saveCorrection(spoken, corrected);
+                    proceed.run();
+                })
+                .setNegativeButton(R.string.correction_discard, (d, w) -> proceed.run())
+                .show();
     }
 
     private void setupNewMode() {
@@ -197,6 +302,7 @@ public class BookingEditActivity extends AppCompatActivity {
         btnDelete.setVisibility(View.GONE);
         applyTypeVisibility();
         updateSaveEnabled();
+        refreshNoteLocation();
     }
 
     private void bindEditMode(Booking b) {
@@ -236,6 +342,7 @@ public class BookingEditActivity extends AppCompatActivity {
         btnUpdate.setVisibility(View.GONE);
         btnDelete.setVisibility(View.GONE);
         populateFrom(b, amountCents);
+        refreshNoteLocation();
     }
 
     /**
@@ -592,10 +699,10 @@ public class BookingEditActivity extends AppCompatActivity {
         final List<Part> parts = collectParts();
         b.category = parts.isEmpty() ? "" : parts.get(0).category;
         final String place = textOf(editPlace);
-        withDateConfirm(() -> {
+        maybeAskCorrection(b.payee, () -> withDateConfirm(() -> {
             b.createdAt = composeTimestamp();
             persistNew(b, place, parts);
-        });
+        }));
     }
 
     private void saveTransferNew() {
@@ -612,11 +719,12 @@ public class BookingEditActivity extends AppCompatActivity {
         }
         final String note = textOf(editNote).trim();
         final String payee = textOf(editPayee).trim();
-        withDateConfirm(() -> repository.saveTransferBooking(from, to, cents, payee, note,
+        maybeAskCorrection(payee, () -> withDateConfirm(() ->
+                repository.saveTransferBooking(from, to, cents, payee, note,
                 composeTimestamp(), () -> {
                     Toast.makeText(this, R.string.transfer_saved, Toast.LENGTH_SHORT).show();
                     finish();
-                }));
+                })));
     }
 
     private void persistNew(Booking b, String place, List<Part> parts) {

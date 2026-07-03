@@ -2,6 +2,7 @@ package de.spahr.ausgaben.wear;
 
 import androidx.concurrent.futures.ResolvableFuture;
 import androidx.wear.tiles.ActionBuilders;
+import androidx.wear.tiles.ColorBuilders;
 import androidx.wear.tiles.DimensionBuilders;
 import androidx.wear.tiles.LayoutElementBuilders;
 import androidx.wear.tiles.ModifiersBuilders;
@@ -14,38 +15,55 @@ import androidx.wear.tiles.TimelineBuilders;
 import com.google.common.util.concurrent.ListenableFuture;
 
 /**
- * Wear-Tile („Widget"): zeigt „Ausgabe erfassen"; ein Tipp öffnet die App und startet direkt die
- * Spracheingabe. Bewusst minimal gehalten (Tiles-1.1-Layout-Builder, kein Compose).
+ * Wear-Tile („Widget"): zeigt „Buchung erfassen" und die drei Typ-Knöpfe (Einnahme grün, Umbuchung gelb,
+ * Ausgabe rot). Ein Tipp auf einen Knopf öffnet die App und startet direkt die Spracheingabe für diesen
+ * Typ. Bewusst minimal (Tiles-1.1-Layout-Builder, kein Compose, keine Bild-Ressourcen).
  */
 public class ExpenseTileService extends TileService {
 
     private static final String RESOURCES_VERSION = "1";
 
+    private static final int GREEN = 0xFF2E7D32;
+    private static final int YELLOW = 0xFFF9A825;
+    private static final int RED = 0xFFC62828;
+    private static final int WHITE = 0xFFFFFFFF;
+
     @Override
     protected ListenableFuture<TileBuilders.Tile> onTileRequest(
             RequestBuilders.TileRequest requestParams) {
 
-        ActionBuilders.LaunchAction launch = new ActionBuilders.LaunchAction.Builder()
-                .setAndroidActivity(new ActionBuilders.AndroidActivity.Builder()
-                        .setPackageName(getPackageName())
-                        .setClassName(WearMainActivity.class.getName())
-                        .addKeyToExtraMapping(WearMainActivity.EXTRA_START_VOICE,
-                                new ActionBuilders.AndroidBooleanExtra.Builder().setValue(true).build())
-                        .build())
+        LayoutElementBuilders.Row buttons = new LayoutElementBuilders.Row.Builder()
+                .setVerticalAlignment(LayoutElementBuilders.VERTICAL_ALIGN_CENTER)
+                .addContent(typeButton(WearPaths.TYPE_INCOME, GREEN, "+"))
+                .addContent(spacerW())
+                .addContent(typeButton(WearPaths.TYPE_TRANSFER, YELLOW, "↔"))
+                .addContent(spacerW())
+                .addContent(typeButton(WearPaths.TYPE_EXPENSE, RED, "−"))
                 .build();
 
+        LayoutElementBuilders.Column content = new LayoutElementBuilders.Column.Builder()
+                .setHorizontalAlignment(LayoutElementBuilders.HORIZONTAL_ALIGN_CENTER)
+                .addContent(new LayoutElementBuilders.Text.Builder()
+                        .setText(getString(R.string.wear_title))
+                        .setFontStyle(new LayoutElementBuilders.FontStyle.Builder()
+                                .setColor(ColorBuilders.argb(WHITE))
+                                .setSize(DimensionBuilders.sp(15))
+                                .build())
+                        .build())
+                .addContent(new LayoutElementBuilders.Spacer.Builder()
+                        .setHeight(DimensionBuilders.dp(10))
+                        .build())
+                .addContent(buttons)
+                .build();
+
+        // Auf dem Rundschirm den Inhalt vertikal + horizontal zentrieren (sonst wird der Titel oben
+        // vom runden Rand beschnitten).
         LayoutElementBuilders.Box root = new LayoutElementBuilders.Box.Builder()
                 .setWidth(DimensionBuilders.expand())
                 .setHeight(DimensionBuilders.expand())
-                .setModifiers(new ModifiersBuilders.Modifiers.Builder()
-                        .setClickable(new ModifiersBuilders.Clickable.Builder()
-                                .setId("open")
-                                .setOnClick(launch)
-                                .build())
-                        .build())
-                .addContent(new LayoutElementBuilders.Text.Builder()
-                        .setText(getString(R.string.wear_title))
-                        .build())
+                .setHorizontalAlignment(LayoutElementBuilders.HORIZONTAL_ALIGN_CENTER)
+                .setVerticalAlignment(LayoutElementBuilders.VERTICAL_ALIGN_CENTER)
+                .addContent(content)
                 .build();
 
         TileBuilders.Tile tile = new TileBuilders.Tile.Builder()
@@ -60,6 +78,50 @@ public class ExpenseTileService extends TileService {
                 .build();
 
         return immediate(tile);
+    }
+
+    /** Ein farbiger, runder Knopf mit Symbol, der die App für {@code type} startet. */
+    private LayoutElementBuilders.LayoutElement typeButton(String type, int color, String symbol) {
+        ActionBuilders.LaunchAction launch = new ActionBuilders.LaunchAction.Builder()
+                .setAndroidActivity(new ActionBuilders.AndroidActivity.Builder()
+                        .setPackageName(getPackageName())
+                        .setClassName(WearMainActivity.class.getName())
+                        .addKeyToExtraMapping(WearMainActivity.EXTRA_TYPE,
+                                new ActionBuilders.AndroidStringExtra.Builder().setValue(type).build())
+                        .build())
+                .build();
+
+        return new LayoutElementBuilders.Box.Builder()
+                .setWidth(DimensionBuilders.dp(48))
+                .setHeight(DimensionBuilders.dp(48))
+                .setHorizontalAlignment(LayoutElementBuilders.HORIZONTAL_ALIGN_CENTER)
+                .setVerticalAlignment(LayoutElementBuilders.VERTICAL_ALIGN_CENTER)
+                .setModifiers(new ModifiersBuilders.Modifiers.Builder()
+                        .setBackground(new ModifiersBuilders.Background.Builder()
+                                .setColor(ColorBuilders.argb(color))
+                                .setCorner(new ModifiersBuilders.Corner.Builder()
+                                        .setRadius(DimensionBuilders.dp(24))
+                                        .build())
+                                .build())
+                        .setClickable(new ModifiersBuilders.Clickable.Builder()
+                                .setId(type)
+                                .setOnClick(launch)
+                                .build())
+                        .build())
+                .addContent(new LayoutElementBuilders.Text.Builder()
+                        .setText(symbol)
+                        .setFontStyle(new LayoutElementBuilders.FontStyle.Builder()
+                                .setColor(ColorBuilders.argb(WHITE))
+                                .setSize(DimensionBuilders.sp(22))
+                                .build())
+                        .build())
+                .build();
+    }
+
+    private LayoutElementBuilders.Spacer spacerW() {
+        return new LayoutElementBuilders.Spacer.Builder()
+                .setWidth(DimensionBuilders.dp(8))
+                .build();
     }
 
     @Override

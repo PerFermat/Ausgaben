@@ -7,6 +7,7 @@ import android.os.Looper;
 import java.util.ArrayList;
 import java.util.HashMap;
 import java.util.List;
+import java.util.Locale;
 import java.util.Map;
 import java.util.UUID;
 import java.util.concurrent.ExecutorService;
@@ -26,6 +27,7 @@ public class Repository {
     private final AccountDao accountDao;
     private final PayeeDao payeeDao;
     private final PlaceEntryDao placeEntryDao;
+    private final PayeeCorrectionDao correctionDao;
     private final ExecutorService executor = Executors.newSingleThreadExecutor();
     private final Handler mainHandler = new Handler(Looper.getMainLooper());
 
@@ -35,6 +37,7 @@ public class Repository {
         this.accountDao = db.accountDao();
         this.payeeDao = db.payeeDao();
         this.placeEntryDao = db.placeEntryDao();
+        this.correctionDao = db.payeeCorrectionDao();
     }
 
     /**
@@ -261,13 +264,19 @@ public class Repository {
         });
     }
 
+    /** Buchungstyp der Wear-Sprach-Erfassung (per Knopf gewählt). */
+    public static final String VOICE_TYPE_INCOME = "income";
+    public static final String VOICE_TYPE_EXPENSE = "expense";
+    public static final String VOICE_TYPE_TRANSFER = "transfer";
+
     /**
      * Legt aus einem gesprochenen Satz (z. B. „Frisör 20 Euro") synchron eine Buchung an – für die
      * Wear-Anbindung, deren {@code WearableListenerService} bereits auf einem Hintergrund-Thread läuft.
      * Nutzt denselben Parser ({@link de.spahr.ausgaben.voice.VoiceInput}) und dieselbe Vorlagen-/Split-Logik
-     * wie die Sprach-Schnellerfassung am Phone. Liefert {@code true}, wenn eine Buchung entstanden ist.
+     * wie die Sprach-Schnellerfassung am Phone. Der {@code type} (Einnahme/Ausgabe/Umbuchung) wird von der
+     * Uhr per Knopf vorgegeben und erzwungen. Liefert {@code true}, wenn eine Buchung entstanden ist.
      */
-    public boolean createVoiceBookingBlocking(String spokenText, String defaultAccount) {
+    public boolean createVoiceBookingBlocking(String spokenText, String defaultAccount, String type) {
         de.spahr.ausgaben.voice.VoiceInput.Result parsed =
                 de.spahr.ausgaben.voice.VoiceInput.parse(spokenText);
         String term = parsed.payee == null ? "" : parsed.payee.trim();
@@ -276,44 +285,49 @@ public class Repository {
             return false;
         }
         long now = System.currentTimeMillis();
+        String def = defaultAccount == null ? "" : defaultAccount.trim();
 
-        // Vorlage suchen (exakter Teilstring, sonst unscharf) – wie findBookingForVoice.
-        Booking template = null;
-        if (!term.isEmpty()) {
-            template = bookingDao.findLatestByPayeeLike(term);
-            if (template == null) {
-                String best = de.spahr.ausgaben.voice.VoiceInput.bestFuzzyPayee(
-                        term, bookingDao.getDistinctPayees());
-                if (best != null) {
-                    template = bookingDao.findLatestByPayeeLike(best);
-                }
-            }
-        }
+        // Gelernte Namenskorrektur anwenden, falls der Begriff in den Buchungen unbekannt ist.
+        term = applyCorrection(term);
+        Booking template = findVoiceTemplate(term);
         long amount = amountCents > 0 ? amountCents : (template != null ? template.amountCents : 0);
 
-        // Umbuchungs-Vorlage → zwei verknüpfte Buchungen (from/to aus der Vorlage rekonstruieren).
-        if (template != null && template.isTransfer) {
-            String from = template.isIncome ? template.transferAccount : template.account;
-            String to = template.isIncome ? template.account : template.transferAccount;
-            insertTransferPair(from, to, amount, template.payee, template.note, now, false,
-                    UUID.randomUUID().toString());
+        // Umbuchung: von der Uhr erzwungen. Vorlage (falls Umbuchung) liefert Von/Nach + Empfänger,
+        // sonst Standardkonto → gesprochener Begriff als Zielkonto.
+        if (VOICE_TYPE_TRANSFER.equals(type)) {
+            String from;
+            String to;
+            String payee = "";
+            String note = "";
+            if (template != null && template.isTransfer) {
+                from = template.isIncome ? template.transferAccount : template.account;
+                to = template.isIncome ? template.account : template.transferAccount;
+                payee = template.payee;
+                note = template.note;
+            } else {
+                from = def;
+                to = term;
+            }
+            insertTransferPair(from, to, amount, payee, note, now, false, UUID.randomUUID().toString());
             return true;
         }
 
+        // Einnahme/Ausgabe: Richtung per Knopf erzwungen; Vorlage (falls keine Umbuchung) liefert
+        // Konto/Kategorie/Notiz.
+        boolean useTemplate = template != null && !template.isTransfer;
         Booking b = new Booking();
         b.amountCents = amount;
         b.createdAt = now;
         b.exported = false;
-        if (template != null) {
-            b.isIncome = template.isIncome;
+        b.isIncome = VOICE_TYPE_INCOME.equals(type);
+        if (useTemplate) {
             b.payee = template.payee;
             b.account = template.account;
             b.category = template.category;
             b.note = template.note;
         } else {
-            b.isIncome = false;
             b.payee = term;
-            b.account = defaultAccount == null ? "" : defaultAccount.trim();
+            b.account = def;
             b.category = "";
             b.note = "";
         }
@@ -326,7 +340,7 @@ public class Repository {
         long id = bookingDao.insert(b);
 
         // Splitbuchungs-Vorlage: Teilbeträge proportional auf den neuen Betrag skalieren (Rest in letzte Zeile).
-        if (template != null && template.amountCents != 0) {
+        if (useTemplate && template.amountCents != 0) {
             List<BookingSplit> tmplSplits = bookingDao.getSplits(template.id);
             if (tmplSplits != null && tmplSplits.size() >= 2) {
                 long assigned = 0;
@@ -347,26 +361,80 @@ public class Repository {
     }
 
     /**
-     * Sucht die passende Vorlage-Buchung für die Sprach-Erfassung: zuerst exakter Teilstring-Treffer,
-     * sonst unscharf (Umlaut-/Schreibweise-tolerant, z. B. „Friseur" → „Frisör Frank"). {@code null},
-     * wenn nichts hinreichend Ähnliches gefunden wird.
+     * Wendet – falls nötig – eine gelernte Namenskorrektur an: Ist der Begriff in den Buchungen bekannt
+     * (gleiche Suchlogik wie {@link #findVoiceTemplate}), bleibt er unverändert. Sonst wird die Korrektur-
+     * Datenbank mit derselben Logik durchsucht (exakter Teilstring, sonst unscharf) und der gelernte
+     * richtige Empfänger zurückgegeben. Wird nichts gefunden, bleibt der ursprüngliche Begriff erhalten.
      */
-    public void findBookingForVoice(final String term, final Callback<Booking> callback) {
-        executor.execute(() -> {
-            Booking result = null;
-            String t = term == null ? "" : term.trim();
-            if (!t.isEmpty()) {
-                result = bookingDao.findLatestByPayeeLike(t);
-                if (result == null) {
-                    String best = de.spahr.ausgaben.voice.VoiceInput.bestFuzzyPayee(
-                            t, bookingDao.getDistinctPayees());
-                    if (best != null) {
-                        result = bookingDao.findLatestByPayeeLike(best);
-                    }
-                }
+    private String applyCorrection(String term) {
+        String t = term == null ? "" : term.trim();
+        if (t.isEmpty() || findVoiceTemplate(t) != null) {
+            return t; // leer oder in Buchungen bekannt → keine Korrektur nötig
+        }
+        String corrected = correctionDao.findCorrectedBySpokenLike(t);
+        if (corrected == null || corrected.trim().isEmpty()) {
+            String bestSpoken = de.spahr.ausgaben.voice.VoiceInput.bestFuzzyPayee(
+                    t, correctionDao.getAllSpoken());
+            if (bestSpoken != null) {
+                corrected = correctionDao.findCorrectedBySpokenExact(bestSpoken);
             }
-            final Booking r = result;
-            mainHandler.post(() -> callback.onResult(r));
+        }
+        return corrected != null && !corrected.trim().isEmpty() ? corrected.trim() : t;
+    }
+
+    /** Merkt sich eine Namenskorrektur (falsch erkannt → richtig) für die Spracherkennung. */
+    public void saveCorrection(final String spoken, final String corrected) {
+        executor.execute(() -> {
+            String s = spoken == null ? "" : spoken.trim().toLowerCase(Locale.GERMANY);
+            String c = corrected == null ? "" : corrected.trim();
+            if (!s.isEmpty() && !c.isEmpty()) {
+                correctionDao.upsert(new PayeeCorrection(s, c, System.currentTimeMillis()));
+            }
+        });
+    }
+
+    /** Vorlage-Buchung per Empfänger suchen (exakter Teilstring, sonst unscharf). */
+    private Booking findVoiceTemplate(String term) {
+        if (term == null || term.isEmpty()) {
+            return null;
+        }
+        Booking template = bookingDao.findLatestByPayeeLike(term);
+        if (template == null) {
+            String best = de.spahr.ausgaben.voice.VoiceInput.bestFuzzyPayee(
+                    term, bookingDao.getDistinctPayees());
+            if (best != null) {
+                template = bookingDao.findLatestByPayeeLike(best);
+            }
+        }
+        return template;
+    }
+
+    /** Ergebnis der Sprach-Empfängersuche: Vorlage-Buchung (falls vorhanden) + aufzulösender Empfänger. */
+    public static final class VoiceResolution {
+        /** Passende Vorlage-Buchung oder {@code null}, wenn keine gefunden wurde. */
+        public final Booking booking;
+        /** Aufzulösender Empfänger – bereits korrigiert, falls eine Korrektur gelernt wurde. */
+        public final String payee;
+
+        public VoiceResolution(Booking booking, String payee) {
+            this.booking = booking;
+            this.payee = payee;
+        }
+    }
+
+    /**
+     * Löst einen gesprochenen Empfänger für die Sprach-Erfassung auf: zuerst über die Buchungen (exakter
+     * Teilstring, sonst unscharf, z. B. „Friseur" → „Frisör Frank"). Wird dort nichts gefunden, greift
+     * eine gelernte Namenskorrektur (gleiche Suchlogik über die Korrektur-Datenbank). Liefert die
+     * gefundene Vorlage-Buchung und den – ggf. korrigierten – Empfänger für die Vorbelegung.
+     */
+    public void resolveVoice(final String term, final Callback<VoiceResolution> callback) {
+        executor.execute(() -> {
+            String t = term == null ? "" : term.trim();
+            String effective = applyCorrection(t);
+            Booking result = findVoiceTemplate(effective);
+            final VoiceResolution res = new VoiceResolution(result, effective.isEmpty() ? t : effective);
+            mainHandler.post(() -> callback.onResult(res));
         });
     }
 
@@ -468,6 +536,7 @@ public class Repository {
             bookingDao.deleteAll();
             accountDao.deleteAll();
             payeeDao.deleteAll();
+            correctionDao.deleteAll();
             if (onDone != null) {
                 mainHandler.post(onDone);
             }

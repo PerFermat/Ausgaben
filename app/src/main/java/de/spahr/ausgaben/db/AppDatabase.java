@@ -9,8 +9,9 @@ import androidx.room.RoomDatabase;
 import androidx.room.migration.Migration;
 import androidx.sqlite.db.SupportSQLiteDatabase;
 
-@Database(entities = {Booking.class, BookingSplit.class, Account.class, Payee.class, PlaceEntry.class},
-        version = 6, exportSchema = false)
+@Database(entities = {Booking.class, BookingSplit.class, Account.class, Payee.class, PlaceEntry.class,
+        PayeeCorrection.class},
+        version = 7, exportSchema = false)
 public abstract class AppDatabase extends RoomDatabase {
 
     /** v1 → v2: Notiz-Spalte ergänzen (bestehende Buchungen bleiben erhalten). */
@@ -65,6 +66,20 @@ public abstract class AppDatabase extends RoomDatabase {
         }
     };
 
+    /** v6 → v7: gelernte Namenskorrekturen für die Spracherkennung. */
+    static final Migration MIGRATION_6_7 = new Migration(6, 7) {
+        @Override
+        public void migrate(@NonNull SupportSQLiteDatabase db) {
+            db.execSQL("CREATE TABLE IF NOT EXISTS payee_correction ("
+                    + "id INTEGER PRIMARY KEY AUTOINCREMENT NOT NULL, "
+                    + "spoken TEXT NOT NULL, "
+                    + "corrected TEXT NOT NULL, "
+                    + "created_at INTEGER NOT NULL)");
+            db.execSQL("CREATE UNIQUE INDEX IF NOT EXISTS index_payee_correction_spoken "
+                    + "ON payee_correction(spoken)");
+        }
+    };
+
     public abstract BookingDao bookingDao();
 
     public abstract AccountDao accountDao();
@@ -72,6 +87,8 @@ public abstract class AppDatabase extends RoomDatabase {
     public abstract PayeeDao payeeDao();
 
     public abstract PlaceEntryDao placeEntryDao();
+
+    public abstract PayeeCorrectionDao payeeCorrectionDao();
 
     private static volatile AppDatabase instance;
 
@@ -84,7 +101,7 @@ public abstract class AppDatabase extends RoomDatabase {
                                     AppDatabase.class,
                                     "ausgaben.db")
                             .addMigrations(MIGRATION_1_2, MIGRATION_2_3, MIGRATION_3_4, MIGRATION_4_5,
-                                    MIGRATION_5_6)
+                                    MIGRATION_5_6, MIGRATION_6_7)
                             .build();
                 }
             }

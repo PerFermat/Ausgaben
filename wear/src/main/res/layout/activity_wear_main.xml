@@ -6,40 +6,158 @@
     android:layout_height="match_parent"
     android:background="@android:color/black">
 
-    <LinearLayout
+    <FrameLayout
         android:layout_width="match_parent"
         android:layout_height="match_parent"
-        android:orientation="vertical"
-        android:gravity="center"
-        android:padding="8dp"
         app:boxedEdges="all">
 
-        <TextView
-            android:layout_width="wrap_content"
-            android:layout_height="wrap_content"
-            android:text="@string/wear_title"
-            android:textColor="@android:color/white"
-            android:textSize="16sp"
-            android:textStyle="bold" />
-
-        <ImageButton
-            android:id="@+id/micButton"
-            android:layout_width="72dp"
-            android:layout_height="72dp"
-            android:layout_marginTop="12dp"
-            android:background="@drawable/bg_mic"
-            android:contentDescription="@string/wear_mic"
-            android:scaleType="center"
-            android:src="@drawable/ic_mic" />
-
-        <TextView
-            android:id="@+id/status"
+        <!-- Zustand A: Typ wählen -->
+        <LinearLayout
+            android:id="@+id/typeSelection"
             android:layout_width="match_parent"
-            android:layout_height="wrap_content"
-            android:layout_marginTop="12dp"
+            android:layout_height="match_parent"
+            android:orientation="vertical"
             android:gravity="center"
-            android:textColor="@android:color/white"
-            android:textSize="13sp"
-            android:visibility="gone" />
-    </LinearLayout>
+            android:padding="6dp">
+
+            <TextView
+                android:layout_width="wrap_content"
+                android:layout_height="wrap_content"
+                android:text="@string/wear_title"
+                android:textColor="@android:color/white"
+                android:textSize="15sp"
+                android:textStyle="bold" />
+
+            <LinearLayout
+                android:layout_width="match_parent"
+                android:layout_height="wrap_content"
+                android:layout_marginTop="8dp"
+                android:orientation="horizontal"
+                android:baselineAligned="false"
+                android:weightSum="3">
+
+                <LinearLayout
+                    android:layout_width="0dp"
+                    android:layout_height="wrap_content"
+                    android:layout_weight="1"
+                    android:orientation="vertical"
+                    android:gravity="center">
+
+                    <TextView
+                        android:layout_width="wrap_content"
+                        android:layout_height="wrap_content"
+                        android:text="@string/wear_type_income"
+                        android:textColor="@android:color/white"
+                        android:textSize="10sp" />
+
+                    <ImageButton
+                        android:id="@+id/btnIncome"
+                        android:layout_width="48dp"
+                        android:layout_height="48dp"
+                        android:layout_marginTop="2dp"
+                        android:background="@drawable/bg_circle"
+                        android:backgroundTint="@color/type_income"
+                        android:contentDescription="@string/wear_type_income"
+                        android:scaleType="center"
+                        android:src="@drawable/ic_plus" />
+                </LinearLayout>
+
+                <LinearLayout
+                    android:layout_width="0dp"
+                    android:layout_height="wrap_content"
+                    android:layout_weight="1"
+                    android:orientation="vertical"
+                    android:gravity="center">
+
+                    <TextView
+                        android:layout_width="wrap_content"
+                        android:layout_height="wrap_content"
+                        android:text="@string/wear_type_transfer"
+                        android:textColor="@android:color/white"
+                        android:textSize="10sp" />
+
+                    <ImageButton
+                        android:id="@+id/btnTransfer"
+                        android:layout_width="48dp"
+                        android:layout_height="48dp"
+                        android:layout_marginTop="2dp"
+                        android:background="@drawable/bg_circle"
+                        android:backgroundTint="@color/type_transfer"
+                        android:contentDescription="@string/wear_type_transfer"
+                        android:scaleType="center"
+                        android:src="@drawable/ic_swap" />
+                </LinearLayout>
+
+                <LinearLayout
+                    android:layout_width="0dp"
+                    android:layout_height="wrap_content"
+                    android:layout_weight="1"
+                    android:orientation="vertical"
+                    android:gravity="center">
+
+                    <TextView
+                        android:layout_width="wrap_content"
+                        android:layout_height="wrap_content"
+                        android:text="@string/wear_type_expense"
+                        android:textColor="@android:color/white"
+                        android:textSize="10sp" />
+
+                    <ImageButton
+                        android:id="@+id/btnExpense"
+                        android:layout_width="48dp"
+                        android:layout_height="48dp"
+                        android:layout_marginTop="2dp"
+                        android:background="@drawable/bg_circle"
+                        android:backgroundTint="@color/type_expense"
+                        android:contentDescription="@string/wear_type_expense"
+                        android:scaleType="center"
+                        android:src="@drawable/ic_minus" />
+                </LinearLayout>
+            </LinearLayout>
+
+            <TextView
+                android:id="@+id/status"
+                android:layout_width="match_parent"
+                android:layout_height="wrap_content"
+                android:layout_marginTop="10dp"
+                android:gravity="center"
+                android:textColor="@android:color/white"
+                android:textSize="12sp"
+                android:visibility="gone" />
+        </LinearLayout>
+
+        <!-- Zustand B: erkannter Text + Abbrechen (10 s) -->
+        <LinearLayout
+            android:id="@+id/confirmView"
+            android:layout_width="match_parent"
+            android:layout_height="match_parent"
+            android:orientation="vertical"
+            android:gravity="center"
+            android:padding="12dp"
+            android:visibility="gone">
+
+            <TextView
+                android:id="@+id/confirmType"
+                android:layout_width="wrap_content"
+                android:layout_height="wrap_content"
+                android:textSize="13sp"
+                android:textStyle="bold" />
+
+            <TextView
+                android:id="@+id/confirmText"
+                android:layout_width="match_parent"
+                android:layout_height="wrap_content"
+                android:layout_marginTop="4dp"
+                android:gravity="center"
+                android:textColor="@android:color/white"
+                android:textSize="16sp" />
+
+            <Button
+                android:id="@+id/btnCancel"
+                android:layout_width="wrap_content"
+                android:layout_height="wrap_content"
+                android:layout_marginTop="12dp"
+                android:text="@string/wear_cancel" />
+        </LinearLayout>
+    </FrameLayout>
 </androidx.wear.widget.BoxInsetLayout>

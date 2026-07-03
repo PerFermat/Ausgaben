@@ -13,4 +13,9 @@ public final class WearPaths {
 
     /** Interner Broadcast: offene Anzahl hat sich geändert (Zähler aktualisieren). */
     public static final String ACTION_PENDING_CHANGED = "de.spahr.ausgaben.wear.PENDING_CHANGED";
+
+    /** Buchungstyp (per Knopf gewählt) – Drahtwerte, identisch zu {@code Repository.VOICE_TYPE_*}. */
+    public static final String TYPE_INCOME = "income";
+    public static final String TYPE_EXPENSE = "expense";
+    public static final String TYPE_TRANSFER = "transfer";
 }

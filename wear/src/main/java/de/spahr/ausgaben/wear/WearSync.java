@@ -24,9 +24,15 @@ public final class WearSync {
 
     public static void syncPending(Context context) {
         Context app = context.getApplicationContext();
-        List<PendingEntry> pending = new PendingStore(app).getPending();
-        Log.d(TAG, "syncPending: " + pending.size() + " offene Einträge");
-        if (pending.isEmpty()) {
+        long now = System.currentTimeMillis();
+        List<PendingEntry> ready = new java.util.ArrayList<>();
+        for (PendingEntry e : new PendingStore(app).getPending()) {
+            if (e.readyAt <= now) { // vor Ablauf der 10s (readyAt in der Zukunft) noch nicht senden
+                ready.add(e);
+            }
+        }
+        Log.d(TAG, "syncPending: " + ready.size() + " sendebereite Einträge");
+        if (ready.isEmpty()) {
             return;
         }
         Wearable.getNodeClient(app).getConnectedNodes()
@@ -36,7 +42,7 @@ public final class WearSync {
                         return; // kein Phone erreichbar → später erneut
                     }
                     MessageClient messageClient = Wearable.getMessageClient(app);
-                    for (PendingEntry entry : pending) {
+                    for (PendingEntry entry : ready) {
                         byte[] payload;
                         try {
                             payload = entry.toJson().getBytes(StandardCharsets.UTF_8);

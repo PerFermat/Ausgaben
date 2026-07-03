@@ -101,7 +101,7 @@ public class ExportCoordinator {
             }
 
             CsvExporter exporter = new CsvExporter();
-            NextcloudUploader uploader = new NextcloudUploader();
+            NextcloudUploader uploader = new NextcloudUploader(settings.isNextcloudServer());
             DocumentFile targetDir = upload ? null
                     : DocumentFile.fromTreeUri(appContext, Uri.parse(localTreeUri));
             int okAccounts = 0;

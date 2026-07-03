@@ -31,6 +31,9 @@ synchronisieren – entweder als **kMyMoney-CSV** oder direkt in eine **kMyMoney
   Gesamt-Sichten; per Fingergeste zoombar (horizontal = Balkenanzahl, vertikal = Y-Achse).
 
 ### Synchronisierung
+- **Server-Typ** wählbar: **Nextcloud** (Pfadschema `…/remote.php/dav/files/<user>/`) oder ein
+  **generischer WebDAV-Server** (dann ist die eingetragene Basis-URL bereits die DAV-Wurzel). Protokoll
+  ist in beiden Fällen WebDAV mit HTTP-Basic-Auth.
 - **CSV-Export** auf Nextcloud: pro Konto eine Datei `<Konto>-<Zeitstempel>.csv`; jede Buchung wird nur
   einmal exportiert (erst nach erfolgreichem Upload als exportiert markiert). Kompletter Export über die
   Einstellungen.
@@ -74,9 +77,13 @@ eingecheckt und muss lokal vorhanden sein (legt Android Studio automatisch an). 
 Release-Build wird `keystore.properties` benötigt (ebenfalls nicht eingecheckt); fehlt sie, entsteht
 ein unsigniertes Release.
 
-## Nextcloud einrichten
+## Nextcloud / WebDAV einrichten
 
-In den Einstellungen Basis-URL, Benutzername und ein **App-Passwort**
-(Nextcloud → Einstellungen → Sicherheit → App-Passwort) eintragen, optional Ziel-/Importordner bzw.
-im `.kmy`-Modus den Pfad zur `.kmy`-Datei. Die Dateien landen unter
-`<URL>/remote.php/dav/files/<user>/<Ordner>/`.
+In den Einstellungen den **Server-Typ** wählen, dann Basis-URL, Benutzername und Passwort eintragen,
+optional Ziel-/Importordner bzw. im `.kmy`-Modus den Pfad zur `.kmy`-Datei.
+
+- **Nextcloud**: Basis-URL = Server (z. B. `https://cloud.example.com`) und ein **App-Passwort**
+  (Nextcloud → Einstellungen → Sicherheit → App-Passwort). Die Dateien landen unter
+  `<URL>/remote.php/dav/files/<user>/<Ordner>/`.
+- **WebDAV (generisch)**: Basis-URL = vollständige DAV-Wurzel (z. B.
+  `https://host/dav/`); der Ordner wird direkt daran angehängt. Auth per HTTP-Basic.

@@ -63,6 +63,7 @@ public class SettingsActivity extends AppCompatActivity {
     private TextInputEditText editFolder;
     private TextInputEditText editImportFolder;
     private MaterialAutoCompleteTextView editExportMode;
+    private MaterialAutoCompleteTextView editServerType;
     private TextInputEditText editKmyPath;
     private MaterialAutoCompleteTextView editDefaultAccount;
     private MaterialSwitch switchDarkMode;
@@ -90,6 +91,7 @@ public class SettingsActivity extends AppCompatActivity {
         editFolder = findViewById(R.id.editFolder);
         editImportFolder = findViewById(R.id.editImportFolder);
         editExportMode = findViewById(R.id.editExportMode);
+        editServerType = findViewById(R.id.editServerType);
         editKmyPath = findViewById(R.id.editKmyPath);
         editDefaultAccount = findViewById(R.id.editDefaultAccount);
         switchDarkMode = findViewById(R.id.switchDarkMode);
@@ -100,6 +102,7 @@ public class SettingsActivity extends AppCompatActivity {
         editImportFolder.setText(settings.getImportFolder());
         editKmyPath.setText(settings.getKmyPath());
         setupExportMode();
+        setupServerType();
         editDefaultAccount.setText(settings.getDefaultAccount(), false);
 
         // Passwort wird nie angezeigt; nur ein Hinweis, wenn eines gespeichert ist.
@@ -146,8 +149,33 @@ public class SettingsActivity extends AppCompatActivity {
         selectedExportMode = settings.getExportMode();
         editExportMode.setText(
                 SettingsStore.MODE_KMY.equals(selectedExportMode) ? kmyLabel : csvLabel, false);
-        editExportMode.setOnItemClickListener((parent, view, position, id) ->
-                selectedExportMode = position == 1 ? SettingsStore.MODE_KMY : SettingsStore.MODE_CSV);
+        applyExportModeVisibility();
+        editExportMode.setOnItemClickListener((parent, view, position, id) -> {
+            selectedExportMode = position == 1 ? SettingsStore.MODE_KMY : SettingsStore.MODE_CSV;
+            applyExportModeVisibility();
+        });
+    }
+
+    /** Blendet nur die zum gewählten Format passenden Felder ein (CSV: Ordner, .kmy: Dateipfad). */
+    private void applyExportModeVisibility() {
+        boolean kmy = SettingsStore.MODE_KMY.equals(selectedExportMode);
+        findViewById(R.id.csvOptions).setVisibility(kmy ? View.GONE : View.VISIBLE);
+        findViewById(R.id.kmyOptions).setVisibility(kmy ? View.VISIBLE : View.GONE);
+    }
+
+    private String selectedServerType = SettingsStore.SERVER_NEXTCLOUD;
+
+    /** Dropdown „Server-Typ": Nextcloud (Pfadschema) oder generischer WebDAV (Basis-URL = Wurzel). */
+    private void setupServerType() {
+        String ncLabel = getString(R.string.server_type_nextcloud);
+        String davLabel = getString(R.string.server_type_webdav);
+        editServerType.setAdapter(new ArrayAdapter<>(this, android.R.layout.simple_list_item_1,
+                new String[]{ncLabel, davLabel}));
+        selectedServerType = settings.getServerType();
+        editServerType.setText(
+                SettingsStore.SERVER_WEBDAV.equals(selectedServerType) ? davLabel : ncLabel, false);
+        editServerType.setOnItemClickListener((parent, view, position, id) ->
+                selectedServerType = position == 1 ? SettingsStore.SERVER_WEBDAV : SettingsStore.SERVER_NEXTCLOUD);
     }
 
     // ---- Orte (Bargeld-Bestände) ----
@@ -444,7 +472,8 @@ public class SettingsActivity extends AppCompatActivity {
                 textOf(editImportFolder),
                 defaultAccount,
                 selectedExportMode,
-                textOf(editKmyPath));
+                textOf(editKmyPath),
+                selectedServerType);
 
         repository.ensureAccount(defaultAccount);
 

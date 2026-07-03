@@ -843,7 +843,7 @@ public class MainActivity extends AppCompatActivity {
         showProgress(getString(R.string.progress_download));
         new Thread(() -> {
             try {
-                byte[] raw = new NextcloudUploader().downloadBytes(settings.getUrl(),
+                byte[] raw = new NextcloudUploader(settings.isNextcloudServer()).downloadBytes(settings.getUrl(),
                         settings.getUser(), settings.getPassword(), folderOf(path), fileOf(path));
                 KmyImporter importer = new KmyImporter(new KmyDocument(raw));
                 runOnUiThread(() -> {
@@ -882,7 +882,7 @@ public class MainActivity extends AppCompatActivity {
             KmyImporter importer;
             try {
                 String path = settings.getKmyPath();
-                byte[] raw = new NextcloudUploader().downloadBytes(settings.getUrl(),
+                byte[] raw = new NextcloudUploader(settings.isNextcloudServer()).downloadBytes(settings.getUrl(),
                         settings.getUser(), settings.getPassword(), folderOf(path), fileOf(path));
                 importer = new KmyImporter(new KmyDocument(raw));
             } catch (Exception e) {
@@ -1009,7 +1009,7 @@ public class MainActivity extends AppCompatActivity {
         Toast.makeText(this, R.string.loading_files, Toast.LENGTH_SHORT).show();
         new Thread(() -> {
             try {
-                List<String> files = new NextcloudUploader().listCsvFiles(
+                List<String> files = new NextcloudUploader(settings.isNextcloudServer()).listCsvFiles(
                         settings.getUrl(), settings.getUser(), settings.getPassword(),
                         settings.getImportFolder());
                 runOnUiThread(() -> {
@@ -1039,7 +1039,7 @@ public class MainActivity extends AppCompatActivity {
     private void downloadAndImport(String fileName) {
         new Thread(() -> {
             try {
-                String content = new NextcloudUploader().downloadText(
+                String content = new NextcloudUploader(settings.isNextcloudServer()).downloadText(
                         settings.getUrl(), settings.getUser(), settings.getPassword(),
                         settings.getImportFolder(), fileName);
                 processImport(content);

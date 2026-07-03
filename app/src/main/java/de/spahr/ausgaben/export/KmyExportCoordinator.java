@@ -59,7 +59,7 @@ public class KmyExportCoordinator {
                 return;
             }
 
-            NextcloudUploader uploader = new NextcloudUploader();
+            NextcloudUploader uploader = new NextcloudUploader(settings.isNextcloudServer());
             try {
                 progress(listener, "Lade KMyMoney-Datei…");
                 byte[] raw = uploader.downloadBytes(settings.getUrl(), settings.getUser(),

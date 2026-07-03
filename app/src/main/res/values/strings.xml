@@ -177,7 +177,10 @@
     <!-- Einstellungen -->
     <string name="settings_title">Einstellungen</string>
     <string name="nextcloud_section">Nextcloud (WebDAV)</string>
-    <string name="nextcloud_url_hint">Basis-URL (z. B. https://cloud.example.com)</string>
+    <string name="server_type_hint">Server-Typ</string>
+    <string name="server_type_nextcloud">Nextcloud</string>
+    <string name="server_type_webdav">WebDAV (generisch)</string>
+    <string name="nextcloud_url_hint">Basis-URL (Nextcloud: https://cloud.example.com – WebDAV: vollständige DAV-URL)</string>
     <string name="nextcloud_user_hint">Benutzername</string>
     <string name="nextcloud_password_hint">App-Passwort</string>
     <string name="nextcloud_folder_hint">Zielordner (optional, z. B. Finanzen)</string>

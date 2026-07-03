@@ -20,7 +20,11 @@ import okhttp3.RequestBody;
 import okhttp3.Response;
 import okhttp3.ResponseBody;
 
-/** WebDAV-Client für Nextcloud: Hochladen (PUT), Auflisten (PROPFIND) und Herunterladen (GET). */
+/**
+ * WebDAV-Client: Hochladen (PUT), Auflisten (PROPFIND) und Herunterladen (GET).
+ * Unterstützt das Nextcloud-Layout ({@code /remote.php/dav/files/<user>/…}) sowie generisches WebDAV,
+ * bei dem die eingetragene Basis-URL bereits die DAV-Wurzel ist.
+ */
 public class NextcloudUploader {
 
     private static final MediaType CSV = MediaType.parse("text/csv; charset=utf-8");
@@ -28,6 +32,16 @@ public class NextcloudUploader {
     private static final MediaType OCTET = MediaType.parse("application/octet-stream");
 
     private final OkHttpClient client = new OkHttpClient();
+    /** true = Nextcloud-Pfadschema, false = generisches WebDAV (Basis-URL ist die Wurzel). */
+    private final boolean nextcloudLayout;
+
+    public NextcloudUploader() {
+        this(true);
+    }
+
+    public NextcloudUploader(boolean nextcloudLayout) {
+        this.nextcloudLayout = nextcloudLayout;
+    }
 
     /**
      * Lädt {@code content} unter {@code fileName} hoch.
@@ -201,14 +215,23 @@ public class NextcloudUploader {
         }
     }
 
-    private String buildFolderUrl(String baseUrl, String user, String folder) {
+    /**
+     * WebDAV-Wurzel: bei Nextcloud {@code <base>/remote.php/dav/files/<user>}, bei generischem WebDAV die
+     * eingetragene Basis-URL selbst (der Nutzer gibt dort die vollständige DAV-Wurzel an).
+     */
+    private String rootUrl(String baseUrl, String user) {
         String base = baseUrl.trim();
         while (base.endsWith("/")) {
             base = base.substring(0, base.length() - 1);
         }
-        StringBuilder sb = new StringBuilder(base)
-                .append("/remote.php/dav/files/")
-                .append(encodePath(user));
+        if (nextcloudLayout) {
+            return base + "/remote.php/dav/files/" + encodePath(user);
+        }
+        return base;
+    }
+
+    /** Hängt die (bereinigten) Ordner-Segmente an den Builder an. */
+    private void appendFolder(StringBuilder sb, String folder) {
         String cleanFolder = folder == null ? "" : folder.trim();
         while (cleanFolder.startsWith("/")) {
             cleanFolder = cleanFolder.substring(1);
@@ -223,33 +246,18 @@ public class NextcloudUploader {
                 }
             }
         }
+    }
+
+    private String buildFolderUrl(String baseUrl, String user, String folder) {
+        StringBuilder sb = new StringBuilder(rootUrl(baseUrl, user));
+        appendFolder(sb, folder);
         sb.append("/");
         return sb.toString();
     }
 
     private String buildUrl(String baseUrl, String user, String folder, String fileName) {
-        String base = baseUrl.trim();
-        while (base.endsWith("/")) {
-            base = base.substring(0, base.length() - 1);
-        }
-        StringBuilder sb = new StringBuilder(base)
-                .append("/remote.php/dav/files/")
-                .append(encodePath(user));
-
-        String cleanFolder = folder == null ? "" : folder.trim();
-        while (cleanFolder.startsWith("/")) {
-            cleanFolder = cleanFolder.substring(1);
-        }
-        while (cleanFolder.endsWith("/")) {
-            cleanFolder = cleanFolder.substring(0, cleanFolder.length() - 1);
-        }
-        if (!cleanFolder.isEmpty()) {
-            for (String part : cleanFolder.split("/")) {
-                if (!part.isEmpty()) {
-                    sb.append("/").append(encodePath(part));
-                }
-            }
-        }
+        StringBuilder sb = new StringBuilder(rootUrl(baseUrl, user));
+        appendFolder(sb, folder);
         sb.append("/").append(encodePath(fileName));
         return sb.toString();
     }

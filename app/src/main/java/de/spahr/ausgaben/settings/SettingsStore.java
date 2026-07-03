@@ -27,6 +27,12 @@ public class SettingsStore {
     private static final String KEY_EXPORT_MODE = "export_mode";
     private static final String KEY_KMY_PATH = "kmy_path";
     private static final String KEY_APP_LOCK = "app_lock";
+    private static final String KEY_SERVER_TYPE = "server_type";
+
+    /** Server-Typ: Nextcloud (Standard, mit {@code /remote.php/dav/files/<user>/}). */
+    public static final String SERVER_NEXTCLOUD = "nextcloud";
+    /** Server-Typ: generischer WebDAV-Server; die Basis-URL ist bereits die DAV-Wurzel. */
+    public static final String SERVER_WEBDAV = "webdav";
 
     /** Export-/Import-Modus: kMyMoney-CSV wie bisher. */
     public static final String MODE_CSV = "csv";
@@ -121,6 +127,16 @@ public class SettingsStore {
         return MODE_KMY.equals(getExportMode());
     }
 
+    /** {@link #SERVER_NEXTCLOUD} (Standard) oder {@link #SERVER_WEBDAV}. */
+    public String getServerType() {
+        return prefs.getString(KEY_SERVER_TYPE, SERVER_NEXTCLOUD);
+    }
+
+    /** true = Nextcloud-Pfadschema; false = generischer WebDAV-Server (Basis-URL = DAV-Wurzel). */
+    public boolean isNextcloudServer() {
+        return !SERVER_WEBDAV.equals(getServerType());
+    }
+
     /** Relativer Nextcloud-Pfad zur .kmy inkl. Dateiname, z. B. {@code KMyMoney/gdyx.kmy}. */
     public String getKmyPath() {
         return prefs.getString(KEY_KMY_PATH, "").trim();
@@ -153,7 +169,7 @@ public class SettingsStore {
      * ein nicht-leeres ersetzt es (verschlüsselt).
      */
     public void save(String url, String user, String password, String folder, String importFolder,
-                     String defaultAccount, String exportMode, String kmyPath) {
+                     String defaultAccount, String exportMode, String kmyPath, String serverType) {
         prefs.edit()
                 .putString(KEY_URL, url == null ? "" : url.trim())
                 .putString(KEY_USER, user == null ? "" : user.trim())
@@ -162,6 +178,7 @@ public class SettingsStore {
                 .putString(KEY_DEFAULT_ACCOUNT, defaultAccount == null ? "" : defaultAccount.trim())
                 .putString(KEY_EXPORT_MODE, MODE_KMY.equals(exportMode) ? MODE_KMY : MODE_CSV)
                 .putString(KEY_KMY_PATH, kmyPath == null ? "" : kmyPath.trim())
+                .putString(KEY_SERVER_TYPE, SERVER_WEBDAV.equals(serverType) ? SERVER_WEBDAV : SERVER_NEXTCLOUD)
                 .apply();
         if (password != null && !password.isEmpty()) {
             secret.edit().putString(KEY_PASSWORD, password).apply();

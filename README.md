@@ -27,8 +27,7 @@ synchronisieren – entweder als **kMyMoney-CSV** oder direkt in eine **kMyMoney
   ändert ihn beim Speichern, fragt die App, ob sie sich die Korrektur merken soll. Kommt derselbe (falsch
   erkannte) Name später erneut, wird zuerst in den Buchungen und dann in den gemerkten Korrekturen
   gesucht (gleiche unscharfe Logik) und der richtige Empfänger automatisch übernommen – auch für die
-  Wear-Erfassung. So lässt sich z. B. „immer sprach" dauerhaft dem Empfänger „Emma Spahr" zuordnen.
-  Dieselbe Zuordnungstabelle lässt sich auch bewusst als **Alias/Abkürzung** nutzen, nicht nur zur
+  Wear-Erfassung. Dieselbe Zuordnungstabelle lässt sich auch bewusst als **Alias/Abkürzung** nutzen, nicht nur zur
   Fehlerkorrektur: Ein Eintrag kann einen beliebigen gesprochenen Begriff auf einen ganz anderen Empfänger
   abbilden. Sagt man z. B. „Mama 100 €", kann bei passendem Tabelleneintrag automatisch der reale Name der
   Mutter als Empfänger eingesetzt werden.

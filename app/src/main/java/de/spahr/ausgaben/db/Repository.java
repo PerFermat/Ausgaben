@@ -262,6 +262,91 @@ public class Repository {
     }
 
     /**
+     * Legt aus einem gesprochenen Satz (z. B. „Frisör 20 Euro") synchron eine Buchung an – für die
+     * Wear-Anbindung, deren {@code WearableListenerService} bereits auf einem Hintergrund-Thread läuft.
+     * Nutzt denselben Parser ({@link de.spahr.ausgaben.voice.VoiceInput}) und dieselbe Vorlagen-/Split-Logik
+     * wie die Sprach-Schnellerfassung am Phone. Liefert {@code true}, wenn eine Buchung entstanden ist.
+     */
+    public boolean createVoiceBookingBlocking(String spokenText, String defaultAccount) {
+        de.spahr.ausgaben.voice.VoiceInput.Result parsed =
+                de.spahr.ausgaben.voice.VoiceInput.parse(spokenText);
+        String term = parsed.payee == null ? "" : parsed.payee.trim();
+        long amountCents = parsed.amountCents == null ? 0 : parsed.amountCents;
+        if (term.isEmpty() && amountCents <= 0) {
+            return false;
+        }
+        long now = System.currentTimeMillis();
+
+        // Vorlage suchen (exakter Teilstring, sonst unscharf) – wie findBookingForVoice.
+        Booking template = null;
+        if (!term.isEmpty()) {
+            template = bookingDao.findLatestByPayeeLike(term);
+            if (template == null) {
+                String best = de.spahr.ausgaben.voice.VoiceInput.bestFuzzyPayee(
+                        term, bookingDao.getDistinctPayees());
+                if (best != null) {
+                    template = bookingDao.findLatestByPayeeLike(best);
+                }
+            }
+        }
+        long amount = amountCents > 0 ? amountCents : (template != null ? template.amountCents : 0);
+
+        // Umbuchungs-Vorlage → zwei verknüpfte Buchungen (from/to aus der Vorlage rekonstruieren).
+        if (template != null && template.isTransfer) {
+            String from = template.isIncome ? template.transferAccount : template.account;
+            String to = template.isIncome ? template.account : template.transferAccount;
+            insertTransferPair(from, to, amount, template.payee, template.note, now, false,
+                    UUID.randomUUID().toString());
+            return true;
+        }
+
+        Booking b = new Booking();
+        b.amountCents = amount;
+        b.createdAt = now;
+        b.exported = false;
+        if (template != null) {
+            b.isIncome = template.isIncome;
+            b.payee = template.payee;
+            b.account = template.account;
+            b.category = template.category;
+            b.note = template.note;
+        } else {
+            b.isIncome = false;
+            b.payee = term;
+            b.account = defaultAccount == null ? "" : defaultAccount.trim();
+            b.category = "";
+            b.note = "";
+        }
+        if (!b.payee.trim().isEmpty()) {
+            payeeDao.insertIfAbsent(new Payee(b.payee));
+        }
+        if (!b.account.trim().isEmpty()) {
+            accountDao.insertIfAbsent(new Account(b.account));
+        }
+        long id = bookingDao.insert(b);
+
+        // Splitbuchungs-Vorlage: Teilbeträge proportional auf den neuen Betrag skalieren (Rest in letzte Zeile).
+        if (template != null && template.amountCents != 0) {
+            List<BookingSplit> tmplSplits = bookingDao.getSplits(template.id);
+            if (tmplSplits != null && tmplSplits.size() >= 2) {
+                long assigned = 0;
+                for (int i = 0; i < tmplSplits.size(); i++) {
+                    BookingSplit s = tmplSplits.get(i);
+                    long part;
+                    if (i < tmplSplits.size() - 1) {
+                        part = Math.round((double) s.amountCents * amount / template.amountCents);
+                        assigned += part;
+                    } else {
+                        part = amount - assigned;
+                    }
+                    bookingDao.insertSplit(new BookingSplit(id, s.category, part));
+                }
+            }
+        }
+        return true;
+    }
+
+    /**
      * Sucht die passende Vorlage-Buchung für die Sprach-Erfassung: zuerst exakter Teilstring-Treffer,
      * sonst unscharf (Umlaut-/Schreibweise-tolerant, z. B. „Friseur" → „Frisör Frank"). {@code null},
      * wenn nichts hinreichend Ähnliches gefunden wird.

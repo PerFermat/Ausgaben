@@ -1,0 +1,12 @@
+<resources>
+    <string name="app_name">Ausgaben</string>
+    <string name="wear_title">Ausgabe erfassen</string>
+    <string name="wear_prompt">Ausgabe sagen, z. B. „Frisör 20 Euro"</string>
+    <string name="wear_mic">Ausgabe per Sprache erfassen</string>
+    <string name="wear_no_recognizer">Keine Spracherkennung verfügbar</string>
+
+    <plurals name="wear_pending">
+        <item quantity="one">%d Buchung noch nicht übertragen</item>
+        <item quantity="other">%d Buchungen noch nicht übertragen</item>
+    </plurals>
+</resources>

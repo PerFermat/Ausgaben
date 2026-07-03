@@ -2,8 +2,8 @@ plugins {
     id 'com.android.application'
 }
 
-// Signier-Daten aus keystore.properties laden (nicht eingecheckt). Fehlt die Datei,
-// wird der Release-Build einfach unsigniert erzeugt.
+// Signier-Daten aus keystore.properties laden (wie im :app-Modul). Data Layer verlangt dieselbe
+// Signatur wie die Phone-App; fehlt die Datei, wird unsigniert gebaut (Debug nutzt den Debug-Key).
 def keystorePropsFile = rootProject.file('keystore.properties')
 def keystoreProps = new Properties()
 if (keystorePropsFile.exists()) {
@@ -11,12 +11,13 @@ if (keystorePropsFile.exists()) {
 }
 
 android {
-    namespace 'de.spahr.ausgaben'
+    namespace 'de.spahr.ausgaben.wear'
     compileSdk 34
 
     defaultConfig {
+        // Gleiche applicationId wie die Phone-App – Voraussetzung für die Wear Data Layer API.
         applicationId "de.spahr.ausgaben"
-        minSdk 26
+        minSdk 30
         targetSdk 34
         versionCode 1
         versionName "1.0"
@@ -47,26 +48,21 @@ android {
         sourceCompatibility JavaVersion.VERSION_17
         targetCompatibility JavaVersion.VERSION_17
     }
+}
 
-    buildFeatures {
-        viewBinding false
+// androidx.wear.tiles:1.1.0 zieht altes kotlin-stdlib-jdk7/8:1.6.21; auf 1.8.22 anheben (dort leere
+// Stubs), damit keine doppelten Kotlin-Klassen entstehen.
+configurations.all {
+    resolutionStrategy {
+        force 'org.jetbrains.kotlin:kotlin-stdlib-jdk7:1.8.22'
+        force 'org.jetbrains.kotlin:kotlin-stdlib-jdk8:1.8.22'
     }
 }
 
 dependencies {
     implementation 'androidx.appcompat:appcompat:1.7.0'
-    implementation 'com.google.android.material:material:1.12.0'
-    implementation 'androidx.constraintlayout:constraintlayout:2.1.4'
-    implementation 'androidx.recyclerview:recyclerview:1.3.2'
-    implementation 'androidx.documentfile:documentfile:1.0.1'
-
-    implementation 'androidx.room:room-runtime:2.6.1'
-    annotationProcessor 'androidx.room:room-compiler:2.6.1'
-
-    implementation 'com.squareup.okhttp3:okhttp:4.12.0'
-
-    implementation 'com.github.PhilJay:MPAndroidChart:v3.1.0'
-    implementation 'androidx.security:security-crypto:1.1.0-alpha06'
-    implementation 'androidx.biometric:biometric:1.1.0'
+    implementation 'androidx.wear:wear:1.3.0'
     implementation 'com.google.android.gms:play-services-wearable:18.2.0'
+    implementation 'androidx.wear.tiles:tiles:1.1.0'
+    implementation 'androidx.concurrent:concurrent-futures:1.1.0'
 }

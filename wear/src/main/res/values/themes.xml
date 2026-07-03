@@ -1,0 +1,6 @@
+<resources>
+    <style name="Theme.AusgabenWear" parent="Theme.AppCompat.NoActionBar">
+        <item name="android:windowBackground">@android:color/black</item>
+        <item name="android:colorBackground">@android:color/black</item>
+    </style>
+</resources>

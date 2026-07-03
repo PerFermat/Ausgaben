@@ -48,6 +48,36 @@ synchronisieren – entweder als **kMyMoney-CSV** oder direkt in eine **kMyMoney
 - Einstellungen: Nextcloud-Zugang (App-Passwort verschlüsselt), Export-Modus (CSV/`.kmy`),
   Standardkonto, Orte je Konto, Hell-/Dunkel-Design, Datenbank-Backup/Restore, Konto löschen.
 
+## Wear OS (Sprach-Schnellerfassung)
+
+Ein zusätzliches Modul `:wear` erlaubt das Erfassen einer Bargeldausgabe per Sprache direkt auf einer
+Wear-OS-Uhr („Frisör 20 Euro"). Die Uhr nimmt nur den Text auf; die eigentliche Verarbeitung (derselbe
+Parser wie am Phone) und die Buchungsanlage passieren auf dem Smartphone.
+
+- **Uhr**: ein Screen mit Mikrofon-Button + Wear-Tile („Widget"). Nach der Aufnahme wird der Text lokal
+  gespeichert (Status PENDING) und sofort übertragen. Ist das Phone offline, steht unter dem Button
+  „x Buchungen noch nicht übertragen".
+- **Offline & Sync**: Die Übertragung läuft **vollautomatisch** über die Wear Data Layer API
+  (`MessageClient`). Ist das Phone nicht erreichbar, bleibt der Eintrag PENDING und wird bei
+  Wiederverbindung automatisch erneut gesendet – ohne weitere Nutzeraktion auf Uhr oder Phone.
+- **Kein Verlust / keine Dopplung**: Jeder Eintrag hat eine eindeutige ID. Das Phone verarbeitet jede ID
+  nur einmal und bestätigt den Empfang (ACK); erst danach entfernt die Uhr den Eintrag.
+
+**Datenfluss:**
+
+```
+Uhr (Sprache)
+  → lokale Speicherung (PENDING, id/text/timestamp)
+  → Übertragung  MessageClient  /expense/new  {id,text,timestamp}
+  → Smartphone  WearableListenerService
+  → Parser (VoiceInput) + Buchung anlegen (Repository, Dedup per id)
+  → ACK  /expense/ack  {id}
+  → Uhr: Eintrag SYNCED/entfernt  → Synchronisation abgeschlossen
+```
+
+Voraussetzung: Phone- und Wear-App haben dieselbe `applicationId` **und** dieselbe Signatur (für den
+Release-Build dieselbe `keystore.properties`; im Debug ohnehin derselbe Debug-Key).
+
 ## CSV-Format (Export)
 
 Deutsch: Spaltentrenner `;`, Dezimaltrennzeichen `,`, Datum `TT.MM.JJJJ`, UTF-8, CRLF. Splitbuchungen
@@ -60,11 +90,14 @@ Datum;Empfänger;Konto;Typ;Betrag;Notiz;Kategorie
 
 ## Technik
 
-- Java, Gradle 8.9 / AGP 8.7.3, `minSdk 26`, `compileSdk 34`.
+- Java, Gradle 8.9 / AGP 8.7.3, `minSdk 26` (`:app`) bzw. `minSdk 30` (`:wear`), `compileSdk 34`.
+- Module: `:app` (Phone) und `:wear` (Wear OS).
 - [Room](https://developer.android.com/training/data-storage/room) (SQLite, DB-Version 6), OkHttp
   (WebDAV), [MPAndroidChart](https://github.com/PhilJay/MPAndroidChart),
   [androidx.security](https://developer.android.com/jetpack/androidx/releases/security)
-  (verschlüsselte Prefs), [androidx.biometric](https://developer.android.com/jetpack/androidx/releases/biometric).
+  (verschlüsselte Prefs), [androidx.biometric](https://developer.android.com/jetpack/androidx/releases/biometric),
+  [play-services-wearable](https://developer.android.com/training/wearables/data/data-layer) (Data Layer)
+  und [androidx.wear.tiles](https://developer.android.com/training/wearables/tiles) (Tile).
 
 ## Bauen
 

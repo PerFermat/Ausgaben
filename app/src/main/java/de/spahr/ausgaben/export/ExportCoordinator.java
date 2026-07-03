@@ -89,6 +89,17 @@ public class ExportCoordinator {
                 list.add(b);
             }
 
+            // Kategorie-Teile (Splitbuchungen) einmalig nach Buchungs-ID gruppieren.
+            Map<Long, List<de.spahr.ausgaben.db.BookingSplit>> splitsMap = new java.util.HashMap<>();
+            for (de.spahr.ausgaben.db.BookingSplit s : repository.bookingDao().getAllSplits()) {
+                List<de.spahr.ausgaben.db.BookingSplit> l = splitsMap.get(s.bookingId);
+                if (l == null) {
+                    l = new ArrayList<>();
+                    splitsMap.put(s.bookingId, l);
+                }
+                l.add(s);
+            }
+
             CsvExporter exporter = new CsvExporter();
             NextcloudUploader uploader = new NextcloudUploader();
             DocumentFile targetDir = upload ? null
@@ -100,7 +111,7 @@ public class ExportCoordinator {
 
             for (Map.Entry<String, List<Booking>> entry : byAccount.entrySet()) {
                 List<Booking> accountBookings = entry.getValue();
-                String content = exporter.build(entry.getKey(), accountBookings);
+                String content = exporter.build(entry.getKey(), accountBookings, splitsMap);
                 String fileName = exporter.buildFileName(entry.getKey());
                 try {
                     if (upload) {

@@ -67,7 +67,7 @@ public class KmyExportCoordinator {
 
                 progress(listener, "Verarbeite Buchungen…");
                 KmyDocument doc = new KmyDocument(raw);
-                KmyExporter.Result res = new KmyExporter(doc).build(bookings);
+                KmyExporter.Result res = new KmyExporter(doc).build(bookings, loadSplits());
 
                 if (res.writtenIds.isEmpty()) {
                     complete(listener, "Keine Buchung konnte zugeordnet werden.\n" + skippedText(res),
@@ -92,6 +92,20 @@ public class KmyExportCoordinator {
                 complete(listener, "Export fehlgeschlagen: " + msg, false);
             }
         });
+    }
+
+    /** Alle Kategorie-Teile (Splitbuchungen) nach Buchungs-ID gruppiert laden. */
+    private java.util.Map<Long, List<de.spahr.ausgaben.db.BookingSplit>> loadSplits() {
+        java.util.Map<Long, List<de.spahr.ausgaben.db.BookingSplit>> map = new java.util.HashMap<>();
+        for (de.spahr.ausgaben.db.BookingSplit s : repository.bookingDao().getAllSplits()) {
+            List<de.spahr.ausgaben.db.BookingSplit> list = map.get(s.bookingId);
+            if (list == null) {
+                list = new ArrayList<>();
+                map.put(s.bookingId, list);
+            }
+            list.add(s);
+        }
+        return map;
     }
 
     private String buildMessage(KmyExporter.Result res, String file, String backup) {

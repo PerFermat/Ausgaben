@@ -11,11 +11,14 @@ import androidx.recyclerview.widget.RecyclerView;
 import java.text.SimpleDateFormat;
 import java.util.ArrayList;
 import java.util.Date;
+import java.util.HashMap;
 import java.util.List;
 import java.util.Locale;
+import java.util.Map;
 
 import de.spahr.ausgaben.R;
 import de.spahr.ausgaben.db.Booking;
+import de.spahr.ausgaben.db.BookingSplit;
 
 public class BookingAdapter extends RecyclerView.Adapter<BookingAdapter.VH> {
 
@@ -25,12 +28,26 @@ public class BookingAdapter extends RecyclerView.Adapter<BookingAdapter.VH> {
     }
 
     private final List<Booking> items = new ArrayList<>();
+    private Map<Long, List<BookingSplit>> splitsByBooking = new HashMap<>();
+    /** Angezeigter (vorzeichenbehafteter) Betrag je Buchung – überschreibt den Gesamtbetrag (Kategorie-Filter). */
+    private Map<Long, Long> amountOverride = new HashMap<>();
     private final SimpleDateFormat dateFormat =
             new SimpleDateFormat("dd.MM.yyyy HH:mm", Locale.GERMANY);
     private Listener listener;
 
     public void setListener(Listener listener) {
         this.listener = listener;
+    }
+
+    /** Kategorie-Teile je Buchung, um Splitbuchungen in der Liste zu markieren. */
+    public void setSplits(Map<Long, List<BookingSplit>> splits) {
+        splitsByBooking = splits == null ? new HashMap<>() : splits;
+        notifyDataSetChanged();
+    }
+
+    /** Setzt Betrags-Overrides (z. B. Teilbetrag der gefilterten Kategorie); leer = Gesamtbeträge. */
+    public void setAmountOverride(Map<Long, Long> override) {
+        amountOverride = override == null ? new HashMap<>() : override;
     }
 
     public void setItems(List<Booking> bookings) {
@@ -52,10 +69,24 @@ public class BookingAdapter extends RecyclerView.Adapter<BookingAdapter.VH> {
     @Override
     public void onBindViewHolder(@NonNull VH h, int position) {
         Booking b = items.get(position);
-        h.payee.setText(b.payee.isEmpty() ? "—" : b.payee);
+        if (b.isTransfer) {
+            // Umbuchung: Richtung + Zahlungsempfänger als Titel (→ Ausgang, ← Eingang).
+            // Ohne Empfänger auf das Gegenkonto zurückfallen.
+            String label = !b.payee.isEmpty() ? b.payee
+                    : (b.transferAccount == null || b.transferAccount.isEmpty()
+                        ? h.payee.getContext().getString(R.string.type_transfer) : b.transferAccount);
+            h.payee.setText((b.isIncome ? "← " : "→ ") + label);
+        } else {
+            h.payee.setText(b.payee.isEmpty() ? "—" : b.payee);
+        }
         // Konto und Datum in einer kompakten Zeile (kMyMoney-Stil): „Konto · TT.MM.JJJJ HH:mm".
         String date = dateFormat.format(new Date(b.createdAt));
-        h.account.setText(b.account.isEmpty() ? date : b.account + " · " + date);
+        String line = b.account.isEmpty() ? date : b.account + " · " + date;
+        List<BookingSplit> parts = splitsByBooking.get(b.id);
+        if (parts != null && parts.size() >= 2) {
+            line = line + "  ·  " + h.account.getContext().getString(R.string.split_marker);
+        }
+        h.account.setText(line);
         h.date.setVisibility(View.GONE);
 
         if (b.note == null || b.note.isEmpty()) {
@@ -66,11 +97,17 @@ public class BookingAdapter extends RecyclerView.Adapter<BookingAdapter.VH> {
         }
 
         long signed = b.isIncome ? b.amountCents : -b.amountCents;
+        // Bei Kategorie-Filter zeigt eine Splitbuchung nur den Teilbetrag der gewählten Kategorie.
+        Long override = amountOverride.get(b.id);
+        if (override != null) {
+            signed = override;
+        }
         String euros = formatEuro(signed);
         h.amount.setText(euros);
-        int color = b.isIncome
-                ? h.amount.getResources().getColor(R.color.income_green, null)
-                : h.amount.getResources().getColor(R.color.expense_red, null);
+        // Farbe nach angezeigtem Vorzeichen: negativ (auch negativer Teilbetrag) = rot, sonst grün.
+        int color = signed < 0
+                ? h.amount.getResources().getColor(R.color.expense_red, null)
+                : h.amount.getResources().getColor(R.color.income_green, null);
         h.amount.setTextColor(color);
 
         h.exported.setVisibility(b.exported ? View.VISIBLE : View.GONE);

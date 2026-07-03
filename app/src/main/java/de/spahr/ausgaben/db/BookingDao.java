@@ -49,6 +49,38 @@ public interface BookingDao {
     @Query("DELETE FROM booking WHERE account = :account")
     void deleteAllByAccount(String account);
 
-    @Query("SELECT DISTINCT category FROM booking WHERE category != '' ORDER BY category COLLATE NOCASE ASC")
+    @Query("DELETE FROM booking WHERE transfer_group = :group")
+    void deleteByTransferGroup(String group);
+
+    /** Kategorien aus Einzelbuchungen UND Splitbuchungs-Teilen (für Filter/Baum/Auswertung). */
+    @Query("SELECT DISTINCT category FROM ("
+            + "SELECT category FROM booking WHERE category != '' "
+            + "UNION SELECT category FROM booking_split WHERE category != '') "
+            + "ORDER BY category COLLATE NOCASE ASC")
     List<String> getDistinctCategories();
+
+    // ---- Splitbuchungs-Teile ----
+
+    @Insert
+    long insertSplit(BookingSplit split);
+
+    @Query("SELECT * FROM booking_split WHERE booking_id = :bookingId ORDER BY id ASC")
+    List<BookingSplit> getSplits(long bookingId);
+
+    @Query("SELECT * FROM booking_split ORDER BY id ASC")
+    List<BookingSplit> getAllSplits();
+
+    @Query("DELETE FROM booking_split WHERE booking_id = :bookingId")
+    void deleteSplits(long bookingId);
+
+    @Query("DELETE FROM booking_split")
+    void deleteAllSplits();
+
+    @Query("DELETE FROM booking_split WHERE booking_id IN "
+            + "(SELECT id FROM booking WHERE account = :account AND exported = 1)")
+    void deleteSplitsForExportedAccount(String account);
+
+    @Query("DELETE FROM booking_split WHERE booking_id IN "
+            + "(SELECT id FROM booking WHERE account = :account)")
+    void deleteSplitsForAccount(String account);
 }

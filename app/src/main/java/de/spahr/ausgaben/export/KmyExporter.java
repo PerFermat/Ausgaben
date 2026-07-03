@@ -4,13 +4,16 @@ import java.text.SimpleDateFormat;
 import java.util.ArrayList;
 import java.util.Date;
 import java.util.HashMap;
+import java.util.HashSet;
 import java.util.List;
 import java.util.Locale;
 import java.util.Map;
+import java.util.Set;
 import java.util.regex.Matcher;
 import java.util.regex.Pattern;
 
 import de.spahr.ausgaben.db.Booking;
+import de.spahr.ausgaben.db.BookingSplit;
 
 /**
  * Fügt App-Buchungen als KMyMoney-Transaktionen in die XML-Struktur einer {@link KmyDocument} ein.
@@ -35,24 +38,52 @@ public class KmyExporter {
     }
 
     public Result build(List<Booking> bookings) {
+        return build(bookings, new HashMap<>());
+    }
+
+    public Result build(List<Booking> bookings, Map<Long, List<BookingSplit>> splitsMap) {
         Result result = new Result();
-        long nextTx = doc.maxTransactionNumber() + 1;
-        int nextPayee = doc.maxPayeeNumber() + 1;
+        long[] nextTx = {doc.maxTransactionNumber() + 1};
+        int[] nextPayee = {doc.maxPayeeNumber() + 1};
 
         // In diesem Lauf neu angelegte Empfänger: kleingeschriebener Name → id (zur Wiederverwendung).
         Map<String, String> newPayeeIds = new HashMap<>();
         StringBuilder txFragments = new StringBuilder();
         StringBuilder payeeFragments = new StringBuilder();
+        // Bereits geschriebene Umbuchungs-Gruppen (die zweite Seite nur als „exportiert" markieren).
+        Set<String> doneTransferGroups = new HashSet<>();
         String today = dateFormat.format(new Date());
 
         for (Booking b : bookings) {
+            if (b.isTransfer) {
+                writeTransfer(b, result, txFragments, nextTx, today, doneTransferGroups,
+                        newPayeeIds, payeeFragments, nextPayee);
+                continue;
+            }
             String assetId = doc.accountId(b.account);
             if (assetId == null) {
                 result.skipped.add(label(b) + ": Konto nicht gefunden (" + b.account + ")");
                 continue;
             }
-            // Leere Kategorie ist erlaubt → wird als nicht zugeordnete Ein-Split-Buchung geschrieben.
-            // Nur eine gesetzte, aber unbekannte Kategorie wird übersprungen (Tippfehler).
+
+            String payeeId = resolvePayee(b.payee, result, newPayeeIds, payeeFragments, nextPayee);
+            long signedCents = b.isIncome ? b.amountCents : -b.amountCents;
+            String memo = b.note == null ? "" : b.note;
+
+            // Splitbuchung (≥2 Kategorien): Konto-Split + je Teil ein Kategorie-Split (Gegen-Vorzeichen).
+            List<BookingSplit> parts = splitsMap.get(b.id);
+            if (parts != null && parts.size() >= 2) {
+                List<String> splitXmls = buildSplitParts(b, assetId, payeeId, signedCents, memo, parts, result);
+                if (splitXmls == null) {
+                    continue; // eine Kategorie unbekannt → Buchung übersprungen (in result.skipped vermerkt)
+                }
+                String txId = String.format(Locale.US, "T%018d", nextTx[0]++);
+                txFragments.append(transactionElement(txId, dateFor(b.createdAt), today, memo, splitXmls));
+                result.writtenIds.add(b.id);
+                continue;
+            }
+
+            // Einzel-/Ohne-Kategorie: leere Kategorie erlaubt (nicht zugeordnet); unbekannte Kategorie → Skip.
             String cat = b.category == null ? "" : b.category.trim();
             String categoryId = null;
             if (!cat.isEmpty()) {
@@ -62,27 +93,13 @@ public class KmyExporter {
                     continue;
                 }
             }
-
-            String payeeId = "";
-            String payee = b.payee == null ? "" : b.payee.trim();
-            if (!payee.isEmpty()) {
-                String existing = doc.payeeId(payee);
-                if (existing == null) {
-                    existing = newPayeeIds.get(payee.toLowerCase(Locale.GERMANY));
-                }
-                if (existing == null) {
-                    existing = String.format(Locale.US, "P%06d", nextPayee++);
-                    newPayeeIds.put(payee.toLowerCase(Locale.GERMANY), existing);
-                    payeeFragments.append(payeeElement(existing, payee));
-                    result.newPayees++;
-                }
-                payeeId = existing;
+            List<String> splitXmls = new ArrayList<>();
+            splitXmls.add(split("S0001", assetId, payeeId, fraction(signedCents), esc(memo)));
+            if (categoryId != null && !categoryId.isEmpty()) {
+                splitXmls.add(split("S0002", categoryId, payeeId, fraction(-signedCents), esc(memo)));
             }
-
-            String txId = String.format(Locale.US, "T%018d", nextTx++);
-            long signedCents = b.isIncome ? b.amountCents : -b.amountCents;
-            txFragments.append(transactionElement(txId, dateFor(b.createdAt), today,
-                    assetId, categoryId, payeeId, signedCents, b.note == null ? "" : b.note));
+            String txId = String.format(Locale.US, "T%018d", nextTx[0]++);
+            txFragments.append(transactionElement(txId, dateFor(b.createdAt), today, memo, splitXmls));
             result.writtenIds.add(b.id);
         }
 
@@ -102,16 +119,90 @@ public class KmyExporter {
 
     // ---- XML-Bausteine ----
 
-    private String transactionElement(String txId, String postdate, String entrydate,
-                                      String assetId, String categoryId, String payeeId,
-                                      long signedCents, String memo) {
+    /** Umbuchung: eine Transaktion mit zwei Konto-Splits (Quelle −, Ziel +), keine Kategorie; mit Empfänger. */
+    private void writeTransfer(Booking b, Result result, StringBuilder txFragments, long[] nextTx,
+                               String today, Set<String> doneTransferGroups,
+                               Map<String, String> newPayeeIds, StringBuilder payeeFragments,
+                               int[] nextPayee) {
+        String group = b.transferGroup == null ? "" : b.transferGroup;
+        if (!group.isEmpty() && doneTransferGroups.contains(group)) {
+            result.writtenIds.add(b.id); // zweite Seite: nur als exportiert markieren, nicht erneut schreiben
+            return;
+        }
+        // Aus der Sicht dieser Zeile Quelle/Ziel bestimmen (Einnahme = Geld kam auf dieses Konto).
+        String fromAccount = b.isIncome ? b.transferAccount : b.account;
+        String toAccount = b.isIncome ? b.account : b.transferAccount;
+        String fromId = doc.accountId(fromAccount);
+        String toId = doc.accountId(toAccount);
+        if (fromId == null || toId == null) {
+            String missing = fromId == null ? fromAccount : toAccount;
+            result.skipped.add("Umbuchung " + fromAccount + " → " + toAccount
+                    + ": Konto nicht gefunden (" + missing + ")");
+            return;
+        }
+        String payeeId = resolvePayee(b.payee, result, newPayeeIds, payeeFragments, nextPayee);
+        String memo = b.note == null ? "" : b.note;
+        List<String> splitXmls = new ArrayList<>();
+        splitXmls.add(split("S0001", fromId, payeeId, fraction(-b.amountCents), esc(memo)));
+        splitXmls.add(split("S0002", toId, payeeId, fraction(b.amountCents), esc(memo)));
+        String txId = String.format(Locale.US, "T%018d", nextTx[0]++);
+        txFragments.append(transactionElement(txId, dateFor(b.createdAt), today, memo, splitXmls));
+        result.writtenIds.add(b.id);
+        if (!group.isEmpty()) {
+            doneTransferGroups.add(group);
+        }
+    }
+
+    /**
+     * Baut die Kategorie-Splits einer Splitbuchung: Konto-Split (signierter Gesamtbetrag) + je Teil ein
+     * Kategorie-Split mit Gegen-Vorzeichen. Gibt {@code null} zurück, wenn eine Kategorie unbekannt ist.
+     */
+    private List<String> buildSplitParts(Booking b, String assetId, String payeeId, long signedCents,
+                                         String memo, List<BookingSplit> parts, Result result) {
+        List<String> splitXmls = new ArrayList<>();
+        splitXmls.add(split("S0001", assetId, payeeId, fraction(signedCents), esc(memo)));
+        int idx = 2;
+        for (BookingSplit p : parts) {
+            String cat = p.category == null ? "" : p.category.trim();
+            String categoryId = doc.categoryId(cat);
+            if (categoryId == null) {
+                result.skipped.add(label(b) + ": Kategorie nicht gefunden (" + cat + ")");
+                return null;
+            }
+            // App-Teilbetrag (in Gesamt-Einheiten) → Kategorie-Split mit Gegen-Vorzeichen zum Konto-Split.
+            long catValue = b.isIncome ? -p.amountCents : p.amountCents;
+            splitXmls.add(split(String.format(Locale.US, "S%04d", idx++), categoryId, payeeId,
+                    fraction(catValue), esc(memo)));
+        }
+        return splitXmls;
+    }
+
+    /** Löst einen Empfänger auf (bekannt/schon angelegt) oder legt ihn neu an; liefert die Payee-id ("" = keiner). */
+    private String resolvePayee(String rawPayee, Result result, Map<String, String> newPayeeIds,
+                                StringBuilder payeeFragments, int[] nextPayee) {
+        String payee = rawPayee == null ? "" : rawPayee.trim();
+        if (payee.isEmpty()) {
+            return "";
+        }
+        String existing = doc.payeeId(payee);
+        if (existing == null) {
+            existing = newPayeeIds.get(payee.toLowerCase(Locale.GERMANY));
+        }
+        if (existing == null) {
+            existing = String.format(Locale.US, "P%06d", nextPayee[0]++);
+            newPayeeIds.put(payee.toLowerCase(Locale.GERMANY), existing);
+            payeeFragments.append(payeeElement(existing, payee));
+            result.newPayees++;
+        }
+        return existing;
+    }
+
+    private String transactionElement(String txId, String postdate, String entrydate, String memo,
+                                      List<String> splitXmls) {
         String m = esc(memo);
-        String cash = fraction(signedCents);
         StringBuilder splits = new StringBuilder();
-        splits.append(split("S0001", assetId, payeeId, cash, m));
-        // Ohne Kategorie: nur der Konto-Split (nicht zugeordnete Buchung, wie KMyMoney es speichert).
-        if (categoryId != null && !categoryId.isEmpty()) {
-            splits.append(split("S0002", categoryId, payeeId, fraction(-signedCents), m));
+        for (String s : splitXmls) {
+            splits.append(s);
         }
         return "<TRANSACTION postdate=\"" + postdate + "\" entrydate=\"" + entrydate + "\" memo=\"" + m
                 + "\" id=\"" + txId + "\" commodity=\"EUR\">"

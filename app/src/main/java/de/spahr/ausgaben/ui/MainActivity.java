@@ -33,6 +33,7 @@ import java.util.Locale;
 
 import de.spahr.ausgaben.R;
 import de.spahr.ausgaben.db.Booking;
+import de.spahr.ausgaben.db.BookingSplit;
 import de.spahr.ausgaben.db.PlaceBalance;
 import de.spahr.ausgaben.db.Repository;
 import de.spahr.ausgaben.export.CsvImporter;
@@ -55,6 +56,7 @@ public class MainActivity extends AppCompatActivity {
     private TextView textSaldoLabel;
 
     private List<Booking> allBookings = new ArrayList<>();
+    private java.util.Map<Long, List<BookingSplit>> splitsByBooking = new java.util.HashMap<>();
     private java.util.Map<String, Long> placeBalances = new java.util.LinkedHashMap<>();
     private long totalBalance = 0;
     private long allPlaceEntrySum = 0;
@@ -222,7 +224,11 @@ public class MainActivity extends AppCompatActivity {
         repository.getAccountNames(this::populateAccountDrawer);
         repository.getAllBookings(result -> {
             allBookings = result;
-            reloadPlacesAndApply();
+            repository.getAllSplitsMap(map -> {
+                splitsByBooking = map;
+                adapter.setSplits(map);
+                reloadPlacesAndApply();
+            });
         });
     }
 
@@ -277,6 +283,7 @@ public class MainActivity extends AppCompatActivity {
 
     private void applyFilter() {
         List<Booking> filtered = new ArrayList<>();
+        java.util.Map<Long, Long> amountOverride = new java.util.HashMap<>();
         filteredSum = 0;
         totalBalance = 0;
         selectedAccountBalance = 0;
@@ -287,10 +294,15 @@ public class MainActivity extends AppCompatActivity {
                 selectedAccountBalance += signed;
             }
             if (matchesFilter(b)) {
+                long disp = displaySignedForFilter(b, signed);
+                if (disp != signed) {
+                    amountOverride.put(b.id, disp);
+                }
                 filtered.add(b);
-                filteredSum += signed;
+                filteredSum += disp;
             }
         }
+        adapter.setAmountOverride(amountOverride);
         adapter.setItems(filtered);
         buildSaldoViews();
         showSaldo();
@@ -311,13 +323,52 @@ public class MainActivity extends AppCompatActivity {
                 && !b.payee.toLowerCase(Locale.GERMANY).contains(filterPayee.toLowerCase(Locale.GERMANY))) {
             return false;
         }
-        if (!filterCategory.isEmpty() && !categoryMatches(b.category)) {
+        if (!filterCategory.isEmpty() && !categoryMatchesBooking(b)) {
             return false;
         }
         if (filterAmountFrom != null && b.amountCents < filterAmountFrom) {
             return false;
         }
         return filterAmountTo == null || b.amountCents <= filterAmountTo;
+    }
+
+    /**
+     * Bei aktivem Kategorie-Filter zeigt eine Splitbuchung nur den Teilbetrag der gewählten Kategorie;
+     * sonst den vollen (vorzeichenbehafteten) Betrag {@code full}.
+     */
+    private long displaySignedForFilter(Booking b, long full) {
+        if (filterCategory.isEmpty()) {
+            return full;
+        }
+        List<BookingSplit> parts = splitsByBooking.get(b.id);
+        if (parts == null || parts.isEmpty()) {
+            return full; // Einzelkategorie: gesamter Betrag entfällt auf diese Kategorie
+        }
+        long sum = 0;
+        boolean any = false;
+        for (BookingSplit p : parts) {
+            if (categoryMatches(p.category)) {
+                sum += b.isIncome ? p.amountCents : -p.amountCents;
+                any = true;
+            }
+        }
+        return any ? sum : full;
+    }
+
+    /** Treffer, wenn die (Haupt-)Kategorie oder eine Teilkategorie einer Splitbuchung passt. */
+    private boolean categoryMatchesBooking(Booking b) {
+        if (categoryMatches(b.category)) {
+            return true;
+        }
+        List<BookingSplit> parts = splitsByBooking.get(b.id);
+        if (parts != null) {
+            for (BookingSplit p : parts) {
+                if (categoryMatches(p.category)) {
+                    return true;
+                }
+            }
+        }
+        return false;
     }
 
     private boolean categoryMatches(String cat) {

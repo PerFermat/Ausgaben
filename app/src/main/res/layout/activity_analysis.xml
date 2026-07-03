@@ -71,37 +71,14 @@
             android:text="@string/granularity_year" />
     </com.google.android.material.button.MaterialButtonToggleGroup>
 
-    <LinearLayout
+    <TextView
+        android:id="@+id/textTotal"
         android:layout_width="match_parent"
         android:layout_height="wrap_content"
-        android:orientation="horizontal"
-        android:gravity="center_vertical"
-        android:layout_marginHorizontal="16dp">
-
-        <com.google.android.material.textfield.TextInputLayout
-            android:layout_width="wrap_content"
-            android:layout_height="wrap_content"
-            style="@style/Widget.Material3.TextInputLayout.OutlinedBox.Dense"
-            android:hint="@string/bar_count_label">
-
-            <com.google.android.material.textfield.TextInputEditText
-                android:id="@+id/editBarCount"
-                android:layout_width="72dp"
-                android:layout_height="wrap_content"
-                android:inputType="number"
-                android:maxLength="3"
-                android:text="12" />
-        </com.google.android.material.textfield.TextInputLayout>
-
-        <TextView
-            android:id="@+id/textTotal"
-            android:layout_width="0dp"
-            android:layout_height="wrap_content"
-            android:layout_weight="1"
-            android:gravity="end"
-            android:textSize="18sp"
-            android:textStyle="bold" />
-    </LinearLayout>
+        android:layout_marginHorizontal="16dp"
+        android:gravity="end"
+        android:textSize="18sp"
+        android:textStyle="bold" />
 
     <FrameLayout
         android:layout_width="match_parent"

@@ -2,8 +2,6 @@ package de.spahr.ausgaben.ui;
 
 import android.content.res.Configuration;
 import android.os.Bundle;
-import android.text.Editable;
-import android.text.TextWatcher;
 import android.view.MotionEvent;
 import android.widget.ArrayAdapter;
 import android.widget.TextView;
@@ -26,7 +24,6 @@ import com.google.android.material.appbar.MaterialToolbar;
 import com.google.android.material.button.MaterialButtonToggleGroup;
 import com.google.android.material.floatingactionbutton.FloatingActionButton;
 import com.google.android.material.textfield.MaterialAutoCompleteTextView;
-import com.google.android.material.textfield.TextInputEditText;
 
 import java.text.SimpleDateFormat;
 import java.util.ArrayList;
@@ -59,12 +56,10 @@ public class AnalysisActivity extends AppCompatActivity {
     private enum Granularity {DAY, WEEK, MONTH, YEAR}
 
     private static final int DEFAULT_BARS = 12;
-    private static final int MAX_BARS = 100;
 
     private Repository repository;
     private CombinedChart chart;
     private TextView textTotal;
-    private TextInputEditText editBarCount;
     private FloatingActionButton fabScrollRight;
     private MaterialAutoCompleteTextView viewSelector;
 
@@ -74,7 +69,6 @@ public class AnalysisActivity extends AppCompatActivity {
     private boolean placesLoaded = false;
 
     private Granularity granularity = Granularity.MONTH;
-    private int barCount = DEFAULT_BARS;
     private int lastIndex = 0;
 
     private String filterPayee = "";
@@ -90,6 +84,10 @@ public class AnalysisActivity extends AppCompatActivity {
     private final List<String> viewKeys = new ArrayList<>();
     private final List<String> viewLabels = new ArrayList<>();
     private String viewKey = MainActivity.VIEW_TOTAL;
+
+    /** Kategorie-Teile je Buchung (Splitbuchungen), damit der Kategorie-Filter alle Teile berücksichtigt. */
+    private java.util.Map<Long, List<de.spahr.ausgaben.db.BookingSplit>> splitsByBooking =
+            new java.util.HashMap<>();
 
     @Override
     protected void onCreate(Bundle savedInstanceState) {
@@ -115,12 +113,10 @@ public class AnalysisActivity extends AppCompatActivity {
         defaultAccount = new de.spahr.ausgaben.settings.SettingsStore(this).getDefaultAccount();
         chart = findViewById(R.id.barChart);
         textTotal = findViewById(R.id.textTotal);
-        editBarCount = findViewById(R.id.editBarCount);
         fabScrollRight = findViewById(R.id.fabScrollRight);
         viewSelector = findViewById(R.id.viewSelector);
 
         setupChart();
-        setupBarCountField();
 
         MaterialButtonToggleGroup toggle = findViewById(R.id.toggleGranularity);
         toggle.check(R.id.btnMonth);
@@ -147,9 +143,12 @@ public class AnalysisActivity extends AppCompatActivity {
 
         repository.getAllBookings(result -> {
             allBookings = result;
-            bookingsLoaded = true;
-            setupViewSelector();
-            if (placesLoaded) renderChart();
+            repository.getAllSplitsMap(m -> {
+                splitsByBooking = m;
+                bookingsLoaded = true;
+                setupViewSelector();
+                if (placesLoaded) renderChart();
+            });
         });
         repository.getAllPlaceEntries(result -> {
             allPlaceEntries = result;
@@ -253,7 +252,12 @@ public class AnalysisActivity extends AppCompatActivity {
                 if (onlyFiltered && !matchesFilter(b)) {
                     continue;
                 }
-                events.add(new long[]{b.createdAt, b.isIncome ? b.amountCents : -b.amountCents});
+                long signed = b.isIncome ? b.amountCents : -b.amountCents;
+                // Gefilterte Sicht mit Kategorie-Filter: Splitbuchung nur mit dem passenden Teilbetrag.
+                if (onlyFiltered) {
+                    signed = displaySignedForFilter(b, signed);
+                }
+                events.add(new long[]{b.createdAt, signed});
             }
         }
         Collections.sort(events, Comparator.comparingLong(a -> a[0]));
@@ -265,13 +269,49 @@ public class AnalysisActivity extends AppCompatActivity {
                 && !b.payee.toLowerCase(Locale.GERMANY).contains(filterPayee.toLowerCase(Locale.GERMANY))) {
             return false;
         }
-        if (!filterCategory.isEmpty() && !categoryMatches(b.category)) {
+        if (!filterCategory.isEmpty() && !categoryMatchesBooking(b)) {
             return false;
         }
         if (filterAmountFrom != null && b.amountCents < filterAmountFrom) {
             return false;
         }
         return filterAmountTo == null || b.amountCents <= filterAmountTo;
+    }
+
+    /** Bei Kategorie-Filter nur den Teilbetrag der gewählten Kategorie einer Splitbuchung; sonst {@code full}. */
+    private long displaySignedForFilter(Booking b, long full) {
+        if (filterCategory.isEmpty()) {
+            return full;
+        }
+        List<de.spahr.ausgaben.db.BookingSplit> parts = splitsByBooking.get(b.id);
+        if (parts == null || parts.isEmpty()) {
+            return full;
+        }
+        long sum = 0;
+        boolean any = false;
+        for (de.spahr.ausgaben.db.BookingSplit p : parts) {
+            if (categoryMatches(p.category)) {
+                sum += b.isIncome ? p.amountCents : -p.amountCents;
+                any = true;
+            }
+        }
+        return any ? sum : full;
+    }
+
+    /** Treffer, wenn die (Haupt-)Kategorie oder eine Teilkategorie einer Splitbuchung passt. */
+    private boolean categoryMatchesBooking(Booking b) {
+        if (categoryMatches(b.category)) {
+            return true;
+        }
+        List<de.spahr.ausgaben.db.BookingSplit> parts = splitsByBooking.get(b.id);
+        if (parts != null) {
+            for (de.spahr.ausgaben.db.BookingSplit p : parts) {
+                if (categoryMatches(p.category)) {
+                    return true;
+                }
+            }
+        }
+        return false;
     }
 
     private boolean categoryMatches(String cat) {
@@ -374,14 +414,17 @@ public class AnalysisActivity extends AppCompatActivity {
         x.setAxisMaximum(periods.size() - 0.5f);
         boolean landscape = getResources().getConfiguration().orientation
                 == Configuration.ORIENTATION_LANDSCAPE;
-        int labelTarget = landscape ? 12 : 6;
-        int step = Math.max(1, Math.round((float) barCount / labelTarget));
-        x.setGranularity(step);
+        x.setGranularity(1f);
         x.setGranularityEnabled(true);
-        x.setLabelCount(Math.min(25, Math.max(2, periods.size())), false);
+        x.setLabelCount(landscape ? 12 : 6, false);
 
-        chart.setVisibleXRangeMaximum(barCount);
-        chart.setVisibleXRangeMinimum(Math.min(barCount, periods.size()));
+        // X frei zoombar (Balkenanzahl per Geste), Anfangsansicht ≈ DEFAULT_BARS; Y frei zoombar.
+        chart.setVisibleXRangeMinimum(2f);
+        chart.setVisibleXRangeMaximum(Math.max(2f, periods.size()));
+        chart.fitScreen();
+        if (periods.size() > DEFAULT_BARS) {
+            chart.zoom((float) periods.size() / DEFAULT_BARS, 1f, 0f, 0f);
+        }
         chart.moveViewToX(lastIndex);
         chart.invalidate();
         updateScrollRightVisibility();
@@ -391,7 +434,9 @@ public class AnalysisActivity extends AppCompatActivity {
         chart.getDescription().setEnabled(false);
         chart.getAxisRight().setEnabled(false);
         chart.getLegend().setEnabled(false);
-        chart.setScaleEnabled(false);
+        // Zoom per Fingergeste: horizontal = Balkenanzahl (X), vertikal = Y-Achse. Unabhängig (kein Pinch-Both).
+        chart.setScaleXEnabled(true);
+        chart.setScaleYEnabled(true);
         chart.setPinchZoom(false);
         chart.setDoubleTapToZoomEnabled(false);
         chart.setDragEnabled(true);
@@ -420,25 +465,6 @@ public class AnalysisActivity extends AppCompatActivity {
             @Override public void onChartScale(MotionEvent me, float sx, float sy) { }
             @Override public void onChartTranslate(MotionEvent me, float dx, float dy) {
                 updateScrollRightVisibility();
-            }
-        });
-    }
-
-    private void setupBarCountField() {
-        editBarCount.addTextChangedListener(new TextWatcher() {
-            @Override public void beforeTextChanged(CharSequence s, int a, int b, int c) { }
-            @Override public void onTextChanged(CharSequence s, int a, int b, int c) { }
-            @Override
-            public void afterTextChanged(Editable s) {
-                Integer n = parseInt(s.toString());
-                if (n == null) {
-                    return;
-                }
-                int clamped = Math.max(1, Math.min(MAX_BARS, n));
-                if (clamped != barCount) {
-                    barCount = clamped;
-                    renderChart();
-                }
             }
         });
     }
@@ -517,14 +543,6 @@ public class AnalysisActivity extends AppCompatActivity {
             default:
                 return String.format(Locale.GERMANY, "%02d/%02d",
                         c.get(Calendar.MONTH) + 1, c.get(Calendar.YEAR) % 100);
-        }
-    }
-
-    private Integer parseInt(String s) {
-        try {
-            return Integer.parseInt(s.trim());
-        } catch (NumberFormatException e) {
-            return null;
         }
     }
 

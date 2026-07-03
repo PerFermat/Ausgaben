@@ -16,6 +16,7 @@ import java.util.List;
 import java.util.Locale;
 
 import de.spahr.ausgaben.db.Booking;
+import de.spahr.ausgaben.db.BookingSplit;
 
 /**
  * Liest aus einer {@link KmyDocument} die Buchungen eines gewählten (Bargeld-/Vermögens-)Kontos und
@@ -96,12 +97,10 @@ public class KmyImporter {
             return null;
         }
         String[] own = null;
-        String[] counter = null;
         for (String[] s : splits) {
-            if (own == null && accountId.equals(s[0])) {
+            if (accountId.equals(s[0])) {
                 own = s;
-            } else if (counter == null) {
-                counter = s;
+                break;
             }
         }
         if (own == null) {
@@ -113,30 +112,94 @@ public class KmyImporter {
         b.amountCents = Math.abs(signedCents);
         b.isIncome = signedCents > 0;
         b.account = accountName;
-        b.category = counter == null ? "" : orEmpty(doc.categoryPath(counter[0]));
-        String payeeId = !own[2].isEmpty() ? own[2] : (counter == null ? "" : counter[2]);
-        b.payee = payeeId.isEmpty() ? "" : orEmpty(doc.payeeName(payeeId));
-        // Kein Empfänger (Investment/Umbuchung)? Namen als Empfänger übernehmen, statt „—":
-        if (b.payee.isEmpty()) {
-            // 1) Aktien-/ETF-Konto (Typ 15) unter den Splits – deckt Kauf, Kauf-mit-Gebühr und Dividende ab.
-            String stockName = null;
-            for (String[] s : splits) {
-                if (doc.accountTypeOf(s[0]) == 15) {
-                    stockName = doc.accountNameById(s[0]);
-                    break;
-                }
-            }
-            if (stockName != null && !stockName.trim().isEmpty()) {
-                b.payee = stockName.trim();
-            } else if (b.category.isEmpty() && counter != null) {
-                // 2) sonstige Umbuchung ohne Kategorie → Name des Gegenkontos.
-                b.payee = orEmpty(doc.accountNameById(counter[0])).trim();
-            }
-        }
         b.note = !own[3].isEmpty() ? own[3] : txMemo;
         b.createdAt = parseDate(postdate, entrydate);
         b.exported = true;
+
+        // Gegen-Splits klassifizieren: Kategorie (Typ 12/13) vs. Konto; Aktien/ETF (Typ 15) gesondert.
+        List<String[]> categorySplits = new ArrayList<>();
+        List<String[]> nonCatCounters = new ArrayList<>();
+        boolean hasStock = false;
+        for (String[] s : splits) {
+            if (s == own) {
+                continue;
+            }
+            int type = doc.accountTypeOf(s[0]);
+            if (type == 15) {
+                hasStock = true;
+            }
+            if (type == 12 || type == 13) {
+                categorySplits.add(s);
+            } else {
+                nonCatCounters.add(s);
+            }
+        }
+
+        // Umbuchung: genau ein Nicht-Kategorie-Gegenkonto, keine Kategorien, kein Aktien-/ETF-Split.
+        if (!hasStock && categorySplits.isEmpty() && nonCatCounters.size() == 1) {
+            String[] counterSplit = nonCatCounters.get(0);
+            b.isTransfer = true;
+            b.transferAccount = orEmpty(doc.accountNameById(counterSplit[0])).trim();
+            b.category = "";
+            // Empfänger der Umbuchung aus dem Payee-Attribut der Splits (kein Kontoname-Fallback).
+            String payeeId = !own[2].isEmpty() ? own[2] : counterSplit[2];
+            b.payee = payeeId.isEmpty() ? "" : orEmpty(doc.payeeName(payeeId));
+            return b;
+        }
+
+        // Splitbuchung: mehrere Kategorie-Splits → Kategorie-Teile aufbauen (Umkehr des Exports).
+        if (categorySplits.size() >= 2) {
+            b.parts = new ArrayList<>();
+            for (String[] cs : categorySplits) {
+                long catValue = valueToCents(cs[1]);
+                long partial = b.isIncome ? -catValue : catValue;
+                b.parts.add(new BookingSplit(0, orEmpty(doc.categoryPath(cs[0])), partial));
+            }
+            b.category = b.parts.isEmpty() ? "" : b.parts.get(0).category;
+            b.payee = resolveImportPayee(own, categorySplits.get(0), splits);
+            return b;
+        }
+
+        // Einzelbuchung: Kategorie/Empfänger aus dem ersten Gegen-Split (bisheriges Verhalten).
+        String[] counter = null;
+        for (String[] s : splits) {
+            if (s != own) {
+                counter = s;
+                break;
+            }
+        }
+        b.category = counter == null ? "" : orEmpty(doc.categoryPath(counter[0]));
+        b.payee = resolveImportPayee(own, counter, splits);
         return b;
+    }
+
+    /**
+     * Empfänger einer importierten Buchung: aus dem eigenen bzw. Gegen-Split; fällt auf den Namen des
+     * Aktien-/ETF-Kontos (Typ 15) bzw. eines Nicht-Kategorie-Gegenkontos zurück (statt „—").
+     */
+    private String resolveImportPayee(String[] own, String[] counter, List<String[]> splits) {
+        String payeeId = !own[2].isEmpty() ? own[2] : (counter == null ? "" : counter[2]);
+        String payee = payeeId.isEmpty() ? "" : orEmpty(doc.payeeName(payeeId));
+        if (!payee.isEmpty()) {
+            return payee;
+        }
+        // 1) Aktien-/ETF-Konto (Typ 15) – deckt Kauf, Kauf-mit-Gebühr und Dividende ab.
+        for (String[] s : splits) {
+            if (doc.accountTypeOf(s[0]) == 15) {
+                String stockName = doc.accountNameById(s[0]);
+                if (stockName != null && !stockName.trim().isEmpty()) {
+                    return stockName.trim();
+                }
+            }
+        }
+        // 2) Nicht-Kategorie-Gegenkonto → dessen Name.
+        if (counter != null) {
+            int t = doc.accountTypeOf(counter[0]);
+            if (t != 12 && t != 13) {
+                return orEmpty(doc.accountNameById(counter[0])).trim();
+            }
+        }
+        return "";
     }
 
     /** KMyMoney-Betrag „num/den" → Cent (gerundet, mit Vorzeichen). */

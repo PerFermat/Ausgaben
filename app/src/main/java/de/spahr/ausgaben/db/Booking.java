@@ -3,7 +3,10 @@ package de.spahr.ausgaben.db;
 import androidx.annotation.NonNull;
 import androidx.room.ColumnInfo;
 import androidx.room.Entity;
+import androidx.room.Ignore;
 import androidx.room.PrimaryKey;
+
+import java.util.List;
 
 /**
  * Eine einzelne Bargeld-Buchung.
@@ -43,6 +46,24 @@ public class Booking {
 
     @ColumnInfo(name = "exported")
     public boolean exported;
+
+    /** Umbuchung (Kontotransfer): dann ist {@link #transferAccount} das Gegenkonto und es gibt keine Kategorie. */
+    @ColumnInfo(name = "is_transfer")
+    public boolean isTransfer;
+
+    /** Gegenkonto einer Umbuchung (Anzeigename). */
+    @NonNull
+    @ColumnInfo(name = "transfer_account")
+    public String transferAccount = "";
+
+    /** Verknüpft die beiden Seiten einer in der App erstellten Umbuchung (leer bei importierten Einseitern). */
+    @NonNull
+    @ColumnInfo(name = "transfer_group")
+    public String transferGroup = "";
+
+    /** Transient: Kategorie-Teile einer Splitbuchung (nicht in dieser Tabelle gespeichert, siehe {@link BookingSplit}). */
+    @Ignore
+    public List<BookingSplit> parts;
 
     public Booking() {
     }

@@ -4,6 +4,15 @@
     <!-- Hauptbildschirm -->
     <string name="type_expense">Ausgabe</string>
     <string name="type_income">Einnahme</string>
+    <string name="type_transfer">Umbuchung</string>
+    <string name="transfer_payee_hint">Zahlungsempfänger (optional)</string>
+    <string name="split_categories">Kategorien</string>
+    <string name="split_remove">−</string>
+    <string name="split_marker">Split</string>
+    <string name="split_partial_hint">Teilbetrag</string>
+    <string name="error_transfer_accounts">Bitte zwei verschiedene Konten (Von/Nach) wählen</string>
+    <string name="error_split_sum">Summe der Teilbeträge muss dem Gesamtbetrag entsprechen</string>
+    <string name="transfer_saved">Umbuchung gespeichert</string>
     <string name="amount_hint">Betrag (€)</string>
     <string name="payee_hint">Geldempfänger</string>
     <string name="account_hint">Konto</string>

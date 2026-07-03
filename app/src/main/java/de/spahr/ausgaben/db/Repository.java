@@ -4,7 +4,11 @@ import android.content.Context;
 import android.os.Handler;
 import android.os.Looper;
 
+import java.util.ArrayList;
+import java.util.HashMap;
 import java.util.List;
+import java.util.Map;
+import java.util.UUID;
 import java.util.concurrent.ExecutorService;
 import java.util.concurrent.Executors;
 
@@ -59,9 +63,191 @@ public class Repository {
         });
     }
 
+    /**
+     * Aktualisiert eine Buchung und ersetzt ihre Kategorie-Teile (Splitbuchung). {@code parts} leer/null →
+     * die Buchung wird zur Einzelkategorie ({@link Booking#category}); vorhandene Teile werden entfernt.
+     */
+    public void updateSplitBooking(final Booking booking, final List<BookingSplit> parts,
+                                   final Runnable onDone) {
+        executor.execute(() -> {
+            payeeDao.insertIfAbsent(new Payee(booking.payee));
+            accountDao.insertIfAbsent(new Account(booking.account));
+            bookingDao.update(booking);
+            bookingDao.deleteSplits(booking.id);
+            if (parts != null) {
+                for (BookingSplit p : parts) {
+                    p.bookingId = booking.id;
+                    bookingDao.insertSplit(p);
+                }
+            }
+            if (onDone != null) {
+                mainHandler.post(onDone);
+            }
+        });
+    }
+
+    /**
+     * Speichert eine neue Splitbuchung (Buchung + Kategorie-Teile) und verschiebt zusätzlich optional den
+     * Saldo eines Ortes (wie {@link #saveBookingWithPlace}). {@code parts} sind die Kategorie-Teile.
+     */
+    public void saveSplitBooking(final Booking booking, final List<BookingSplit> parts,
+                                 final String place, final Runnable onDone) {
+        executor.execute(() -> {
+            payeeDao.insertIfAbsent(new Payee(booking.payee));
+            accountDao.insertIfAbsent(new Account(booking.account));
+            long id = bookingDao.insert(booking);
+            if (parts != null) {
+                for (BookingSplit p : parts) {
+                    p.bookingId = id;
+                    bookingDao.insertSplit(p);
+                }
+            }
+            if (isRealPlace(place)) {
+                long signed = booking.isIncome ? booking.amountCents : -booking.amountCents;
+                placeEntryDao.insert(new PlaceEntry(booking.account, place.trim(), signed,
+                        booking.createdAt, "booking"));
+            }
+            if (onDone != null) {
+                mainHandler.post(onDone);
+            }
+        });
+    }
+
+    /** Legt eine Umbuchung als zwei verknüpfte Buchungen an (Ausgabe auf {@code from}, Einnahme auf {@code to}). */
+    public void saveTransferBooking(final String from, final String to, final long cents,
+                                    final String payee, final String note, final long createdAt,
+                                    final Runnable onDone) {
+        executor.execute(() -> {
+            String group = UUID.randomUUID().toString();
+            insertTransferPair(from, to, cents, payee, note, createdAt, false, group);
+            if (onDone != null) {
+                mainHandler.post(onDone);
+            }
+        });
+    }
+
+    /**
+     * Aktualisiert eine Umbuchung. Bei App-Umbuchungen (nicht leere {@code transfer_group}) werden beide
+     * Seiten neu aufgebaut; bei importierten Einseitern wird die einzelne Buchung angepasst.
+     */
+    public void updateTransferBooking(final Booking existing, final String from, final String to,
+                                      final long cents, final String payee, final String note,
+                                      final long createdAt, final Runnable onDone) {
+        executor.execute(() -> {
+            if (existing.transferGroup != null && !existing.transferGroup.isEmpty()) {
+                bookingDao.deleteByTransferGroup(existing.transferGroup);
+                insertTransferPair(from, to, cents, payee, note, createdAt, existing.exported,
+                        existing.transferGroup);
+            } else {
+                // Importierte einseitige Umbuchung: an das ursprüngliche Konto gebunden lassen.
+                String orig = existing.account;
+                if (to.equalsIgnoreCase(orig)) {
+                    existing.isIncome = true;
+                    existing.account = orig;
+                    existing.transferAccount = from;
+                } else {
+                    existing.isIncome = false;
+                    existing.account = from.equalsIgnoreCase(orig) ? orig : from;
+                    existing.transferAccount = to;
+                }
+                existing.amountCents = cents;
+                existing.note = note == null ? "" : note;
+                existing.createdAt = createdAt;
+                existing.isTransfer = true;
+                existing.category = "";
+                existing.payee = payee == null ? "" : payee.trim();
+                bookingDao.deleteSplits(existing.id);
+                if (!existing.payee.isEmpty()) {
+                    payeeDao.insertIfAbsent(new Payee(existing.payee));
+                }
+                accountDao.insertIfAbsent(new Account(existing.account));
+                accountDao.insertIfAbsent(new Account(existing.transferAccount));
+                bookingDao.update(existing);
+            }
+            if (onDone != null) {
+                mainHandler.post(onDone);
+            }
+        });
+    }
+
+    /** Fügt die beiden Seiten einer Umbuchung ein (läuft bereits auf dem Executor-Thread). */
+    private void insertTransferPair(String from, String to, long cents, String payee, String note,
+                                    long createdAt, boolean exported, String group) {
+        accountDao.insertIfAbsent(new Account(from));
+        accountDao.insertIfAbsent(new Account(to));
+        String memo = note == null ? "" : note;
+        String p = payee == null ? "" : payee.trim();
+        if (!p.isEmpty()) {
+            payeeDao.insertIfAbsent(new Payee(p));
+        }
+        Booking out = new Booking();
+        out.amountCents = cents;
+        out.isIncome = false;
+        out.account = from;
+        out.transferAccount = to;
+        out.isTransfer = true;
+        out.transferGroup = group;
+        out.payee = p;
+        out.note = memo;
+        out.createdAt = createdAt;
+        out.exported = exported;
+        bookingDao.insert(out);
+        Booking in = new Booking();
+        in.amountCents = cents;
+        in.isIncome = true;
+        in.account = to;
+        in.transferAccount = from;
+        in.isTransfer = true;
+        in.transferGroup = group;
+        in.payee = p;
+        in.note = memo;
+        in.createdAt = createdAt;
+        in.exported = exported;
+        bookingDao.insert(in);
+    }
+
+    /** Kategorie-Teile einer Buchung (für den Editor im Bearbeiten-Modus). */
+    public void getSplits(final long bookingId, final Callback<List<BookingSplit>> callback) {
+        executor.execute(() -> {
+            final List<BookingSplit> result = bookingDao.getSplits(bookingId);
+            mainHandler.post(() -> callback.onResult(result));
+        });
+    }
+
+    /** Alle Kategorie-Teile, gruppiert nach Buchungs-ID (für Anzeige/Filter in der Liste). */
+    public void getAllSplitsMap(final Callback<Map<Long, List<BookingSplit>>> callback) {
+        executor.execute(() -> {
+            final Map<Long, List<BookingSplit>> map = new HashMap<>();
+            for (BookingSplit s : bookingDao.getAllSplits()) {
+                List<BookingSplit> list = map.get(s.bookingId);
+                if (list == null) {
+                    list = new ArrayList<>();
+                    map.put(s.bookingId, list);
+                }
+                list.add(s);
+            }
+            mainHandler.post(() -> callback.onResult(map));
+        });
+    }
+
     public void deleteBooking(final long id, final Runnable onDone) {
         executor.execute(() -> {
+            bookingDao.deleteSplits(id);
             bookingDao.delete(id);
+            if (onDone != null) {
+                mainHandler.post(onDone);
+            }
+        });
+    }
+
+    /** Löscht eine Umbuchung: beide Seiten (über {@code group}) oder die einzelne (importierte) Buchung. */
+    public void deleteTransfer(final String group, final long fallbackId, final Runnable onDone) {
+        executor.execute(() -> {
+            if (group != null && !group.isEmpty()) {
+                bookingDao.deleteByTransferGroup(group);
+            } else {
+                bookingDao.delete(fallbackId);
+            }
             if (onDone != null) {
                 mainHandler.post(onDone);
             }
@@ -82,11 +268,7 @@ public class Repository {
     public void importBookings(final List<Booking> bookings, final Callback<Integer> callback) {
         executor.execute(() -> {
             for (Booking b : bookings) {
-                if (!b.payee.trim().isEmpty()) {
-                    payeeDao.insertIfAbsent(new Payee(b.payee));
-                }
-                accountDao.insertIfAbsent(new Account(b.account));
-                bookingDao.insert(b);
+                insertImported(b);
             }
             final int count = bookings.size();
             mainHandler.post(() -> callback.onResult(count));
@@ -101,18 +283,30 @@ public class Repository {
                               final Callback<Integer> callback) {
         executor.execute(() -> {
             if (account != null && !account.trim().isEmpty()) {
+                bookingDao.deleteSplitsForExportedAccount(account.trim());
                 bookingDao.deleteExportedByAccount(account.trim());
             }
             for (Booking b : bookings) {
-                if (!b.payee.trim().isEmpty()) {
-                    payeeDao.insertIfAbsent(new Payee(b.payee));
-                }
-                accountDao.insertIfAbsent(new Account(b.account));
-                bookingDao.insert(b);
+                insertImported(b);
             }
             final int count = bookings.size();
             mainHandler.post(() -> callback.onResult(count));
         });
+    }
+
+    /** Fügt eine importierte Buchung samt ihren Kategorie-Teilen ein (läuft auf dem Executor-Thread). */
+    private void insertImported(Booking b) {
+        if (!b.payee.trim().isEmpty()) {
+            payeeDao.insertIfAbsent(new Payee(b.payee));
+        }
+        accountDao.insertIfAbsent(new Account(b.account));
+        long id = bookingDao.insert(b);
+        if (b.parts != null) {
+            for (BookingSplit p : b.parts) {
+                p.bookingId = id;
+                bookingDao.insertSplit(p);
+            }
+        }
     }
 
     /**
@@ -127,15 +321,12 @@ public class Repository {
             for (java.util.Map.Entry<String, List<Booking>> e : byAccount.entrySet()) {
                 String account = e.getKey();
                 if (account != null && !account.trim().isEmpty()) {
+                    bookingDao.deleteSplitsForExportedAccount(account.trim());
                     bookingDao.deleteExportedByAccount(account.trim());
                     accountDao.insertIfAbsent(new Account(account.trim()));
                 }
                 for (Booking b : e.getValue()) {
-                    if (!b.payee.trim().isEmpty()) {
-                        payeeDao.insertIfAbsent(new Payee(b.payee));
-                    }
-                    accountDao.insertIfAbsent(new Account(b.account));
-                    bookingDao.insert(b);
+                    insertImported(b);
                     inserted++;
                 }
                 accounts++;
@@ -150,6 +341,7 @@ public class Repository {
     public void deleteAccount(final String account, final Runnable onDone) {
         executor.execute(() -> {
             if (account != null && !account.trim().isEmpty()) {
+                bookingDao.deleteSplitsForAccount(account.trim());
                 bookingDao.deleteAllByAccount(account.trim());
                 placeEntryDao.deleteByAccount(account.trim());
                 accountDao.deleteByName(account.trim());
@@ -163,6 +355,7 @@ public class Repository {
     /** Löscht alle Buchungen sowie die Konto-/Empfänger-Vorschlagslisten (Einstellungen bleiben). */
     public void resetBookingData(final Runnable onDone) {
         executor.execute(() -> {
+            bookingDao.deleteAllSplits();
             bookingDao.deleteAll();
             accountDao.deleteAll();
             payeeDao.deleteAll();

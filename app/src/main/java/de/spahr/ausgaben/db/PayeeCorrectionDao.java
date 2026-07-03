@@ -10,23 +10,33 @@ import java.util.List;
 @Dao
 public interface PayeeCorrectionDao {
 
-    /** Neue Korrektur ablegen bzw. bestehende (gleicher {@code spoken}) ersetzen. */
+    /** Neuen Alias ablegen bzw. bestehenden (gleicher {@code spoken}) ersetzen. */
     @Insert(onConflict = OnConflictStrategy.REPLACE)
     void upsert(PayeeCorrection correction);
 
-    /** Zuletzt gelernter richtiger Empfänger, dessen {@code spoken} den Begriff als Teilstring enthält. */
-    @Query("SELECT corrected FROM payee_correction WHERE spoken LIKE '%' || :term || '%' "
-            + "ORDER BY created_at DESC LIMIT 1")
-    String findCorrectedBySpokenLike(String term);
+    /** Alle Aliase (für die Verwaltungsseite). */
+    @Query("SELECT * FROM payee_correction ORDER BY spoken COLLATE NOCASE ASC")
+    List<PayeeCorrection> getAll();
 
-    /** Richtiger Empfänger zu einem exakt bekannten {@code spoken}-Begriff. */
-    @Query("SELECT corrected FROM payee_correction WHERE spoken = :spoken "
-            + "ORDER BY created_at DESC LIMIT 1")
-    String findCorrectedBySpokenExact(String spoken);
+    @Query("SELECT * FROM payee_correction WHERE id = :id LIMIT 1")
+    PayeeCorrection getById(long id);
 
-    /** Alle bekannten (falsch) erkannten Begriffe – als Kandidaten für die unscharfe Suche. */
-    @Query("SELECT spoken FROM payee_correction")
-    List<String> getAllSpoken();
+    @Query("DELETE FROM payee_correction WHERE id = :id")
+    void deleteById(long id);
+
+    /** Alias (bevorzugt/übrig), dessen {@code spoken} den Begriff als Teilstring enthält. */
+    @Query("SELECT * FROM payee_correction WHERE preferred = :pref "
+            + "AND spoken LIKE '%' || :term || '%' ORDER BY created_at DESC LIMIT 1")
+    PayeeCorrection findBySpokenLike(String term, int pref);
+
+    /** Alias (bevorzugt/übrig) zu einem exakt bekannten {@code spoken}-Begriff. */
+    @Query("SELECT * FROM payee_correction WHERE preferred = :pref AND spoken = :spoken "
+            + "ORDER BY created_at DESC LIMIT 1")
+    PayeeCorrection findBySpokenExact(String spoken, int pref);
+
+    /** Erkannte Begriffe der bevorzugten bzw. übrigen Aliase – Kandidaten für die unscharfe Suche. */
+    @Query("SELECT spoken FROM payee_correction WHERE preferred = :pref")
+    List<String> getSpokenByPreferred(int pref);
 
     @Query("DELETE FROM payee_correction")
     void deleteAll();

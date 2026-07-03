@@ -37,6 +37,18 @@
             android:parentActivityName=".ui.MainActivity" />
 
         <activity
+            android:name=".ui.AliasActivity"
+            android:exported="false"
+            android:label="@string/alias_manage_title"
+            android:parentActivityName=".ui.SettingsActivity" />
+
+        <activity
+            android:name=".ui.AliasEditActivity"
+            android:exported="false"
+            android:label="@string/alias_edit_title"
+            android:parentActivityName=".ui.AliasActivity" />
+
+        <activity
             android:name=".ui.AnalysisActivity"
             android:exported="false"
             android:label="@string/analysis_title"

@@ -271,9 +271,13 @@ public class MainActivity extends AppCompatActivity {
                 i.putExtra(BookingEditActivity.EXTRA_TEMPLATE_BOOKING_ID, res.booking.id);
             } else {
                 i.putExtra(BookingEditActivity.EXTRA_PREFILL_PAYEE, res.payee);
-                // Ursprünglich Gesprochenes mitgeben: bei Änderung des Empfängers kann eine Korrektur
-                // gelernt werden (der Name wurde in den Buchungen nicht gefunden).
+                // Ursprünglich Gesprochenes mitgeben: bei Änderung des Empfängers kann ein Alias gelernt
+                // werden (der Name wurde in den Buchungen nicht gefunden).
                 i.putExtra(BookingEditActivity.EXTRA_VOICE_SPOKEN_PAYEE, parsed.payee);
+                if (res.alias != null) {
+                    // Alias-Treffer: Buchung mit den hinterlegten Konto-/Kategorie-Daten vorbelegen.
+                    i.putExtra(BookingEditActivity.EXTRA_ALIAS_ID, res.alias.id);
+                }
                 Toast.makeText(this, getString(R.string.voice_not_found, res.payee),
                         Toast.LENGTH_SHORT).show();
             }

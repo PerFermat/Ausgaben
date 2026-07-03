@@ -287,19 +287,29 @@ public class Repository {
         long now = System.currentTimeMillis();
         String def = defaultAccount == null ? "" : defaultAccount.trim();
 
-        // Gelernte Namenskorrektur anwenden, falls der Begriff in den Buchungen unbekannt ist.
-        term = applyCorrection(term);
-        Booking template = findVoiceTemplate(term);
+        // Auflösung: bevorzugte Aliase → bestehende Buchung → übrige Aliase.
+        Booking[] resolvedBooking = new Booking[1];
+        PayeeCorrection[] resolvedAlias = new PayeeCorrection[1];
+        resolve(term, resolvedBooking, resolvedAlias);
+        Booking template = resolvedBooking[0];
+        PayeeCorrection alias = resolvedAlias[0];
+        if (alias != null) {
+            term = alias.corrected;
+        }
         long amount = amountCents > 0 ? amountCents : (template != null ? template.amountCents : 0);
 
-        // Umbuchung: von der Uhr erzwungen. Vorlage (falls Umbuchung) liefert Von/Nach + Empfänger,
+        // Umbuchung: von der Uhr erzwungen. Alias liefert Von/Bis, sonst Vorlage (falls Umbuchung),
         // sonst Standardkonto → gesprochener Begriff als Zielkonto.
         if (VOICE_TYPE_TRANSFER.equals(type)) {
             String from;
             String to;
             String payee = "";
             String note = "";
-            if (template != null && template.isTransfer) {
+            if (alias != null) {
+                from = alias.fromAccount.isEmpty() ? def : alias.fromAccount;
+                to = alias.toAccount.isEmpty() ? term : alias.toAccount;
+                payee = alias.corrected;
+            } else if (template != null && template.isTransfer) {
                 from = template.isIncome ? template.transferAccount : template.account;
                 to = template.isIncome ? template.account : template.transferAccount;
                 payee = template.payee;
@@ -312,15 +322,21 @@ public class Repository {
             return true;
         }
 
-        // Einnahme/Ausgabe: Richtung per Knopf erzwungen; Vorlage (falls keine Umbuchung) liefert
-        // Konto/Kategorie/Notiz.
-        boolean useTemplate = template != null && !template.isTransfer;
+        // Einnahme/Ausgabe: Richtung per Knopf erzwungen; Alias bzw. Vorlage liefert Konto/Kategorie.
+        boolean income = VOICE_TYPE_INCOME.equals(type);
+        boolean useTemplate = alias == null && template != null && !template.isTransfer;
         Booking b = new Booking();
         b.amountCents = amount;
         b.createdAt = now;
         b.exported = false;
-        b.isIncome = VOICE_TYPE_INCOME.equals(type);
-        if (useTemplate) {
+        b.isIncome = income;
+        if (alias != null) {
+            b.payee = alias.corrected;
+            b.account = alias.account.isEmpty() ? def : alias.account;
+            b.category = income ? firstNonEmpty(alias.catIncome1, alias.catIncome2)
+                    : firstNonEmpty(alias.catExpense1, alias.catExpense2);
+            b.note = "";
+        } else if (useTemplate) {
             b.payee = template.payee;
             b.account = template.account;
             b.category = template.category;
@@ -361,36 +377,90 @@ public class Repository {
     }
 
     /**
-     * Wendet – falls nötig – eine gelernte Namenskorrektur an: Ist der Begriff in den Buchungen bekannt
-     * (gleiche Suchlogik wie {@link #findVoiceTemplate}), bleibt er unverändert. Sonst wird die Korrektur-
-     * Datenbank mit derselben Logik durchsucht (exakter Teilstring, sonst unscharf) und der gelernte
-     * richtige Empfänger zurückgegeben. Wird nichts gefunden, bleibt der ursprüngliche Begriff erhalten.
+     * Sucht einen gelernten Alias zum Begriff – gleiche Logik wie die Buchungssuche: exakter Teilstring
+     * ({@code spoken}), sonst unscharf über alle bekannten {@code spoken}. Liefert den vollen Alias oder
+     * {@code null}.
      */
-    private String applyCorrection(String term) {
+    private PayeeCorrection matchAlias(String term, boolean preferred) {
         String t = term == null ? "" : term.trim();
-        if (t.isEmpty() || findVoiceTemplate(t) != null) {
-            return t; // leer oder in Buchungen bekannt → keine Korrektur nötig
+        if (t.isEmpty()) {
+            return null;
         }
-        String corrected = correctionDao.findCorrectedBySpokenLike(t);
-        if (corrected == null || corrected.trim().isEmpty()) {
+        int pref = preferred ? 1 : 0;
+        PayeeCorrection alias = correctionDao.findBySpokenLike(t, pref);
+        if (alias == null) {
             String bestSpoken = de.spahr.ausgaben.voice.VoiceInput.bestFuzzyPayee(
-                    t, correctionDao.getAllSpoken());
+                    t, correctionDao.getSpokenByPreferred(pref));
             if (bestSpoken != null) {
-                corrected = correctionDao.findCorrectedBySpokenExact(bestSpoken);
+                alias = correctionDao.findBySpokenExact(bestSpoken, pref);
             }
         }
-        return corrected != null && !corrected.trim().isEmpty() ? corrected.trim() : t;
+        return alias;
     }
 
-    /** Merkt sich eine Namenskorrektur (falsch erkannt → richtig) für die Spracherkennung. */
-    public void saveCorrection(final String spoken, final String corrected) {
+    /**
+     * Auflösung in der gewünschten Reihenfolge: zuerst die <b>bevorzugten</b> Aliase, dann die bestehenden
+     * Buchungen, erst danach die übrigen Aliase. Setzt {@code out[0]}=Vorlage-Buchung, {@code out[1]}=Alias.
+     */
+    private void resolve(String term, Booking[] outBooking, PayeeCorrection[] outAlias) {
+        PayeeCorrection alias = matchAlias(term, true);
+        Booking booking = null;
+        if (alias == null) {
+            booking = findVoiceTemplate(term);
+            if (booking == null) {
+                alias = matchAlias(term, false);
+            }
+        }
+        outBooking[0] = booking;
+        outAlias[0] = alias;
+    }
+
+    /** Speichert bzw. ersetzt einen Alias (gleicher {@code spoken}). */
+    public void saveAlias(final PayeeCorrection alias) {
+        if (alias == null) {
+            return;
+        }
         executor.execute(() -> {
-            String s = spoken == null ? "" : spoken.trim().toLowerCase(Locale.GERMANY);
-            String c = corrected == null ? "" : corrected.trim();
-            if (!s.isEmpty() && !c.isEmpty()) {
-                correctionDao.upsert(new PayeeCorrection(s, c, System.currentTimeMillis()));
+            alias.spoken = alias.spoken == null ? "" : alias.spoken.trim().toLowerCase(Locale.GERMANY);
+            alias.corrected = alias.corrected == null ? "" : alias.corrected.trim();
+            if (alias.spoken.isEmpty() || alias.corrected.isEmpty()) {
+                return;
+            }
+            if (alias.createdAt == 0) {
+                alias.createdAt = System.currentTimeMillis();
+            }
+            correctionDao.upsert(alias);
+        });
+    }
+
+    public void getAllAliases(final Callback<List<PayeeCorrection>> callback) {
+        executor.execute(() -> {
+            final List<PayeeCorrection> result = correctionDao.getAll();
+            mainHandler.post(() -> callback.onResult(result));
+        });
+    }
+
+    public void getAlias(final long id, final Callback<PayeeCorrection> callback) {
+        executor.execute(() -> {
+            final PayeeCorrection result = correctionDao.getById(id);
+            mainHandler.post(() -> callback.onResult(result));
+        });
+    }
+
+    public void deleteAlias(final long id, final Runnable onDone) {
+        executor.execute(() -> {
+            correctionDao.deleteById(id);
+            if (onDone != null) {
+                mainHandler.post(onDone);
             }
         });
+    }
+
+    private static String firstNonEmpty(String a, String b) {
+        if (a != null && !a.trim().isEmpty()) {
+            return a.trim();
+        }
+        return b == null ? "" : b.trim();
     }
 
     /** Vorlage-Buchung per Empfänger suchen (exakter Teilstring, sonst unscharf). */
@@ -409,32 +479,38 @@ public class Repository {
         return template;
     }
 
-    /** Ergebnis der Sprach-Empfängersuche: Vorlage-Buchung (falls vorhanden) + aufzulösender Empfänger. */
+    /** Ergebnis der Sprach-Empfängersuche: Vorlage-Buchung und/oder Alias + aufzulösender Empfänger. */
     public static final class VoiceResolution {
-        /** Passende Vorlage-Buchung oder {@code null}, wenn keine gefunden wurde. */
+        /** Passende Vorlage-Buchung oder {@code null}. */
         public final Booking booking;
-        /** Aufzulösender Empfänger – bereits korrigiert, falls eine Korrektur gelernt wurde. */
+        /** Passender Alias oder {@code null}. */
+        public final PayeeCorrection alias;
+        /** Aufzulösender Empfänger – bereits korrigiert, falls ein Alias greift. */
         public final String payee;
 
-        public VoiceResolution(Booking booking, String payee) {
+        public VoiceResolution(Booking booking, PayeeCorrection alias, String payee) {
             this.booking = booking;
+            this.alias = alias;
             this.payee = payee;
         }
     }
 
     /**
-     * Löst einen gesprochenen Empfänger für die Sprach-Erfassung auf: zuerst über die Buchungen (exakter
-     * Teilstring, sonst unscharf, z. B. „Friseur" → „Frisör Frank"). Wird dort nichts gefunden, greift
-     * eine gelernte Namenskorrektur (gleiche Suchlogik über die Korrektur-Datenbank). Liefert die
-     * gefundene Vorlage-Buchung und den – ggf. korrigierten – Empfänger für die Vorbelegung.
+     * Löst einen gesprochenen Empfänger für die Sprach-Erfassung auf: zuerst über die bevorzugten Aliase,
+     * dann über bestehende Buchungen, erst danach über die übrigen Aliase. Liefert Vorlage-Buchung und/oder
+     * Alias sowie den – ggf. ersetzten – Empfänger für die Vorbelegung.
      */
     public void resolveVoice(final String term, final Callback<VoiceResolution> callback) {
         executor.execute(() -> {
             String t = term == null ? "" : term.trim();
-            String effective = applyCorrection(t);
-            Booking result = findVoiceTemplate(effective);
-            final VoiceResolution res = new VoiceResolution(result, effective.isEmpty() ? t : effective);
-            mainHandler.post(() -> callback.onResult(res));
+            Booking[] booking = new Booking[1];
+            PayeeCorrection[] alias = new PayeeCorrection[1];
+            resolve(t, booking, alias);
+            String payee = alias[0] != null ? alias[0].corrected : t;
+            final Booking fb = booking[0];
+            final PayeeCorrection fa = alias[0];
+            final String fp = payee;
+            mainHandler.post(() -> callback.onResult(new VoiceResolution(fb, fa, fp)));
         });
     }
 

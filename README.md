@@ -37,14 +37,21 @@ Der Datenaustausch erfolgt entweder als **kMyMoney-CSV** oder direkt in eine **k
   z. B. „Frisör 20 €", wird die zuletzt passende Buchung als Vorlage geöffnet (Empfänger, Konto,
   Kategorie(n), Notiz, Buchungsart) – mit heutigem Datum und dem gesprochenen Betrag. Die Empfängersuche
   ist unscharf (findet „Frisör Frank" auch bei „Friseur").
-- **Gelernte Namenskorrekturen**: wird ein gesprochener Empfänger in den Buchungen nicht gefunden und man
-  ändert ihn beim Speichern, fragt die App, ob sie sich die Korrektur merken soll. Kommt derselbe (falsch
-  erkannte) Name später erneut, wird zuerst in den Buchungen und dann in den gemerkten Korrekturen
-  gesucht (gleiche unscharfe Logik) und der richtige Empfänger automatisch übernommen – auch für die
-  Wear-Erfassung. Dieselbe Zuordnungstabelle lässt sich auch bewusst als **Alias/Abkürzung** nutzen, nicht nur zur
-  Fehlerkorrektur: Ein Eintrag kann einen beliebigen gesprochenen Begriff auf einen ganz anderen Empfänger
-  abbilden. Sagt man z. B. „Mama 100 €", kann bei passendem Tabelleneintrag automatisch der reale Name der
-  Mutter als Empfänger eingesetzt werden.
+- **Alias-Namen (gelernte Zuordnungen)**: ändert man beim Speichern den per Sprache erkannten (oder beim
+  Bearbeiten den bestehenden) Empfänger, fragt die App, ob sie sich die Zuordnung als Alias merken soll.
+  Dabei wird der **Kontext der Buchung mitgespeichert** – Buchungsart, Konto und Kategorie(n) bzw.
+  Von-/Bis-Konto bei Umbuchungen. Die hinterlegte **Buchungsart** bestimmt am Phone den Typ der neuen
+  Buchung (in der Wear-App gilt die per Knopf gewählte Art). Kommt derselbe gesprochene Begriff später erneut, wird der Alias gefunden (gleiche unscharfe
+  Logik wie die Buchungssuche) und die neue Buchung mit richtigem Empfänger **und** den hinterlegten
+  Konto-/Kategorie-Daten vorbelegt – auch für die Wear-Erfassung. So deckt ein Alias jede Buchungsart ab.
+  Damit lässt sich die Tabelle auch bewusst als **Alias/Abkürzung** nutzen: „Mama 100 €" kann automatisch
+  auf den realen Namen samt Konto/Kategorie gebucht werden.
+- **Suchreihenfolge**: zuerst die als **„bevorzugt"** markierten Aliase, dann die bestehenden Buchungen,
+  erst danach die übrigen Aliase. „Bevorzugt" ist eine Eigenschaft des einzelnen Alias (im Formular
+  einstellbar, in der Liste mit ★ markiert).
+- Einstellbar unter **Einstellungen → Alias-Namen**: die Nachfrage lässt sich abschalten (bestehende
+  Aliase werden weiterhin angewandt, es kommen nur keine neuen Nachfragen hinzu), und über
+  **„Alias-Namen verwalten"** lassen sich alle Aliase mit allen Feldern manuell anlegen, ändern und löschen.
 
 ### Übersicht & Auswertung
 - Mehrere **Konten** über eine Navigationsschublade; Liste und Saldo je Konto oder „Alle Konten".

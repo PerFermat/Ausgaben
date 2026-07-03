@@ -319,6 +319,31 @@
             android:layout_width="wrap_content"
             android:layout_height="wrap_content"
             android:layout_marginTop="24dp"
+            android:text="@string/alias_section"
+            android:textSize="16sp"
+            android:textStyle="bold" />
+
+        <com.google.android.material.materialswitch.MaterialSwitch
+            android:id="@+id/switchAliasPrompt"
+            android:layout_width="match_parent"
+            android:layout_height="wrap_content"
+            android:layout_marginTop="8dp"
+            android:text="@string/alias_prompt_switch" />
+
+        <com.google.android.material.button.MaterialButton
+            android:id="@+id/btnManageAliases"
+            style="?attr/materialButtonOutlinedStyle"
+            android:layout_width="match_parent"
+            android:layout_height="wrap_content"
+            android:layout_marginTop="8dp"
+            android:textColor="@color/button_accent"
+            app:strokeColor="@color/button_accent"
+            android:text="@string/alias_manage" />
+
+        <TextView
+            android:layout_width="wrap_content"
+            android:layout_height="wrap_content"
+            android:layout_marginTop="24dp"
             android:text="@string/data_section"
             android:textSize="16sp"
             android:textStyle="bold" />

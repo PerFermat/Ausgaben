@@ -28,6 +28,7 @@ public class SettingsStore {
     private static final String KEY_KMY_PATH = "kmy_path";
     private static final String KEY_APP_LOCK = "app_lock";
     private static final String KEY_SERVER_TYPE = "server_type";
+    private static final String KEY_ALIAS_PROMPT = "alias_prompt";
 
     /** Server-Typ: Nextcloud (Standard, mit {@code /remote.php/dav/files/<user>/}). */
     public static final String SERVER_NEXTCLOUD = "nextcloud";
@@ -162,6 +163,15 @@ public class SettingsStore {
 
     public void setAppLockEnabled(boolean enabled) {
         prefs.edit().putBoolean(KEY_APP_LOCK, enabled).apply();
+    }
+
+    /** Nachfrage, ob ein geänderter Empfänger als Alias gemerkt werden soll (Standard: an). */
+    public boolean isAliasPromptEnabled() {
+        return prefs.getBoolean(KEY_ALIAS_PROMPT, true);
+    }
+
+    public void setAliasPromptEnabled(boolean enabled) {
+        prefs.edit().putBoolean(KEY_ALIAS_PROMPT, enabled).apply();
     }
 
     /**

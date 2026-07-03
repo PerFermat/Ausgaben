@@ -121,6 +121,12 @@ public class SettingsActivity extends AppCompatActivity {
         switchAppLock.setChecked(settings.isAppLockEnabled());
         switchAppLock.setOnCheckedChangeListener((b, checked) -> onAppLockToggled(b, checked));
 
+        MaterialSwitch switchAliasPrompt = findViewById(R.id.switchAliasPrompt);
+        switchAliasPrompt.setChecked(settings.isAliasPromptEnabled());
+        switchAliasPrompt.setOnCheckedChangeListener((b, checked) -> settings.setAliasPromptEnabled(checked));
+        ((MaterialButton) findViewById(R.id.btnManageAliases)).setOnClickListener(
+                v -> startActivity(new android.content.Intent(this, AliasActivity.class)));
+
         repository.getAccountNames(names -> editDefaultAccount.setAdapter(
                 new ArrayAdapter<>(this, android.R.layout.simple_list_item_1, names)));
 

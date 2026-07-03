@@ -11,7 +11,7 @@ import androidx.sqlite.db.SupportSQLiteDatabase;
 
 @Database(entities = {Booking.class, BookingSplit.class, Account.class, Payee.class, PlaceEntry.class,
         PayeeCorrection.class},
-        version = 7, exportSchema = false)
+        version = 10, exportSchema = false)
 public abstract class AppDatabase extends RoomDatabase {
 
     /** v1 → v2: Notiz-Spalte ergänzen (bestehende Buchungen bleiben erhalten). */
@@ -80,6 +80,36 @@ public abstract class AppDatabase extends RoomDatabase {
         }
     };
 
+    /** v7 → v8: Alias-Felder (Konto, Kategorien, Von/Bis-Konto) an der Korrektur-/Alias-Tabelle. */
+    static final Migration MIGRATION_7_8 = new Migration(7, 8) {
+        @Override
+        public void migrate(@NonNull SupportSQLiteDatabase db) {
+            db.execSQL("ALTER TABLE payee_correction ADD COLUMN account TEXT NOT NULL DEFAULT ''");
+            db.execSQL("ALTER TABLE payee_correction ADD COLUMN cat_income_1 TEXT NOT NULL DEFAULT ''");
+            db.execSQL("ALTER TABLE payee_correction ADD COLUMN cat_income_2 TEXT NOT NULL DEFAULT ''");
+            db.execSQL("ALTER TABLE payee_correction ADD COLUMN cat_expense_1 TEXT NOT NULL DEFAULT ''");
+            db.execSQL("ALTER TABLE payee_correction ADD COLUMN cat_expense_2 TEXT NOT NULL DEFAULT ''");
+            db.execSQL("ALTER TABLE payee_correction ADD COLUMN from_account TEXT NOT NULL DEFAULT ''");
+            db.execSQL("ALTER TABLE payee_correction ADD COLUMN to_account TEXT NOT NULL DEFAULT ''");
+        }
+    };
+
+    /** v8 → v9: „preferred"-Kennzeichen (Alias vor bestehender Buchung berücksichtigen). */
+    static final Migration MIGRATION_8_9 = new Migration(8, 9) {
+        @Override
+        public void migrate(@NonNull SupportSQLiteDatabase db) {
+            db.execSQL("ALTER TABLE payee_correction ADD COLUMN preferred INTEGER NOT NULL DEFAULT 0");
+        }
+    };
+
+    /** v9 → v10: bevorzugte Buchungsart des Alias. */
+    static final Migration MIGRATION_9_10 = new Migration(9, 10) {
+        @Override
+        public void migrate(@NonNull SupportSQLiteDatabase db) {
+            db.execSQL("ALTER TABLE payee_correction ADD COLUMN type TEXT NOT NULL DEFAULT ''");
+        }
+    };
+
     public abstract BookingDao bookingDao();
 
     public abstract AccountDao accountDao();
@@ -101,7 +131,8 @@ public abstract class AppDatabase extends RoomDatabase {
                                     AppDatabase.class,
                                     "ausgaben.db")
                             .addMigrations(MIGRATION_1_2, MIGRATION_2_3, MIGRATION_3_4, MIGRATION_4_5,
-                                    MIGRATION_5_6, MIGRATION_6_7)
+                                    MIGRATION_5_6, MIGRATION_6_7, MIGRATION_7_8, MIGRATION_8_9,
+                                    MIGRATION_9_10)
                             .build();
                 }
             }

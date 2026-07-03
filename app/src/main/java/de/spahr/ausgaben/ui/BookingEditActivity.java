@@ -32,6 +32,7 @@ import java.util.Locale;
 import de.spahr.ausgaben.R;
 import de.spahr.ausgaben.db.Booking;
 import de.spahr.ausgaben.db.BookingSplit;
+import de.spahr.ausgaben.db.PayeeCorrection;
 import de.spahr.ausgaben.db.Repository;
 import de.spahr.ausgaben.location.LocationTagger;
 import de.spahr.ausgaben.settings.PlacesStore;
@@ -53,6 +54,8 @@ public class BookingEditActivity extends AppCompatActivity {
     public static final String EXTRA_PREFILL_PAYEE = "prefill_payee";
     /** Ursprünglich gesprochener Empfänger – zum Anbieten einer Namenskorrektur beim Speichern. */
     public static final String EXTRA_VOICE_SPOKEN_PAYEE = "voice_spoken_payee";
+    /** Passender Alias (ID) für eine neue Sprachbuchung – füllt Konto/Kategorien/Von-Bis vor. */
+    public static final String EXTRA_ALIAS_ID = "alias_id";
 
     private Repository repository;
     private SettingsStore settings;
@@ -90,6 +93,12 @@ public class BookingEditActivity extends AppCompatActivity {
 
     /** Ursprünglich gesprochener Empfänger (aus der Sprach-Erfassung) – für die Korrektur-Nachfrage. */
     private String voiceSpokenPayee;
+    /** Ursprünglicher Empfänger beim Bearbeiten – „Von"-Name für die Alias-Nachfrage. */
+    private String origPayee;
+    /** Vorbelegter Empfänger (Prefill/Alias/geladene Buchung) – Abfrage nur bei manueller Änderung. */
+    private String prefilledPayee;
+    /** Passender Alias für die Vorbelegung einer neuen Sprachbuchung (null = keiner). */
+    private PayeeCorrection activeAlias;
 
     private ArrayAdapter<String> categoryAdapter;
     /** Unterdrückt die dynamische Split-Logik während des programmatischen Befüllens. */
@@ -163,6 +172,7 @@ public class BookingEditActivity extends AppCompatActivity {
         toggleType.addOnButtonCheckedListener((group, checkedId, isChecked) -> {
             if (isChecked) {
                 applyTypeVisibility();
+                applyAlias();
             }
         });
 
@@ -207,8 +217,20 @@ public class BookingEditActivity extends AppCompatActivity {
             if (prefillPayee != null && !prefillPayee.isEmpty()) {
                 editPayee.setText(prefillPayee);
             }
+            prefilledPayee = prefillPayee == null ? "" : prefillPayee;
             if (voiceAmount >= 0) {
                 editAmount.setText(formatCents(voiceAmount));
+            }
+            // Alias-Treffer: bevorzugte Buchungsart setzen und Konto/Kategorien/Von-Bis vorbelegen.
+            long aliasId = getIntent().getLongExtra(EXTRA_ALIAS_ID, -1);
+            if (aliasId >= 0) {
+                repository.getAlias(aliasId, a -> {
+                    activeAlias = a;
+                    if (a != null) {
+                        toggleType.check(aliasTypeButton(a.type));
+                    }
+                    applyAlias();
+                });
             }
         }
     }
@@ -259,14 +281,20 @@ public class BookingEditActivity extends AppCompatActivity {
     }
 
     /**
-     * Bietet an, eine Namenskorrektur zu lernen, falls der Empfänger gegenüber dem gesprochenen Begriff
-     * geändert wurde (nur wenn dieser in den Buchungen nicht gefunden wurde – dann ist {@code
-     * voiceSpokenPayee} gesetzt). In jedem Fall wird anschließend {@code proceed} ausgeführt.
+     * Bietet an, einen Alias zu lernen, falls der Empfänger gegenüber dem Ausgangs-Namen geändert wurde –
+     * bei einer Sprach-Neubuchung der gesprochene Begriff ({@code voiceSpokenPayee}), beim Bearbeiten der
+     * ursprüngliche Empfänger ({@code origPayee}). Gesteuert über den Einstellungs-Schalter. Der Alias
+     * übernimmt den aktuellen Buchungskontext (Konto, Kategorien bzw. Von/Bis). Danach {@code proceed}.
      */
     private void maybeAskCorrection(String finalPayee, Runnable proceed) {
-        String spoken = voiceSpokenPayee == null ? "" : voiceSpokenPayee.trim();
+        String spoken = voiceSpokenPayee != null && !voiceSpokenPayee.trim().isEmpty()
+                ? voiceSpokenPayee.trim()
+                : (origPayee == null ? "" : origPayee.trim());
         String corrected = finalPayee == null ? "" : finalPayee.trim();
-        if (spoken.isEmpty() || corrected.isEmpty() || spoken.equalsIgnoreCase(corrected)) {
+        String prefilled = prefilledPayee == null ? "" : prefilledPayee.trim();
+        // Nur fragen, wenn der Empfänger gegenüber der Vorbelegung manuell geändert wurde.
+        if (!settings.isAliasPromptEnabled() || spoken.isEmpty() || corrected.isEmpty()
+                || corrected.equalsIgnoreCase(prefilled) || spoken.equalsIgnoreCase(corrected)) {
             proceed.run();
             return;
         }
@@ -275,11 +303,89 @@ public class BookingEditActivity extends AppCompatActivity {
                 .setMessage(getString(R.string.correction_message, spoken, corrected))
                 .setCancelable(false)
                 .setPositiveButton(R.string.correction_save, (d, w) -> {
-                    repository.saveCorrection(spoken, corrected);
+                    repository.saveAlias(buildAliasFromForm(spoken, corrected));
                     proceed.run();
                 })
                 .setNegativeButton(R.string.correction_discard, (d, w) -> proceed.run())
                 .show();
+    }
+
+    /** Zugehöriger Typ-Knopf zur Alias-Buchungsart (Standard: Ausgabe). */
+    private int aliasTypeButton(String type) {
+        if (Repository.VOICE_TYPE_TRANSFER.equals(type)) {
+            return R.id.btnTransfer;
+        }
+        if (Repository.VOICE_TYPE_INCOME.equals(type)) {
+            return R.id.btnIncome;
+        }
+        return R.id.btnExpense;
+    }
+
+    private String currentTypeConstant() {
+        if (isTransferType()) {
+            return Repository.VOICE_TYPE_TRANSFER;
+        }
+        return toggleType.getCheckedButtonId() == R.id.btnIncome
+                ? Repository.VOICE_TYPE_INCOME : Repository.VOICE_TYPE_EXPENSE;
+    }
+
+    /** Baut aus dem aktuellen Formular einen Alias mit passendem Kontext (Konto/Kategorien bzw. Von/Bis). */
+    private PayeeCorrection buildAliasFromForm(String spoken, String corrected) {
+        PayeeCorrection a = new PayeeCorrection();
+        a.spoken = spoken;
+        a.corrected = corrected;
+        a.type = currentTypeConstant();
+        if (isTransferType()) {
+            a.fromAccount = textOf(editAccount).trim();
+            a.toAccount = textOf(editAccountTo).trim();
+        } else {
+            a.account = textOf(editAccount).trim();
+            List<Part> parts = collectParts();
+            String c1 = parts.size() > 0 ? parts.get(0).category : "";
+            String c2 = parts.size() > 1 ? parts.get(1).category : "";
+            if (toggleType.getCheckedButtonId() == R.id.btnIncome) {
+                a.catIncome1 = c1;
+                a.catIncome2 = c2;
+            } else {
+                a.catExpense1 = c1;
+                a.catExpense2 = c2;
+            }
+        }
+        return a;
+    }
+
+    /** Belegt bei einer neuen Sprachbuchung mit Alias-Treffer die Felder für den aktuellen Typ vor. */
+    private void applyAlias() {
+        if (activeAlias == null || booking != null) {
+            return;
+        }
+        if (isTransferType()) {
+            if (!activeAlias.fromAccount.isEmpty()) {
+                editAccount.setText(activeAlias.fromAccount, false);
+            }
+            if (!activeAlias.toAccount.isEmpty()) {
+                editAccountTo.setText(activeAlias.toAccount, false);
+            }
+            return;
+        }
+        if (!activeAlias.account.isEmpty()) {
+            editAccount.setText(activeAlias.account, false);
+            setupPlaceDropdown(activeAlias.account);
+        }
+        boolean income = toggleType.getCheckedButtonId() == R.id.btnIncome;
+        String c1 = income ? activeAlias.catIncome1 : activeAlias.catExpense1;
+        String c2 = income ? activeAlias.catIncome2 : activeAlias.catExpense2;
+        suppressSplitEvents = true;
+        splitContainer.removeAllViews();
+        if (c1 != null && !c1.trim().isEmpty()) {
+            addSplitRow(c1, null);
+        }
+        if (c2 != null && !c2.trim().isEmpty()) {
+            addSplitRow(c2, null);
+        }
+        suppressSplitEvents = false;
+        ensureTrailingRow();
+        updateSaveEnabled();
     }
 
     private void setupNewMode() {
@@ -313,6 +419,8 @@ public class BookingEditActivity extends AppCompatActivity {
         booking = b;
         origIsTransfer = b.isTransfer;
         origTransferGroup = b.transferGroup == null ? "" : b.transferGroup;
+        origPayee = b.payee;
+        prefilledPayee = b.payee;
         toolbar.setTitle(R.string.edit_title);
         selectedDate.setTimeInMillis(b.createdAt);
         updateDateField();
@@ -772,14 +880,14 @@ public class BookingEditActivity extends AppCompatActivity {
         booking.transferAccount = "";
         booking.transferGroup = "";
         booking.exported = switchExported.isChecked();
-        withDateConfirm(() -> {
+        maybeAskCorrection(booking.payee, () -> withDateConfirm(() -> {
             booking.createdAt = composeTimestamp();
             repository.updateSplitBooking(booking,
                     parts.size() >= 2 ? toSplits(parts) : new ArrayList<>(), () -> {
                         Toast.makeText(this, R.string.booking_updated, Toast.LENGTH_SHORT).show();
                         finish();
                     });
-        });
+        }));
     }
 
     private void updateTransferInPlace() {
@@ -796,11 +904,12 @@ public class BookingEditActivity extends AppCompatActivity {
         }
         final String note = textOf(editNote).trim();
         final String payee = textOf(editPayee).trim();
-        withDateConfirm(() -> repository.updateTransferBooking(booking, from, to, cents, payee, note,
+        maybeAskCorrection(payee, () -> withDateConfirm(() ->
+                repository.updateTransferBooking(booking, from, to, cents, payee, note,
                 composeTimestamp(), () -> {
                     Toast.makeText(this, R.string.booking_updated, Toast.LENGTH_SHORT).show();
                     finish();
-                }));
+                })));
     }
 
     private void convertNormalToTransfer() {
@@ -818,14 +927,14 @@ public class BookingEditActivity extends AppCompatActivity {
         final String note = textOf(editNote).trim();
         final String payee = textOf(editPayee).trim();
         final long oldId = booking.id;
-        withDateConfirm(() -> {
+        maybeAskCorrection(payee, () -> withDateConfirm(() -> {
             long ts = composeTimestamp();
             repository.deleteBooking(oldId, null);
             repository.saveTransferBooking(from, to, cents, payee, note, ts, () -> {
                 Toast.makeText(this, R.string.booking_updated, Toast.LENGTH_SHORT).show();
                 finish();
             });
-        });
+        }));
     }
 
     private void convertTransferToNormal() {
@@ -839,7 +948,7 @@ public class BookingEditActivity extends AppCompatActivity {
         final String place = textOf(editPlace);
         final String group = origTransferGroup;
         final long oldId = booking.id;
-        withDateConfirm(() -> {
+        maybeAskCorrection(nb.payee, () -> withDateConfirm(() -> {
             nb.createdAt = composeTimestamp();
             repository.deleteTransfer(group, oldId, null);
             String p = place;
@@ -856,7 +965,7 @@ public class BookingEditActivity extends AppCompatActivity {
             } else {
                 repository.saveBookingWithPlace(nb, fp, done);
             }
-        });
+        }));
     }
 
     private void confirmDelete() {

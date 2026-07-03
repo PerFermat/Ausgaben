@@ -16,6 +16,35 @@
     <string name="correction_message">Erkannt wurde „%1$s", gebucht auf „%2$s". Soll die Spracherkennung „%1$s" künftig automatisch als „%2$s" übernehmen?</string>
     <string name="correction_save">Merken</string>
     <string name="correction_discard">Nicht merken</string>
+
+    <!-- Alias-Namen (Verwaltung + Einstellungen) -->
+    <string name="alias_section">Alias-Namen</string>
+    <string name="alias_prompt_switch">Bei geändertem Empfänger nach Alias fragen</string>
+    <string name="alias_preferred_switch">Vor bestehender Buchung bevorzugen</string>
+    <string name="alias_manage">Alias-Namen verwalten</string>
+    <string name="alias_manage_title">Alias-Namen</string>
+    <string name="alias_add">Alias hinzufügen</string>
+    <string name="alias_edit_title">Alias bearbeiten</string>
+    <string name="alias_new_title">Neuer Alias</string>
+    <string name="alias_empty">Noch keine Alias-Namen. Über „Alias hinzufügen" anlegen oder beim Buchen merken lassen.</string>
+    <string name="alias_arrow">→</string>
+    <string name="alias_spoken_hint">Gesprochener Alias-Name</string>
+    <string name="alias_corrected_hint">Korrekter Empfänger</string>
+    <string name="alias_type_hint">Bevorzugte Buchungsart</string>
+    <string name="alias_type_expense">Ausgabe</string>
+    <string name="alias_type_income">Einnahme</string>
+    <string name="alias_type_transfer">Umbuchung</string>
+    <string name="alias_account_hint">Konto (Einnahme/Ausgabe)</string>
+    <string name="alias_cat_income_1_hint">Kategorie Einnahme 1</string>
+    <string name="alias_cat_income_2_hint">Kategorie Einnahme 2</string>
+    <string name="alias_cat_expense_1_hint">Kategorie Ausgabe 1</string>
+    <string name="alias_cat_expense_2_hint">Kategorie Ausgabe 2</string>
+    <string name="alias_from_account_hint">Von-Konto (Umbuchung)</string>
+    <string name="alias_to_account_hint">Bis-Konto (Umbuchung)</string>
+    <string name="alias_error_required">Gesprochener Name und korrekter Empfänger sind nötig</string>
+    <string name="alias_saved">Alias gespeichert</string>
+    <string name="alias_deleted">Alias gelöscht</string>
+    <string name="alias_delete_confirm_title">Alias löschen?</string>
     <string name="split_categories">Kategorien</string>
     <string name="split_remove">−</string>
     <string name="split_marker">Split</string>

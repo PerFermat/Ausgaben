@@ -8,9 +8,10 @@ import androidx.room.Index;
 import androidx.room.PrimaryKey;
 
 /**
- * Eine gelernte Namenskorrektur für die Spracherkennung: ein (falsch) erkannter Begriff {@link #spoken}
- * (klein geschrieben abgelegt) und der vom Nutzer bestätigte richtige Empfänger {@link #corrected}.
- * Wird konsultiert, wenn ein gesprochener Name in den Buchungen nicht gefunden wird.
+ * Ein gelernter Alias für die Spracherkennung: ein (falsch) erkannter Begriff {@link #spoken} (klein
+ * geschrieben abgelegt) und der richtige Empfänger {@link #corrected}. Zusätzlich können – damit ein Alias
+ * jede Buchungsart abdeckt – ein {@link #account}, je bis zu zwei Kategorien für Einnahmen/Ausgaben sowie
+ * Von-/Bis-Konto für Umbuchungen hinterlegt werden. Wird bei der Sprach-Erfassung konsultiert.
  */
 @Entity(tableName = "payee_correction", indices = {@Index(value = "spoken", unique = true)})
 public class PayeeCorrection {
@@ -28,6 +29,48 @@ public class PayeeCorrection {
 
     @ColumnInfo(name = "created_at")
     public long createdAt;
+
+    /** Konto für Einnahme/Ausgabe (leer = Standardkonto). */
+    @NonNull
+    @ColumnInfo(name = "account")
+    public String account = "";
+
+    /** Bis zu zwei Kategorien für Einnahmen. */
+    @NonNull
+    @ColumnInfo(name = "cat_income_1")
+    public String catIncome1 = "";
+
+    @NonNull
+    @ColumnInfo(name = "cat_income_2")
+    public String catIncome2 = "";
+
+    /** Bis zu zwei Kategorien für Ausgaben. */
+    @NonNull
+    @ColumnInfo(name = "cat_expense_1")
+    public String catExpense1 = "";
+
+    @NonNull
+    @ColumnInfo(name = "cat_expense_2")
+    public String catExpense2 = "";
+
+    /** Quell-/Zielkonto für Umbuchungen. */
+    @NonNull
+    @ColumnInfo(name = "from_account")
+    public String fromAccount = "";
+
+    @NonNull
+    @ColumnInfo(name = "to_account")
+    public String toAccount = "";
+
+    /** true = dieser Alias wird vor der Suche in bestehenden Buchungen berücksichtigt. */
+    @ColumnInfo(name = "preferred")
+    public boolean preferred;
+
+    /** Bevorzugte Buchungsart (income/expense/transfer); leer = Ausgabe. Am Phone maßgeblich; Wear nimmt
+     * die per Knopf mitgegebene Art. */
+    @NonNull
+    @ColumnInfo(name = "type")
+    public String type = "";
 
     public PayeeCorrection() {
     }

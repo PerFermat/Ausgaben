@@ -22,6 +22,15 @@ public interface BookingDao {
     @Query("SELECT * FROM booking WHERE id = :id")
     Booking getById(long id);
 
+    /** Zuletzt angelegte Buchung, deren Empfänger den Suchbegriff enthält (für die Sprach-Schnellerfassung). */
+    @Query("SELECT * FROM booking WHERE payee LIKE '%' || :term || '%' COLLATE NOCASE "
+            + "ORDER BY created_at DESC, id DESC LIMIT 1")
+    Booking findLatestByPayeeLike(String term);
+
+    /** Vorhandene Empfängernamen (je einmal), neueste Buchung zuerst – für die unscharfe Sprachsuche. */
+    @Query("SELECT payee FROM booking WHERE payee != '' GROUP BY payee ORDER BY MAX(created_at) DESC")
+    List<String> getDistinctPayees();
+
     @Query("SELECT * FROM booking ORDER BY created_at DESC, id DESC")
     List<Booking> getAllBookings();
 

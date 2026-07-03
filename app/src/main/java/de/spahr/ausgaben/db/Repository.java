@@ -262,6 +262,30 @@ public class Repository {
     }
 
     /**
+     * Sucht die passende Vorlage-Buchung für die Sprach-Erfassung: zuerst exakter Teilstring-Treffer,
+     * sonst unscharf (Umlaut-/Schreibweise-tolerant, z. B. „Friseur" → „Frisör Frank"). {@code null},
+     * wenn nichts hinreichend Ähnliches gefunden wird.
+     */
+    public void findBookingForVoice(final String term, final Callback<Booking> callback) {
+        executor.execute(() -> {
+            Booking result = null;
+            String t = term == null ? "" : term.trim();
+            if (!t.isEmpty()) {
+                result = bookingDao.findLatestByPayeeLike(t);
+                if (result == null) {
+                    String best = de.spahr.ausgaben.voice.VoiceInput.bestFuzzyPayee(
+                            t, bookingDao.getDistinctPayees());
+                    if (best != null) {
+                        result = bookingDao.findLatestByPayeeLike(best);
+                    }
+                }
+            }
+            final Booking r = result;
+            mainHandler.post(() -> callback.onResult(r));
+        });
+    }
+
+    /**
      * Fügt importierte Buchungen ein (jeweils mit gesetztem exported-Flag) und ergänzt
      * Konto/Empfänger als Auswahlwerte. Liefert die Anzahl eingefügter Buchungen.
      */

@@ -6,6 +6,12 @@
     <string name="type_income">Einnahme</string>
     <string name="type_transfer">Umbuchung</string>
     <string name="transfer_payee_hint">Zahlungsempfänger (optional)</string>
+
+    <!-- Sprach-Schnellerfassung (Lang-Druck auf „Neue Buchung") -->
+    <string name="voice_prompt">Buchung sagen, z. B. „Frisör 20 €"</string>
+    <string name="voice_no_recognizer">Keine Spracherkennung verfügbar</string>
+    <string name="voice_not_understood">Nicht verstanden – bitte erneut versuchen</string>
+    <string name="voice_not_found">Keine Buchung für „%1$s" gefunden – neue Buchung</string>
     <string name="split_categories">Kategorien</string>
     <string name="split_remove">−</string>
     <string name="split_marker">Split</string>

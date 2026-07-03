@@ -44,6 +44,7 @@ import de.spahr.ausgaben.export.KmyImporter;
 import de.spahr.ausgaben.net.NextcloudUploader;
 import de.spahr.ausgaben.settings.PlacesStore;
 import de.spahr.ausgaben.settings.SettingsStore;
+import de.spahr.ausgaben.voice.VoiceInput;
 
 public class MainActivity extends AppCompatActivity {
 
@@ -104,6 +105,7 @@ public class MainActivity extends AppCompatActivity {
 
     private ActivityResultLauncher<Uri> exportTreeLauncher;
     private ActivityResultLauncher<String[]> importLauncher;
+    private ActivityResultLauncher<Intent> voiceLauncher;
 
     @Override
     protected void onCreate(Bundle savedInstanceState) {
@@ -180,6 +182,11 @@ public class MainActivity extends AppCompatActivity {
         ExtendedFloatingActionButton fab = findViewById(R.id.fabNew);
         fab.setOnClickListener(v ->
                 startActivity(new Intent(this, BookingEditActivity.class)));
+        // Langer Druck → Buchung per Sprache anlegen (z. B. „Frisör 20€").
+        fab.setOnLongClickListener(v -> {
+            startVoiceEntry();
+            return true;
+        });
 
         exportTreeLauncher = registerForActivityResult(
                 new ActivityResultContracts.OpenDocumentTree(), uri -> {
@@ -196,6 +203,18 @@ public class MainActivity extends AppCompatActivity {
                     if (uri != null) {
                         doImportLocal(uri);
                     }
+                });
+        voiceLauncher = registerForActivityResult(
+                new ActivityResultContracts.StartActivityForResult(), result -> {
+                    if (result.getResultCode() == RESULT_OK && result.getData() != null) {
+                        java.util.ArrayList<String> spoken = result.getData()
+                                .getStringArrayListExtra(android.speech.RecognizerIntent.EXTRA_RESULTS);
+                        if (spoken != null && !spoken.isEmpty()) {
+                            handleVoiceResult(spoken.get(0));
+                            return;
+                        }
+                    }
+                    Toast.makeText(this, R.string.voice_not_understood, Toast.LENGTH_SHORT).show();
                 });
 
         FloatingActionButton fabScrollTop = findViewById(R.id.fabScrollTop);
@@ -217,6 +236,47 @@ public class MainActivity extends AppCompatActivity {
     protected void onResume() {
         super.onResume();
         refreshBookings();
+    }
+
+    // ---- Buchung per Sprache (Lang-Druck auf FAB) ----
+
+    private void startVoiceEntry() {
+        if (!android.speech.SpeechRecognizer.isRecognitionAvailable(this)) {
+            Toast.makeText(this, R.string.voice_no_recognizer, Toast.LENGTH_LONG).show();
+            return;
+        }
+        Intent intent = new Intent(android.speech.RecognizerIntent.ACTION_RECOGNIZE_SPEECH);
+        intent.putExtra(android.speech.RecognizerIntent.EXTRA_LANGUAGE_MODEL,
+                android.speech.RecognizerIntent.LANGUAGE_MODEL_FREE_FORM);
+        intent.putExtra(android.speech.RecognizerIntent.EXTRA_LANGUAGE, "de-DE");
+        intent.putExtra(android.speech.RecognizerIntent.EXTRA_PROMPT, getString(R.string.voice_prompt));
+        try {
+            voiceLauncher.launch(intent);
+        } catch (android.content.ActivityNotFoundException e) {
+            Toast.makeText(this, R.string.voice_no_recognizer, Toast.LENGTH_LONG).show();
+        }
+    }
+
+    /** Zerlegt den gesprochenen Satz, sucht die passende Vorlage und öffnet den vorbefüllten Editor. */
+    private void handleVoiceResult(String spoken) {
+        VoiceInput.Result parsed = VoiceInput.parse(spoken);
+        if (parsed.payee.isEmpty()) {
+            Toast.makeText(this, R.string.voice_not_understood, Toast.LENGTH_SHORT).show();
+            return;
+        }
+        final long amount = parsed.amountCents == null ? -1 : parsed.amountCents;
+        repository.findBookingForVoice(parsed.payee, b -> {
+            Intent i = new Intent(this, BookingEditActivity.class);
+            if (b != null) {
+                i.putExtra(BookingEditActivity.EXTRA_TEMPLATE_BOOKING_ID, b.id);
+            } else {
+                i.putExtra(BookingEditActivity.EXTRA_PREFILL_PAYEE, parsed.payee);
+                Toast.makeText(this, getString(R.string.voice_not_found, parsed.payee),
+                        Toast.LENGTH_SHORT).show();
+            }
+            i.putExtra(BookingEditActivity.EXTRA_VOICE_AMOUNT_CENTS, amount);
+            startActivity(i);
+        });
     }
 
     private void refreshBookings() {

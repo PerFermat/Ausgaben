@@ -39,6 +39,12 @@ import de.spahr.ausgaben.settings.SettingsStore;
 public class BookingEditActivity extends AppCompatActivity {
 
     public static final String EXTRA_BOOKING_ID = "booking_id";
+    /** Öffnet den Editor als NEUE Buchung, vorbefüllt aus dieser Vorlage-Buchung (Sprach-Schnellerfassung). */
+    public static final String EXTRA_TEMPLATE_BOOKING_ID = "template_booking_id";
+    /** Gesprochener Betrag in Cent (−1 = keiner). */
+    public static final String EXTRA_VOICE_AMOUNT_CENTS = "voice_amount_cents";
+    /** Vorbelegter Empfänger (falls keine Vorlage gefunden wurde). */
+    public static final String EXTRA_PREFILL_PAYEE = "prefill_payee";
 
     private Repository repository;
     private SettingsStore settings;
@@ -149,11 +155,25 @@ public class BookingEditActivity extends AppCompatActivity {
         btnUpdate.setOnClickListener(v -> update());
         btnDelete.setOnClickListener(v -> confirmDelete());
 
+        long templateId = getIntent().getLongExtra(EXTRA_TEMPLATE_BOOKING_ID, -1);
         long id = getIntent().getLongExtra(EXTRA_BOOKING_ID, -1);
-        if (id < 0) {
-            setupNewMode();
-        } else {
+        long voiceAmount = getIntent().getLongExtra(EXTRA_VOICE_AMOUNT_CENTS, -1);
+        if (templateId >= 0) {
+            // Sprach-Schnellerfassung: neue Buchung aus Vorlage vorbefüllen.
+            final Long amount = voiceAmount >= 0 ? voiceAmount : null;
+            repository.getBookingById(templateId, b -> bindTemplate(b, amount));
+        } else if (id >= 0) {
             repository.getBookingById(id, this::bindEditMode);
+        } else {
+            setupNewMode();
+            // Fallback der Sprach-Erfassung (keine Vorlage gefunden): Empfänger/Betrag vorbelegen.
+            String prefillPayee = getIntent().getStringExtra(EXTRA_PREFILL_PAYEE);
+            if (prefillPayee != null && !prefillPayee.isEmpty()) {
+                editPayee.setText(prefillPayee);
+            }
+            if (voiceAmount >= 0) {
+                editAmount.setText(formatCents(voiceAmount));
+            }
         }
     }
 
@@ -188,14 +208,43 @@ public class BookingEditActivity extends AppCompatActivity {
         origIsTransfer = b.isTransfer;
         origTransferGroup = b.transferGroup == null ? "" : b.transferGroup;
         toolbar.setTitle(R.string.edit_title);
-        editAmount.setText(formatCents(b.amountCents));
-        editNote.setText(b.note);
         selectedDate.setTimeInMillis(b.createdAt);
         updateDateField();
         switchExported.setVisibility(b.isTransfer ? View.GONE : View.VISIBLE);
         switchExported.setChecked(b.exported);
         btnUpdate.setVisibility(View.VISIBLE);
         btnDelete.setVisibility(View.VISIBLE);
+        populateFrom(b, null);
+    }
+
+    /**
+     * Öffnet als NEUE Buchung, vorbefüllt aus der Vorlage {@code b} (Sprach-Schnellerfassung): heutiges
+     * Datum + {@code amountCents} (falls gesetzt), alle übrigen Daten aus der Vorlage.
+     */
+    private void bindTemplate(Booking b, Long amountCents) {
+        if (b == null) {
+            setupNewMode();
+            return;
+        }
+        booking = null; // Neu-Modus → Speichern legt eine neue Buchung an
+        origIsTransfer = false;
+        origTransferGroup = "";
+        toolbar.setTitle(R.string.new_booking_title);
+        selectedDate.setTime(new java.util.Date());
+        updateDateField();
+        switchExported.setVisibility(View.GONE);
+        btnUpdate.setVisibility(View.GONE);
+        btnDelete.setVisibility(View.GONE);
+        populateFrom(b, amountCents);
+    }
+
+    /**
+     * Füllt die Felder aus {@code b}. {@code overrideAmountCents} (nicht null) ersetzt den Gesamtbetrag;
+     * Splitbuchungen werden dann proportional skaliert (letzte Zeile nimmt den Rundungsrest).
+     */
+    private void populateFrom(Booking b, Long overrideAmountCents) {
+        final long total = overrideAmountCents != null ? overrideAmountCents : b.amountCents;
+        editNote.setText(b.note);
 
         if (b.isTransfer) {
             toggleType.check(R.id.btnTransfer);
@@ -208,6 +257,7 @@ public class BookingEditActivity extends AppCompatActivity {
                 editAccount.setText(b.account, false);
                 editAccountTo.setText(b.transferAccount, false);
             }
+            editAmount.setText(formatCents(total));
             applyTypeVisibility();
             updateSaveEnabled();
             return;
@@ -218,19 +268,32 @@ public class BookingEditActivity extends AppCompatActivity {
         editAccount.setText(b.account, false);
         setupPlaceDropdown(b.account);
         applyTypeVisibility();
-        // Kategorie-Teile laden (oder Einzelkategorie als eine Zeile).
+
+        final long templateAmount = b.amountCents;
+        final String singleCategory = b.category;
+        // Kategorie-Teile laden (oder Einzelkategorie als eine Zeile); Betrag ggf. skaliert übernehmen.
         repository.getSplits(b.id, splits -> {
             suppressSplitEvents = true;
             splitContainer.removeAllViews();
             if (splits != null && !splits.isEmpty()) {
-                for (BookingSplit s : splits) {
-                    addSplitRow(s.category, formatCents(s.amountCents));
+                long assigned = 0;
+                for (int idx = 0; idx < splits.size(); idx++) {
+                    BookingSplit s = splits.get(idx);
+                    long part;
+                    if (idx < splits.size() - 1 && templateAmount != 0) {
+                        part = Math.round((double) s.amountCents * total / templateAmount);
+                        assigned += part;
+                    } else {
+                        part = total - assigned; // letzte Zeile → exakte Summe = Gesamtbetrag
+                    }
+                    addSplitRow(s.category, formatCents(part));
                 }
-            } else if (!b.category.isEmpty()) {
-                addSplitRow(b.category, formatCents(b.amountCents));
+            } else if (!singleCategory.isEmpty()) {
+                addSplitRow(singleCategory, formatCents(total));
             }
             suppressSplitEvents = false;
             ensureTrailingRow();
+            editAmount.setText(formatCents(total));
             updateSaveEnabled();
         });
     }

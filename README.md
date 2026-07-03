@@ -1,4 +1,5 @@
-# Warum diese App für KMyMoney-User interessant sein könnte
+# Projektbeschreibung
+## Warum diese App für KMyMoney-User interessant sein könnte
 
 - Bargeldausgaben unterwegs erfassen
 - Synchronisation mit KMyMoney über .kmy oder CSV
@@ -9,7 +10,7 @@
 - Biometrischer Schutz
 - Keine Werbung, keine Hersteller-Cloud
 
-# Ausgaben
+## Ausgaben
 
 Android-App (Java) zum Tracken von Bargeld-**Ausgaben**, -**Einnahmen** und **Umbuchungen** über mehrere Konten.
 Buchungen werden lokal (Room/SQLite) gespeichert und lassen sich per **WebDAV** synchronisieren

@@ -5,6 +5,9 @@
 
     <!-- Für die programmatische Spracherkennung (kein manuelles Bestätigen). -->
     <uses-permission android:name="android.permission.RECORD_AUDIO" />
+    <!-- Für die GPS-Koordinaten, die zum Sprechzeitpunkt bestimmt und mitübertragen werden. -->
+    <uses-permission android:name="android.permission.ACCESS_FINE_LOCATION" />
+    <uses-permission android:name="android.permission.ACCESS_COARSE_LOCATION" />
     <queries>
         <intent>
             <action android:name="android.speech.RecognitionService" />

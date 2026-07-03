@@ -52,6 +52,8 @@ public class WearMainActivity extends AppCompatActivity {
     private CountDownTimer confirmTimer;
     private SpeechRecognizer speech;
     private ActivityResultLauncher<String> permissionLauncher;
+    private WearLocation location;
+    private ActivityResultLauncher<String> locationPermissionLauncher;
 
     private final BroadcastReceiver pendingReceiver = new BroadcastReceiver() {
         @Override
@@ -86,6 +88,20 @@ public class WearMainActivity extends AppCompatActivity {
                         showStatus(getString(R.string.wear_no_mic));
                     }
                 });
+
+        // Standort zum Sprechzeitpunkt bestimmen: Berechtigung anfragen und Empfang vorwärmen.
+        location = new WearLocation(this);
+        locationPermissionLauncher = registerForActivityResult(
+                new ActivityResultContracts.RequestPermission(), granted -> {
+                    if (granted) {
+                        location.start();
+                    }
+                });
+        if (hasLocationPermission()) {
+            location.start();
+        } else {
+            locationPermissionLauncher.launch(Manifest.permission.ACCESS_FINE_LOCATION);
+        }
 
         // Direkter Start aus der Kachel: sofort für den gewählten Typ zuhören.
         handleLaunchType(getIntent());
@@ -183,7 +199,9 @@ public class WearMainActivity extends AppCompatActivity {
     private void onRecognized(String text) {
         long now = System.currentTimeMillis();
         confirmEntryId = UUID.randomUUID().toString();
-        store.add(new PendingEntry(confirmEntryId, text, pendingType, now, now + CANCEL_WINDOW_MS));
+        // Standort zum Sprechzeitpunkt bestimmen und mitgeben.
+        String gps = hasLocationPermission() ? location.currentCoordinates() : null;
+        store.add(new PendingEntry(confirmEntryId, text, pendingType, gps, now, now + CANCEL_WINDOW_MS));
 
         confirmText.setText(text);
         btnCancel.setVisibility(View.VISIBLE);
@@ -247,6 +265,9 @@ public class WearMainActivity extends AppCompatActivity {
         super.onResume();
         ContextCompat.registerReceiver(this, pendingReceiver,
                 new IntentFilter(WearPaths.ACTION_PENDING_CHANGED), ContextCompat.RECEIVER_NOT_EXPORTED);
+        if (location != null && hasLocationPermission()) {
+            location.start();
+        }
         WearSync.syncPending(this);
         // Nicht mitten in Aufnahme/Bestätigung zurücksetzen; sonst Typauswahl zeigen.
         if (confirmTimer == null && speech == null) {
@@ -258,9 +279,19 @@ public class WearMainActivity extends AppCompatActivity {
     protected void onPause() {
         super.onPause();
         unregisterReceiver(pendingReceiver);
+        if (location != null) {
+            location.stop();
+        }
         // App verlassen zählt nicht als Abbrechen → Eintrag bleibt gespeichert und wird später gesendet.
         stopTimer();
         destroySpeech();
+    }
+
+    private boolean hasLocationPermission() {
+        return ContextCompat.checkSelfPermission(this, Manifest.permission.ACCESS_FINE_LOCATION)
+                == PackageManager.PERMISSION_GRANTED
+                || ContextCompat.checkSelfPermission(this, Manifest.permission.ACCESS_COARSE_LOCATION)
+                == PackageManager.PERMISSION_GRANTED;
     }
 
     private void showStatus(String text) {

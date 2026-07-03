@@ -46,7 +46,8 @@ public class ExpenseWearListenerService extends WearableListenerService {
             id = json.optString("id", "");
             String text = json.optString("text", "");
             String type = json.optString("type", Repository.VOICE_TYPE_EXPENSE);
-            Log.d(TAG, "empfangen id=" + id + " type=" + type + " text=" + text);
+            String gps = json.optString("gps", "");
+            Log.d(TAG, "empfangen id=" + id + " type=" + type + " text=" + text + " gps=" + gps);
             if (id.isEmpty()) {
                 return;
             }
@@ -55,7 +56,7 @@ public class ExpenseWearListenerService extends WearableListenerService {
                 if (!text.trim().isEmpty()) {
                     Repository repository = new Repository(this);
                     String defaultAccount = new SettingsStore(this).getDefaultAccount();
-                    boolean created = repository.createVoiceBookingBlocking(text, defaultAccount, type);
+                    boolean created = repository.createVoiceBookingBlocking(text, defaultAccount, type, gps);
                     Log.d(TAG, "Buchung angelegt: " + created);
                 }
                 markProcessed(id);

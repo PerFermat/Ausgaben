@@ -276,7 +276,8 @@ public class Repository {
      * wie die Sprach-Schnellerfassung am Phone. Der {@code type} (Einnahme/Ausgabe/Umbuchung) wird von der
      * Uhr per Knopf vorgegeben und erzwungen. Liefert {@code true}, wenn eine Buchung entstanden ist.
      */
-    public boolean createVoiceBookingBlocking(String spokenText, String defaultAccount, String type) {
+    public boolean createVoiceBookingBlocking(String spokenText, String defaultAccount, String type,
+                                              String coords) {
         de.spahr.ausgaben.voice.VoiceInput.Result parsed =
                 de.spahr.ausgaben.voice.VoiceInput.parse(spokenText);
         String term = parsed.payee == null ? "" : parsed.payee.trim();
@@ -318,6 +319,7 @@ public class Repository {
                 from = def;
                 to = term;
             }
+            note = appendGps(note, coords);
             insertTransferPair(from, to, amount, payee, note, now, false, UUID.randomUUID().toString());
             return true;
         }
@@ -347,6 +349,7 @@ public class Repository {
             b.category = "";
             b.note = "";
         }
+        b.note = appendGps(b.note, coords);
         if (!b.payee.trim().isEmpty()) {
             payeeDao.insertIfAbsent(new Payee(b.payee));
         }
@@ -461,6 +464,16 @@ public class Repository {
             return a.trim();
         }
         return b == null ? "" : b.trim();
+    }
+
+    /** Hängt „GPS: lat, lon" an die Notiz an (gleiche Form wie am Phone); ersetzt einen alten GPS-Zusatz. */
+    private static String appendGps(String note, String coords) {
+        if (coords == null || coords.trim().isEmpty()) {
+            return note == null ? "" : note;
+        }
+        String base = (note == null ? "" : note).replaceAll("\\s*GPS:.*$", "").replaceAll("\\s+$", "");
+        String tag = "GPS: " + coords.trim();
+        return base.isEmpty() ? tag : base + " " + tag;
     }
 
     /** Vorlage-Buchung per Empfänger suchen (exakter Teilstring, sonst unscharf). */

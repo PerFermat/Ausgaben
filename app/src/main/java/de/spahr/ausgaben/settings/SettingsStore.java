@@ -26,6 +26,7 @@ public class SettingsStore {
     private static final String KEY_LOCAL_EXPORT_TREE = "local_export_tree";
     private static final String KEY_EXPORT_MODE = "export_mode";
     private static final String KEY_KMY_PATH = "kmy_path";
+    private static final String KEY_APP_LOCK = "app_lock";
 
     /** Export-/Import-Modus: kMyMoney-CSV wie bisher. */
     public static final String MODE_CSV = "csv";
@@ -136,6 +137,15 @@ public class SettingsStore {
 
     public void setNightMode(int mode) {
         prefs.edit().putInt(KEY_NIGHT_MODE, mode).apply();
+    }
+
+    /** Optionale biometrische App-Sperre (Standard: aus). */
+    public boolean isAppLockEnabled() {
+        return prefs.getBoolean(KEY_APP_LOCK, false);
+    }
+
+    public void setAppLockEnabled(boolean enabled) {
+        prefs.edit().putBoolean(KEY_APP_LOCK, enabled).apply();
     }
 
     /**

@@ -6,6 +6,7 @@ import android.os.Bundle;
 import android.view.Gravity;
 import android.view.View;
 import android.widget.ArrayAdapter;
+import android.widget.CompoundButton;
 import android.widget.EditText;
 import android.widget.LinearLayout;
 import android.widget.TextView;
@@ -34,10 +35,12 @@ import java.text.SimpleDateFormat;
 import java.util.Date;
 import java.util.Locale;
 
+import de.spahr.ausgaben.AusgabenApp;
 import de.spahr.ausgaben.R;
 import de.spahr.ausgaben.db.AppDatabase;
 import de.spahr.ausgaben.db.Repository;
 import de.spahr.ausgaben.export.ExportCoordinator;
+import de.spahr.ausgaben.security.BiometricAuth;
 import de.spahr.ausgaben.settings.PlacesStore;
 import de.spahr.ausgaben.settings.SettingsStore;
 
@@ -63,6 +66,7 @@ public class SettingsActivity extends AppCompatActivity {
     private TextInputEditText editKmyPath;
     private MaterialAutoCompleteTextView editDefaultAccount;
     private MaterialSwitch switchDarkMode;
+    private MaterialSwitch switchAppLock;
 
     private ActivityResultLauncher<String> backupLauncher;
     private ActivityResultLauncher<String[]> restoreLauncher;
@@ -109,6 +113,10 @@ public class SettingsActivity extends AppCompatActivity {
             settings.setNightMode(mode);
             AppCompatDelegate.setDefaultNightMode(mode);
         });
+
+        switchAppLock = findViewById(R.id.switchAppLock);
+        switchAppLock.setChecked(settings.isAppLockEnabled());
+        switchAppLock.setOnCheckedChangeListener((b, checked) -> onAppLockToggled(b, checked));
 
         repository.getAccountNames(names -> editDefaultAccount.setAdapter(
                 new ArrayAdapter<>(this, android.R.layout.simple_list_item_1, names)));
@@ -255,6 +263,27 @@ public class SettingsActivity extends AppCompatActivity {
                 })
                 .setNegativeButton(R.string.cancel, null)
                 .show();
+    }
+
+    /** Schalter „App mit Biometrie schützen": bei Aktivierung Verfügbarkeit prüfen. */
+    private void onAppLockToggled(CompoundButton buttonView, boolean checked) {
+        if (checked) {
+            String problem = BiometricAuth.availabilityMessage(this);
+            if (problem == null) {
+                settings.setAppLockEnabled(true);
+                ((AusgabenApp) getApplication()).markUnlocked();
+            } else {
+                buttonView.setChecked(false); // zurücksetzen (löst erneut den Listener aus → „aus")
+                new MaterialAlertDialogBuilder(this, R.style.ThemeOverlay_Ausgaben_Dialog)
+                        .setTitle(R.string.app_lock_switch)
+                        .setMessage(problem)
+                        .setPositiveButton(android.R.string.ok, null)
+                        .show();
+            }
+        } else {
+            settings.setAppLockEnabled(false);
+            ((AusgabenApp) getApplication()).markUnlocked();
+        }
     }
 
     private void registerLaunchers() {

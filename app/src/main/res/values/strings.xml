@@ -116,6 +116,15 @@
     <string name="data_section">Daten</string>
     <string name="appearance_section">Darstellung</string>
     <string name="dark_mode">Dunkles Design</string>
+
+    <!-- App-Sperre (Biometrie) -->
+    <string name="security_section">Sicherheit</string>
+    <string name="app_lock_switch">App mit Biometrie schützen</string>
+    <string name="lock_title">Ausgaben entsperren</string>
+    <string name="lock_subtitle">Bitte authentifizieren, um fortzufahren</string>
+    <string name="lock_retry">Erneut versuchen</string>
+    <string name="biometric_none_enrolled">Es ist keine Entsperrmethode eingerichtet. Bitte in den Geräteeinstellungen einen Fingerabdruck, Gesichtsscan oder eine PIN/Muster/Passwort einrichten.</string>
+    <string name="biometric_no_hardware">Dieses Gerät bietet keine unterstützte Authentifizierungsmethode.</string>
     <string name="import_csv">CSV importieren (kMyMoney)</string>
     <string name="export_all">Kompletter Export auf Nextcloud</string>
     <string name="backup_db">Datenbank sichern</string>

@@ -1,8 +1,10 @@
 # Ausgaben
 
-Android-App (Java) zum Tracken von Bargeld-**Ausgaben**, -**Einnahmen** und **Umbuchungen** über
-mehrere Konten. Buchungen werden lokal (Room/SQLite) gespeichert und lassen sich mit **Nextcloud**
-synchronisieren – entweder als **kMyMoney-CSV** oder direkt in eine **kMyMoney-`.kmy`-Datei**.
+Android-App (Java) zum Tracken von Bargeld-**Ausgaben**, -**Einnahmen** und **Umbuchungen** über mehrere Konten.
+Buchungen werden lokal (Room/SQLite) gespeichert und lassen sich per **WebDAV** synchronisieren
+– beispielsweise mit **Nextcloud**, aber auch mit anderen WebDAV-kompatiblen Diensten.
+Der Datenaustausch erfolgt entweder als **kMyMoney-CSV** oder direkt in eine **kMyMoney-`.kmy`-Datei**.
+
 
 ## Funktionen
 

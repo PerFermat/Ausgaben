@@ -25,6 +25,7 @@ Der Datenaustausch erfolgt entweder als **kMyMoney-CSV** oder direkt in eine **k
   <img src="screenshots/Ausgaben.png" width="150">
   <img src="screenshots/Grafik.png" width="150">
   <img src="screenshots/Einstellungen.png" width="150">
+  <img src="screenshots/UhranlagemitAlias.png" width="150">
 </p>
 
 

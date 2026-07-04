@@ -1,4 +1,11 @@
 # Projektbeschreibung
+## Ausgaben
+
+Android-App (Java) zum Tracken von Bargeld-**Ausgaben**, -**Einnahmen** und **Umbuchungen** über mehrere Konten.
+Buchungen werden lokal (Room/SQLite) gespeichert und lassen sich per **WebDAV** synchronisieren
+– beispielsweise mit **Nextcloud**, aber auch mit anderen WebDAV-kompatiblen Diensten.
+Der Datenaustausch erfolgt entweder als **kMyMoney-CSV** oder direkt in eine **kMyMoney-`.kmy`-Datei**.
+
 ## Warum diese App für KMyMoney-User interessant sein könnte
 
 - Bargeldausgaben unterwegs erfassen
@@ -10,12 +17,15 @@
 - Biometrischer Schutz
 - Keine Werbung, keine Hersteller-Cloud
 
-## Ausgaben
+## Screenshots
 
-Android-App (Java) zum Tracken von Bargeld-**Ausgaben**, -**Einnahmen** und **Umbuchungen** über mehrere Konten.
-Buchungen werden lokal (Room/SQLite) gespeichert und lassen sich per **WebDAV** synchronisieren
-– beispielsweise mit **Nextcloud**, aber auch mit anderen WebDAV-kompatiblen Diensten.
-Der Datenaustausch erfolgt entweder als **kMyMoney-CSV** oder direkt in eine **kMyMoney-`.kmy`-Datei**.
+<p>
+  <img src="screenshots/Hauptbildschirm.png" width="150">
+  <img src="screenshots/Kontenmenü.png" width="150">
+  <img src="screenshots/Ausgaben.png" width="150">
+  <img src="screenshots/Grafik.png" width="150">
+  <img src="screenshots/Einstellungen.png" width="150">
+</p>
 
 
 ## Funktionen
@@ -76,11 +86,20 @@ Der Datenaustausch erfolgt entweder als **kMyMoney-CSV** oder direkt in eine **k
   exportierten Buchungen.
 - **CSV-Import** von kMyMoney-Ledger-CSV (Konto aus `Kontentyp:`-Zeile, ISO-Datum, Vorzeichen → Typ).
 
+### Sprachen
+- **Deutsch und Englisch** sind fest eingebaut und in den Einstellungen (ganz oben) umschaltbar –
+  Phone **und** Uhr (die Uhr übernimmt die am Phone gewählte Sprache automatisch).
+- Alle Texte liegen in einer **Datenbank-Tabelle** (beim ersten Start aus dem Programm mit DE/EN
+  gefüllt). Über **„Vorlage exportieren"** wird eine JSON-Struktur mit allen Schlüsseln (inkl. der
+  Uhr-Texte) als lokale Datei gespeichert; diese lässt sich manuell in einer weiteren Sprache befüllen
+  und über **„Sprache hochladen"** einlesen. Danach ist die neue Sprache auswählbar und gilt auch für
+  die Uhr. Fehlt eine Übersetzung, wird auf Englisch bzw. den eingebauten Text zurückgegriffen.
+
 ### Sicherheit & Einstellungen
 - Optionale **App-Sperre** per Biometrie/Geräte-Anmeldung (Fingerabdruck, Gesicht, PIN, Muster,
   Passwort) – Authentifizierung beim Start bzw. bei Rückkehr aus dem Hintergrund.
-- Einstellungen: Nextcloud-Zugang (App-Passwort verschlüsselt), Export-Modus (CSV/`.kmy`),
-  Standardkonto, Orte je Konto, Hell-/Dunkel-Design, Datenbank-Backup/Restore, Konto löschen.
+- Einstellungen: Sprache, Nextcloud-Zugang (App-Passwort verschlüsselt), Export-Modus (CSV/`.kmy`),
+  Standardkonto, Orte je Konto, Alias-Namen, Hell-/Dunkel-Design, Datenbank-Backup/Restore, Konto löschen.
 
 ## Wear OS (Sprach-Schnellerfassung)
 
@@ -128,7 +147,7 @@ Datum;Empfänger;Konto;Typ;Betrag;Notiz;Kategorie
 
 - Java, Gradle 8.9 / AGP 8.7.3, `minSdk 26` (`:app`) bzw. `minSdk 30` (`:wear`), `compileSdk 34`.
 - Module: `:app` (Phone) und `:wear` (Wear OS).
-- [Room](https://developer.android.com/training/data-storage/room) (SQLite, DB-Version 6), OkHttp
+- [Room](https://developer.android.com/training/data-storage/room) (SQLite, DB-Version 11), OkHttp
   (WebDAV), [MPAndroidChart](https://github.com/PhilJay/MPAndroidChart),
   [androidx.security](https://developer.android.com/jetpack/androidx/releases/security)
   (verschlüsselte Prefs), [androidx.biometric](https://developer.android.com/jetpack/androidx/releases/biometric),

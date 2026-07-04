@@ -1,21 +1,24 @@
 # Projektbeschreibung
+
 ## Ausgaben
 
-Android-App (Java) zum Tracken von Bargeld-**Ausgaben**, -**Einnahmen** und **Umbuchungen** über mehrere Konten.
-Buchungen werden lokal (Room/SQLite) gespeichert und lassen sich per **WebDAV** synchronisieren
-– beispielsweise mit **Nextcloud**, aber auch mit anderen WebDAV-kompatiblen Diensten.
-Der Datenaustausch erfolgt entweder als **kMyMoney-CSV** oder direkt in eine **kMyMoney-`.kmy`-Datei**.
+Dies ist eine Android-App (Java), die als mobile Ergänzung zu KMyMoney entwickelt wird. Sie ermöglicht es, Bargeld-Ausgaben, -Einnahmen und Umbuchungen unterwegs direkt auf dem Smartphone oder einer Wear-OS-Uhr zu erfassen, anstatt diese später manuell in KMyMoney nachzutragen.
 
-## Warum diese App für KMyMoney-User interessant sein könnte
 
-- Bargeldausgaben unterwegs erfassen
-- Synchronisation mit KMyMoney über .kmy oder CSV
-- Vollständig offline nutzbar
-- Nextcloud oder beliebiger WebDAV-Server
-- Wear-OS-App mit Spracheingabe
-- Splitbuchungen und Umbuchungen
-- Biometrischer Schutz
-- Keine Werbung, keine Hersteller-Cloud
+## Warum diese App für KMyMoney-Nutzer interessant sein könnte
+
+* Mobile Erweiterung für KMyMoney
+* Bargeldausgaben unterwegs sofort erfassen
+* Keine zusätzliche Cloud oder Herstellerkonto erforderlich
+* Vollständig offline nutzbar
+* Wear-OS-App mit Spracheingabe
+* Splitbuchungen und Umbuchungen
+* Biometrischer Schutz
+* Nahtlose KMyMoney-Integration über .kmy-Dateien oder CSV-Import
+* KMyMoney-Integration über gemeinsam genutzte WebDAV-Ordner
+* Keine Werbung
+* Open Source
+
 
 ## Screenshots
 

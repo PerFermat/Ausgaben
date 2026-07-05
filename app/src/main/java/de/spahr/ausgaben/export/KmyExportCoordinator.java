@@ -11,7 +11,7 @@ import java.util.Locale;
 
 import de.spahr.ausgaben.db.Booking;
 import de.spahr.ausgaben.db.Repository;
-import de.spahr.ausgaben.net.NextcloudUploader;
+import de.spahr.ausgaben.net.RemoteStorage;
 import de.spahr.ausgaben.settings.SettingsStore;
 
 /**
@@ -48,7 +48,7 @@ public class KmyExportCoordinator {
     public void exportUnexported(Listener listener) {
         repository.executor().execute(() -> {
             Context r = res();
-            if (!settings.hasNextcloudConfig()) {
+            if (!settings.hasRemoteConfig()) {
                 complete(listener, r.getString(de.spahr.ausgaben.R.string.export_no_config), false);
                 return;
             }
@@ -66,11 +66,10 @@ public class KmyExportCoordinator {
                 return;
             }
 
-            NextcloudUploader uploader = new NextcloudUploader(settings.isNextcloudServer());
+            RemoteStorage storage = RemoteStorage.from(settings);
             try {
                 progress(listener, r.getString(de.spahr.ausgaben.R.string.progress_download));
-                byte[] raw = uploader.downloadBytes(settings.getUrl(), settings.getUser(),
-                        settings.getPassword(), folder, file);
+                byte[] raw = storage.downloadBytes(folder, file);
 
                 progress(listener, r.getString(de.spahr.ausgaben.R.string.kmy_progress_processing));
                 KmyDocument doc = new KmyDocument(raw, appContext);
@@ -84,13 +83,11 @@ public class KmyExportCoordinator {
 
                 progress(listener, r.getString(de.spahr.ausgaben.R.string.kmy_progress_backup));
                 String backup = file + ".bak-" + tsFormat.format(new Date());
-                uploader.uploadBytes(settings.getUrl(), settings.getUser(), settings.getPassword(),
-                        folder, backup, raw);
+                storage.uploadBytes(folder, backup, raw);
 
                 progress(listener, r.getString(de.spahr.ausgaben.R.string.kmy_progress_writing));
                 byte[] packed = KmyDocument.gzip(res.xml);
-                uploader.uploadBytes(settings.getUrl(), settings.getUser(), settings.getPassword(),
-                        folder, file, packed);
+                storage.uploadBytes(folder, file, packed);
 
                 repository.bookingDao().markExported(res.writtenIds);
                 complete(listener, buildMessage(r, res, file, backup), true);

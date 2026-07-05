@@ -1,0 +1,54 @@
+package de.spahr.ausgaben.net;
+
+import java.io.IOException;
+import java.util.List;
+
+/**
+ * {@link RemoteStorage} über WebDAV/Nextcloud. Kapselt Basis-URL/Benutzer/Passwort und delegiert an den
+ * bestehenden {@link NextcloudUploader}.
+ */
+public class WebDavStorage implements RemoteStorage {
+
+    private final NextcloudUploader uploader;
+    private final String baseUrl;
+    private final String user;
+    private final String password;
+
+    public WebDavStorage(String baseUrl, String user, String password, boolean nextcloudLayout) {
+        this.baseUrl = baseUrl == null ? "" : baseUrl;
+        this.user = user == null ? "" : user;
+        this.password = password == null ? "" : password;
+        this.uploader = new NextcloudUploader(nextcloudLayout);
+    }
+
+    @Override
+    public void uploadText(String folder, String fileName, String content) throws IOException {
+        uploader.upload(baseUrl, user, password, folder, fileName, content);
+    }
+
+    @Override
+    public void uploadBytes(String folder, String fileName, byte[] content) throws IOException {
+        uploader.uploadBytes(baseUrl, user, password, folder, fileName, content);
+    }
+
+    @Override
+    public List<String> listFiles(String folder, String ext) throws IOException {
+        return uploader.listFiles(baseUrl, user, password, folder, ext);
+    }
+
+    @Override
+    public String downloadText(String folder, String fileName) throws IOException {
+        return uploader.downloadText(baseUrl, user, password, folder, fileName);
+    }
+
+    @Override
+    public byte[] downloadBytes(String folder, String fileName) throws IOException {
+        return uploader.downloadBytes(baseUrl, user, password, folder, fileName);
+    }
+
+    @Override
+    public void testConnection() throws IOException {
+        // PROPFIND auf die Wurzel: prüft URL, Zugangsdaten und Erreichbarkeit.
+        uploader.listFiles(baseUrl, user, password, "", "csv");
+    }
+}

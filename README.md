@@ -189,13 +189,19 @@ eingecheckt und muss lokal vorhanden sein (legt Android Studio automatisch an). 
 Release-Build wird `keystore.properties` benötigt (ebenfalls nicht eingecheckt); fehlt sie, entsteht
 ein unsigniertes Release.
 
-## Nextcloud / WebDAV einrichten
+## Sync-Ziel einrichten (Nextcloud / WebDAV / SMB)
 
-In den Einstellungen den **Server-Typ** wählen, dann Basis-URL, Benutzername und Passwort eintragen,
-optional Ziel-/Importordner bzw. im `.kmy`-Modus den Pfad zur `.kmy`-Datei.
+In den Einstellungen den **Server-Typ** wählen, dann Basis-URL/Freigabe, Benutzername und Passwort
+eintragen, optional Ziel-/Importordner bzw. im `.kmy`-Modus den Pfad zur `.kmy`-Datei. Ein Button
+**„Verbindung testen"** prüft die Zugangsdaten; im `.kmy`-Modus listet **„.kmy auswählen"** die
+`.kmy`-Dateien der Freigabe/des Ordners zur Auswahl. Ohne konfiguriertes Sync-Ziel wird lokal in einen per
+SAF gewählten Ordner exportiert.
 
 - **Nextcloud**: Basis-URL = Server (z. B. `https://cloud.example.com`) und ein **App-Passwort**
   (Nextcloud → Einstellungen → Sicherheit → App-Passwort). Die Dateien landen unter
   `<URL>/remote.php/dav/files/<user>/<Ordner>/`.
 - **WebDAV (generisch)**: Basis-URL = vollständige DAV-Wurzel (z. B.
   `https://host/dav/`); der Ordner wird direkt daran angehängt. Auth per HTTP-Basic.
+- **SMB/Samba**: „URL" = `smb://Host/Freigabe` (optional mit Basis-Unterordner); Ordner- und
+  `.kmy`-Pfade sind relativ zur Freigabe. Benutzer/Passwort wie üblich – **leerer Benutzer = Gast**;
+  eine Windows-Domäne als `DOMÄNE\Benutzer`. SMB2/3.

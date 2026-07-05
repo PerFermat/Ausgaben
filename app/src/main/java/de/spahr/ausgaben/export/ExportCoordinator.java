@@ -16,7 +16,7 @@ import java.util.Map;
 
 import de.spahr.ausgaben.db.Booking;
 import de.spahr.ausgaben.db.Repository;
-import de.spahr.ausgaben.net.NextcloudUploader;
+import de.spahr.ausgaben.net.RemoteStorage;
 import de.spahr.ausgaben.settings.SettingsStore;
 
 /**
@@ -63,7 +63,7 @@ public class ExportCoordinator {
         repository.executor().execute(() -> {
             // Context in der aktuellen Sprache (der App-Context übernimmt sie erst nach Neustart).
             Context res = de.spahr.ausgaben.i18n.LocaleManager.localizedContext(appContext);
-            boolean upload = settings.hasNextcloudConfig();
+            boolean upload = settings.hasRemoteConfig();
             if (!upload && (localTreeUri == null || localTreeUri.isEmpty())) {
                 post(listener, res.getString(de.spahr.ausgaben.R.string.export_target_missing), false);
                 return;
@@ -103,7 +103,7 @@ public class ExportCoordinator {
             }
 
             CsvExporter exporter = new CsvExporter();
-            NextcloudUploader uploader = new NextcloudUploader(settings.isNextcloudServer());
+            RemoteStorage storage = upload ? RemoteStorage.from(settings) : null;
             DocumentFile targetDir = upload ? null
                     : DocumentFile.fromTreeUri(appContext, Uri.parse(localTreeUri));
             int okAccounts = 0;
@@ -118,8 +118,7 @@ public class ExportCoordinator {
                 try {
                     if (upload) {
                         saveLocalCopy(fileName, content);
-                        uploader.upload(settings.getUrl(), settings.getUser(), settings.getPassword(),
-                                settings.getFolder(), fileName, content);
+                        storage.uploadText(settings.getFolder(), fileName, content);
                     } else {
                         writeToTree(res, targetDir, fileName, content);
                     }

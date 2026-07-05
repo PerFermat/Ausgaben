@@ -36,6 +36,8 @@ public class SettingsStore {
     public static final String SERVER_NEXTCLOUD = "nextcloud";
     /** Server-Typ: generischer WebDAV-Server; die Basis-URL ist bereits die DAV-Wurzel. */
     public static final String SERVER_WEBDAV = "webdav";
+    /** Server-Typ: SMB/Samba-Freigabe; die „URL" ist {@code smb://Host/Freigabe[/Basis]}. */
+    public static final String SERVER_SMB = "smb";
 
     /** Export-/Import-Modus: kMyMoney-CSV wie bisher. */
     public static final String MODE_CSV = "csv";
@@ -121,6 +123,44 @@ public class SettingsStore {
         return !getUrl().isEmpty() && !getUser().isEmpty() && hasPassword();
     }
 
+    /**
+     * Ist ein entferntes Sync-Ziel konfiguriert? SMB: sobald Host+Freigabe gesetzt sind (Gast erlaubt);
+     * WebDAV/Nextcloud: URL+Benutzer+Passwort.
+     */
+    public boolean hasRemoteConfig() {
+        if (isSmbServer()) {
+            String[] smb = parseSmb(getUrl());
+            return !smb[0].isEmpty() && !smb[1].isEmpty();
+        }
+        return hasNextcloudConfig();
+    }
+
+    /**
+     * Zerlegt {@code smb://Host/Freigabe/Basis} (auch {@code //Host/...} oder {@code Host/...}) in
+     * {@code [host, share, base]} – leere Strings bei fehlenden Teilen.
+     */
+    public static String[] parseSmb(String url) {
+        String s = url == null ? "" : url.trim();
+        int scheme = s.indexOf("://");
+        if (scheme >= 0) {
+            s = s.substring(scheme + 3);
+        }
+        while (s.startsWith("/")) {
+            s = s.substring(1);
+        }
+        while (s.endsWith("/")) {
+            s = s.substring(0, s.length() - 1);
+        }
+        if (s.isEmpty()) {
+            return new String[]{"", "", ""};
+        }
+        String[] parts = s.split("/", 3);
+        String host = parts.length > 0 ? parts[0].trim() : "";
+        String share = parts.length > 1 ? parts[1].trim() : "";
+        String base = parts.length > 2 ? parts[2].trim() : "";
+        return new String[]{host, share, base};
+    }
+
     /** {@link #MODE_CSV} (Standard) oder {@link #MODE_KMY}. */
     public String getExportMode() {
         return prefs.getString(KEY_EXPORT_MODE, MODE_CSV);
@@ -135,9 +175,13 @@ public class SettingsStore {
         return prefs.getString(KEY_SERVER_TYPE, SERVER_NEXTCLOUD);
     }
 
-    /** true = Nextcloud-Pfadschema; false = generischer WebDAV-Server (Basis-URL = DAV-Wurzel). */
+    /** true = Nextcloud-Pfadschema; false = generischer WebDAV-Server oder SMB (Basis-URL = Wurzel). */
     public boolean isNextcloudServer() {
-        return !SERVER_WEBDAV.equals(getServerType());
+        return SERVER_NEXTCLOUD.equals(getServerType());
+    }
+
+    public boolean isSmbServer() {
+        return SERVER_SMB.equals(getServerType());
     }
 
     /** Relativer Nextcloud-Pfad zur .kmy inkl. Dateiname, z. B. {@code KMyMoney/gdyx.kmy}. */
@@ -213,10 +257,20 @@ public class SettingsStore {
                 .putString(KEY_DEFAULT_ACCOUNT, defaultAccount == null ? "" : defaultAccount.trim())
                 .putString(KEY_EXPORT_MODE, MODE_KMY.equals(exportMode) ? MODE_KMY : MODE_CSV)
                 .putString(KEY_KMY_PATH, kmyPath == null ? "" : kmyPath.trim())
-                .putString(KEY_SERVER_TYPE, SERVER_WEBDAV.equals(serverType) ? SERVER_WEBDAV : SERVER_NEXTCLOUD)
+                .putString(KEY_SERVER_TYPE, normalizeServerType(serverType))
                 .apply();
         if (password != null && !password.isEmpty()) {
             secret.edit().putString(KEY_PASSWORD, password).apply();
         }
+    }
+
+    private static String normalizeServerType(String serverType) {
+        if (SERVER_WEBDAV.equals(serverType)) {
+            return SERVER_WEBDAV;
+        }
+        if (SERVER_SMB.equals(serverType)) {
+            return SERVER_SMB;
+        }
+        return SERVER_NEXTCLOUD;
     }
 }

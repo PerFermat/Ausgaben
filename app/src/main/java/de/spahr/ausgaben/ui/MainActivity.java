@@ -41,7 +41,7 @@ import de.spahr.ausgaben.export.ExportCoordinator;
 import de.spahr.ausgaben.export.KmyDocument;
 import de.spahr.ausgaben.export.KmyExportCoordinator;
 import de.spahr.ausgaben.export.KmyImporter;
-import de.spahr.ausgaben.net.NextcloudUploader;
+import de.spahr.ausgaben.net.RemoteStorage;
 import de.spahr.ausgaben.settings.PlacesStore;
 import de.spahr.ausgaben.settings.SettingsStore;
 import de.spahr.ausgaben.voice.VoiceInput;
@@ -898,7 +898,7 @@ public class MainActivity extends LocalizedActivity {
             return;
         }
         // Ohne Nextcloud-Config lokal exportieren; ggf. zuerst Zielordner wählen.
-        if (!settings.hasNextcloudConfig() && settings.getLocalExportTree().isEmpty()) {
+        if (!settings.hasRemoteConfig() && settings.getLocalExportTree().isEmpty()) {
             Toast.makeText(this, R.string.choose_export_folder, Toast.LENGTH_LONG).show();
             exportTreeLauncher.launch(null);
             return;
@@ -928,7 +928,7 @@ public class MainActivity extends LocalizedActivity {
 
     private void runExport() {
         Toast.makeText(this, R.string.export_running, Toast.LENGTH_SHORT).show();
-        String tree = settings.hasNextcloudConfig() ? null : settings.getLocalExportTree();
+        String tree = settings.hasRemoteConfig() ? null : settings.getLocalExportTree();
         new ExportCoordinator(this, repository, settings, tree).exportUnexported((message, refreshNeeded) -> {
             Toast.makeText(this, message, Toast.LENGTH_LONG).show();
             if (refreshNeeded) {
@@ -945,7 +945,7 @@ public class MainActivity extends LocalizedActivity {
             startCsvImport();
             return;
         }
-        if (!settings.hasNextcloudConfig()) {
+        if (!settings.hasRemoteConfig()) {
             Toast.makeText(this, R.string.export_no_config, Toast.LENGTH_LONG).show();
             return;
         }
@@ -973,7 +973,7 @@ public class MainActivity extends LocalizedActivity {
             startCsvImport();
             return;
         }
-        if (!settings.hasNextcloudConfig()) {
+        if (!settings.hasRemoteConfig()) {
             Toast.makeText(this, R.string.export_no_config, Toast.LENGTH_LONG).show();
             return;
         }
@@ -985,8 +985,7 @@ public class MainActivity extends LocalizedActivity {
         showProgress(getString(R.string.progress_download));
         new Thread(() -> {
             try {
-                byte[] raw = new NextcloudUploader(settings.isNextcloudServer()).downloadBytes(settings.getUrl(),
-                        settings.getUser(), settings.getPassword(), folderOf(path), fileOf(path));
+                byte[] raw = RemoteStorage.from(settings).downloadBytes(folderOf(path), fileOf(path));
                 KmyImporter importer = new KmyImporter(
                         new KmyDocument(raw, getApplicationContext()), getApplicationContext());
                 runOnUiThread(() -> {
@@ -1025,8 +1024,7 @@ public class MainActivity extends LocalizedActivity {
             KmyImporter importer;
             try {
                 String path = settings.getKmyPath();
-                byte[] raw = new NextcloudUploader(settings.isNextcloudServer()).downloadBytes(settings.getUrl(),
-                        settings.getUser(), settings.getPassword(), folderOf(path), fileOf(path));
+                byte[] raw = RemoteStorage.from(settings).downloadBytes(folderOf(path), fileOf(path));
                 importer = new KmyImporter(
                         new KmyDocument(raw, getApplicationContext()), getApplicationContext());
             } catch (Exception e) {
@@ -1097,7 +1095,7 @@ public class MainActivity extends LocalizedActivity {
     // ---- CSV-Import (Nextcloud-Liste oder lokaler Picker) ----
 
     private void startCsvImport() {
-        if (settings.hasNextcloudConfig()) {
+        if (settings.hasRemoteConfig()) {
             loadNextcloudFileList();
         } else {
             importLauncher.launch(new String[]{
@@ -1155,9 +1153,8 @@ public class MainActivity extends LocalizedActivity {
         Toast.makeText(this, R.string.loading_files, Toast.LENGTH_SHORT).show();
         new Thread(() -> {
             try {
-                List<String> files = new NextcloudUploader(settings.isNextcloudServer()).listCsvFiles(
-                        settings.getUrl(), settings.getUser(), settings.getPassword(),
-                        settings.getImportFolder());
+                List<String> files = RemoteStorage.from(settings).listFiles(
+                        settings.getImportFolder(), "csv");
                 runOnUiThread(() -> {
                     if (files.isEmpty()) {
                         Toast.makeText(this, R.string.no_files, Toast.LENGTH_LONG).show();
@@ -1185,8 +1182,7 @@ public class MainActivity extends LocalizedActivity {
     private void downloadAndImport(String fileName) {
         new Thread(() -> {
             try {
-                String content = new NextcloudUploader(settings.isNextcloudServer()).downloadText(
-                        settings.getUrl(), settings.getUser(), settings.getPassword(),
+                String content = RemoteStorage.from(settings).downloadText(
                         settings.getImportFolder(), fileName);
                 processImport(content);
             } catch (Exception e) {

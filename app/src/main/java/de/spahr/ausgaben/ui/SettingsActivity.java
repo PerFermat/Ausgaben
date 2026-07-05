@@ -33,6 +33,7 @@ import java.io.OutputStream;
 import java.nio.charset.StandardCharsets;
 import java.text.SimpleDateFormat;
 import java.util.Date;
+import java.util.List;
 import java.util.Locale;
 
 import de.spahr.ausgaben.AusgabenApp;
@@ -40,6 +41,7 @@ import de.spahr.ausgaben.R;
 import de.spahr.ausgaben.db.AppDatabase;
 import de.spahr.ausgaben.db.Repository;
 import de.spahr.ausgaben.export.ExportCoordinator;
+import de.spahr.ausgaben.net.RemoteStorage;
 import de.spahr.ausgaben.security.BiometricAuth;
 import de.spahr.ausgaben.settings.PlacesStore;
 import de.spahr.ausgaben.settings.SettingsStore;
@@ -59,6 +61,8 @@ public class SettingsActivity extends LocalizedActivity {
     private TextInputEditText editUrl;
     private TextInputEditText editUser;
     private TextInputEditText editPassword;
+    private TextInputLayout urlLayout;
+    private TextInputLayout userLayout;
     private TextInputLayout passwordLayout;
     private TextInputEditText editFolder;
     private TextInputEditText editImportFolder;
@@ -93,6 +97,8 @@ public class SettingsActivity extends LocalizedActivity {
         editUrl = findViewById(R.id.editUrl);
         editUser = findViewById(R.id.editUser);
         editPassword = findViewById(R.id.editPassword);
+        urlLayout = findViewById(R.id.urlLayout);
+        userLayout = findViewById(R.id.userLayout);
         passwordLayout = findViewById(R.id.passwordLayout);
         editFolder = findViewById(R.id.editFolder);
         editImportFolder = findViewById(R.id.editImportFolder);
@@ -147,6 +153,9 @@ public class SettingsActivity extends LocalizedActivity {
 
         registerLaunchers();
 
+        ((MaterialButton) findViewById(R.id.btnTestConnection)).setOnClickListener(v -> testConnection());
+        ((MaterialButton) findViewById(R.id.btnBrowseKmy)).setOnClickListener(v -> browseKmy());
+
         MaterialButton btnSave = findViewById(R.id.btnSaveSettings);
         btnSave.setOnClickListener(v -> save());
         ((MaterialButton) findViewById(R.id.btnExportAll)).setOnClickListener(v -> exportAll());
@@ -186,17 +195,102 @@ public class SettingsActivity extends LocalizedActivity {
 
     private String selectedServerType = SettingsStore.SERVER_NEXTCLOUD;
 
-    /** Dropdown „Server-Typ": Nextcloud (Pfadschema) oder generischer WebDAV (Basis-URL = Wurzel). */
+    /** Dropdown „Server-Typ": Nextcloud (Pfadschema), generischer WebDAV oder SMB/Samba-Freigabe. */
     private void setupServerType() {
         String ncLabel = getString(R.string.server_type_nextcloud);
         String davLabel = getString(R.string.server_type_webdav);
+        String smbLabel = getString(R.string.server_type_smb);
         editServerType.setAdapter(new ArrayAdapter<>(this, android.R.layout.simple_list_item_1,
-                new String[]{ncLabel, davLabel}));
+                new String[]{ncLabel, davLabel, smbLabel}));
         selectedServerType = settings.getServerType();
-        editServerType.setText(
-                SettingsStore.SERVER_WEBDAV.equals(selectedServerType) ? davLabel : ncLabel, false);
-        editServerType.setOnItemClickListener((parent, view, position, id) ->
-                selectedServerType = position == 1 ? SettingsStore.SERVER_WEBDAV : SettingsStore.SERVER_NEXTCLOUD);
+        editServerType.setText(labelForServerType(ncLabel, davLabel, smbLabel), false);
+        applyServerTypeHints();
+        editServerType.setOnItemClickListener((parent, view, position, id) -> {
+            selectedServerType = position == 1 ? SettingsStore.SERVER_WEBDAV
+                    : position == 2 ? SettingsStore.SERVER_SMB : SettingsStore.SERVER_NEXTCLOUD;
+            applyServerTypeHints();
+        });
+    }
+
+    private String labelForServerType(String nc, String dav, String smb) {
+        if (SettingsStore.SERVER_WEBDAV.equals(selectedServerType)) {
+            return dav;
+        }
+        if (SettingsStore.SERVER_SMB.equals(selectedServerType)) {
+            return smb;
+        }
+        return nc;
+    }
+
+    /** Passt die URL-/Benutzer-Hinweise an den Server-Typ an (SMB nutzt smb://Host/Freigabe + Gast). */
+    private void applyServerTypeHints() {
+        boolean smb = SettingsStore.SERVER_SMB.equals(selectedServerType);
+        urlLayout.setHint(getString(smb ? R.string.smb_url_hint : R.string.nextcloud_url_hint));
+        userLayout.setHint(getString(smb ? R.string.smb_user_hint : R.string.nextcloud_user_hint));
+    }
+
+    /** Verbindung mit den aktuellen (auch ungespeicherten) Feldwerten testen. */
+    private void testConnection() {
+        final String serverType = selectedServerType;
+        final String url = textOf(editUrl);
+        final String user = textOf(editUser);
+        String pw = textOf(editPassword);
+        final String password = pw.isEmpty() ? settings.getPassword() : pw; // leer → gespeichertes nutzen
+        Toast.makeText(this, R.string.conn_testing, Toast.LENGTH_SHORT).show();
+        new Thread(() -> {
+            try {
+                RemoteStorage.from(serverType, url, user, password).testConnection();
+                runOnUiThread(() -> Toast.makeText(this, R.string.conn_ok, Toast.LENGTH_LONG).show());
+            } catch (Exception e) {
+                final String msg = e.getMessage() == null ? e.toString() : e.getMessage();
+                runOnUiThread(() -> Toast.makeText(this,
+                        getString(R.string.conn_failed, msg), Toast.LENGTH_LONG).show());
+            }
+        }).start();
+    }
+
+    /** Listet die .kmy-Dateien im Ordner des aktuellen kmy-Pfads und lässt eine auswählen. */
+    private void browseKmy() {
+        final String serverType = selectedServerType;
+        final String url = textOf(editUrl);
+        final String user = textOf(editUser);
+        String pw = textOf(editPassword);
+        final String password = pw.isEmpty() ? settings.getPassword() : pw;
+        final String folder = folderOf(textOf(editKmyPath));
+        Toast.makeText(this, R.string.loading_files, Toast.LENGTH_SHORT).show();
+        new Thread(() -> {
+            try {
+                List<String> files = RemoteStorage.from(serverType, url, user, password)
+                        .listFiles(folder, "kmy");
+                runOnUiThread(() -> {
+                    if (files.isEmpty()) {
+                        Toast.makeText(this, R.string.kmy_browse_none, Toast.LENGTH_LONG).show();
+                    } else {
+                        showKmyPick(folder, files);
+                    }
+                });
+            } catch (Exception e) {
+                final String msg = e.getMessage() == null ? e.toString() : e.getMessage();
+                runOnUiThread(() -> Toast.makeText(this,
+                        getString(R.string.conn_failed, msg), Toast.LENGTH_LONG).show());
+            }
+        }).start();
+    }
+
+    private void showKmyPick(String folder, List<String> files) {
+        String[] items = files.toArray(new String[0]);
+        new MaterialAlertDialogBuilder(this, R.style.ThemeOverlay_Ausgaben_Dialog)
+                .setTitle(R.string.kmy_browse)
+                .setItems(items, (d, w) ->
+                        editKmyPath.setText(folder.isEmpty() ? items[w] : folder + "/" + items[w]))
+                .setNegativeButton(R.string.cancel, null)
+                .show();
+    }
+
+    private static String folderOf(String path) {
+        String p = path == null ? "" : path.trim();
+        int slash = p.lastIndexOf('/');
+        return slash < 0 ? "" : p.substring(0, slash);
     }
 
     // ---- Orte (Bargeld-Bestände) ----
@@ -587,7 +681,7 @@ public class SettingsActivity extends LocalizedActivity {
     }
 
     private void exportAll() {
-        if (!settings.hasNextcloudConfig() && settings.getLocalExportTree().isEmpty()) {
+        if (!settings.hasRemoteConfig() && settings.getLocalExportTree().isEmpty()) {
             Toast.makeText(this, R.string.choose_export_folder, Toast.LENGTH_LONG).show();
             exportTreeLauncher.launch(null);
             return;
@@ -597,7 +691,7 @@ public class SettingsActivity extends LocalizedActivity {
 
     private void runExportAll() {
         Toast.makeText(this, R.string.export_all_running, Toast.LENGTH_SHORT).show();
-        String tree = settings.hasNextcloudConfig() ? null : settings.getLocalExportTree();
+        String tree = settings.hasRemoteConfig() ? null : settings.getLocalExportTree();
         new ExportCoordinator(this, repository, settings, tree).exportAll(
                 (message, refreshNeeded) -> Toast.makeText(this, message, Toast.LENGTH_LONG).show());
     }

@@ -220,12 +220,21 @@
     <string name="language_upload_done">Sprache „%1$s" geladen</string>
     <string name="language_upload_failed">Sprachdatei ungültig: %1$s</string>
     <string name="currency_hint">Währungskennzeichen (Standard)</string>
-    <string name="nextcloud_section">Nextcloud (WebDAV)</string>
+    <string name="nextcloud_section">Synchronisation (Nextcloud / WebDAV / SMB)</string>
     <string name="server_type_hint">Server-Typ</string>
     <string name="server_type_nextcloud">Nextcloud</string>
     <string name="server_type_webdav">WebDAV (generisch)</string>
+    <string name="server_type_smb">SMB/Samba</string>
     <string name="nextcloud_url_hint">Basis-URL (Nextcloud: https://cloud.example.com – WebDAV: vollständige DAV-URL)</string>
     <string name="nextcloud_user_hint">Benutzername</string>
+    <string name="smb_url_hint">SMB-Freigabe (smb://Host/Freigabe)</string>
+    <string name="smb_user_hint">Benutzer (optional, leer = Gast; Domäne als DOMÄNE\\Benutzer)</string>
+    <string name="conn_test">Verbindung testen</string>
+    <string name="conn_testing">Verbindung wird getestet…</string>
+    <string name="conn_ok">Verbindung erfolgreich</string>
+    <string name="conn_failed">Verbindung fehlgeschlagen: %1$s</string>
+    <string name="kmy_browse">.kmy auswählen</string>
+    <string name="kmy_browse_none">Keine .kmy-Datei gefunden</string>
     <string name="nextcloud_password_hint">App-Passwort</string>
     <string name="nextcloud_folder_hint">Zielordner (optional, z. B. Finanzen)</string>
     <string name="export_mode_section">Export-/Import-Format</string>

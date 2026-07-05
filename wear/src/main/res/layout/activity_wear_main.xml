@@ -158,6 +158,78 @@
                 android:layout_height="wrap_content"
                 android:layout_marginTop="12dp"
                 android:text="@string/wear_cancel" />
+
+            <!-- Nur im „Sprich jetzt"-Zustand: stille Zifferneingabe öffnen. -->
+            <ImageButton
+                android:id="@+id/btnNumberPad"
+                android:layout_width="40dp"
+                android:layout_height="40dp"
+                android:layout_marginTop="10dp"
+                android:background="@drawable/bg_circle"
+                android:backgroundTint="#455A64"
+                android:contentDescription="@string/number_entry"
+                android:scaleType="center"
+                android:src="@drawable/ic_dialpad"
+                android:visibility="gone" />
         </LinearLayout>
+
+        <!-- Zustand C: stille Zifferneingabe (Zahlenblock) -->
+        <ScrollView
+            android:id="@+id/numberView"
+            android:layout_width="match_parent"
+            android:layout_height="match_parent"
+            android:fillViewport="true"
+            android:visibility="gone">
+
+            <LinearLayout
+                android:layout_width="match_parent"
+                android:layout_height="wrap_content"
+                android:orientation="vertical"
+                android:gravity="center_horizontal"
+                android:padding="4dp">
+
+                <TextView
+                    android:id="@+id/numberDisplay"
+                    android:layout_width="match_parent"
+                    android:layout_height="wrap_content"
+                    android:gravity="center"
+                    android:minHeight="26dp"
+                    android:text="0"
+                    android:textColor="@android:color/white"
+                    android:textSize="20sp"
+                    android:textStyle="bold" />
+
+                <GridLayout
+                    android:layout_width="match_parent"
+                    android:layout_height="wrap_content"
+                    android:layout_marginTop="2dp"
+                    android:columnCount="3">
+
+                    <Button android:id="@+id/btnD1" style="@style/WearKey" android:text="1" />
+                    <Button android:id="@+id/btnD2" style="@style/WearKey" android:text="2" />
+                    <Button android:id="@+id/btnD3" style="@style/WearKey" android:text="3" />
+                    <Button android:id="@+id/btnD4" style="@style/WearKey" android:text="4" />
+                    <Button android:id="@+id/btnD5" style="@style/WearKey" android:text="5" />
+                    <Button android:id="@+id/btnD6" style="@style/WearKey" android:text="6" />
+                    <Button android:id="@+id/btnD7" style="@style/WearKey" android:text="7" />
+                    <Button android:id="@+id/btnD8" style="@style/WearKey" android:text="8" />
+                    <Button android:id="@+id/btnD9" style="@style/WearKey" android:text="9" />
+                    <Button android:id="@+id/btnComma" style="@style/WearKey" android:text="," />
+                    <Button android:id="@+id/btnD0" style="@style/WearKey" android:text="0" />
+                    <Button android:id="@+id/btnBack" style="@style/WearKey" android:text="⌫" />
+                </GridLayout>
+
+                <ImageButton
+                    android:id="@+id/btnEnter"
+                    android:layout_width="52dp"
+                    android:layout_height="40dp"
+                    android:layout_marginTop="4dp"
+                    android:background="@drawable/bg_circle"
+                    android:backgroundTint="@color/type_income"
+                    android:contentDescription="@string/wear_cancel"
+                    android:scaleType="center"
+                    android:src="@drawable/ic_check" />
+            </LinearLayout>
+        </ScrollView>
     </FrameLayout>
 </androidx.wear.widget.BoxInsetLayout>

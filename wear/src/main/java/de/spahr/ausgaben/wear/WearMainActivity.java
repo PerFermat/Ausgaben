@@ -12,6 +12,7 @@ import android.speech.RecognitionListener;
 import android.speech.RecognizerIntent;
 import android.speech.SpeechRecognizer;
 import android.view.View;
+import android.view.WindowManager;
 import android.widget.Button;
 import android.widget.TextView;
 
@@ -46,6 +47,12 @@ public class WearMainActivity extends WearLocalizedActivity {
     private TextView confirmType;
     private TextView confirmText;
     private Button btnCancel;
+    private View btnNumberPad;
+    private View numberView;
+    private TextView numberDisplay;
+    /** Aktuell eingegebener Betrag (stille Zifferneingabe). */
+    private final StringBuilder amountInput = new StringBuilder();
+    private boolean numberEntryActive;
 
     private String pendingType = WearPaths.TYPE_EXPENSE;
     private String confirmEntryId;
@@ -78,6 +85,21 @@ public class WearMainActivity extends WearLocalizedActivity {
         findViewById(R.id.btnTransfer).setOnClickListener(v -> chooseType(WearPaths.TYPE_TRANSFER));
         findViewById(R.id.btnExpense).setOnClickListener(v -> chooseType(WearPaths.TYPE_EXPENSE));
         btnCancel.setOnClickListener(v -> cancelConfirm());
+
+        // Stille Zifferneingabe (Zahlenblock).
+        btnNumberPad = findViewById(R.id.btnNumberPad);
+        numberView = findViewById(R.id.numberView);
+        numberDisplay = findViewById(R.id.numberDisplay);
+        btnNumberPad.setOnClickListener(v -> showNumberPad());
+        int[] digitIds = {R.id.btnD0, R.id.btnD1, R.id.btnD2, R.id.btnD3, R.id.btnD4,
+                R.id.btnD5, R.id.btnD6, R.id.btnD7, R.id.btnD8, R.id.btnD9};
+        for (int id : digitIds) {
+            Button b = findViewById(id);
+            b.setOnClickListener(v -> appendDigit(((Button) v).getText().toString()));
+        }
+        findViewById(R.id.btnComma).setOnClickListener(v -> appendComma());
+        findViewById(R.id.btnBack).setOnClickListener(v -> backspace());
+        findViewById(R.id.btnEnter).setOnClickListener(v -> submitNumber());
 
         permissionLauncher = registerForActivityResult(
                 new ActivityResultContracts.RequestPermission(), granted -> {
@@ -154,8 +176,9 @@ public class WearMainActivity extends WearLocalizedActivity {
                 ArrayList<String> list = results == null ? null
                         : results.getStringArrayList(SpeechRecognizer.RESULTS_RECOGNITION);
                 destroySpeech();
-                if (list != null && !list.isEmpty() && !list.get(0).trim().isEmpty()) {
-                    onRecognized(list.get(0));
+                String best = pickBest(list);
+                if (best != null) {
+                    onRecognized(best);
                 } else {
                     onListenError();
                 }
@@ -172,6 +195,8 @@ public class WearMainActivity extends WearLocalizedActivity {
         intent.putExtra(RecognizerIntent.EXTRA_LANGUAGE_MODEL, RecognizerIntent.LANGUAGE_MODEL_FREE_FORM);
         intent.putExtra(RecognizerIntent.EXTRA_LANGUAGE, "de-DE");
         intent.putExtra(RecognizerIntent.EXTRA_CALLING_PACKAGE, getPackageName());
+        // Mehrere Alternativen anfordern (die erste mit einer Zahl wird bevorzugt).
+        intent.putExtra(RecognizerIntent.EXTRA_MAX_RESULTS, 5);
         try {
             speech.startListening(intent);
         } catch (Exception e) {
@@ -185,6 +210,21 @@ public class WearMainActivity extends WearLocalizedActivity {
         showStatus(getString(R.string.wear_not_understood));
     }
 
+    /** Bevorzugt die erste Erkennungs-Alternative mit einer Zahl (sonst die beste), damit ein Betrag nicht
+     * verloren geht, falls das Top-Ergebnis keine Ziffer enthält. */
+    private String pickBest(ArrayList<String> list) {
+        if (list == null || list.isEmpty()) {
+            return null;
+        }
+        for (String s : list) {
+            if (s != null && s.matches(".*\\d.*")) {
+                return s.trim();
+            }
+        }
+        String first = list.get(0) == null ? "" : list.get(0).trim();
+        return first.isEmpty() ? null : first;
+    }
+
     /** „Höre zu"-Zustand: gleiche Fläche wie die Bestätigung, aber ohne Abbrechen/Countdown. */
     private void showListening() {
         typeSelection.setVisibility(View.GONE);
@@ -193,6 +233,90 @@ public class WearMainActivity extends WearLocalizedActivity {
         confirmType.setTextColor(typeColor(pendingType));
         confirmText.setText(R.string.wear_listening);
         btnCancel.setVisibility(View.GONE);
+        numberView.setVisibility(View.GONE);
+        btnNumberPad.setVisibility(View.VISIBLE); // stille Zifferneingabe anbieten
+        keepScreenOn(true);
+    }
+
+    /** Display während der aktiven Erfassung (Zuhören / 10-s-Timer / Zahlenblock) wach halten – kein
+     * Abdunkeln/Ambient-Overlay der Uhr. */
+    private void keepScreenOn(boolean on) {
+        if (on) {
+            getWindow().addFlags(WindowManager.LayoutParams.FLAG_KEEP_SCREEN_ON);
+        } else {
+            getWindow().clearFlags(WindowManager.LayoutParams.FLAG_KEEP_SCREEN_ON);
+        }
+    }
+
+    /** Zeigt den Zahlenblock (stille Eingabe); Art ist bereits gewählt. */
+    private void showNumberPad() {
+        stopTimer();
+        destroySpeech();
+        numberEntryActive = true;
+        amountInput.setLength(0);
+        updateNumberDisplay();
+        typeSelection.setVisibility(View.GONE);
+        confirmView.setVisibility(View.GONE);
+        numberView.setVisibility(View.VISIBLE);
+        keepScreenOn(true);
+    }
+
+    private void appendDigit(String d) {
+        int comma = amountInput.indexOf(",");
+        if (comma >= 0 && amountInput.length() - comma - 1 >= 2) {
+            return; // max. 2 Nachkommastellen
+        }
+        if (amountInput.length() >= 9) {
+            return;
+        }
+        amountInput.append(d);
+        updateNumberDisplay();
+    }
+
+    private void appendComma() {
+        if (amountInput.indexOf(",") >= 0) {
+            return;
+        }
+        if (amountInput.length() == 0) {
+            amountInput.append("0");
+        }
+        amountInput.append(",");
+        updateNumberDisplay();
+    }
+
+    private void backspace() {
+        if (amountInput.length() > 0) {
+            amountInput.deleteCharAt(amountInput.length() - 1);
+        }
+        updateNumberDisplay();
+    }
+
+    private void updateNumberDisplay() {
+        numberDisplay.setText(amountInput.length() == 0 ? "0" : amountInput.toString());
+    }
+
+    /** Enter: Betrag als stille Buchung ablegen (Art = gewählter Typ) und übertragen. */
+    private void submitNumber() {
+        String amt = amountInput.toString();
+        if (amt.endsWith(",")) {
+            amt = amt.substring(0, amt.length() - 1);
+        }
+        double val;
+        try {
+            val = Double.parseDouble(amt.replace(",", "."));
+        } catch (NumberFormatException e) {
+            return;
+        }
+        if (val <= 0) {
+            return;
+        }
+        long now = System.currentTimeMillis();
+        String gps = hasLocationPermission() ? location.currentCoordinates() : null;
+        // text = nur Betrag → das Phone parst leeren Empfänger + Betrag → Auflösung per Standort.
+        store.add(new PendingEntry(UUID.randomUUID().toString(), amt, pendingType, gps, now, now));
+        numberEntryActive = false;
+        WearSync.syncPending(this);
+        showTypeSelection();
     }
 
     /** Erkannter Text → sofort lokal speichern (mit 10-s-Sperre), Bestätigung mit Countdown zeigen. */
@@ -205,6 +329,7 @@ public class WearMainActivity extends WearLocalizedActivity {
 
         confirmText.setText(text);
         btnCancel.setVisibility(View.VISIBLE);
+        btnNumberPad.setVisibility(View.GONE);
 
         stopTimer();
         confirmTimer = new CountDownTimer(CANCEL_WINDOW_MS, 1000) {
@@ -256,8 +381,21 @@ public class WearMainActivity extends WearLocalizedActivity {
 
     private void showTypeSelection() {
         confirmView.setVisibility(View.GONE);
+        numberView.setVisibility(View.GONE);
+        numberEntryActive = false;
+        keepScreenOn(false);
         typeSelection.setVisibility(View.VISIBLE);
         updateStatus();
+    }
+
+    @Override
+    public void onBackPressed() {
+        // Aus dem Zahlenblock zurück zur Typauswahl (statt die App zu verlassen).
+        if (numberEntryActive) {
+            showTypeSelection();
+            return;
+        }
+        super.onBackPressed();
     }
 
     @Override
@@ -269,8 +407,8 @@ public class WearMainActivity extends WearLocalizedActivity {
             location.start();
         }
         WearSync.syncPending(this);
-        // Nicht mitten in Aufnahme/Bestätigung zurücksetzen; sonst Typauswahl zeigen.
-        if (confirmTimer == null && speech == null) {
+        // Nicht mitten in Aufnahme/Bestätigung/Zifferneingabe zurücksetzen; sonst Typauswahl zeigen.
+        if (confirmTimer == null && speech == null && !numberEntryActive) {
             showTypeSelection();
         }
     }
@@ -285,6 +423,7 @@ public class WearMainActivity extends WearLocalizedActivity {
         // App verlassen zählt nicht als Abbrechen → Eintrag bleibt gespeichert und wird später gesendet.
         stopTimer();
         destroySpeech();
+        keepScreenOn(false);
     }
 
     private boolean hasLocationPermission() {

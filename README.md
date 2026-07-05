@@ -51,6 +51,11 @@ Dies ist eine Android-App (Java), die als mobile Ergänzung zu KMyMoney entwicke
   z. B. „Frisör 20 €", wird die zuletzt passende Buchung als Vorlage geöffnet (Empfänger, Konto,
   Kategorie(n), Notiz, Buchungsart) – mit heutigem Datum und dem gesprochenen Betrag. Die Empfängersuche
   ist unscharf (findet „Frisör Frank" auch bei „Friseur").
+- **Nur den Betrag erfassen (Standort-Auflösung)**: sagt man nur einen Betrag (oder tippt ihn über das
+  **Ziffern-Symbol** unten still ein), sucht die App am aktuellen Standort (100 m) eine passende Vorlage –
+  in den bestehenden Buchungen und im Alias-Verzeichnis (Reihenfolge: bevorzugte Aliase → Buchungen →
+  übrige Aliase) – und übernimmt deren Daten. Aliase erhalten ihren Standort automatisch, wenn sie aus
+  einer Buchung gelernt werden. Ohne Treffer wird nur der Betrag übernommen.
 - **Alias-Namen (gelernte Zuordnungen)**: ändert man beim Speichern den per Sprache erkannten (oder beim
   Bearbeiten den bestehenden) Empfänger, fragt die App, ob sie sich die Zuordnung als Alias merken soll.
   Dabei wird der **Kontext der Buchung mitgespeichert** – Buchungsart, Konto und Kategorie(n) bzw.
@@ -117,9 +122,14 @@ Parser wie am Phone) und die Buchungsanlage passieren auf dem Smartphone.
   mit „Abbrechen" angezeigt und – falls nicht abgebrochen – ohne weitere Aktion verarbeitet. Der Typ
   wird mitübertragen und auf dem Phone erzwungen. Ist das Phone offline, steht unter den Knöpfen
   „x Buchungen noch nicht übertragen".
-- **Offline & Sync**: Die Übertragung läuft **vollautomatisch** über die Wear Data Layer API
-  (`MessageClient`). Ist das Phone nicht erreichbar, bleibt der Eintrag PENDING und wird bei
-  Wiederverbindung automatisch erneut gesendet – ohne weitere Nutzeraktion auf Uhr oder Phone.
+- **Stille Zifferneingabe**: auf dem „Sprich jetzt"-Schirm gibt es unten ein **Ziffern-Symbol** →
+  Zahlenblock (0–9 + Komma, Rücktaste, Enter, oben die eingegebene Zahl). So lässt sich eine Buchung
+  **lautlos** erfassen; der Betrag wird am Phone über den aktuellen Standort aufgelöst (siehe „Nur den
+  Betrag erfassen").
+- **Offline & Sync**: Die Übertragung läuft **vollautomatisch** über die Wear Data Layer API als
+  **DataItem** (`DataClient`). Ist das Phone nicht erreichbar, bleibt der Eintrag PENDING; der Data Layer
+  stellt ihn bei Wiederverbindung automatisch zu (ohne dass die Uhr wach bleiben oder pollen muss). Das
+  Phone verarbeitet ihn und löscht den DataItem – das bestätigt der Uhr die Übertragung.
 - **Kein Verlust / keine Dopplung**: Jeder Eintrag hat eine eindeutige ID. Das Phone verarbeitet jede ID
   nur einmal und bestätigt den Empfang (ACK); erst danach entfernt die Uhr den Eintrag.
 
@@ -152,7 +162,7 @@ Datum;Empfänger;Konto;Typ;Betrag;Notiz;Kategorie
 
 - Java, Gradle 8.9 / AGP 8.7.3, `minSdk 26` (`:app`) bzw. `minSdk 30` (`:wear`), `compileSdk 34`.
 - Module: `:app` (Phone) und `:wear` (Wear OS).
-- [Room](https://developer.android.com/training/data-storage/room) (SQLite, DB-Version 12), OkHttp
+- [Room](https://developer.android.com/training/data-storage/room) (SQLite, DB-Version 13), OkHttp
   (WebDAV), [MPAndroidChart](https://github.com/PhilJay/MPAndroidChart),
   [androidx.security](https://developer.android.com/jetpack/androidx/releases/security)
   (verschlüsselte Prefs), [androidx.biometric](https://developer.android.com/jetpack/androidx/releases/biometric),

@@ -11,4 +11,5 @@
     <string name="wear_no_mic">Mikrofon-Berechtigung nötig</string>
     <string name="wear_no_recognizer">Keine Spracherkennung verfügbar</string>
     <string name="wear_pending">%d Buchungen noch nicht übertragen</string>
+    <string name="number_entry">Betrag per Ziffern</string>
 </resources>

@@ -116,6 +116,10 @@ public class MainActivity extends LocalizedActivity {
     private ActivityResultLauncher<Uri> exportTreeLauncher;
     private ActivityResultLauncher<String[]> importLauncher;
     private ActivityResultLauncher<Intent> voiceLauncher;
+    private ActivityResultLauncher<String> locationPermissionLauncher;
+
+    /** Aktueller Standort für die Betrag-only-Auflösung (rein lokal, nur Koordinaten). */
+    private de.spahr.ausgaben.location.LocationTagger locationTagger;
 
     @Override
     protected void onCreate(Bundle savedInstanceState) {
@@ -205,6 +209,18 @@ public class MainActivity extends LocalizedActivity {
             return true;
         });
 
+        // Ziffern-Symbol: stille Betrag-Eingabe (ohne Mikrofon) → Auflösung per Standort.
+        findViewById(R.id.fabNumber).setOnClickListener(v -> showNumberEntry());
+
+        // Standort für die Betrag-only-Auflösung (nur Koordinaten, rein lokal – wie im Editor).
+        locationTagger = new de.spahr.ausgaben.location.LocationTagger(this);
+        locationPermissionLauncher = registerForActivityResult(
+                new ActivityResultContracts.RequestPermission(), granted -> {
+                    if (granted) {
+                        locationTagger.start();
+                    }
+                });
+
         exportTreeLauncher = registerForActivityResult(
                 new ActivityResultContracts.OpenDocumentTree(), uri -> {
                     if (uri != null) {
@@ -227,7 +243,7 @@ public class MainActivity extends LocalizedActivity {
                         java.util.ArrayList<String> spoken = result.getData()
                                 .getStringArrayListExtra(android.speech.RecognizerIntent.EXTRA_RESULTS);
                         if (spoken != null && !spoken.isEmpty()) {
-                            handleVoiceResult(spoken.get(0));
+                            handleVoiceResult(pickBestSpoken(spoken));
                             return;
                         }
                     }
@@ -257,6 +273,9 @@ public class MainActivity extends LocalizedActivity {
                         de.spahr.ausgaben.wear.ExpenseWearListenerService.ACTION_BOOKINGS_CHANGED),
                 androidx.core.content.ContextCompat.RECEIVER_NOT_EXPORTED);
         de.spahr.ausgaben.settings.Currencies.refresh(this);
+        if (locationTagger != null && hasLocationPermission()) {
+            locationTagger.start();
+        }
         refreshBookings();
     }
 
@@ -267,6 +286,9 @@ public class MainActivity extends LocalizedActivity {
             unregisterReceiver(bookingsChangedReceiver);
         } catch (IllegalArgumentException ignored) {
         }
+        if (locationTagger != null) {
+            locationTagger.stop();
+        }
     }
 
     // ---- Buchung per Sprache (Lang-Druck auf FAB) ----
@@ -276,11 +298,17 @@ public class MainActivity extends LocalizedActivity {
             Toast.makeText(this, R.string.voice_no_recognizer, Toast.LENGTH_LONG).show();
             return;
         }
+        // Standort für eine mögliche Betrag-only-Auflösung vorwärmen.
+        if (locationTagger != null && !hasLocationPermission()) {
+            locationPermissionLauncher.launch(android.Manifest.permission.ACCESS_FINE_LOCATION);
+        }
         Intent intent = new Intent(android.speech.RecognizerIntent.ACTION_RECOGNIZE_SPEECH);
         intent.putExtra(android.speech.RecognizerIntent.EXTRA_LANGUAGE_MODEL,
                 android.speech.RecognizerIntent.LANGUAGE_MODEL_FREE_FORM);
         intent.putExtra(android.speech.RecognizerIntent.EXTRA_LANGUAGE, "de-DE");
         intent.putExtra(android.speech.RecognizerIntent.EXTRA_PROMPT, getString(R.string.voice_prompt));
+        // Mehrere Alternativen anfordern (die erste mit lesbarem Betrag wird bevorzugt).
+        intent.putExtra(android.speech.RecognizerIntent.EXTRA_MAX_RESULTS, 5);
         try {
             voiceLauncher.launch(intent);
         } catch (android.content.ActivityNotFoundException e) {
@@ -288,33 +316,95 @@ public class MainActivity extends LocalizedActivity {
         }
     }
 
-    /** Zerlegt den gesprochenen Satz, sucht die passende Vorlage und öffnet den vorbefüllten Editor. */
+    /**
+     * Zerlegt den gesprochenen Satz und öffnet den vorbefüllten Editor. Mit Empfänger wird über
+     * Aliase/Buchungen aufgelöst; bei <b>reinem Betrag</b> über den aktuellen Standort (100 m).
+     */
     private void handleVoiceResult(String spoken) {
         VoiceInput.Result parsed = VoiceInput.parse(spoken);
+        final long amount = parsed.amountCents == null ? -1 : parsed.amountCents;
         if (parsed.payee.isEmpty()) {
-            Toast.makeText(this, R.string.voice_not_understood, Toast.LENGTH_SHORT).show();
+            if (amount <= 0) {
+                Toast.makeText(this, R.string.voice_not_understood, Toast.LENGTH_SHORT).show();
+                return;
+            }
+            // Nur Betrag → per Standort auflösen (kein Treffer → Editor nur mit Betrag).
+            String coords = locationTagger != null ? locationTagger.currentCoordinates() : null;
+            repository.resolveVoiceByGps(coords, res -> openVoiceEditor(res, amount, ""));
             return;
         }
-        final long amount = parsed.amountCents == null ? -1 : parsed.amountCents;
-        repository.resolveVoice(parsed.payee, res -> {
-            Intent i = new Intent(this, BookingEditActivity.class);
-            if (res.booking != null) {
-                i.putExtra(BookingEditActivity.EXTRA_TEMPLATE_BOOKING_ID, res.booking.id);
-            } else {
+        repository.resolveVoice(parsed.payee, res -> openVoiceEditor(res, amount, parsed.payee));
+    }
+
+    /** Wählt aus den Erkennungs-Alternativen die erste, aus der ein Betrag lesbar ist (sonst die beste),
+     * damit ein Betrag nicht verloren geht, falls das Top-Ergebnis keine Zahl enthält. */
+    private String pickBestSpoken(java.util.List<String> list) {
+        for (String s : list) {
+            if (s != null && VoiceInput.parse(s).amountCents != null) {
+                return s;
+            }
+        }
+        return list.get(0);
+    }
+
+    /** Öffnet den Editor vorbelegt aus einer Auflösung (Vorlage/Alias) + Betrag. */
+    private void openVoiceEditor(Repository.VoiceResolution res, long amount, String spokenPayee) {
+        Intent i = new Intent(this, BookingEditActivity.class);
+        if (res.booking != null) {
+            i.putExtra(BookingEditActivity.EXTRA_TEMPLATE_BOOKING_ID, res.booking.id);
+        } else {
+            if (!res.payee.isEmpty()) {
                 i.putExtra(BookingEditActivity.EXTRA_PREFILL_PAYEE, res.payee);
-                // Ursprünglich Gesprochenes mitgeben: bei Änderung des Empfängers kann ein Alias gelernt
-                // werden (der Name wurde in den Buchungen nicht gefunden).
-                i.putExtra(BookingEditActivity.EXTRA_VOICE_SPOKEN_PAYEE, parsed.payee);
-                if (res.alias != null) {
-                    // Alias-Treffer: Buchung mit den hinterlegten Konto-/Kategorie-Daten vorbelegen.
-                    i.putExtra(BookingEditActivity.EXTRA_ALIAS_ID, res.alias.id);
-                }
+            }
+            if (res.alias != null) {
+                i.putExtra(BookingEditActivity.EXTRA_ALIAS_ID, res.alias.id);
+            }
+            if (spokenPayee != null && !spokenPayee.isEmpty()) {
+                // Ursprünglich Gesprochenes: bei Änderung des Empfängers kann ein Alias gelernt werden.
+                i.putExtra(BookingEditActivity.EXTRA_VOICE_SPOKEN_PAYEE, spokenPayee);
                 Toast.makeText(this, getString(R.string.voice_not_found, res.payee),
                         Toast.LENGTH_SHORT).show();
             }
-            i.putExtra(BookingEditActivity.EXTRA_VOICE_AMOUNT_CENTS, amount);
-            startActivity(i);
-        });
+        }
+        i.putExtra(BookingEditActivity.EXTRA_VOICE_AMOUNT_CENTS, amount);
+        startActivity(i);
+    }
+
+    /** Stille Zifferneingabe: Betrag eintippen → gleicher Betrag-only-Pfad (Auflösung per Standort). */
+    private void showNumberEntry() {
+        if (locationTagger != null && !hasLocationPermission()) {
+            locationPermissionLauncher.launch(android.Manifest.permission.ACCESS_FINE_LOCATION);
+        }
+        final com.google.android.material.textfield.TextInputEditText field =
+                new com.google.android.material.textfield.TextInputEditText(this);
+        field.setHint(R.string.amount_hint);
+        field.setInputType(android.text.InputType.TYPE_CLASS_NUMBER
+                | android.text.InputType.TYPE_NUMBER_FLAG_DECIMAL);
+        int pad = Math.round(16 * getResources().getDisplayMetrics().density);
+        android.widget.FrameLayout box = new android.widget.FrameLayout(this);
+        box.setPadding(pad, pad / 2, pad, 0);
+        box.addView(field);
+        new com.google.android.material.dialog.MaterialAlertDialogBuilder(
+                this, R.style.ThemeOverlay_Ausgaben_Dialog)
+                .setTitle(R.string.new_booking)
+                .setView(box)
+                .setPositiveButton(R.string.save, (d, w) -> {
+                    String amt = field.getText() == null ? "" : field.getText().toString().trim();
+                    if (!amt.isEmpty()) {
+                        handleVoiceResult(amt); // payee leer + Betrag → Betrag-only-Pfad
+                    }
+                })
+                .setNegativeButton(R.string.cancel, null)
+                .show();
+    }
+
+    private boolean hasLocationPermission() {
+        return androidx.core.content.ContextCompat.checkSelfPermission(this,
+                android.Manifest.permission.ACCESS_FINE_LOCATION)
+                == android.content.pm.PackageManager.PERMISSION_GRANTED
+                || androidx.core.content.ContextCompat.checkSelfPermission(this,
+                android.Manifest.permission.ACCESS_COARSE_LOCATION)
+                == android.content.pm.PackageManager.PERMISSION_GRANTED;
     }
 
     private void refreshBookings() {

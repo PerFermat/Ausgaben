@@ -38,6 +38,10 @@ public interface PayeeCorrectionDao {
     @Query("SELECT spoken FROM payee_correction WHERE preferred = :pref")
     List<String> getSpokenByPreferred(int pref);
 
+    /** Aliase (bevorzugt/übrig) mit hinterlegtem Standort – für die Betrag-only-Erfassung per GPS. */
+    @Query("SELECT * FROM payee_correction WHERE preferred = :pref AND (lat != 0 OR lon != 0)")
+    List<PayeeCorrection> getWithGps(int pref);
+
     @Query("DELETE FROM payee_correction")
     void deleteAll();
 }

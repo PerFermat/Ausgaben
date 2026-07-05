@@ -122,6 +122,7 @@
 
     <!-- New booking / edit -->
     <string name="new_booking">New booking</string>
+    <string name="number_entry">Enter amount by digits</string>
     <string name="date_confirm_title">Confirm date</string>
     <string name="date_confirm_message">The date is not today. Create booking for %1$s or for today?</string>
     <string name="date_use_given">For %1$s</string>

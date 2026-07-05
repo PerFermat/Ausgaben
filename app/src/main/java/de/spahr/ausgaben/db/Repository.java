@@ -356,10 +356,17 @@ public class Repository {
         long now = System.currentTimeMillis();
         String def = defaultAccount == null ? "" : defaultAccount.trim();
 
-        // Auflösung: bevorzugte Aliase → bestehende Buchung → übrige Aliase.
+        // Auflösung: mit Empfänger normal; bei reinem Betrag über den aktuellen Standort (100 m).
         Booking[] resolvedBooking = new Booking[1];
         PayeeCorrection[] resolvedAlias = new PayeeCorrection[1];
-        resolve(term, resolvedBooking, resolvedAlias);
+        if (term.isEmpty()) {
+            double[] ll = de.spahr.ausgaben.location.Geo.parse(coords);
+            if (ll != null) {
+                resolveGps(ll[0], ll[1], resolvedBooking, resolvedAlias);
+            }
+        } else {
+            resolve(term, resolvedBooking, resolvedAlias);
+        }
         Booking template = resolvedBooking[0];
         PayeeCorrection alias = resolvedAlias[0];
         if (alias != null) {
@@ -486,6 +493,58 @@ public class Repository {
         outAlias[0] = alias;
     }
 
+    /**
+     * Auflösung per Standort (Betrag-only): innerhalb {@link de.spahr.ausgaben.location.Geo#RADIUS_M} in
+     * strenger Reihenfolge – bevorzugte Aliase → Buchungen → übrige Aliase; der erste Tier mit Treffer
+     * gewinnt, innerhalb eines Tiers der nächstgelegene.
+     */
+    private void resolveGps(double lat, double lon, Booking[] outBooking, PayeeCorrection[] outAlias) {
+        PayeeCorrection a = nearestAlias(lat, lon, correctionDao.getWithGps(1));
+        if (a != null) {
+            outAlias[0] = a;
+            return;
+        }
+        Booking b = nearestBooking(lat, lon, bookingDao.getWithGpsNote());
+        if (b != null) {
+            outBooking[0] = b;
+            return;
+        }
+        outAlias[0] = nearestAlias(lat, lon, correctionDao.getWithGps(0));
+    }
+
+    private PayeeCorrection nearestAlias(double lat, double lon, List<PayeeCorrection> list) {
+        PayeeCorrection best = null;
+        double bestD = de.spahr.ausgaben.location.Geo.RADIUS_M;
+        for (PayeeCorrection a : list) {
+            if (a.lat == 0 && a.lon == 0) {
+                continue;
+            }
+            double d = de.spahr.ausgaben.location.Geo.distanceMeters(lat, lon, a.lat, a.lon);
+            if (d <= bestD) {
+                bestD = d;
+                best = a;
+            }
+        }
+        return best;
+    }
+
+    private Booking nearestBooking(double lat, double lon, List<Booking> list) {
+        Booking best = null;
+        double bestD = de.spahr.ausgaben.location.Geo.RADIUS_M;
+        for (Booking b : list) {
+            double[] ll = de.spahr.ausgaben.location.Geo.parse(b.note);
+            if (ll == null) {
+                continue;
+            }
+            double d = de.spahr.ausgaben.location.Geo.distanceMeters(lat, lon, ll[0], ll[1]);
+            if (d <= bestD) {
+                bestD = d;
+                best = b;
+            }
+        }
+        return best;
+    }
+
     /** Speichert bzw. ersetzt einen Alias (gleicher {@code spoken}). */
     public void saveAlias(final PayeeCorrection alias) {
         if (alias == null) {
@@ -588,6 +647,28 @@ public class Repository {
             PayeeCorrection[] alias = new PayeeCorrection[1];
             resolve(t, booking, alias);
             String payee = alias[0] != null ? alias[0].corrected : t;
+            final Booking fb = booking[0];
+            final PayeeCorrection fa = alias[0];
+            final String fp = payee;
+            mainHandler.post(() -> callback.onResult(new VoiceResolution(fb, fa, fp)));
+        });
+    }
+
+    /**
+     * Auflösung für die Betrag-only-Erfassung am Phone: sucht am Standort {@code coords} („lat, lon") eine
+     * Vorlage (bevorzugte Aliase → Buchungen → übrige Aliase, 100 m). Ohne Standort/Treffer bleibt alles
+     * leer → Editor wird nur mit dem Betrag geöffnet.
+     */
+    public void resolveVoiceByGps(final String coords, final Callback<VoiceResolution> callback) {
+        executor.execute(() -> {
+            Booking[] booking = new Booking[1];
+            PayeeCorrection[] alias = new PayeeCorrection[1];
+            double[] ll = de.spahr.ausgaben.location.Geo.parse(coords);
+            if (ll != null) {
+                resolveGps(ll[0], ll[1], booking, alias);
+            }
+            String payee = alias[0] != null ? alias[0].corrected
+                    : (booking[0] != null ? booking[0].payee : "");
             final Booking fb = booking[0];
             final PayeeCorrection fa = alias[0];
             final String fp = payee;

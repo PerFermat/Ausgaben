@@ -11,7 +11,7 @@ import androidx.sqlite.db.SupportSQLiteDatabase;
 
 @Database(entities = {Booking.class, BookingSplit.class, Account.class, Payee.class, PlaceEntry.class,
         PayeeCorrection.class, Translation.class, Language.class},
-        version = 12, exportSchema = false)
+        version = 13, exportSchema = false)
 public abstract class AppDatabase extends RoomDatabase {
 
     /** v1 → v2: Notiz-Spalte ergänzen (bestehende Buchungen bleiben erhalten). */
@@ -133,6 +133,15 @@ public abstract class AppDatabase extends RoomDatabase {
         }
     };
 
+    /** v12 → v13: Standort (lat/lon) am Alias für die Betrag-only-Erfassung per GPS. */
+    static final Migration MIGRATION_12_13 = new Migration(12, 13) {
+        @Override
+        public void migrate(@NonNull SupportSQLiteDatabase db) {
+            db.execSQL("ALTER TABLE payee_correction ADD COLUMN lat REAL NOT NULL DEFAULT 0");
+            db.execSQL("ALTER TABLE payee_correction ADD COLUMN lon REAL NOT NULL DEFAULT 0");
+        }
+    };
+
     public abstract BookingDao bookingDao();
 
     public abstract AccountDao accountDao();
@@ -157,7 +166,7 @@ public abstract class AppDatabase extends RoomDatabase {
                                     "ausgaben.db")
                             .addMigrations(MIGRATION_1_2, MIGRATION_2_3, MIGRATION_3_4, MIGRATION_4_5,
                                     MIGRATION_5_6, MIGRATION_6_7, MIGRATION_7_8, MIGRATION_8_9,
-                                    MIGRATION_9_10, MIGRATION_10_11, MIGRATION_11_12)
+                                    MIGRATION_9_10, MIGRATION_10_11, MIGRATION_11_12, MIGRATION_12_13)
                             .build();
                 }
             }

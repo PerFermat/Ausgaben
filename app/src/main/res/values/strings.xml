@@ -122,6 +122,7 @@
 
     <!-- Neue Buchung / Bearbeiten -->
     <string name="new_booking">Neue Buchung</string>
+    <string name="number_entry">Betrag per Ziffern</string>
     <string name="date_confirm_title">Datum bestätigen</string>
     <string name="date_confirm_message">Das Datum ist nicht heute. Buchung für %1$s oder für heute anlegen?</string>
     <string name="date_use_given">Für %1$s</string>

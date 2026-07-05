@@ -72,6 +72,14 @@ public class PayeeCorrection {
     @ColumnInfo(name = "type")
     public String type = "";
 
+    /** Standort des Alias (beim Lernen aus der Buchung übernommen); {@code 0/0} = keiner. Für die
+     * Betrag-only-Erfassung: passt der aktuelle Standort (≤100 m), liefert der Alias die Buchungsdaten. */
+    @ColumnInfo(name = "lat")
+    public double lat;
+
+    @ColumnInfo(name = "lon")
+    public double lon;
+
     public PayeeCorrection() {
     }
 

@@ -351,6 +351,12 @@ public class BookingEditActivity extends LocalizedActivity {
                 a.catExpense2 = c2;
             }
         }
+        // Standort der Buchung (aus der Notiz) übernehmen → Alias per GPS auffindbar (Betrag-only).
+        double[] ll = de.spahr.ausgaben.location.Geo.parse(textOf(editNote));
+        if (ll != null) {
+            a.lat = ll[0];
+            a.lon = ll[1];
+        }
         return a;
     }
 

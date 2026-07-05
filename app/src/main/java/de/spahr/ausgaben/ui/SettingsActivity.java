@@ -44,7 +44,7 @@ import de.spahr.ausgaben.security.BiometricAuth;
 import de.spahr.ausgaben.settings.PlacesStore;
 import de.spahr.ausgaben.settings.SettingsStore;
 
-public class SettingsActivity extends AppCompatActivity {
+public class SettingsActivity extends LocalizedActivity {
 
     private SettingsStore settings;
     private Repository repository;
@@ -69,9 +69,15 @@ public class SettingsActivity extends AppCompatActivity {
     private MaterialSwitch switchDarkMode;
     private MaterialSwitch switchAppLock;
 
+    private MaterialAutoCompleteTextView editLanguage;
+    private TextInputEditText editCurrency;
+    private java.util.List<de.spahr.ausgaben.db.Language> languages = new java.util.ArrayList<>();
+
     private ActivityResultLauncher<String> backupLauncher;
     private ActivityResultLauncher<String[]> restoreLauncher;
     private ActivityResultLauncher<Uri> exportTreeLauncher;
+    private ActivityResultLauncher<String> templateExportLauncher;
+    private ActivityResultLauncher<String[]> languageUploadLauncher;
 
     @Override
     protected void onCreate(Bundle savedInstanceState) {
@@ -126,6 +132,15 @@ public class SettingsActivity extends AppCompatActivity {
         switchAliasPrompt.setOnCheckedChangeListener((b, checked) -> settings.setAliasPromptEnabled(checked));
         ((MaterialButton) findViewById(R.id.btnManageAliases)).setOnClickListener(
                 v -> startActivity(new android.content.Intent(this, AliasActivity.class)));
+
+        editLanguage = findViewById(R.id.editLanguage);
+        editCurrency = findViewById(R.id.editCurrency);
+        editCurrency.setText(settings.getCurrency());
+        setupLanguages();
+        ((MaterialButton) findViewById(R.id.btnExportTemplate)).setOnClickListener(
+                v -> templateExportLauncher.launch("ausgaben-language-template.json"));
+        ((MaterialButton) findViewById(R.id.btnUploadLanguage)).setOnClickListener(
+                v -> languageUploadLauncher.launch(new String[]{"application/json"}));
 
         repository.getAccountNames(names -> editDefaultAccount.setAdapter(
                 new ArrayAdapter<>(this, android.R.layout.simple_list_item_1, names)));
@@ -346,6 +361,88 @@ public class SettingsActivity extends AppCompatActivity {
                         runExportAll();
                     }
                 });
+        templateExportLauncher = registerForActivityResult(
+                new ActivityResultContracts.CreateDocument("application/json"),
+                uri -> {
+                    if (uri != null) {
+                        writeTemplate(uri);
+                    }
+                });
+        languageUploadLauncher = registerForActivityResult(
+                new ActivityResultContracts.OpenDocument(),
+                uri -> {
+                    if (uri != null) {
+                        importLanguageFile(uri);
+                    }
+                });
+    }
+
+    // ---- Sprache ----
+
+    private void setupLanguages() {
+        repository.getLanguages(list -> {
+            languages = list;
+            String[] names = new String[list.size()];
+            String current = settings.getLanguage();
+            String currentName = "";
+            for (int i = 0; i < list.size(); i++) {
+                names[i] = list.get(i).name;
+                if (list.get(i).code.equals(current)) {
+                    currentName = list.get(i).name;
+                }
+            }
+            editLanguage.setAdapter(new ArrayAdapter<>(this, android.R.layout.simple_list_item_1, names));
+            if (!currentName.isEmpty()) {
+                editLanguage.setText(currentName, false);
+            }
+            editLanguage.setOnItemClickListener((parent, view, position, id) ->
+                    onLanguageChosen(languages.get(position).code));
+        });
+    }
+
+    private void onLanguageChosen(String code) {
+        if (code.equals(settings.getLanguage())) {
+            return;
+        }
+        settings.setLanguage(code);
+        de.spahr.ausgaben.i18n.LocaleManager.reload(this);
+        de.spahr.ausgaben.wear.LanguageSync.publish(this);
+        // Per-App-Sprache anwenden – erzeugt alle Activities neu (auch im Back-Stack).
+        AppCompatDelegate.setApplicationLocales(
+                androidx.core.os.LocaleListCompat.forLanguageTags(code));
+    }
+
+    private void writeTemplate(Uri uri) {
+        repository.buildLanguageTemplate(json -> {
+            if (json == null) {
+                return;
+            }
+            try (OutputStream out = getContentResolver().openOutputStream(uri)) {
+                if (out != null) {
+                    out.write(json.getBytes(StandardCharsets.UTF_8));
+                }
+                Toast.makeText(this, R.string.language_export_done, Toast.LENGTH_LONG).show();
+            } catch (Exception e) {
+                Toast.makeText(this, getString(R.string.language_upload_failed, String.valueOf(e.getMessage())),
+                        Toast.LENGTH_LONG).show();
+            }
+        });
+    }
+
+    private void importLanguageFile(Uri uri) {
+        try {
+            String json = new String(readBytes(uri), StandardCharsets.UTF_8);
+            de.spahr.ausgaben.i18n.TranslationIo.Parsed parsed =
+                    de.spahr.ausgaben.i18n.TranslationIo.parse(json);
+            repository.importLanguage(parsed, () -> {
+                Toast.makeText(this, getString(R.string.language_upload_done, parsed.name),
+                        Toast.LENGTH_LONG).show();
+                setupLanguages();
+            });
+        } catch (Exception e) {
+            Toast.makeText(this, getString(R.string.language_upload_failed, String.valueOf(e.getMessage())),
+                    Toast.LENGTH_LONG).show();
+        }
     }
 
     /** „Konto löschen": Konto wählen → bestätigen → alle Buchungen + Konto entfernen. */
@@ -482,6 +579,8 @@ public class SettingsActivity extends AppCompatActivity {
                 selectedServerType);
 
         repository.ensureAccount(defaultAccount);
+        settings.setCurrency(textOf(editCurrency));
+        de.spahr.ausgaben.settings.Currencies.refresh(this);
 
         Toast.makeText(this, R.string.settings_saved, Toast.LENGTH_SHORT).show();
         finish();

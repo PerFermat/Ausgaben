@@ -19,7 +19,7 @@ import de.spahr.ausgaben.db.PlaceEntry;
 import de.spahr.ausgaben.db.Repository;
 
 /** Zeigt den Verlauf (Bewegungen) eines Ortes mit laufendem Saldo. */
-public class PlaceHistoryActivity extends AppCompatActivity {
+public class PlaceHistoryActivity extends LocalizedActivity {
 
     public static final String EXTRA_PLACE = "place";
     public static final String EXTRA_ACCOUNT = "account";
@@ -36,6 +36,7 @@ public class PlaceHistoryActivity extends AppCompatActivity {
 
         String place = getIntent().getStringExtra(EXTRA_PLACE);
         String account = getIntent().getStringExtra(EXTRA_ACCOUNT);
+        currency = de.spahr.ausgaben.settings.Currencies.forAccount(account);
         toolbar.setTitle(place == null ? "" : place);
         if (account != null && !account.isEmpty()) {
             toolbar.setSubtitle(account);
@@ -96,10 +97,13 @@ public class PlaceHistoryActivity extends AppCompatActivity {
         }
     }
 
+    /** Währungskennzeichen des Kontos dieses Ort-Verlaufs. */
+    private String currency = de.spahr.ausgaben.settings.Currencies.getDefault();
+
     private String formatEuro(long signedCents) {
         long euros = signedCents / 100;
         long cents = Math.abs(signedCents % 100);
         String sign = (signedCents < 0 && euros == 0) ? "-" : "";
-        return sign + euros + "," + String.format(Locale.GERMANY, "%02d", cents) + " €";
+        return sign + euros + "," + String.format(Locale.GERMANY, "%02d", cents) + " " + currency;
     }
 }

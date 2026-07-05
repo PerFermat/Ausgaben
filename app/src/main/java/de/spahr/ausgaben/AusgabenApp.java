@@ -35,7 +35,13 @@ public class AusgabenApp extends Application implements Application.ActivityLife
     public void onCreate() {
         super.onCreate();
         settings = new SettingsStore(this);
+        // Sprache seeden (falls leer) und aktive Sprache laden, bevor die erste Activity Texte anfragt.
+        de.spahr.ausgaben.i18n.LocaleManager.init(this);
+        // Per-App-Sprache anwenden: nutzt die kompilierten Ressourcen (DE/EN) für die gesamte Oberfläche.
+        AppCompatDelegate.setApplicationLocales(
+                androidx.core.os.LocaleListCompat.forLanguageTags(settings.getLanguage()));
         AppCompatDelegate.setDefaultNightMode(settings.getNightMode());
+        de.spahr.ausgaben.settings.Currencies.refresh(this);
         registerActivityLifecycleCallbacks(this);
     }
 

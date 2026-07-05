@@ -19,29 +19,35 @@ public class CsvExporter {
 
     private static final String SEPARATOR = ";";
     private static final String NEWLINE = "\r\n";
-    private static final String[] HEADER =
-            {"Datum", "Empfänger", "Konto", "Typ", "Betrag", "Notiz", "Kategorie"};
 
     private final SimpleDateFormat dateFormat = new SimpleDateFormat("dd.MM.yyyy", Locale.GERMANY);
     private final SimpleDateFormat timestampFormat = new SimpleDateFormat("yyyyMMdd-HHmmss", Locale.GERMANY);
 
-    /** Baut den CSV-Inhalt für die übergebenen Buchungen, beginnend mit "Kontentyp:<Konto>" + Leerzeile. */
-    public String build(String account, List<Booking> bookings) {
-        return build(account, bookings, new HashMap<>());
-    }
-
     /**
-     * Wie {@link #build(String, List)}, aber Splitbuchungen (≥2 Kategorien in {@code splitsMap}) werden je
-     * Teil als eigene Zeile geschrieben; Umbuchungen bleiben (als zwei getrennte Buchungen) je eine Zeile.
+     * Baut den CSV-Inhalt (beginnend mit „Kontentyp:&lt;Konto&gt;" + Leerzeile). Splitbuchungen (≥2
+     * Kategorien in {@code splitsMap}) werden je Teil als eigene Zeile geschrieben; Umbuchungen bleiben
+     * (als zwei getrennte Buchungen) je eine Zeile. Kopfzeile/Typ in der Sprache aus {@code context}.
      */
     public String build(String account, List<Booking> bookings,
-                        Map<Long, List<BookingSplit>> splitsMap) {
+                        Map<Long, List<BookingSplit>> splitsMap, android.content.Context context) {
+        android.content.Context ctx = de.spahr.ausgaben.i18n.LocaleManager.localizedContext(context);
+        String[] header = {
+                ctx.getString(de.spahr.ausgaben.R.string.csv_col_date),
+                ctx.getString(de.spahr.ausgaben.R.string.csv_col_payee),
+                ctx.getString(de.spahr.ausgaben.R.string.csv_col_account),
+                ctx.getString(de.spahr.ausgaben.R.string.csv_col_type),
+                ctx.getString(de.spahr.ausgaben.R.string.csv_col_amount),
+                ctx.getString(de.spahr.ausgaben.R.string.csv_col_note),
+                ctx.getString(de.spahr.ausgaben.R.string.csv_col_category)};
+        String incomeLabel = ctx.getString(de.spahr.ausgaben.R.string.type_income);
+        String expenseLabel = ctx.getString(de.spahr.ausgaben.R.string.type_expense);
         StringBuilder sb = new StringBuilder();
-        sb.append("Kontentyp:").append(account == null ? "" : account).append(NEWLINE).append(NEWLINE);
-        sb.append(joinRow(HEADER)).append(NEWLINE);
+        sb.append(ctx.getString(de.spahr.ausgaben.R.string.csv_account_type_prefix))
+                .append(account == null ? "" : account).append(NEWLINE).append(NEWLINE);
+        sb.append(joinRow(header)).append(NEWLINE);
         for (Booking b : bookings) {
             String datum = dateFormat.format(new Date(b.createdAt));
-            String typ = b.isIncome ? "Einnahme" : "Ausgabe";
+            String typ = b.isIncome ? incomeLabel : expenseLabel;
             List<BookingSplit> parts = splitsMap.get(b.id);
             if (parts != null && parts.size() >= 2) {
                 for (BookingSplit p : parts) {

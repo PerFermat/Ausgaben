@@ -10,9 +10,5 @@
     <string name="wear_not_understood">Nicht verstanden</string>
     <string name="wear_no_mic">Mikrofon-Berechtigung nötig</string>
     <string name="wear_no_recognizer">Keine Spracherkennung verfügbar</string>
-
-    <plurals name="wear_pending">
-        <item quantity="one">%d Buchung noch nicht übertragen</item>
-        <item quantity="other">%d Buchungen noch nicht übertragen</item>
-    </plurals>
+    <string name="wear_pending">%d Buchungen noch nicht übertragen</string>
 </resources>

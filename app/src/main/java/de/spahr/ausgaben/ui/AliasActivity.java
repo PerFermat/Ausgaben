@@ -19,7 +19,7 @@ import de.spahr.ausgaben.db.PayeeCorrection;
 import de.spahr.ausgaben.db.Repository;
 
 /** Verwaltungsseite: listet alle gelernten Alias-Namen; Zeile antippen = bearbeiten, Button = neu. */
-public class AliasActivity extends AppCompatActivity {
+public class AliasActivity extends LocalizedActivity {
 
     private Repository repository;
     private LinearLayout container;

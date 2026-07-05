@@ -42,6 +42,8 @@ public class KmyDocument {
     private final Map<String, String> accountParent = new LinkedHashMap<>();
     /** id → KMyMoney-Kontotyp. */
     private final Map<String, Integer> accountType = new LinkedHashMap<>();
+    /** id → Währungskennzeichen (currency-Attribut, z. B. „EUR"). */
+    private final Map<String, String> accountCurrency = new LinkedHashMap<>();
 
     /** Anzeigename → id der wählbaren Konten (Reihenfolge = Eingabereihenfolge). */
     private final Map<String, String> selectableAccounts = new LinkedHashMap<>();
@@ -59,7 +61,10 @@ public class KmyDocument {
     private long maxTransactionNumber = 0;
     private int maxPayeeNumber = 0;
 
-    public KmyDocument(byte[] raw) throws IOException {
+    private final android.content.Context ctx;
+
+    public KmyDocument(byte[] raw, android.content.Context context) throws IOException {
+        this.ctx = de.spahr.ausgaben.i18n.LocaleManager.localizedContext(context);
         this.xml = gunzip(raw);
         parseHeader();
         buildDerivedMaps();
@@ -79,6 +84,13 @@ public class KmyDocument {
 
     public String accountId(String name) {
         return name == null ? null : assetNameToId.get(name.trim().toLowerCase(Locale.GERMANY));
+    }
+
+    /** Währungskennzeichen des Kontos (z. B. „EUR") oder leer, wenn keins hinterlegt ist. */
+    public String currencyOfAccount(String name) {
+        String id = accountId(name);
+        String c = id == null ? null : accountCurrency.get(id);
+        return c == null ? "" : c;
     }
 
     /** Findet die Kategorie-id per vollem Pfad (bevorzugt) oder Blattnamen. */
@@ -143,17 +155,19 @@ public class KmyDocument {
                         String name = parser.getAttributeValue(null, "name");
                         String parent = parser.getAttributeValue(null, "parentaccount");
                         String type = parser.getAttributeValue(null, "type");
+                        String currency = parser.getAttributeValue(null, "currency");
                         if (id != null && name != null) {
                             accountName.put(id, name);
                             accountParent.put(id, parent == null ? "" : parent);
                             accountType.put(id, parseIntSafe(type));
+                            accountCurrency.put(id, currency == null ? "" : currency.trim());
                         }
                     }
                 }
                 event = parser.next();
             }
         } catch (XmlPullParserException e) {
-            throw new IOException("KMyMoney-Datei konnte nicht gelesen werden", e);
+            throw new IOException(ctx.getString(de.spahr.ausgaben.R.string.err_kmy_read), e);
         }
     }
 

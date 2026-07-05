@@ -102,7 +102,7 @@ public class BookingAdapter extends RecyclerView.Adapter<BookingAdapter.VH> {
         if (override != null) {
             signed = override;
         }
-        String euros = formatEuro(signed);
+        String euros = formatEuro(signed, b.account);
         h.amount.setText(euros);
         // Farbe nach angezeigtem Vorzeichen: negativ (auch negativer Teilbetrag) = rot, sonst grün.
         int color = signed < 0
@@ -121,11 +121,12 @@ public class BookingAdapter extends RecyclerView.Adapter<BookingAdapter.VH> {
         });
     }
 
-    private String formatEuro(long signedCents) {
+    private String formatEuro(long signedCents, String account) {
         long euros = signedCents / 100;
         long cents = Math.abs(signedCents % 100);
         String sign = (signedCents < 0 && euros == 0) ? "-" : "";
-        return sign + euros + "," + String.format(Locale.GERMANY, "%02d", cents) + " €";
+        return sign + euros + "," + String.format(Locale.GERMANY, "%02d", cents) + " "
+                + de.spahr.ausgaben.settings.Currencies.forAccount(account);
     }
 
     @Override

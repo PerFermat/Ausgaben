@@ -5,6 +5,10 @@ import android.util.Log;
 
 import androidx.annotation.NonNull;
 
+import com.google.android.gms.wearable.DataEvent;
+import com.google.android.gms.wearable.DataEventBuffer;
+import com.google.android.gms.wearable.DataMap;
+import com.google.android.gms.wearable.DataMapItem;
 import com.google.android.gms.wearable.MessageEvent;
 import com.google.android.gms.wearable.Node;
 import com.google.android.gms.wearable.WearableListenerService;
@@ -29,6 +33,22 @@ public class WearMessageListenerService extends WearableListenerService {
             new PendingStore(this).remove(id);
             // offene Anzeige (falls App offen) aktualisieren
             sendBroadcast(new Intent(WearPaths.ACTION_PENDING_CHANGED).setPackage(getPackageName()));
+        }
+    }
+
+    @Override
+    public void onDataChanged(@NonNull DataEventBuffer dataEvents) {
+        for (DataEvent event : dataEvents) {
+            if (event.getType() == DataEvent.TYPE_CHANGED
+                    && WearPaths.PATH_LANGUAGE.equals(event.getDataItem().getUri().getPath())) {
+                DataMap map = DataMapItem.fromDataItem(event.getDataItem()).getDataMap();
+                String code = map.getString("code", "de");
+                WearStrings.update(this, code, map.getString("strings", "{}"));
+                androidx.appcompat.app.AppCompatDelegate.setApplicationLocales(
+                        androidx.core.os.LocaleListCompat.forLanguageTags(code));
+                Log.d(TAG, "Sprache empfangen: " + code);
+                sendBroadcast(new Intent(WearPaths.ACTION_LANGUAGE_CHANGED).setPackage(getPackageName()));
+            }
         }
     }
 

@@ -32,7 +32,7 @@ import java.util.UUID;
  * <p>Der Eintrag wird sofort lokal gespeichert (nichts geht verloren), aber erst nach Ablauf der 10 s
  * gesendet (über {@link PendingEntry#readyAt}). „Abbrechen" entfernt ihn vorher wieder.</p>
  */
-public class WearMainActivity extends AppCompatActivity {
+public class WearMainActivity extends WearLocalizedActivity {
 
     /** Von der Kachel gesetzter Typ → App startet direkt die Sprache dafür. */
     public static final String EXTRA_TYPE = "de.spahr.ausgaben.wear.TYPE";
@@ -302,7 +302,7 @@ public class WearMainActivity extends AppCompatActivity {
     private void updateStatus() {
         int c = store.count();
         if (c > 0) {
-            status.setText(getResources().getQuantityString(R.plurals.wear_pending, c, c));
+            status.setText(getString(R.string.wear_pending, c));
             status.setVisibility(View.VISIBLE);
         } else {
             status.setVisibility(View.GONE);

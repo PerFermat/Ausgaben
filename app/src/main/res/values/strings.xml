@@ -52,7 +52,7 @@
     <string name="error_transfer_accounts">Bitte zwei verschiedene Konten (Von/Nach) wählen</string>
     <string name="error_split_sum">Summe der Teilbeträge muss dem Gesamtbetrag entsprechen</string>
     <string name="transfer_saved">Umbuchung gespeichert</string>
-    <string name="amount_hint">Betrag (€)</string>
+    <string name="amount_hint">Betrag</string>
     <string name="payee_hint">Geldempfänger</string>
     <string name="account_hint">Konto</string>
     <string name="note_hint">Notiz (optional)</string>
@@ -101,7 +101,7 @@
     <string name="reconcile_title">Kassensturz</string>
     <string name="reconcile_do">Übernehmen</string>
     <string name="reconcile_place">Ort</string>
-    <string name="reconcile_actual">Ist-Betrag (€)</string>
+    <string name="reconcile_actual">Ist-Betrag</string>
     <string name="reconcile_create_booking">Buchung erzeugen (Unbekannt/Sonstiges)</string>
     <string name="no_places_defined">Bitte zuerst Orte in den Einstellungen anlegen</string>
     <string name="no_movements">Keine Bewegungen</string>
@@ -113,8 +113,8 @@
     <string name="filter_title">Buchungen filtern</string>
     <string name="category_filter_hint">Kategorie</string>
     <string name="category_all">(alle Kategorien)</string>
-    <string name="amount_from">von (€)</string>
-    <string name="amount_to">bis (€)</string>
+    <string name="amount_from">von</string>
+    <string name="amount_to">bis</string>
     <string name="filter_apply">Anwenden</string>
     <string name="filter_reset">Zurücksetzen</string>
     <string name="cancel">Abbrechen</string>
@@ -209,6 +209,14 @@
 
     <!-- Einstellungen -->
     <string name="settings_title">Einstellungen</string>
+    <string name="language_section">Sprache</string>
+    <string name="language_hint">Sprache</string>
+    <string name="language_export">Vorlage exportieren</string>
+    <string name="language_upload">Sprache hochladen</string>
+    <string name="language_export_done">Vorlage gespeichert</string>
+    <string name="language_upload_done">Sprache „%1$s" geladen</string>
+    <string name="language_upload_failed">Sprachdatei ungültig: %1$s</string>
+    <string name="currency_hint">Währungskennzeichen (Standard)</string>
     <string name="nextcloud_section">Nextcloud (WebDAV)</string>
     <string name="server_type_hint">Server-Typ</string>
     <string name="server_type_nextcloud">Nextcloud</string>
@@ -239,6 +247,14 @@
     <string name="progress_download">Lade KMyMoney-Datei…</string>
     <string name="progress_importing">Importiere…</string>
     <string name="progress_exporting">Exportiere…</string>
+    <string name="kmy_progress_processing">Verarbeite Buchungen…</string>
+    <string name="kmy_progress_backup">Sichere Original…</string>
+    <string name="kmy_progress_writing">Schreibe KMyMoney-Datei…</string>
+    <string name="kmy_none_matched">Keine Buchung konnte zugeordnet werden.</string>
+    <string name="kmy_result_written">%1$d Buchung(en) in %2$s geschrieben</string>
+    <string name="kmy_result_new_payees">, %1$d neue(r) Empfänger</string>
+    <string name="kmy_result_backup">Backup: %1$s</string>
+    <string name="kmy_skipped">%1$d übersprungen: %2$s</string>
 
     <!-- Meldungen -->
     <string name="error_amount">Bitte einen gültigen Betrag > 0 eingeben</string>
@@ -246,8 +262,36 @@
     <string name="error_account">Bitte ein Konto eingeben</string>
     <string name="booking_saved">Buchung gespeichert</string>
     <string name="export_none">Keine neuen Buchungen zum Exportieren</string>
+    <string name="export_no_bookings">Keine Buchungen vorhanden</string>
+    <string name="export_target_missing">Kein Zielordner gewählt</string>
+    <string name="export_result_uploaded">%1$d Buchung(en) in %2$d Datei(en) hochgeladen</string>
+    <string name="export_result_saved">%1$d Buchung(en) in %2$d Datei(en) lokal gespeichert</string>
+    <string name="export_result_failed">Fehlgeschlagen – %1$s</string>
     <string name="export_running">Export läuft…</string>
     <string name="export_success">Exportiert &amp; auf Nextcloud hochgeladen</string>
     <string name="export_no_config">Bitte zuerst die Nextcloud-Zugangsdaten in den Einstellungen hinterlegen</string>
     <string name="export_failed">Export fehlgeschlagen: %1$s</string>
+
+    <!-- Import-/Export-Detailmeldungen -->
+    <string name="err_kmy_read">KMyMoney-Datei konnte nicht gelesen werden</string>
+    <string name="err_target_not_writable">Zielordner nicht beschreibbar</string>
+    <string name="err_file_create">Datei konnte nicht angelegt werden</string>
+    <string name="err_no_write_access">Kein Schreibzugriff</string>
+    <string name="err_csv_empty">Datei ist leer</string>
+    <string name="err_csv_account_missing">Kontoname (Zeile „Kontentyp:…") nicht gefunden</string>
+    <string name="err_csv_header_missing">Kopfzeile (beginnend mit „Datum;") nicht gefunden</string>
+    <string name="skip_account_not_found">Konto nicht gefunden (%1$s)</string>
+    <string name="skip_category_not_found">Kategorie nicht gefunden (%1$s)</string>
+    <string name="skip_transfer_account_not_found">Umbuchung %1$s → %2$s: Konto nicht gefunden (%3$s)</string>
+    <string name="no_payee">(ohne Empfänger)</string>
+
+    <!-- CSV-Export (Kopfzeile + Kontotyp-Marker) -->
+    <string name="csv_account_type_prefix">Kontentyp:</string>
+    <string name="csv_col_date">Datum</string>
+    <string name="csv_col_payee">Empfänger</string>
+    <string name="csv_col_account">Konto</string>
+    <string name="csv_col_type">Typ</string>
+    <string name="csv_col_amount">Betrag</string>
+    <string name="csv_col_note">Notiz</string>
+    <string name="csv_col_category">Kategorie</string>
 </resources>

@@ -18,6 +18,11 @@ public class Account {
     @ColumnInfo(name = "name")
     public String name = "";
 
+    /** Währungskennzeichen (z. B. „EUR"/„€"); leer = globale Standardwährung aus den Einstellungen. */
+    @NonNull
+    @ColumnInfo(name = "currency")
+    public String currency = "";
+
     public Account() {
     }
 

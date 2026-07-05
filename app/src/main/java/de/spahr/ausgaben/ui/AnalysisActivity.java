@@ -44,7 +44,7 @@ import de.spahr.ausgaben.db.PlaceEntry;
 import de.spahr.ausgaben.db.Repository;
 import de.spahr.ausgaben.settings.PlacesStore;
 
-public class AnalysisActivity extends AppCompatActivity {
+public class AnalysisActivity extends LocalizedActivity {
 
     public static final String EXTRA_FILTER_PAYEE = "filter_payee";
     public static final String EXTRA_FILTER_CATEGORY = "filter_category";
@@ -554,6 +554,25 @@ public class AnalysisActivity extends AppCompatActivity {
         long euros = signedCents / 100;
         long cents = Math.abs(signedCents % 100);
         String sign = (signedCents < 0 && euros == 0) ? "-" : "";
-        return sign + euros + "," + String.format(Locale.GERMANY, "%02d", cents) + " €";
+        return sign + euros + "," + String.format(Locale.GERMANY, "%02d", cents) + " " + viewCurrency();
+    }
+
+    /** Währungskennzeichen der aktuellen Sicht: bei Konto-/Ort-Sichten die Konto-Währung, sonst Standard. */
+    private String viewCurrency() {
+        String acc = null;
+        if (viewKey.startsWith(MainActivity.VIEW_ACCOUNT_PREFIX)) {
+            acc = viewKey.substring(MainActivity.VIEW_ACCOUNT_PREFIX.length());
+        } else if (viewKey.startsWith(MainActivity.VIEW_PLACE_PREFIX)) {
+            String rest = viewKey.substring(MainActivity.VIEW_PLACE_PREFIX.length());
+            int i = rest.indexOf(PLACE_SEP);
+            acc = i < 0 ? rest : rest.substring(0, i);
+        } else if (viewKey.startsWith(MainActivity.VIEW_NOPLACE)) {
+            acc = viewKey.length() > MainActivity.VIEW_NOPLACE.length()
+                    ? viewKey.substring(MainActivity.VIEW_NOPLACE.length() + PLACE_SEP.length())
+                    : defaultAccount;
+        }
+        return acc == null || acc.isEmpty()
+                ? de.spahr.ausgaben.settings.Currencies.getDefault()
+                : de.spahr.ausgaben.settings.Currencies.forAccount(acc);
     }
 }

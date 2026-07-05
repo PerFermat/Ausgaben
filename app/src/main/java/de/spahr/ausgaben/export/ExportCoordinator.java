@@ -61,9 +61,11 @@ public class ExportCoordinator {
 
     private void run(boolean onlyUnexported, ResultListener listener) {
         repository.executor().execute(() -> {
+            // Context in der aktuellen Sprache (der App-Context übernimmt sie erst nach Neustart).
+            Context res = de.spahr.ausgaben.i18n.LocaleManager.localizedContext(appContext);
             boolean upload = settings.hasNextcloudConfig();
             if (!upload && (localTreeUri == null || localTreeUri.isEmpty())) {
-                post(listener, "Kein Zielordner gewählt", false);
+                post(listener, res.getString(de.spahr.ausgaben.R.string.export_target_missing), false);
                 return;
             }
 
@@ -72,9 +74,9 @@ public class ExportCoordinator {
                     : repository.bookingDao().getAllBookings();
 
             if (bookings.isEmpty()) {
-                post(listener, onlyUnexported
-                        ? "Keine neuen Buchungen zum Exportieren"
-                        : "Keine Buchungen vorhanden", false);
+                post(listener, res.getString(onlyUnexported
+                        ? de.spahr.ausgaben.R.string.export_none
+                        : de.spahr.ausgaben.R.string.export_no_bookings), false);
                 return;
             }
 
@@ -111,7 +113,7 @@ public class ExportCoordinator {
 
             for (Map.Entry<String, List<Booking>> entry : byAccount.entrySet()) {
                 List<Booking> accountBookings = entry.getValue();
-                String content = exporter.build(entry.getKey(), accountBookings, splitsMap);
+                String content = exporter.build(entry.getKey(), accountBookings, splitsMap, res);
                 String fileName = exporter.buildFileName(entry.getKey());
                 try {
                     if (upload) {
@@ -119,7 +121,7 @@ public class ExportCoordinator {
                         uploader.upload(settings.getUrl(), settings.getUser(), settings.getPassword(),
                                 settings.getFolder(), fileName, content);
                     } else {
-                        writeToTree(targetDir, fileName, content);
+                        writeToTree(res, targetDir, fileName, content);
                     }
 
                     if (onlyUnexported) {
@@ -140,30 +142,33 @@ public class ExportCoordinator {
 
             StringBuilder sb = new StringBuilder();
             if (okAccounts > 0) {
-                sb.append(okBookings).append(" Buchung(en) in ").append(okAccounts)
-                        .append(upload ? " Datei(en) hochgeladen" : " Datei(en) lokal gespeichert");
+                sb.append(res.getString(upload
+                        ? de.spahr.ausgaben.R.string.export_result_uploaded
+                        : de.spahr.ausgaben.R.string.export_result_saved, okBookings, okAccounts));
             }
             if (!errors.isEmpty()) {
                 if (sb.length() > 0) {
                     sb.append("\n");
                 }
-                sb.append("Fehlgeschlagen – ").append(android.text.TextUtils.join("; ", errors));
+                sb.append(res.getString(de.spahr.ausgaben.R.string.export_result_failed,
+                        android.text.TextUtils.join("; ", errors)));
             }
             post(listener, sb.toString(), marked);
         });
     }
 
-    private void writeToTree(DocumentFile dir, String fileName, String content) throws java.io.IOException {
+    private void writeToTree(Context res, DocumentFile dir, String fileName, String content)
+            throws java.io.IOException {
         if (dir == null || !dir.canWrite()) {
-            throw new java.io.IOException("Zielordner nicht beschreibbar");
+            throw new java.io.IOException(res.getString(de.spahr.ausgaben.R.string.err_target_not_writable));
         }
         DocumentFile file = dir.createFile("text/csv", fileName);
         if (file == null) {
-            throw new java.io.IOException("Datei konnte nicht angelegt werden");
+            throw new java.io.IOException(res.getString(de.spahr.ausgaben.R.string.err_file_create));
         }
         try (OutputStream os = appContext.getContentResolver().openOutputStream(file.getUri())) {
             if (os == null) {
-                throw new java.io.IOException("Kein Schreibzugriff");
+                throw new java.io.IOException(res.getString(de.spahr.ausgaben.R.string.err_no_write_access));
             }
             os.write(content.getBytes(StandardCharsets.UTF_8));
         }

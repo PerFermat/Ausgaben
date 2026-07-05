@@ -9,6 +9,9 @@ import java.util.Date;
 import java.util.List;
 import java.util.Locale;
 
+import android.content.Context;
+
+import de.spahr.ausgaben.R;
 import de.spahr.ausgaben.db.Booking;
 
 /**
@@ -27,6 +30,11 @@ public class CsvImporter {
 
     private final SimpleDateFormat isoDate = new SimpleDateFormat("yyyy-MM-dd", Locale.GERMANY);
     private String parsedAccount = "";
+    private final Context ctx;
+
+    public CsvImporter(Context context) {
+        this.ctx = de.spahr.ausgaben.i18n.LocaleManager.localizedContext(context);
+    }
 
     /** Kontoname aus der zuletzt geparsten Datei (Zeile „Kontentyp:…"). */
     public String getParsedAccount() {
@@ -36,7 +44,7 @@ public class CsvImporter {
     /** Parst den Dateiinhalt. Wirft {@link IllegalArgumentException} bei unbrauchbarem Aufbau. */
     public List<Booking> parse(String content) {
         if (content == null || content.trim().isEmpty()) {
-            throw new IllegalArgumentException("Datei ist leer");
+            throw new IllegalArgumentException(ctx.getString(R.string.err_csv_empty));
         }
         String[] lines = content.split("\r\n|\n|\r");
 
@@ -55,10 +63,10 @@ public class CsvImporter {
             }
         }
         if (account == null || account.isEmpty()) {
-            throw new IllegalArgumentException("Kontoname (Zeile 'Kontentyp:…') nicht gefunden");
+            throw new IllegalArgumentException(ctx.getString(R.string.err_csv_account_missing));
         }
         if (headerIndex < 0) {
-            throw new IllegalArgumentException("Kopfzeile (beginnend mit 'Datum;') nicht gefunden");
+            throw new IllegalArgumentException(ctx.getString(R.string.err_csv_header_missing));
         }
         parsedAccount = account;
 

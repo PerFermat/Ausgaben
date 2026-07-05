@@ -29,6 +29,8 @@ public class SettingsStore {
     private static final String KEY_APP_LOCK = "app_lock";
     private static final String KEY_SERVER_TYPE = "server_type";
     private static final String KEY_ALIAS_PROMPT = "alias_prompt";
+    private static final String KEY_LANGUAGE = "language";
+    private static final String KEY_CURRENCY = "currency";
 
     /** Server-Typ: Nextcloud (Standard, mit {@code /remote.php/dav/files/<user>/}). */
     public static final String SERVER_NEXTCLOUD = "nextcloud";
@@ -172,6 +174,29 @@ public class SettingsStore {
 
     public void setAliasPromptEnabled(boolean enabled) {
         prefs.edit().putBoolean(KEY_ALIAS_PROMPT, enabled).apply();
+    }
+
+    /** Sprachcode der App-Texte (Standard: Systemsprache, falls Englisch → „en", sonst „de"). */
+    public String getLanguage() {
+        String stored = prefs.getString(KEY_LANGUAGE, "");
+        if (!stored.isEmpty()) {
+            return stored;
+        }
+        return "en".equals(java.util.Locale.getDefault().getLanguage()) ? "en" : "de";
+    }
+
+    public void setLanguage(String code) {
+        prefs.edit().putString(KEY_LANGUAGE, code == null ? "" : code.trim()).apply();
+    }
+
+    /** Globales Standard-Währungskennzeichen (für Konten ohne eigene Währung). Standard „€". */
+    public String getCurrency() {
+        String c = prefs.getString(KEY_CURRENCY, "€");
+        return c == null || c.trim().isEmpty() ? "€" : c.trim();
+    }
+
+    public void setCurrency(String currency) {
+        prefs.edit().putString(KEY_CURRENCY, currency == null ? "" : currency.trim()).apply();
     }
 
     /**

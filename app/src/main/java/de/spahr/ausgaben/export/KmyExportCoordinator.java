@@ -31,23 +31,30 @@ public class KmyExportCoordinator {
 
     private final Repository repository;
     private final SettingsStore settings;
+    private final Context appContext;
     private final SimpleDateFormat tsFormat = new SimpleDateFormat("yyyyMMdd-HHmmss", Locale.GERMANY);
 
     public KmyExportCoordinator(Context context, Repository repository, SettingsStore settings) {
         this.repository = repository;
         this.settings = settings;
+        this.appContext = context.getApplicationContext();
+    }
+
+    /** Context in der aktuell gewählten Sprache für die Meldungen. */
+    private Context res() {
+        return de.spahr.ausgaben.i18n.LocaleManager.localizedContext(appContext);
     }
 
     public void exportUnexported(Listener listener) {
         repository.executor().execute(() -> {
+            Context r = res();
             if (!settings.hasNextcloudConfig()) {
-                complete(listener, "Bitte zuerst die Nextcloud-Zugangsdaten in den Einstellungen hinterlegen",
-                        false);
+                complete(listener, r.getString(de.spahr.ausgaben.R.string.export_no_config), false);
                 return;
             }
             String path = settings.getKmyPath();
             if (path.isEmpty()) {
-                complete(listener, "Bitte die KMyMoney-Datei in den Einstellungen angeben", false);
+                complete(listener, r.getString(de.spahr.ausgaben.R.string.kmy_path_missing), false);
                 return;
             }
             String folder = folderOf(path);
@@ -55,41 +62,41 @@ public class KmyExportCoordinator {
 
             List<Booking> bookings = repository.bookingDao().getUnexported();
             if (bookings.isEmpty()) {
-                complete(listener, "Keine neuen Buchungen zum Exportieren", false);
+                complete(listener, r.getString(de.spahr.ausgaben.R.string.export_none), false);
                 return;
             }
 
             NextcloudUploader uploader = new NextcloudUploader(settings.isNextcloudServer());
             try {
-                progress(listener, "Lade KMyMoney-Datei…");
+                progress(listener, r.getString(de.spahr.ausgaben.R.string.progress_download));
                 byte[] raw = uploader.downloadBytes(settings.getUrl(), settings.getUser(),
                         settings.getPassword(), folder, file);
 
-                progress(listener, "Verarbeite Buchungen…");
-                KmyDocument doc = new KmyDocument(raw);
-                KmyExporter.Result res = new KmyExporter(doc).build(bookings, loadSplits());
+                progress(listener, r.getString(de.spahr.ausgaben.R.string.kmy_progress_processing));
+                KmyDocument doc = new KmyDocument(raw, appContext);
+                KmyExporter.Result res = new KmyExporter(doc, r).build(bookings, loadSplits());
 
                 if (res.writtenIds.isEmpty()) {
-                    complete(listener, "Keine Buchung konnte zugeordnet werden.\n" + skippedText(res),
-                            false);
+                    complete(listener, r.getString(de.spahr.ausgaben.R.string.kmy_none_matched)
+                            + "\n" + skippedText(r, res), false);
                     return;
                 }
 
-                progress(listener, "Sichere Original…");
+                progress(listener, r.getString(de.spahr.ausgaben.R.string.kmy_progress_backup));
                 String backup = file + ".bak-" + tsFormat.format(new Date());
                 uploader.uploadBytes(settings.getUrl(), settings.getUser(), settings.getPassword(),
                         folder, backup, raw);
 
-                progress(listener, "Schreibe KMyMoney-Datei…");
+                progress(listener, r.getString(de.spahr.ausgaben.R.string.kmy_progress_writing));
                 byte[] packed = KmyDocument.gzip(res.xml);
                 uploader.uploadBytes(settings.getUrl(), settings.getUser(), settings.getPassword(),
                         folder, file, packed);
 
                 repository.bookingDao().markExported(res.writtenIds);
-                complete(listener, buildMessage(res, file, backup), true);
+                complete(listener, buildMessage(r, res, file, backup), true);
             } catch (Exception e) {
                 String msg = e.getMessage() == null ? e.toString() : e.getMessage();
-                complete(listener, "Export fehlgeschlagen: " + msg, false);
+                complete(listener, r.getString(de.spahr.ausgaben.R.string.export_failed, msg), false);
             }
         });
     }
@@ -108,20 +115,20 @@ public class KmyExportCoordinator {
         return map;
     }
 
-    private String buildMessage(KmyExporter.Result res, String file, String backup) {
+    private String buildMessage(Context r, KmyExporter.Result res, String file, String backup) {
         StringBuilder sb = new StringBuilder();
-        sb.append(res.writtenIds.size()).append(" Buchung(en) in ").append(file).append(" geschrieben");
+        sb.append(r.getString(de.spahr.ausgaben.R.string.kmy_result_written, res.writtenIds.size(), file));
         if (res.newPayees > 0) {
-            sb.append(", ").append(res.newPayees).append(" neue(r) Empfänger");
+            sb.append(r.getString(de.spahr.ausgaben.R.string.kmy_result_new_payees, res.newPayees));
         }
-        sb.append(".\nBackup: ").append(backup);
+        sb.append(".\n").append(r.getString(de.spahr.ausgaben.R.string.kmy_result_backup, backup));
         if (!res.skipped.isEmpty()) {
-            sb.append("\n").append(skippedText(res));
+            sb.append("\n").append(skippedText(r, res));
         }
         return sb.toString();
     }
 
-    private String skippedText(KmyExporter.Result res) {
+    private String skippedText(Context r, KmyExporter.Result res) {
         if (res.skipped.isEmpty()) {
             return "";
         }
@@ -131,7 +138,8 @@ public class KmyExportCoordinator {
             show = new ArrayList<>(res.skipped.subList(0, 5));
             more = " … (+" + (res.skipped.size() - 5) + ")";
         }
-        return res.skipped.size() + " übersprungen: " + TextUtils.join("; ", show) + more;
+        return r.getString(de.spahr.ausgaben.R.string.kmy_skipped, res.skipped.size(),
+                TextUtils.join("; ", show) + more);
     }
 
     private static String folderOf(String path) {

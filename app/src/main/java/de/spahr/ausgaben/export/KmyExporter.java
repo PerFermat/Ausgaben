@@ -31,10 +31,12 @@ public class KmyExporter {
     }
 
     private final KmyDocument doc;
+    private final android.content.Context ctx;
     private final SimpleDateFormat dateFormat = new SimpleDateFormat("yyyy-MM-dd", Locale.US);
 
-    public KmyExporter(KmyDocument doc) {
+    public KmyExporter(KmyDocument doc, android.content.Context context) {
         this.doc = doc;
+        this.ctx = de.spahr.ausgaben.i18n.LocaleManager.localizedContext(context);
     }
 
     public Result build(List<Booking> bookings) {
@@ -62,7 +64,8 @@ public class KmyExporter {
             }
             String assetId = doc.accountId(b.account);
             if (assetId == null) {
-                result.skipped.add(label(b) + ": Konto nicht gefunden (" + b.account + ")");
+                result.skipped.add(label(b) + ": "
+                        + ctx.getString(de.spahr.ausgaben.R.string.skip_account_not_found, b.account));
                 continue;
             }
 
@@ -89,7 +92,8 @@ public class KmyExporter {
             if (!cat.isEmpty()) {
                 categoryId = doc.categoryId(cat);
                 if (categoryId == null) {
-                    result.skipped.add(label(b) + ": Kategorie nicht gefunden (" + cat + ")");
+                    result.skipped.add(label(b) + ": "
+                        + ctx.getString(de.spahr.ausgaben.R.string.skip_category_not_found, cat));
                     continue;
                 }
             }
@@ -136,8 +140,9 @@ public class KmyExporter {
         String toId = doc.accountId(toAccount);
         if (fromId == null || toId == null) {
             String missing = fromId == null ? fromAccount : toAccount;
-            result.skipped.add("Umbuchung " + fromAccount + " → " + toAccount
-                    + ": Konto nicht gefunden (" + missing + ")");
+            result.skipped.add(ctx.getString(
+                    de.spahr.ausgaben.R.string.skip_transfer_account_not_found,
+                    fromAccount, toAccount, missing));
             return;
         }
         String payeeId = resolvePayee(b.payee, result, newPayeeIds, payeeFragments, nextPayee);
@@ -166,7 +171,8 @@ public class KmyExporter {
             String cat = p.category == null ? "" : p.category.trim();
             String categoryId = doc.categoryId(cat);
             if (categoryId == null) {
-                result.skipped.add(label(b) + ": Kategorie nicht gefunden (" + cat + ")");
+                result.skipped.add(label(b) + ": "
+                        + ctx.getString(de.spahr.ausgaben.R.string.skip_category_not_found, cat));
                 return null;
             }
             // App-Teilbetrag (in Gesamt-Einheiten) → Kategorie-Split mit Gegen-Vorzeichen zum Konto-Split.
@@ -234,7 +240,8 @@ public class KmyExporter {
     }
 
     private String label(Booking b) {
-        String p = b.payee == null || b.payee.trim().isEmpty() ? "(ohne Empfänger)" : b.payee.trim();
+        String p = b.payee == null || b.payee.trim().isEmpty()
+                ? ctx.getString(de.spahr.ausgaben.R.string.no_payee) : b.payee.trim();
         return p;
     }
 

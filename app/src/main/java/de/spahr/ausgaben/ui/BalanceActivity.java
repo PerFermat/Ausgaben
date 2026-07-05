@@ -34,7 +34,7 @@ import de.spahr.ausgaben.settings.PlacesStore;
 import de.spahr.ausgaben.settings.SettingsStore;
 
 /** Bestands-Übersicht: Saldo je Ort, „ohne Ort", Gesamt; Umbuchen und Kassensturz; Ort → Verlauf. */
-public class BalanceActivity extends AppCompatActivity {
+public class BalanceActivity extends LocalizedActivity {
 
     private Repository repository;
     private PlacesStore placesStore;
@@ -104,8 +104,9 @@ public class BalanceActivity extends AppCompatActivity {
     private void render() {
         container.removeAllViews();
         for (final String account : accountsOrder) {
+            final String currency = de.spahr.ausgaben.settings.Currencies.forAccount(account);
             long accBal = accountBalances.containsKey(account) ? accountBalances.get(account) : 0L;
-            addRow(account, accBal, true, false, false, null);
+            addRow(account, accBal, true, false, false, null, currency);
 
             Map<String, Long> pbal = placeBalances.get(account);
             List<String> places = placesStore.getPlaces(account);
@@ -122,7 +123,7 @@ public class BalanceActivity extends AppCompatActivity {
                 long bal = (residualOnPlace && place.equals(standardort))
                         ? accBal - otherSum
                         : placeBal(pbal, place);
-                addRow(place, bal, false, true, true, v -> openHistory(account, place));
+                addRow(place, bal, false, true, true, v -> openHistory(account, place), currency);
             }
             if (!residualOnPlace && !places.isEmpty()) {
                 long sum = 0;
@@ -131,12 +132,13 @@ public class BalanceActivity extends AppCompatActivity {
                 }
                 long rest = accBal - sum;
                 if (rest != 0) {
-                    addRow(getString(R.string.no_place), rest, false, true, false, null);
+                    addRow(getString(R.string.no_place), rest, false, true, false, null, currency);
                 }
             }
             addDivider();
         }
-        addRow(getString(R.string.saldo_total), total, true, false, false, null);
+        addRow(getString(R.string.saldo_total), total, true, false, false, null,
+                de.spahr.ausgaben.settings.Currencies.getDefault());
     }
 
     private long placeBal(Map<String, Long> map, String place) {
@@ -162,7 +164,7 @@ public class BalanceActivity extends AppCompatActivity {
     }
 
     private void addRow(String label, long cents, boolean bold, boolean indent,
-                        boolean clickable, View.OnClickListener onClick) {
+                        boolean clickable, View.OnClickListener onClick, String currency) {
         LinearLayout row = new LinearLayout(this);
         row.setOrientation(LinearLayout.HORIZONTAL);
         row.setGravity(Gravity.CENTER_VERTICAL);
@@ -185,7 +187,7 @@ public class BalanceActivity extends AppCompatActivity {
                 LinearLayout.LayoutParams.WRAP_CONTENT, 1f));
 
         TextView value = new TextView(this);
-        value.setText(formatEuro(cents));
+        value.setText(formatEuro(cents, currency));
         value.setTextSize(bold ? 17f : 16f);
         value.setGravity(Gravity.END);
         value.setTypeface(android.graphics.Typeface.MONOSPACE, bold ? android.graphics.Typeface.BOLD
@@ -335,10 +337,10 @@ public class BalanceActivity extends AppCompatActivity {
         }
     }
 
-    private String formatEuro(long signedCents) {
+    private String formatEuro(long signedCents, String currency) {
         long euros = signedCents / 100;
         long cents = Math.abs(signedCents % 100);
         String sign = (signedCents < 0 && euros == 0) ? "-" : "";
-        return sign + euros + "," + String.format(Locale.GERMANY, "%02d", cents) + " €";
+        return sign + euros + "," + String.format(Locale.GERMANY, "%02d", cents) + " " + currency;
     }
 }

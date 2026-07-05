@@ -28,6 +28,7 @@ public class Repository {
     private final PayeeDao payeeDao;
     private final PlaceEntryDao placeEntryDao;
     private final PayeeCorrectionDao correctionDao;
+    private final TranslationDao translationDao;
     private final ExecutorService executor = Executors.newSingleThreadExecutor();
     private final Handler mainHandler = new Handler(Looper.getMainLooper());
 
@@ -38,6 +39,73 @@ public class Repository {
         this.payeeDao = db.payeeDao();
         this.placeEntryDao = db.placeEntryDao();
         this.correctionDao = db.payeeCorrectionDao();
+        this.translationDao = db.translationDao();
+    }
+
+    // ---- Mehrsprachigkeit ----
+
+    /** Setzt das Währungskennzeichen eines Kontos (legt es bei Bedarf an). Leere Währung wird ignoriert. */
+    public void setAccountCurrency(final String account, final String currency) {
+        if (account == null || account.trim().isEmpty() || currency == null || currency.trim().isEmpty()) {
+            return;
+        }
+        executor.execute(() -> {
+            accountDao.insertIfAbsent(new Account(account.trim()));
+            accountDao.setCurrency(account.trim(), currency.trim());
+        });
+    }
+
+    public void getLanguages(final Callback<List<Language>> callback) {
+        executor.execute(() -> {
+            final List<Language> result = translationDao.getLanguages();
+            mainHandler.post(() -> callback.onResult(result));
+        });
+    }
+
+    /** Baut die JSON-Export-Vorlage (alle Schlüssel mit DE/EN + leerem „value"). */
+    public void buildLanguageTemplate(final Callback<String> callback) {
+        executor.execute(() -> {
+            String json;
+            try {
+                json = de.spahr.ausgaben.i18n.TranslationIo.buildTemplate(
+                        translationDao.getPairsOrdered("de"), translationDao.getPairsOrdered("en"));
+            } catch (Exception e) {
+                json = null;
+            }
+            final String result = json;
+            mainHandler.post(() -> callback.onResult(result));
+        });
+    }
+
+    /** Importiert eine (geparste) Sprache in die DB; ersetzt eine bestehende gleichen Codes. */
+    public void importLanguage(final de.spahr.ausgaben.i18n.TranslationIo.Parsed parsed,
+                               final Runnable onDone) {
+        executor.execute(() -> {
+            List<Translation> rows = new ArrayList<>();
+            for (Map.Entry<String, String> e : parsed.values.entrySet()) {
+                rows.add(new Translation(parsed.code, e.getKey(), e.getValue()));
+            }
+            translationDao.deleteTranslations(parsed.code);
+            translationDao.insertAll(rows);
+            translationDao.upsertLanguage(new Language(parsed.code, parsed.name));
+            if (onDone != null) {
+                mainHandler.post(onDone);
+            }
+        });
+    }
+
+    /** Wear-relevante Texte (Schlüssel „wear_*") der Sprache – für die Übertragung an die Uhr. */
+    public void getWearStrings(final String lang, final Callback<Map<String, String>> callback) {
+        executor.execute(() -> {
+            Map<String, String> m = new HashMap<>();
+            for (TranslationDao.KeyValue kv : translationDao.getPairs(lang)) {
+                if (kv.key.startsWith("wear_")) {
+                    m.put(kv.key, kv.value);
+                }
+            }
+            final Map<String, String> result = m;
+            mainHandler.post(() -> callback.onResult(result));
+        });
     }
 
     /**

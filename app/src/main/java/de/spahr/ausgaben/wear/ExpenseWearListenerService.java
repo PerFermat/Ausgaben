@@ -6,6 +6,7 @@ import android.util.Log;
 import androidx.annotation.NonNull;
 
 import com.google.android.gms.wearable.MessageEvent;
+import com.google.android.gms.wearable.Node;
 import com.google.android.gms.wearable.Wearable;
 import com.google.android.gms.wearable.WearableListenerService;
 
@@ -76,6 +77,12 @@ public class ExpenseWearListenerService extends WearableListenerService {
             return;
         }
         Wearable.getMessageClient(this).sendMessage(nodeId, PATH_ACK, id.getBytes(StandardCharsets.UTF_8));
+    }
+
+    @Override
+    public void onPeerConnected(@NonNull Node peer) {
+        // Bei Verbindung mit der Uhr die aktuelle Sprache + Wear-Texte veröffentlichen.
+        LanguageSync.publish(this);
     }
 
     private SharedPreferences prefs() {

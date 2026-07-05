@@ -10,8 +10,8 @@ import androidx.room.migration.Migration;
 import androidx.sqlite.db.SupportSQLiteDatabase;
 
 @Database(entities = {Booking.class, BookingSplit.class, Account.class, Payee.class, PlaceEntry.class,
-        PayeeCorrection.class},
-        version = 10, exportSchema = false)
+        PayeeCorrection.class, Translation.class, Language.class},
+        version = 12, exportSchema = false)
 public abstract class AppDatabase extends RoomDatabase {
 
     /** v1 → v2: Notiz-Spalte ergänzen (bestehende Buchungen bleiben erhalten). */
@@ -110,6 +110,29 @@ public abstract class AppDatabase extends RoomDatabase {
         }
     };
 
+    /** v10 → v11: Übersetzungs-Tabellen für die Mehrsprachigkeit. */
+    static final Migration MIGRATION_10_11 = new Migration(10, 11) {
+        @Override
+        public void migrate(@NonNull SupportSQLiteDatabase db) {
+            db.execSQL("CREATE TABLE IF NOT EXISTS translation ("
+                    + "lang TEXT NOT NULL, "
+                    + "key TEXT NOT NULL, "
+                    + "value TEXT NOT NULL, "
+                    + "PRIMARY KEY(lang, key))");
+            db.execSQL("CREATE TABLE IF NOT EXISTS language ("
+                    + "code TEXT NOT NULL PRIMARY KEY, "
+                    + "name TEXT NOT NULL)");
+        }
+    };
+
+    /** v11 → v12: Währungskennzeichen je Konto. */
+    static final Migration MIGRATION_11_12 = new Migration(11, 12) {
+        @Override
+        public void migrate(@NonNull SupportSQLiteDatabase db) {
+            db.execSQL("ALTER TABLE account ADD COLUMN currency TEXT NOT NULL DEFAULT ''");
+        }
+    };
+
     public abstract BookingDao bookingDao();
 
     public abstract AccountDao accountDao();
@@ -119,6 +142,8 @@ public abstract class AppDatabase extends RoomDatabase {
     public abstract PlaceEntryDao placeEntryDao();
 
     public abstract PayeeCorrectionDao payeeCorrectionDao();
+
+    public abstract TranslationDao translationDao();
 
     private static volatile AppDatabase instance;
 
@@ -132,7 +157,7 @@ public abstract class AppDatabase extends RoomDatabase {
                                     "ausgaben.db")
                             .addMigrations(MIGRATION_1_2, MIGRATION_2_3, MIGRATION_3_4, MIGRATION_4_5,
                                     MIGRATION_5_6, MIGRATION_6_7, MIGRATION_7_8, MIGRATION_8_9,
-                                    MIGRATION_9_10)
+                                    MIGRATION_9_10, MIGRATION_10_11, MIGRATION_11_12)
                             .build();
                 }
             }

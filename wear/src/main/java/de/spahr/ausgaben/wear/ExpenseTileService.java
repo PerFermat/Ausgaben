@@ -44,7 +44,7 @@ public class ExpenseTileService extends TileService {
         LayoutElementBuilders.Column content = new LayoutElementBuilders.Column.Builder()
                 .setHorizontalAlignment(LayoutElementBuilders.HORIZONTAL_ALIGN_CENTER)
                 .addContent(new LayoutElementBuilders.Text.Builder()
-                        .setText(getString(R.string.wear_title))
+                        .setText(tr("wear_title", R.string.wear_title))
                         .setFontStyle(new LayoutElementBuilders.FontStyle.Builder()
                                 .setColor(ColorBuilders.argb(WHITE))
                                 .setSize(DimensionBuilders.sp(15))
@@ -116,6 +116,13 @@ public class ExpenseTileService extends TileService {
                                 .build())
                         .build())
                 .build();
+    }
+
+    /** Übersetzter Text der aktiven Sprache (vom Phone) oder gebündelte Ressource als Fallback. */
+    private String tr(String key, int resId) {
+        WearStrings.ensureLoaded(this);
+        String v = WearStrings.get(key);
+        return v != null ? v : getString(resId);
     }
 
     private LayoutElementBuilders.Spacer spacerW() {

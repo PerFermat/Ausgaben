@@ -46,7 +46,7 @@ import de.spahr.ausgaben.settings.PlacesStore;
 import de.spahr.ausgaben.settings.SettingsStore;
 import de.spahr.ausgaben.voice.VoiceInput;
 
-public class MainActivity extends AppCompatActivity {
+public class MainActivity extends LocalizedActivity {
 
     private Repository repository;
     private SettingsStore settings;
@@ -235,6 +235,7 @@ public class MainActivity extends AppCompatActivity {
     @Override
     protected void onResume() {
         super.onResume();
+        de.spahr.ausgaben.settings.Currencies.refresh(this);
         refreshBookings();
     }
 
@@ -546,7 +547,8 @@ public class MainActivity extends AppCompatActivity {
         long euros = signedCents / 100;
         long cents = Math.abs(signedCents % 100);
         String sign = (signedCents < 0 && euros == 0) ? "-" : "";
-        return sign + euros + "," + String.format(Locale.GERMANY, "%02d", cents) + " €";
+        return sign + euros + "," + String.format(Locale.GERMANY, "%02d", cents) + " "
+                + de.spahr.ausgaben.settings.Currencies.forAccount(selectedAccount);
     }
 
     private void showFilterDialog() {
@@ -723,7 +725,20 @@ public class MainActivity extends AppCompatActivity {
     @Override
     public boolean onCreateOptionsMenu(android.view.Menu menu) {
         getMenuInflater().inflate(R.menu.main_menu, menu);
+        // Menü-Titel kommen aus dem String-Pool (umgehen die Übersetzung) → per getString neu setzen.
+        setMenuTitle(menu, R.id.action_export, R.string.action_export);
+        setMenuTitle(menu, R.id.action_filter, R.string.action_filter);
+        setMenuTitle(menu, R.id.action_analysis, R.string.action_analysis);
+        setMenuTitle(menu, R.id.action_balance, R.string.action_balance);
+        setMenuTitle(menu, R.id.action_settings, R.string.action_settings);
         return true;
+    }
+
+    private void setMenuTitle(android.view.Menu menu, int itemId, int stringId) {
+        android.view.MenuItem item = menu.findItem(itemId);
+        if (item != null) {
+            item.setTitle(getString(stringId));
+        }
     }
 
     @Override
@@ -852,7 +867,8 @@ public class MainActivity extends AppCompatActivity {
             try {
                 byte[] raw = new NextcloudUploader(settings.isNextcloudServer()).downloadBytes(settings.getUrl(),
                         settings.getUser(), settings.getPassword(), folderOf(path), fileOf(path));
-                KmyImporter importer = new KmyImporter(new KmyDocument(raw));
+                KmyImporter importer = new KmyImporter(
+                        new KmyDocument(raw, getApplicationContext()), getApplicationContext());
                 runOnUiThread(() -> {
                     dismissProgress();
                     List<String> accounts = importer.accountNames();
@@ -891,7 +907,8 @@ public class MainActivity extends AppCompatActivity {
                 String path = settings.getKmyPath();
                 byte[] raw = new NextcloudUploader(settings.isNextcloudServer()).downloadBytes(settings.getUrl(),
                         settings.getUser(), settings.getPassword(), folderOf(path), fileOf(path));
-                importer = new KmyImporter(new KmyDocument(raw));
+                importer = new KmyImporter(
+                        new KmyDocument(raw, getApplicationContext()), getApplicationContext());
             } catch (Exception e) {
                 postImportError(e);
                 return;
@@ -926,6 +943,8 @@ public class MainActivity extends AppCompatActivity {
             java.util.LinkedHashMap<String, List<Booking>> map = new java.util.LinkedHashMap<>();
             for (String acc : accounts) {
                 map.put(acc, importer.bookingsForAccount(acc));
+                // Währungskennzeichen aus der KMyMoney-Datei pro Konto übernehmen.
+                repository.setAccountCurrency(acc, importer.currencyOf(acc));
             }
             runOnUiThread(() -> repository.replaceImportAccounts(map, res -> {
                 dismissProgress();
@@ -1073,7 +1092,7 @@ public class MainActivity extends AppCompatActivity {
     /** Parst den Inhalt und ersetzt die exportierten Buchungen des Kontos. Aufruf aus Hintergrund-Thread. */
     private void processImport(String content) {
         try {
-            CsvImporter importer = new CsvImporter();
+            CsvImporter importer = new CsvImporter(this);
             List<Booking> bookings = importer.parse(content);
             String account = importer.getParsedAccount();
             runOnUiThread(() -> repository.replaceImport(account, bookings, count -> {

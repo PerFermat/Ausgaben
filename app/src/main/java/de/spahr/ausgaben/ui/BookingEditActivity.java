@@ -43,7 +43,7 @@ import de.spahr.ausgaben.settings.SettingsStore;
  * Unterstützt drei Typen: Ausgabe / Umbuchung / Einnahme. Bei Ausgabe/Einnahme können mehrere
  * Kategorien mit Teilbeträgen erfasst werden (Splitbuchung); bei Umbuchung zwei Konten (Von/Nach).
  */
-public class BookingEditActivity extends AppCompatActivity {
+public class BookingEditActivity extends LocalizedActivity {
 
     public static final String EXTRA_BOOKING_ID = "booking_id";
     /** Öffnet den Editor als NEUE Buchung, vorbefüllt aus dieser Vorlage-Buchung (Sprach-Schnellerfassung). */

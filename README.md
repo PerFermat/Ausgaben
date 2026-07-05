@@ -102,7 +102,8 @@ Dies ist eine Android-App (Java), die als mobile Ergänzung zu KMyMoney entwicke
 ### Sicherheit & Einstellungen
 - Optionale **App-Sperre** per Biometrie/Geräte-Anmeldung (Fingerabdruck, Gesicht, PIN, Muster,
   Passwort) – Authentifizierung beim Start bzw. bei Rückkehr aus dem Hintergrund.
-- Einstellungen: Sprache, Nextcloud-Zugang (App-Passwort verschlüsselt), Export-Modus (CSV/`.kmy`),
+- Einstellungen: Sprache, **Währungskennzeichen** (Standard; wird beim `.kmy`-Import je Konto aus der
+  Datei übernommen), Nextcloud-Zugang (App-Passwort verschlüsselt), Export-Modus (CSV/`.kmy`),
   Standardkonto, Orte je Konto, Alias-Namen, Hell-/Dunkel-Design, Datenbank-Backup/Restore, Konto löschen.
 
 ## Wear OS (Sprach-Schnellerfassung)
@@ -151,7 +152,7 @@ Datum;Empfänger;Konto;Typ;Betrag;Notiz;Kategorie
 
 - Java, Gradle 8.9 / AGP 8.7.3, `minSdk 26` (`:app`) bzw. `minSdk 30` (`:wear`), `compileSdk 34`.
 - Module: `:app` (Phone) und `:wear` (Wear OS).
-- [Room](https://developer.android.com/training/data-storage/room) (SQLite, DB-Version 11), OkHttp
+- [Room](https://developer.android.com/training/data-storage/room) (SQLite, DB-Version 12), OkHttp
   (WebDAV), [MPAndroidChart](https://github.com/PhilJay/MPAndroidChart),
   [androidx.security](https://developer.android.com/jetpack/androidx/releases/security)
   (verschlüsselte Prefs), [androidx.biometric](https://developer.android.com/jetpack/androidx/releases/biometric),

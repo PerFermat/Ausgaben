@@ -21,7 +21,7 @@ import de.spahr.ausgaben.security.BiometricAuth;
  * Der Prompt nutzt intern ein beibehaltenes Fragment, das Konfigurationswechsel (Rotation) überdauert;
  * deshalb wird {@code authenticate()} nur beim Erststart aufgerufen (nicht bei Wiederherstellung).</p>
  */
-public class LockActivity extends AppCompatActivity {
+public class LockActivity extends LocalizedActivity {
 
     private BiometricPrompt biometricPrompt;
     private TextView message;

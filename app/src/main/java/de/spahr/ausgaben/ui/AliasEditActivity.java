@@ -17,7 +17,7 @@ import de.spahr.ausgaben.db.PayeeCorrection;
 import de.spahr.ausgaben.db.Repository;
 
 /** Formular zum Anlegen/Ändern/Löschen eines Alias mit allen Feldern (deckt alle Buchungsarten ab). */
-public class AliasEditActivity extends AppCompatActivity {
+public class AliasEditActivity extends LocalizedActivity {
 
     /** Zu bearbeitende Alias-ID; fehlt/−1 = neuer Alias. */
     public static final String EXTRA_ALIAS_ID = "alias_id";

@@ -26,14 +26,21 @@ import de.spahr.ausgaben.db.BookingSplit;
 public class KmyImporter {
 
     private final KmyDocument doc;
+    private final android.content.Context ctx;
     private final SimpleDateFormat dateFormat = new SimpleDateFormat("yyyy-MM-dd", Locale.US);
 
-    public KmyImporter(KmyDocument doc) {
+    public KmyImporter(KmyDocument doc, android.content.Context context) {
         this.doc = doc;
+        this.ctx = de.spahr.ausgaben.i18n.LocaleManager.localizedContext(context);
     }
 
     public List<String> accountNames() {
         return doc.accountNames();
+    }
+
+    /** Währungskennzeichen des Kontos aus der KMyMoney-Datei (z. B. „EUR"), sonst leer. */
+    public String currencyOf(String accountName) {
+        return doc.currencyOfAccount(accountName);
     }
 
     /** Alle Buchungen, die einen Split auf dem gewählten Konto haben. */
@@ -86,7 +93,7 @@ public class KmyImporter {
                 event = parser.next();
             }
         } catch (XmlPullParserException e) {
-            throw new IOException("KMyMoney-Datei konnte nicht gelesen werden", e);
+            throw new IOException(ctx.getString(de.spahr.ausgaben.R.string.err_kmy_read), e);
         }
         return out;
     }

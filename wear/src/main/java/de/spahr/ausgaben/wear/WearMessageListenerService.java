@@ -9,38 +9,35 @@ import com.google.android.gms.wearable.DataEvent;
 import com.google.android.gms.wearable.DataEventBuffer;
 import com.google.android.gms.wearable.DataMap;
 import com.google.android.gms.wearable.DataMapItem;
-import com.google.android.gms.wearable.MessageEvent;
 import com.google.android.gms.wearable.Node;
 import com.google.android.gms.wearable.WearableListenerService;
 
-import java.nio.charset.StandardCharsets;
-
 /**
- * Empfängt die Bestätigungen des Phones ({@code /expense/ack}) und stößt die automatische Synchronisation
- * an, sobald das Phone wieder erreichbar ist ({@code onPeerConnected}) – auch bei geschlossener App, da das
- * System den Service startet. Keine Nutzeraktion erforderlich.
+ * Reagiert auf Data-Layer-Ereignisse des Phones: Löscht das Phone einen {@code /expense/new/<id>}-DataItem
+ * (= Buchung verarbeitet), wird der Eintrag aus der Warteschlange entfernt. Empfängt außerdem die aktive
+ * Sprache ({@code /language}) und stößt bei Wiederverbindung die Synchronisation an ({@code onPeerConnected})
+ * – auch bei geschlossener App, da das System den Service startet.
  */
 public class WearMessageListenerService extends WearableListenerService {
 
     private static final String TAG = "AusgabenWearAck";
 
     @Override
-    public void onMessageReceived(@NonNull MessageEvent event) {
-        Log.d(TAG, "onMessageReceived: " + event.getPath());
-        if (WearPaths.PATH_ACK.equals(event.getPath())) {
-            String id = new String(event.getData(), StandardCharsets.UTF_8);
-            Log.d(TAG, "ACK erhalten für " + id);
-            new PendingStore(this).remove(id);
-            // offene Anzeige (falls App offen) aktualisieren
-            sendBroadcast(new Intent(WearPaths.ACTION_PENDING_CHANGED).setPackage(getPackageName()));
-        }
-    }
-
-    @Override
     public void onDataChanged(@NonNull DataEventBuffer dataEvents) {
         for (DataEvent event : dataEvents) {
-            if (event.getType() == DataEvent.TYPE_CHANGED
-                    && WearPaths.PATH_LANGUAGE.equals(event.getDataItem().getUri().getPath())) {
+            String path = event.getDataItem().getUri().getPath();
+            if (path == null) {
+                continue;
+            }
+            if (event.getType() == DataEvent.TYPE_DELETED
+                    && path.startsWith(WearPaths.PATH_NEW_PREFIX)) {
+                // Phone hat den Eintrag verarbeitet → aus der Warteschlange nehmen.
+                String id = path.substring(WearPaths.PATH_NEW_PREFIX.length());
+                Log.d(TAG, "verarbeitet (DataItem gelöscht): " + id);
+                new PendingStore(this).remove(id);
+                sendBroadcast(new Intent(WearPaths.ACTION_PENDING_CHANGED).setPackage(getPackageName()));
+            } else if (event.getType() == DataEvent.TYPE_CHANGED
+                    && WearPaths.PATH_LANGUAGE.equals(path)) {
                 DataMap map = DataMapItem.fromDataItem(event.getDataItem()).getDataMap();
                 String code = map.getString("code", "de");
                 WearStrings.update(this, code, map.getString("strings", "{}"));

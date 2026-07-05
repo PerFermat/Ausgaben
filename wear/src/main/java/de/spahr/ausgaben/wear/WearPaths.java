@@ -6,10 +6,8 @@ public final class WearPaths {
     private WearPaths() {
     }
 
-    /** Uhr → Phone: neue gesprochene Ausgabe (JSON {id,text,timestamp}). */
-    public static final String PATH_NEW = "/expense/new";
-    /** Phone → Uhr: Bestätigung mit der übertragenen ID. */
-    public static final String PATH_ACK = "/expense/ack";
+    /** Uhr → Phone: neue gesprochene Ausgabe als DataItem unter {@code /expense/new/<id>}. */
+    public static final String PATH_NEW_PREFIX = "/expense/new/";
     /** Phone → Uhr: aktive Sprache + Wear-Texte (DataItem {code, strings}). */
     public static final String PATH_LANGUAGE = "/language";
 

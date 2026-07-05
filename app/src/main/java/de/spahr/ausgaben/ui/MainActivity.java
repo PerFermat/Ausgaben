@@ -53,8 +53,18 @@ public class MainActivity extends LocalizedActivity {
     private PlacesStore placesStore;
 
     private BookingAdapter adapter;
+    private androidx.swiperefreshlayout.widget.SwipeRefreshLayout swipeRefresh;
     private TextView textBalance;
     private TextView textSaldoLabel;
+
+    /** Uhr-Buchung wurde im Hintergrund angelegt → Liste live aktualisieren. */
+    private final android.content.BroadcastReceiver bookingsChangedReceiver =
+            new android.content.BroadcastReceiver() {
+                @Override
+                public void onReceive(android.content.Context context, Intent intent) {
+                    refreshBookings();
+                }
+            };
 
     private List<Booking> allBookings = new ArrayList<>();
     private java.util.Map<Long, List<BookingSplit>> splitsByBooking = new java.util.HashMap<>();
@@ -179,6 +189,13 @@ public class MainActivity extends LocalizedActivity {
         });
         recycler.setAdapter(adapter);
 
+        // Wischgeste nach unten → DB neu lesen.
+        swipeRefresh = findViewById(R.id.swipeRefresh);
+        swipeRefresh.setOnRefreshListener(() -> {
+            refreshBookings();
+            swipeRefresh.setRefreshing(false);
+        });
+
         ExtendedFloatingActionButton fab = findViewById(R.id.fabNew);
         fab.setOnClickListener(v ->
                 startActivity(new Intent(this, BookingEditActivity.class)));
@@ -235,8 +252,21 @@ public class MainActivity extends LocalizedActivity {
     @Override
     protected void onResume() {
         super.onResume();
+        androidx.core.content.ContextCompat.registerReceiver(this, bookingsChangedReceiver,
+                new android.content.IntentFilter(
+                        de.spahr.ausgaben.wear.ExpenseWearListenerService.ACTION_BOOKINGS_CHANGED),
+                androidx.core.content.ContextCompat.RECEIVER_NOT_EXPORTED);
         de.spahr.ausgaben.settings.Currencies.refresh(this);
         refreshBookings();
+    }
+
+    @Override
+    protected void onPause() {
+        super.onPause();
+        try {
+            unregisterReceiver(bookingsChangedReceiver);
+        } catch (IllegalArgumentException ignored) {
+        }
     }
 
     // ---- Buchung per Sprache (Lang-Druck auf FAB) ----

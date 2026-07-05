@@ -36,16 +36,14 @@
             </intent-filter>
         </activity>
 
-        <!-- Empfängt ACKs, die Sprach-Aktualisierung und synchronisiert bei Wiederverbindung automatisch. -->
+        <!-- Reagiert auf verarbeitete Buchungen (DataItem-Löschung), Sprach-Aktualisierung und
+             synchronisiert bei Wiederverbindung automatisch. -->
         <service
             android:name=".WearMessageListenerService"
             android:exported="true">
             <intent-filter>
-                <action android:name="com.google.android.gms.wearable.MESSAGE_RECEIVED" />
-                <data android:scheme="wear" android:host="*" android:pathPrefix="/expense/ack" />
-            </intent-filter>
-            <intent-filter>
                 <action android:name="com.google.android.gms.wearable.DATA_CHANGED" />
+                <data android:scheme="wear" android:host="*" android:pathPrefix="/expense" />
                 <data android:scheme="wear" android:host="*" android:pathPrefix="/language" />
             </intent-filter>
         </service>

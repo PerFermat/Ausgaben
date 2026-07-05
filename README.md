@@ -36,7 +36,11 @@ Dies ist eine Android-App (Java), die als mobile Ergänzung zu KMyMoney entwicke
 
 ### Buchungen erfassen
 - Typ-Umschalter **Ausgabe / Umbuchung / Einnahme**, Betrag, Geldempfänger, Konto (Auswahl aus
-  vorhandenen Konten), Notiz und Datum (heute vorbelegt, „Heute"-Schnellwahl).
+  vorhandenen Konten), Notiz und Datum (heute vorbelegt, „Heute"-Schnellwahl). Ist im Hauptbildschirm ein
+  einzelnes Konto gewählt, wird die neue Buchung in diesem Konto angelegt.
+- **Datum-Rückfrage** nur beim Kopieren: Öffnet man eine bestehende Buchung, lässt das Datum unverändert und
+  legt daraus per „als neu speichern" eine Kopie an, fragt die App, ob das (alte) Datum oder heute gelten
+  soll. Beim reinen Ändern der Buchung oder selbst gesetztem Datum kommt keine Rückfrage.
 - **Splitbuchungen**: mehrere Kategorien mit Teilbeträgen. Bei einer Kategorie sind Gesamt- und
   Kategoriebetrag gekoppelt; bei mehreren muss die Summe dem Gesamtbetrag entsprechen. Teilbeträge
   dürfen negativ sein.
@@ -45,20 +49,24 @@ Dies ist eine Android-App (Java), die als mobile Ergänzung zu KMyMoney entwicke
 - **Ort** (nur bei in der App angelegten Ausgaben/Einnahmen): wählbar mit dem Standardort des Kontos
   vorbelegt; bestimmt, welchem Bargeld-Ort die Buchung ihre Ort-Bewegung gutschreibt (siehe „Orte/Bestände").
   Bei importierten Buchungen wird kein Ort-Feld gezeigt.
-- **GPS-Koordinaten in der Notiz**: bei einer *neuen* Buchung erscheinen die aktuellen Koordinaten
-  bereits während der Eingabe im Notizfeld als `GPS: lat, lon` (sichtbar und editierbar; der übrige
-  Notiztext bleibt erhalten, während man tippt wird nicht überschrieben). Nur mit erteilter Standort-
-  Berechtigung und rein lokal – die Position wird nicht an einen externen Dienst gesendet. Ohne
-  Berechtigung/Position bleibt das Feld leer; bestehende Buchungen werden nicht angefasst.
+- **GPS-Koordinaten in der Notiz**: nur wenn der Standort-Schalter (Einstellungen → Sicherheit, siehe unten)
+  **eingeschaltet** ist. Dann erscheinen bei einer *neuen* Buchung die aktuellen Koordinaten bereits während
+  der Eingabe im Notizfeld als `GPS: lat, lon` (sichtbar und editierbar; der übrige Notiztext bleibt
+  erhalten, während man tippt wird nicht überschrieben). Rein lokal – die Position wird nicht an einen
+  externen Dienst gesendet. Ohne Berechtigung/Position bleibt das Feld leer; bestehende Buchungen werden
+  nicht angefasst.
 - **Sprach-Schnellerfassung**: langer Druck auf **„Neue Buchung"** öffnet die Spracheingabe. Sagt man
   z. B. „Frisör 20 €", wird die zuletzt passende Buchung als Vorlage geöffnet (Empfänger, Konto,
   Kategorie(n), Notiz, Buchungsart) – mit heutigem Datum und dem gesprochenen Betrag. Die Empfängersuche
   ist unscharf (findet „Frisör Frank" auch bei „Friseur").
-- **Nur den Betrag erfassen (Standort-Auflösung)**: sagt man nur einen Betrag (oder tippt ihn über das
-  **Ziffern-Symbol** unten still ein), sucht die App am aktuellen Standort (100 m) eine passende Vorlage –
-  in den bestehenden Buchungen und im Alias-Verzeichnis (Reihenfolge: bevorzugte Aliase → Buchungen →
-  übrige Aliase) – und übernimmt deren Daten. Aliase erhalten ihren Standort automatisch, wenn sie aus
-  einer Buchung gelernt werden. Ohne Treffer wird nur der Betrag übernommen.
+- **Nur den Betrag erfassen (Standort-Auflösung)**: nur bei eingeschaltetem Standort-Schalter. Sagt man nur
+  einen Betrag (oder tippt ihn über das **Ziffern-Symbol** unten still ein), sucht die App am aktuellen
+  Standort (100 m) eine passende Vorlage – in den bestehenden Buchungen und im Alias-Verzeichnis
+  (Reihenfolge: bevorzugte Aliase → Buchungen → übrige Aliase) – und übernimmt deren Daten. Aliase erhalten
+  ihren Standort automatisch, wenn sie aus einer Buchung gelernt werden, oder man setzt ihn im Alias per
+  **„Karte öffnen"** (OpenStreetMap). Ohne Treffer wird nur der Betrag übernommen. Ist der Standort-Schalter
+  **aus**, entfällt die Betrag-only-Erfassung am Handy (Ziffern-Symbol ausgeblendet); auf der Uhr bleibt sie
+  möglich – die Buchung entsteht dann mit leerem Empfänger.
 - **Alias-Namen (gelernte Zuordnungen)**: ändert man beim Speichern den per Sprache erkannten (oder beim
   Bearbeiten den bestehenden) Empfänger, fragt die App, ob sie sich die Zuordnung als Alias merken soll.
   Dabei wird der **Kontext der Buchung mitgespeichert** – Buchungsart, Konto und Kategorie(n) bzw.
@@ -107,15 +115,20 @@ Dies ist eine Android-App (Java), die als mobile Ergänzung zu KMyMoney entwicke
 ### Sprachen
 - **Deutsch und Englisch** sind fest eingebaut und in den Einstellungen (ganz oben) umschaltbar –
   Phone **und** Uhr (die Uhr übernimmt die am Phone gewählte Sprache automatisch).
-- Alle Texte liegen in einer **Datenbank-Tabelle** (beim ersten Start aus dem Programm mit DE/EN
-  gefüllt). Über **„Vorlage exportieren"** wird eine JSON-Struktur mit allen Schlüsseln (inkl. der
-  Uhr-Texte) als lokale Datei gespeichert; diese lässt sich manuell in einer weiteren Sprache befüllen
-  und über **„Sprache hochladen"** einlesen. Danach ist die neue Sprache auswählbar und gilt auch für
-  die Uhr. Fehlt eine Übersetzung, wird auf Englisch bzw. den eingebauten Text zurückgegriffen.
+- **Standardsprache Englisch.** Beim allerersten Start entscheidet die Handy-Sprache: Deutsch → Deutsch,
+  jede andere → Englisch. Danach gilt die selbst gewählte Sprache.
+- Alle Texte liegen in einer **Datenbank-Tabelle** (beim Start aus dem Programm mit DE/EN gefüllt; die
+  Anzeige liest durchgängig aus dieser Tabelle – Buttons, Hinweise, Feld-Labels, Menüs, Dialoge). Über
+  **„Vorlage exportieren"** wird eine JSON-Struktur mit allen Schlüsseln (inkl. der Uhr-Texte) als lokale
+  Datei gespeichert; diese lässt sich manuell in einer weiteren Sprache befüllen und über **„Sprache
+  hochladen"** einlesen. Danach ist die neue Sprache auswählbar und gilt auch für die Uhr. **Fehlt eine
+  Übersetzung, wird immer auf Englisch zurückgegriffen** (nie auf eine andere Sprache).
 
 ### Sicherheit & Einstellungen
 - Optionale **App-Sperre** per Biometrie/Geräte-Anmeldung (Fingerabdruck, Gesicht, PIN, Muster,
   Passwort) – Authentifizierung beim Start bzw. bei Rückkehr aus dem Hintergrund.
+- **Standort (GPS)**-Schalter (Standard **aus**): steuert die gesamte Standortnutzung. Aus = keine
+  Berechtigungsabfrage, keine GPS-Notiz, keine Betrag-only-Erfassung am Handy und kein Alias-Standort.
 - Einstellungen: Sprache, **Währungskennzeichen** (Standard; wird beim `.kmy`-Import je Konto aus der
   Datei übernommen), Nextcloud-Zugang (App-Passwort verschlüsselt), Export-Modus (CSV/`.kmy`),
   Standardkonto, Orte je Konto, Alias-Namen, Hell-/Dunkel-Design, Datenbank-Backup/Restore, Konto löschen.

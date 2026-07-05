@@ -201,8 +201,14 @@ public class MainActivity extends LocalizedActivity {
         });
 
         ExtendedFloatingActionButton fab = findViewById(R.id.fabNew);
-        fab.setOnClickListener(v ->
-                startActivity(new Intent(this, BookingEditActivity.class)));
+        fab.setOnClickListener(v -> {
+            Intent i = new Intent(this, BookingEditActivity.class);
+            // Ist ein einzelnes Konto in der Ansicht, die neue Buchung auf jeden Fall dort anlegen.
+            if (!selectedAccount.isEmpty()) {
+                i.putExtra(BookingEditActivity.EXTRA_PRESET_ACCOUNT, selectedAccount);
+            }
+            startActivity(i);
+        });
         // Langer Druck → Buchung per Sprache anlegen (z. B. „Frisör 20€").
         fab.setOnLongClickListener(v -> {
             startVoiceEntry();
@@ -273,7 +279,10 @@ public class MainActivity extends LocalizedActivity {
                         de.spahr.ausgaben.wear.ExpenseWearListenerService.ACTION_BOOKINGS_CHANGED),
                 androidx.core.content.ContextCompat.RECEIVER_NOT_EXPORTED);
         de.spahr.ausgaben.settings.Currencies.refresh(this);
-        if (locationTagger != null && hasLocationPermission()) {
+        boolean gps = settings.isGpsEnabled();
+        // Ziffern-Button (stille Betrag-only-Erfassung) nur bei aktivem Standort anbieten.
+        findViewById(R.id.fabNumber).setVisibility(gps ? View.VISIBLE : View.GONE);
+        if (gps && locationTagger != null && hasLocationPermission()) {
             locationTagger.start();
         }
         refreshBookings();
@@ -298,8 +307,8 @@ public class MainActivity extends LocalizedActivity {
             Toast.makeText(this, R.string.voice_no_recognizer, Toast.LENGTH_LONG).show();
             return;
         }
-        // Standort für eine mögliche Betrag-only-Auflösung vorwärmen.
-        if (locationTagger != null && !hasLocationPermission()) {
+        // Standort für eine mögliche Betrag-only-Auflösung vorwärmen (nur bei aktivem GPS).
+        if (settings.isGpsEnabled() && locationTagger != null && !hasLocationPermission()) {
             locationPermissionLauncher.launch(android.Manifest.permission.ACCESS_FINE_LOCATION);
         }
         Intent intent = new Intent(android.speech.RecognizerIntent.ACTION_RECOGNIZE_SPEECH);
@@ -324,7 +333,8 @@ public class MainActivity extends LocalizedActivity {
         VoiceInput.Result parsed = VoiceInput.parse(spoken);
         final long amount = parsed.amountCents == null ? -1 : parsed.amountCents;
         if (parsed.payee.isEmpty()) {
-            if (amount <= 0) {
+            // Reiner Betrag ohne Standort ist am Handy nicht auflösbar → bei GPS aus abweisen.
+            if (amount <= 0 || !settings.isGpsEnabled()) {
                 Toast.makeText(this, R.string.voice_not_understood, Toast.LENGTH_SHORT).show();
                 return;
             }
@@ -358,6 +368,9 @@ public class MainActivity extends LocalizedActivity {
             }
             if (res.alias != null) {
                 i.putExtra(BookingEditActivity.EXTRA_ALIAS_ID, res.alias.id);
+            } else if (!selectedAccount.isEmpty()) {
+                // Kein Alias/keine Vorlage liefert ein Konto → angezeigtes Konto vorbelegen.
+                i.putExtra(BookingEditActivity.EXTRA_PRESET_ACCOUNT, selectedAccount);
             }
             if (spokenPayee != null && !spokenPayee.isEmpty()) {
                 // Ursprünglich Gesprochenes: bei Änderung des Empfängers kann ein Alias gelernt werden.

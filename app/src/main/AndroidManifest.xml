@@ -6,6 +6,8 @@
     <!-- Für die optionalen GPS-Koordinaten in der Notiz (nur lokal, kein externer Dienst). -->
     <uses-permission android:name="android.permission.ACCESS_FINE_LOCATION" />
     <uses-permission android:name="android.permission.ACCESS_COARSE_LOCATION" />
+    <!-- osmdroid empfiehlt Netzwerkstatus für das Nachladen der Kartenkacheln. -->
+    <uses-permission android:name="android.permission.ACCESS_NETWORK_STATE" />
 
     <application
         android:name=".AusgabenApp"
@@ -47,6 +49,12 @@
             android:exported="false"
             android:label="@string/alias_edit_title"
             android:parentActivityName=".ui.AliasActivity" />
+
+        <activity
+            android:name=".ui.MapPickerActivity"
+            android:exported="false"
+            android:label="@string/map_pick_title"
+            android:parentActivityName=".ui.AliasEditActivity" />
 
         <activity
             android:name=".ui.AnalysisActivity"

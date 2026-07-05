@@ -1,6 +1,7 @@
 package de.spahr.ausgaben.ui;
 
 import android.content.Context;
+import android.content.res.Resources;
 import android.os.Bundle;
 import android.view.LayoutInflater;
 
@@ -18,9 +19,27 @@ import de.spahr.ausgaben.i18n.LocaleContextWrapper;
  */
 public class LocalizedActivity extends AppCompatActivity {
 
+    private Resources translatedResources;
+    private Resources translatedBase;
+
     @Override
     protected void attachBaseContext(Context base) {
         super.attachBaseContext(LocaleContextWrapper.wrap(base));
+    }
+
+    /**
+     * Übersetzte {@link Resources} auch für die Activity selbst – so ketten Material-getönte Contexts
+     * (Dialog-Buttons, {@code MaterialButton.setText(resId)}) und die Menü-Inflation an die
+     * Übersetzungstabelle. Bei Konfigurationswechsel (neue Basis-Resources) wird neu umhüllt.
+     */
+    @Override
+    public Resources getResources() {
+        Resources base = super.getResources();
+        if (translatedResources == null || translatedBase != base) {
+            translatedBase = base;
+            translatedResources = LocaleContextWrapper.translate(base);
+        }
+        return translatedResources;
     }
 
     @Override

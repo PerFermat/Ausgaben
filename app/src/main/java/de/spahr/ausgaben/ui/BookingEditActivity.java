@@ -71,6 +71,10 @@ public class BookingEditActivity extends LocalizedActivity {
     private String origTransferGroup = "";
     // True, wenn die bearbeitete Buchung in der App angelegt (ort-verknüpft) ist – nur dann Ort-Feld zeigen.
     private boolean origPlaceManaged;
+    // Für die Datum-Abfrage: wurde der Editor aus einer bestehenden Buchung geöffnet, und hat der Nutzer
+    // das Datum selbst geändert? Abfrage nur beim Kopieren (Vorlage) mit unverändertem Datum.
+    private boolean openedFromExistingBooking;
+    private boolean dateChangedByUser;
 
     private MaterialToolbar toolbar;
     private MaterialButtonToggleGroup toggleType;
@@ -148,6 +152,7 @@ public class BookingEditActivity extends LocalizedActivity {
         btnToday = findViewById(R.id.btnToday);
         btnToday.setOnClickListener(v -> {
             selectedDate.setTime(new java.util.Date());
+            dateChangedByUser = true;
             updateDateField();
         });
 
@@ -191,9 +196,9 @@ public class BookingEditActivity extends LocalizedActivity {
         long voiceAmount = getIntent().getLongExtra(EXTRA_VOICE_AMOUNT_CENTS, -1);
         voiceSpokenPayee = getIntent().getStringExtra(EXTRA_VOICE_SPOKEN_PAYEE);
 
-        // Nur bei NEUEN Buchungen: Standort vorwärmen und ggf. Berechtigung anfragen, damit beim
-        // Speichern Koordinaten an die Notiz angehängt werden können.
-        if (id < 0) {
+        // Nur bei NEUEN Buchungen und aktivem GPS: Standort vorwärmen und ggf. Berechtigung anfragen,
+        // damit beim Speichern Koordinaten an die Notiz angehängt werden können.
+        if (id < 0 && settings.isGpsEnabled()) {
             locationTagger = new LocationTagger(this);
             locationTagger.setOnLocationUpdate(this::refreshNoteLocation);
             locationPermissionLauncher = registerForActivityResult(
@@ -414,6 +419,7 @@ public class BookingEditActivity extends LocalizedActivity {
         origIsTransfer = false;
         origTransferGroup = "";
         origPlaceManaged = true; // neue Buchung ist immer ort-verknüpft (Standardort)
+        openedFromExistingBooking = false;
         toolbar.setTitle(R.string.new_booking_title);
         toggleType.check(R.id.btnExpense);
         selectedDate.setTime(new java.util.Date());
@@ -442,6 +448,7 @@ public class BookingEditActivity extends LocalizedActivity {
         origIsTransfer = b.isTransfer;
         origTransferGroup = b.transferGroup == null ? "" : b.transferGroup;
         origPlaceManaged = b.placeManaged; // importierte Buchungen (false) bekommen kein Ort-Feld
+        openedFromExistingBooking = true; // aus bestehender Buchung → Datum-Abfrage nur beim Kopieren
         origPayee = b.payee;
         prefilledPayee = b.payee;
         toolbar.setTitle(R.string.edit_title);
@@ -467,6 +474,7 @@ public class BookingEditActivity extends LocalizedActivity {
         origIsTransfer = false;
         origTransferGroup = "";
         origPlaceManaged = true;
+        openedFromExistingBooking = true; // Vorlage aus bestehender Buchung → Datum-Abfrage möglich
         toolbar.setTitle(R.string.new_booking_title);
         selectedDate.setTime(new java.util.Date());
         updateDateField();
@@ -787,14 +795,19 @@ public class BookingEditActivity extends LocalizedActivity {
             selectedDate.set(Calendar.YEAR, year);
             selectedDate.set(Calendar.MONTH, month);
             selectedDate.set(Calendar.DAY_OF_MONTH, day);
+            dateChangedByUser = true;
             updateDateField();
         }, selectedDate.get(Calendar.YEAR), selectedDate.get(Calendar.MONTH),
                 selectedDate.get(Calendar.DAY_OF_MONTH)).show();
     }
 
-    /** Führt {@code proceed} aus; bei abweichendem Datum vorher nachfragen (heute/gegeben). */
-    private void withDateConfirm(Runnable proceed) {
-        if (isToday(selectedDate)) {
+    /**
+     * Führt {@code proceed} aus; fragt das Datum nur nach, wenn eine bestehende Buchung als Vorlage geöffnet
+     * wurde, deren (altes) Datum unverändert blieb und daraus eine neue Buchung angelegt wird (Kopieren).
+     * Beim Ändern der bestehenden Buchung oder bei selbst gesetztem/heutigem Datum kommt keine Abfrage.
+     */
+    private void maybeDateConfirm(Runnable proceed) {
+        if (!openedFromExistingBooking || dateChangedByUser || isToday(selectedDate)) {
             proceed.run();
             return;
         }
@@ -836,7 +849,7 @@ public class BookingEditActivity extends LocalizedActivity {
         final List<Part> parts = collectParts();
         b.category = parts.isEmpty() ? "" : parts.get(0).category;
         final String place = textOf(editPlace);
-        maybeAskCorrection(b.payee, () -> withDateConfirm(() -> {
+        maybeAskCorrection(b.payee, () -> maybeDateConfirm(() -> {
             b.createdAt = composeTimestamp();
             persistNew(b, place, parts);
         }));
@@ -856,7 +869,7 @@ public class BookingEditActivity extends LocalizedActivity {
         }
         final String note = textOf(editNote).trim();
         final String payee = textOf(editPayee).trim();
-        maybeAskCorrection(payee, () -> withDateConfirm(() ->
+        maybeAskCorrection(payee, () -> maybeDateConfirm(() ->
                 repository.saveTransferBooking(from, to, cents, payee, note,
                 composeTimestamp(), () -> {
                     Toast.makeText(this, R.string.transfer_saved, Toast.LENGTH_SHORT).show();
@@ -915,7 +928,7 @@ public class BookingEditActivity extends LocalizedActivity {
         booking.exported = switchExported.isChecked();
         final boolean managed = origPlaceManaged;
         final String place = selectedPlace();
-        maybeAskCorrection(booking.payee, () -> withDateConfirm(() -> {
+        maybeAskCorrection(booking.payee, () -> {
             booking.createdAt = composeTimestamp();
             final List<BookingSplit> splits = parts.size() >= 2 ? toSplits(parts) : new ArrayList<>();
             Runnable done = () -> {
@@ -929,7 +942,7 @@ public class BookingEditActivity extends LocalizedActivity {
                 // Importierte Buchung: keine Ort-Verknüpfung → Ort-Journal unberührt lassen.
                 repository.updateSplitBooking(booking, splits, done);
             }
-        }));
+        });
     }
 
     private void updateTransferInPlace() {
@@ -946,12 +959,12 @@ public class BookingEditActivity extends LocalizedActivity {
         }
         final String note = textOf(editNote).trim();
         final String payee = textOf(editPayee).trim();
-        maybeAskCorrection(payee, () -> withDateConfirm(() ->
+        maybeAskCorrection(payee, () ->
                 repository.updateTransferBooking(booking, from, to, cents, payee, note,
                 composeTimestamp(), () -> {
                     Toast.makeText(this, R.string.booking_updated, Toast.LENGTH_SHORT).show();
                     finish();
-                })));
+                }));
     }
 
     private void convertNormalToTransfer() {
@@ -969,14 +982,14 @@ public class BookingEditActivity extends LocalizedActivity {
         final String note = textOf(editNote).trim();
         final String payee = textOf(editPayee).trim();
         final long oldId = booking.id;
-        maybeAskCorrection(payee, () -> withDateConfirm(() -> {
+        maybeAskCorrection(payee, () -> {
             long ts = composeTimestamp();
             repository.deleteBooking(oldId, null);
             repository.saveTransferBooking(from, to, cents, payee, note, ts, () -> {
                 Toast.makeText(this, R.string.booking_updated, Toast.LENGTH_SHORT).show();
                 finish();
             });
-        }));
+        });
     }
 
     private void convertTransferToNormal() {
@@ -990,7 +1003,7 @@ public class BookingEditActivity extends LocalizedActivity {
         final String place = textOf(editPlace);
         final String group = origTransferGroup;
         final long oldId = booking.id;
-        maybeAskCorrection(nb.payee, () -> withDateConfirm(() -> {
+        maybeAskCorrection(nb.payee, () -> {
             nb.createdAt = composeTimestamp();
             repository.deleteTransfer(group, oldId, null);
             // Standardort ist jetzt ein echter Ort → keine Sonderbehandlung; „ohne Ort" filtert das Repository.
@@ -1004,7 +1017,7 @@ public class BookingEditActivity extends LocalizedActivity {
             } else {
                 repository.saveBookingWithPlace(nb, fp, done);
             }
-        }));
+        });
     }
 
     private void confirmDelete() {

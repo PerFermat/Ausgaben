@@ -12,14 +12,14 @@ import java.util.Map;
 public final class Strings {
 
     private static volatile Map<String, String> map = Collections.emptyMap();
-    private static volatile Locale locale = Locale.GERMAN;
+    private static volatile Locale locale = Locale.ENGLISH;
 
     private Strings() {
     }
 
     static void set(Map<String, String> newMap, Locale newLocale) {
         map = newMap == null ? Collections.emptyMap() : newMap;
-        locale = newLocale == null ? Locale.GERMAN : newLocale;
+        locale = newLocale == null ? Locale.ENGLISH : newLocale;
     }
 
     /** Übersetzung für den Schlüssel oder {@code null}, wenn keine hinterlegt ist. */

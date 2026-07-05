@@ -75,9 +75,9 @@ public final class LocaleManager {
             }
             String lang = new SettingsStore(app).getLanguage();
             Map<String, String> m = new HashMap<>();
-            // Für Zusatzsprachen zuerst Englisch als Basis, dann die aktive Sprache darüber → noch nicht
-            // übersetzte Schlüssel erscheinen auf Englisch statt auf dem kompilierten Default (Deutsch).
-            if (!LANG_DE.equals(lang) && !LANG_EN.equals(lang)) {
+            // Für jede Sprache außer Englisch zuerst Englisch als Basis, dann die aktive Sprache darüber →
+            // fehlende Übersetzungen erscheinen immer auf Englisch (nie auf einer anderen kompilierten Sprache).
+            if (!LANG_EN.equals(lang)) {
                 for (TranslationDao.KeyValue kv : dao.getPairs(LANG_EN)) {
                     m.put(kv.key, kv.value);
                 }
@@ -127,13 +127,16 @@ public final class LocaleManager {
      * bei jedem Aufruf, greift also auch nach einem Wechsel zur Laufzeit.
      */
     public static Context localizedContext(Context base) {
-        return localeContext(base.getApplicationContext(),
+        Context cfg = localeContext(base.getApplicationContext(),
                 toLocale(new SettingsStore(base).getLanguage()));
+        // Zusätzlich die Übersetzungstabelle überlagern (mit Englisch-Fallback), damit auch Hintergrund-/
+        // Export-Meldungen hochgeladene Sprachen nutzen statt nur der kompilierten Ressource.
+        return LocaleContextWrapper.wrap(cfg);
     }
 
     public static Locale toLocale(String lang) {
         if (lang == null || lang.isEmpty()) {
-            return Locale.GERMAN;
+            return Locale.ENGLISH;
         }
         return new Locale(lang);
     }

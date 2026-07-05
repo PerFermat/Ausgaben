@@ -352,6 +352,11 @@ public class Repository {
      */
     public boolean createVoiceBookingBlocking(String spokenText, String defaultAccount, String type,
                                               String coords) {
+        // Bei ausgeschaltetem GPS keinen Standort verwenden: reiner Betrag von der Uhr → leerer Empfänger,
+        // keine GPS-Notiz. (Auf der Uhr bleibt die Betrag-only-Erfassung damit möglich.)
+        if (!new de.spahr.ausgaben.settings.SettingsStore(appContext).isGpsEnabled()) {
+            coords = null;
+        }
         de.spahr.ausgaben.voice.VoiceInput.Result parsed =
                 de.spahr.ausgaben.voice.VoiceInput.parse(spokenText);
         String term = parsed.payee == null ? "" : parsed.payee.trim();

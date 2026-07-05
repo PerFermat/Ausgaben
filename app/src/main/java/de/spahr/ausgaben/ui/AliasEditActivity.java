@@ -1,9 +1,13 @@
 package de.spahr.ausgaben.ui;
 
+import android.content.Intent;
 import android.os.Bundle;
+import android.view.View;
 import android.widget.ArrayAdapter;
 import android.widget.Toast;
 
+import androidx.activity.result.ActivityResultLauncher;
+import androidx.activity.result.contract.ActivityResultContracts;
 import androidx.appcompat.app.AppCompatActivity;
 
 import com.google.android.material.appbar.MaterialToolbar;
@@ -12,9 +16,12 @@ import com.google.android.material.dialog.MaterialAlertDialogBuilder;
 import com.google.android.material.textfield.MaterialAutoCompleteTextView;
 import com.google.android.material.textfield.TextInputEditText;
 
+import java.util.Locale;
+
 import de.spahr.ausgaben.R;
 import de.spahr.ausgaben.db.PayeeCorrection;
 import de.spahr.ausgaben.db.Repository;
+import de.spahr.ausgaben.settings.SettingsStore;
 
 /** Formular zum Anlegen/Ändern/Löschen eines Alias mit allen Feldern (deckt alle Buchungsarten ab). */
 public class AliasEditActivity extends LocalizedActivity {
@@ -25,7 +32,7 @@ public class AliasEditActivity extends LocalizedActivity {
     private Repository repository;
     private MaterialToolbar toolbar;
     private TextInputEditText editSpoken;
-    private TextInputEditText editCorrected;
+    private MaterialAutoCompleteTextView editCorrected;
     private MaterialAutoCompleteTextView editType;
     private MaterialAutoCompleteTextView editAccount;
     private MaterialAutoCompleteTextView editCatExpense1;
@@ -36,6 +43,10 @@ public class AliasEditActivity extends LocalizedActivity {
     private MaterialAutoCompleteTextView editTo;
     private com.google.android.material.materialswitch.MaterialSwitch switchPreferred;
     private MaterialButton btnDelete;
+    private View gpsSection;
+    private TextInputEditText editLat;
+    private TextInputEditText editLon;
+    private ActivityResultLauncher<Intent> mapLauncher;
 
     /** Beim Bearbeiten geladener Alias (behält id/createdAt); null = neu. */
     private PayeeCorrection loaded;
@@ -66,6 +77,24 @@ public class AliasEditActivity extends LocalizedActivity {
         switchPreferred = findViewById(R.id.switchAliasPreferred);
         btnDelete = findViewById(R.id.btnDeleteAlias);
 
+        // Standort-Bereich nur bei aktiviertem GPS zeigen.
+        gpsSection = findViewById(R.id.aliasGpsSection);
+        editLat = findViewById(R.id.editAliasLat);
+        editLon = findViewById(R.id.editAliasLon);
+        boolean gps = new SettingsStore(this).isGpsEnabled();
+        gpsSection.setVisibility(gps ? View.VISIBLE : View.GONE);
+
+        mapLauncher = registerForActivityResult(
+                new ActivityResultContracts.StartActivityForResult(), result -> {
+                    if (result.getResultCode() == RESULT_OK && result.getData() != null) {
+                        double lat = result.getData().getDoubleExtra(MapPickerActivity.EXTRA_LAT, 0);
+                        double lon = result.getData().getDoubleExtra(MapPickerActivity.EXTRA_LON, 0);
+                        editLat.setText(formatCoord(lat));
+                        editLon.setText(formatCoord(lon));
+                    }
+                });
+        ((MaterialButton) findViewById(R.id.btnAliasMap)).setOnClickListener(v -> openMap());
+
         ((MaterialButton) findViewById(R.id.btnSaveAlias)).setOnClickListener(v -> save());
         btnDelete.setOnClickListener(v -> confirmDelete());
 
@@ -76,6 +105,8 @@ public class AliasEditActivity extends LocalizedActivity {
         editType.setAdapter(new ArrayAdapter<>(this, android.R.layout.simple_list_item_1, typeLabels));
         selectType(Repository.VOICE_TYPE_EXPENSE);
 
+        repository.getPayeeNames(names -> editCorrected.setAdapter(
+                new ArrayAdapter<>(this, android.R.layout.simple_list_item_1, names)));
         repository.getAccountNames(names -> {
             ArrayAdapter<String> a = new ArrayAdapter<>(this, android.R.layout.simple_list_item_1, names);
             editAccount.setAdapter(a);
@@ -107,7 +138,7 @@ public class AliasEditActivity extends LocalizedActivity {
         toolbar.setTitle(R.string.alias_edit_title);
         btnDelete.setVisibility(android.view.View.VISIBLE);
         editSpoken.setText(a.spoken);
-        editCorrected.setText(a.corrected);
+        editCorrected.setText(a.corrected, false);
         selectType(a.type);
         editAccount.setText(a.account, false);
         editCatExpense1.setText(a.catExpense1, false);
@@ -117,6 +148,8 @@ public class AliasEditActivity extends LocalizedActivity {
         editFrom.setText(a.fromAccount, false);
         editTo.setText(a.toAccount, false);
         switchPreferred.setChecked(a.preferred);
+        editLat.setText(a.lat == 0 && a.lon == 0 ? "" : formatCoord(a.lat));
+        editLon.setText(a.lat == 0 && a.lon == 0 ? "" : formatCoord(a.lon));
     }
 
     private void save() {
@@ -138,6 +171,11 @@ public class AliasEditActivity extends LocalizedActivity {
         a.fromAccount = text(editFrom);
         a.toAccount = text(editTo);
         a.preferred = switchPreferred.isChecked();
+        // Standort aus den Feldern übernehmen (beide leer/ungültig → 0/0 = keiner).
+        Double lat = parseCoord(text(editLat));
+        Double lon = parseCoord(text(editLon));
+        a.lat = lat != null && lon != null ? lat : 0;
+        a.lon = lat != null && lon != null ? lon : 0;
         repository.saveAlias(a);
         Toast.makeText(this, R.string.alias_saved, Toast.LENGTH_SHORT).show();
         finish();
@@ -155,6 +193,33 @@ public class AliasEditActivity extends LocalizedActivity {
                 }))
                 .setNegativeButton(R.string.cancel, null)
                 .show();
+    }
+
+    /** Öffnet die Karten-Auswahl, zentriert auf die aktuell eingetragenen Koordinaten (falls vorhanden). */
+    private void openMap() {
+        Intent i = new Intent(this, MapPickerActivity.class);
+        Double lat = parseCoord(text(editLat));
+        Double lon = parseCoord(text(editLon));
+        if (lat != null && lon != null) {
+            i.putExtra(MapPickerActivity.EXTRA_LAT, (double) lat);
+            i.putExtra(MapPickerActivity.EXTRA_LON, (double) lon);
+        }
+        mapLauncher.launch(i);
+    }
+
+    private static String formatCoord(double v) {
+        return String.format(Locale.US, "%.6f", v);
+    }
+
+    private static Double parseCoord(String s) {
+        if (s == null || s.trim().isEmpty()) {
+            return null;
+        }
+        try {
+            return Double.parseDouble(s.trim().replace(',', '.'));
+        } catch (NumberFormatException e) {
+            return null;
+        }
     }
 
     private String text(android.widget.EditText field) {

@@ -1,309 +1,316 @@
 <resources>
     <string name="app_name">Ausgaben</string>
 
-    <!-- Hauptbildschirm -->
-    <string name="type_expense">Ausgabe</string>
-    <string name="type_income">Einnahme</string>
-    <string name="type_transfer">Umbuchung</string>
-    <string name="transfer_payee_hint">Zahlungsempfänger (optional)</string>
+    <!-- Main screen -->
+    <string name="type_expense">Expense</string>
+    <string name="type_income">Income</string>
+    <string name="type_transfer">Transfer</string>
+    <string name="transfer_payee_hint">Payee (optional)</string>
 
-    <!-- Sprach-Schnellerfassung (Lang-Druck auf „Neue Buchung") -->
-    <string name="voice_prompt">Buchung sagen, z. B. „Frisör 20 €"</string>
-    <string name="voice_no_recognizer">Keine Spracherkennung verfügbar</string>
-    <string name="voice_not_understood">Nicht verstanden – bitte erneut versuchen</string>
-    <string name="voice_not_found">Keine Buchung für „%1$s" gefunden – neue Buchung</string>
-    <string name="correction_title">Namenskorrektur merken?</string>
-    <string name="correction_message">Erkannt wurde „%1$s", gebucht auf „%2$s". Soll die Spracherkennung „%1$s" künftig automatisch als „%2$s" übernehmen?</string>
-    <string name="correction_save">Merken</string>
-    <string name="correction_discard">Nicht merken</string>
+    <!-- Voice quick entry -->
+    <string name="voice_prompt">Say a booking, e.g. “Barber 20 €”</string>
+    <string name="voice_no_recognizer">No speech recognition available</string>
+    <string name="voice_not_understood">Not understood – please try again</string>
+    <string name="voice_not_found">No booking found for “%1$s” – new booking</string>
+    <string name="correction_title">Remember name correction?</string>
+    <string name="correction_message">Recognized “%1$s”, booked as “%2$s”. Should speech recognition use “%1$s” as “%2$s” automatically from now on?</string>
+    <string name="correction_save">Remember</string>
+    <string name="correction_discard">Do not remember</string>
 
-    <!-- Alias-Namen (Verwaltung + Einstellungen) -->
-    <string name="alias_section">Alias-Namen</string>
-    <string name="alias_prompt_switch">Bei geändertem Empfänger nach Alias fragen</string>
-    <string name="alias_preferred_switch">Vor bestehender Buchung bevorzugen</string>
-    <string name="alias_manage">Alias-Namen verwalten</string>
-    <string name="alias_manage_title">Alias-Namen</string>
-    <string name="alias_add">Alias hinzufügen</string>
-    <string name="alias_edit_title">Alias bearbeiten</string>
-    <string name="alias_new_title">Neuer Alias</string>
-    <string name="alias_empty">Noch keine Alias-Namen. Über „Alias hinzufügen" anlegen oder beim Buchen merken lassen.</string>
+    <!-- Aliases (management + settings) -->
+    <string name="alias_section">Aliases</string>
+    <string name="alias_prompt_switch">Ask about alias when payee changed</string>
+    <string name="alias_preferred_switch">Prefer over existing booking</string>
+    <string name="alias_manage">Manage aliases</string>
+    <string name="alias_manage_title">Aliases</string>
+    <string name="alias_add">Add alias</string>
+    <string name="alias_edit_title">Edit alias</string>
+    <string name="alias_new_title">New alias</string>
+    <string name="alias_empty">No aliases yet. Add one via “Add alias” or let them be remembered while booking.</string>
     <string name="alias_arrow">→</string>
-    <string name="alias_spoken_hint">Gesprochener Alias-Name</string>
-    <string name="alias_corrected_hint">Korrekter Empfänger</string>
-    <string name="alias_type_hint">Bevorzugte Buchungsart</string>
-    <string name="alias_type_expense">Ausgabe</string>
-    <string name="alias_type_income">Einnahme</string>
-    <string name="alias_type_transfer">Umbuchung</string>
-    <string name="alias_account_hint">Konto (Einnahme/Ausgabe)</string>
-    <string name="alias_cat_income_1_hint">Kategorie Einnahme 1</string>
-    <string name="alias_cat_income_2_hint">Kategorie Einnahme 2</string>
-    <string name="alias_cat_expense_1_hint">Kategorie Ausgabe 1</string>
-    <string name="alias_cat_expense_2_hint">Kategorie Ausgabe 2</string>
-    <string name="alias_from_account_hint">Von-Konto (Umbuchung)</string>
-    <string name="alias_to_account_hint">Bis-Konto (Umbuchung)</string>
-    <string name="alias_error_required">Gesprochener Name und korrekter Empfänger sind nötig</string>
-    <string name="alias_saved">Alias gespeichert</string>
-    <string name="alias_deleted">Alias gelöscht</string>
-    <string name="alias_delete_confirm_title">Alias löschen?</string>
-    <string name="split_categories">Kategorien</string>
+    <string name="alias_spoken_hint">Spoken alias name</string>
+    <string name="alias_corrected_hint">Correct payee</string>
+    <string name="alias_type_hint">Preferred booking type</string>
+    <string name="alias_type_expense">Expense</string>
+    <string name="alias_type_income">Income</string>
+    <string name="alias_type_transfer">Transfer</string>
+    <string name="alias_account_hint">Account (income/expense)</string>
+    <string name="alias_cat_income_1_hint">Income category 1</string>
+    <string name="alias_cat_income_2_hint">Income category 2</string>
+    <string name="alias_cat_expense_1_hint">Expense category 1</string>
+    <string name="alias_cat_expense_2_hint">Expense category 2</string>
+    <string name="alias_from_account_hint">From account (transfer)</string>
+    <string name="alias_to_account_hint">To account (transfer)</string>
+    <string name="alias_error_required">Spoken name and correct payee are required</string>
+    <string name="alias_saved">Alias saved</string>
+    <string name="alias_deleted">Alias deleted</string>
+    <string name="alias_gps_section">Location (for amount-only entry)</string>
+    <string name="alias_lat">Latitude</string>
+    <string name="alias_lon">Longitude</string>
+    <string name="alias_map">Open map</string>
+    <string name="map_pick_title">Pick location</string>
+    <string name="map_pick_confirm">Use this location</string>
+    <string name="alias_delete_confirm_title">Delete alias?</string>
+    <string name="split_categories">Categories</string>
     <string name="split_remove">−</string>
     <string name="split_marker">Split</string>
-    <string name="split_partial_hint">Teilbetrag</string>
-    <string name="error_transfer_accounts">Bitte zwei verschiedene Konten (Von/Nach) wählen</string>
-    <string name="error_split_sum">Summe der Teilbeträge muss dem Gesamtbetrag entsprechen</string>
-    <string name="transfer_saved">Umbuchung gespeichert</string>
-    <string name="amount_hint">Betrag</string>
-    <string name="payee_hint">Geldempfänger</string>
-    <string name="account_hint">Konto</string>
-    <string name="note_hint">Notiz (optional)</string>
-    <string name="category_hint">Kategorie (optional)</string>
-    <string name="place_hint">Ort (nur Bestand)</string>
-    <string name="mark_exported">Als exportiert markiert</string>
-    <string name="date_hint">Datum</string>
-    <string name="save">Speichern</string>
-    <string name="today">Heute</string>
-    <string name="scroll_top">Nach oben</string>
-    <string name="bookings_title">Buchungen</string>
-    <string name="exported_badge">exportiert</string>
-    <string name="duplicated">Werte übernommen – anpassen und speichern</string>
+    <string name="split_partial_hint">Partial amount</string>
+    <string name="error_transfer_accounts">Please choose two different accounts (from/to)</string>
+    <string name="error_split_sum">Sum of the partial amounts must equal the total</string>
+    <string name="transfer_saved">Transfer saved</string>
+    <string name="amount_hint">Amount</string>
+    <string name="payee_hint">Payee</string>
+    <string name="account_hint">Account</string>
+    <string name="note_hint">Note (optional)</string>
+    <string name="category_hint">Category (optional)</string>
+    <string name="place_hint">Place (cash only)</string>
+    <string name="mark_exported">Marked as exported</string>
+    <string name="date_hint">Date</string>
+    <string name="save">Save</string>
+    <string name="today">Today</string>
+    <string name="scroll_top">To top</string>
+    <string name="bookings_title">Bookings</string>
+    <string name="exported_badge">exported</string>
+    <string name="duplicated">Values copied – adjust and save</string>
 
-    <!-- Menü -->
-    <string name="action_import">Importieren</string>
-    <string name="action_export">Exportieren</string>
-    <string name="action_filter">Filtern</string>
-    <string name="action_analysis">Auswertung</string>
-    <string name="action_balance">Bestände</string>
-    <string name="action_settings">Einstellungen</string>
+    <!-- Menu -->
+    <string name="action_import">Import</string>
+    <string name="action_export">Export</string>
+    <string name="action_filter">Filter</string>
+    <string name="action_analysis">Analysis</string>
+    <string name="action_balance">Balances</string>
+    <string name="action_settings">Settings</string>
 
-    <!-- Saldo-Leiste -->
-    <string name="saldo_total">Gesamt</string>
-    <string name="saldo_filtered">Gefiltert</string>
-    <string name="no_place">ohne Ort</string>
+    <!-- Balance bar -->
+    <string name="saldo_total">Total</string>
+    <string name="saldo_filtered">Filtered</string>
+    <string name="no_place">no place</string>
 
-    <!-- Konten-Schublade -->
-    <string name="account_all">Alle Konten</string>
-    <string name="accounts_title">Konten</string>
-    <string name="drawer_open">Konten öffnen</string>
-    <string name="drawer_close">Konten schließen</string>
-    <string name="add_account">Neues Konto hinzufügen</string>
-    <string name="kmy_import_all_title">Alle Konten importieren?</string>
-    <string name="kmy_import_all_message">Alle Konten werden aus der KMyMoney-Datei aktualisiert (bereits exportierte Buchungen werden ersetzt).</string>
-    <string name="kmy_import_done_multi">%1$d Buchung(en) in %2$d Konto/Konten importiert</string>
-    <string name="kmy_account_not_found">Konto nicht in der KMyMoney-Datei</string>
+    <!-- Accounts drawer -->
+    <string name="account_all">All accounts</string>
+    <string name="accounts_title">Accounts</string>
+    <string name="drawer_open">Open accounts</string>
+    <string name="drawer_close">Close accounts</string>
+    <string name="add_account">Add new account</string>
+    <string name="kmy_import_all_title">Import all accounts?</string>
+    <string name="kmy_import_all_message">All accounts are updated from the KMyMoney file (already exported bookings are replaced).</string>
+    <string name="kmy_import_done_multi">Imported %1$d booking(s) into %2$d account(s)</string>
+    <string name="kmy_account_not_found">Account not in the KMyMoney file</string>
 
-    <!-- Bestände / Umbuchen / Kassensturz / Verlauf -->
-    <string name="balance_title">Bestände</string>
-    <string name="transfer_title">Umbuchen</string>
-    <string name="transfer_do">Umbuchen</string>
-    <string name="transfer_from">Von</string>
-    <string name="transfer_to">Nach</string>
-    <string name="transfer_invalid">Ungültige Umbuchung</string>
-    <string name="reconcile_title">Kassensturz</string>
-    <string name="reconcile_do">Übernehmen</string>
-    <string name="reconcile_place">Ort</string>
-    <string name="reconcile_actual">Ist-Betrag</string>
-    <string name="reconcile_create_booking">Buchung erzeugen (Unbekannt/Sonstiges)</string>
-    <string name="no_places_defined">Bitte zuerst Orte in den Einstellungen anlegen</string>
-    <string name="no_movements">Keine Bewegungen</string>
-    <string name="movement_booking">Buchung</string>
-    <string name="movement_transfer">Umbuchung</string>
-    <string name="movement_reconcile">Kassensturz</string>
-    <string name="movement_add">Bewegung hinzufügen</string>
-    <string name="movement_edit">Bewegung bearbeiten</string>
+    <!-- Balances / transfer / cash count / history -->
+    <string name="balance_title">Balances</string>
+    <string name="transfer_title">Transfer</string>
+    <string name="transfer_do">Transfer</string>
+    <string name="transfer_from">From</string>
+    <string name="transfer_to">To</string>
+    <string name="transfer_invalid">Invalid transfer</string>
+    <string name="reconcile_title">Cash count</string>
+    <string name="reconcile_do">Apply</string>
+    <string name="reconcile_place">Place</string>
+    <string name="reconcile_actual">Actual amount</string>
+    <string name="reconcile_create_booking">Create booking (Unknown/Other)</string>
+    <string name="no_places_defined">Please add places in the settings first</string>
+    <string name="no_movements">No movements</string>
+    <string name="movement_booking">Booking</string>
+    <string name="movement_transfer">Transfer</string>
+    <string name="movement_reconcile">Cash count</string>
+    <string name="movement_add">Add movement</string>
+    <string name="movement_edit">Edit movement</string>
 
     <!-- Filter -->
-    <string name="filter_title">Buchungen filtern</string>
-    <string name="category_filter_hint">Kategorie</string>
-    <string name="category_all">(alle Kategorien)</string>
-    <string name="amount_from">von</string>
-    <string name="amount_to">bis</string>
-    <string name="filter_apply">Anwenden</string>
-    <string name="filter_reset">Zurücksetzen</string>
-    <string name="cancel">Abbrechen</string>
-    <string name="filter_active">Filter aktiv (%1$d)</string>
+    <string name="filter_title">Filter bookings</string>
+    <string name="category_filter_hint">Category</string>
+    <string name="category_all">(all categories)</string>
+    <string name="amount_from">from</string>
+    <string name="amount_to">to</string>
+    <string name="filter_apply">Apply</string>
+    <string name="filter_reset">Reset</string>
+    <string name="cancel">Cancel</string>
+    <string name="filter_active">Filter active (%1$d)</string>
 
-    <!-- Neue Buchung / Bearbeiten -->
-    <string name="new_booking">Neue Buchung</string>
-    <string name="number_entry">Betrag per Ziffern</string>
-    <string name="date_confirm_title">Datum bestätigen</string>
-    <string name="date_confirm_message">Das Datum ist nicht heute. Buchung für %1$s oder für heute anlegen?</string>
-    <string name="date_use_given">Für %1$s</string>
-    <string name="date_use_today">Für heute</string>
-    <string name="new_booking_title">Neue Buchung</string>
-    <string name="update_booking">Buchung ändern</string>
-    <string name="delete_booking">Buchung löschen</string>
-    <string name="edit_title">Buchung bearbeiten</string>
-    <string name="delete">Löschen</string>
-    <string name="delete_confirm_title">Buchung löschen?</string>
-    <string name="delete_confirm_message">Diese Buchung wird dauerhaft entfernt.</string>
-    <string name="booking_updated">Buchung aktualisiert</string>
-    <string name="booking_deleted">Buchung gelöscht</string>
+    <!-- New booking / edit -->
+    <string name="new_booking">New booking</string>
+    <string name="number_entry">Enter amount by digits</string>
+    <string name="date_confirm_title">Confirm date</string>
+    <string name="date_confirm_message">The date is not today. Create booking for %1$s or for today?</string>
+    <string name="date_use_given">For %1$s</string>
+    <string name="date_use_today">For today</string>
+    <string name="new_booking_title">New booking</string>
+    <string name="update_booking">Update booking</string>
+    <string name="delete_booking">Delete booking</string>
+    <string name="edit_title">Edit booking</string>
+    <string name="delete">Delete</string>
+    <string name="delete_confirm_title">Delete booking?</string>
+    <string name="delete_confirm_message">This booking will be permanently removed.</string>
+    <string name="booking_updated">Booking updated</string>
+    <string name="booking_deleted">Booking deleted</string>
 
-    <!-- Saldo -->
-    <string name="balance">Saldo: %1$s</string>
+    <!-- Balance -->
+    <string name="balance">Balance: %1$s</string>
 
-    <!-- Auswertung -->
-    <string name="analysis_title">Auswertung</string>
-    <string name="granularity_day">Tag</string>
-    <string name="granularity_week">Woche</string>
-    <string name="granularity_month">Monat</string>
-    <string name="granularity_year">Jahr</string>
-    <string name="analysis_total">Gesamt: %1$s</string>
-    <string name="analysis_empty">Keine Buchungen für die Auswertung</string>
-    <string name="bar_count_label">Balken</string>
-    <string name="scroll_right">Nach rechts</string>
-    <string name="analysis_view">Sicht</string>
+    <!-- Analysis -->
+    <string name="analysis_title">Analysis</string>
+    <string name="granularity_day">Day</string>
+    <string name="granularity_week">Week</string>
+    <string name="granularity_month">Month</string>
+    <string name="granularity_year">Year</string>
+    <string name="analysis_total">Total: %1$s</string>
+    <string name="analysis_empty">No bookings for the analysis</string>
+    <string name="bar_count_label">Bars</string>
+    <string name="scroll_right">To the right</string>
+    <string name="analysis_view">View</string>
 
-    <!-- Daten / Einstellungen -->
-    <string name="data_section">Daten</string>
-    <string name="appearance_section">Darstellung</string>
-    <string name="dark_mode">Dunkles Design</string>
+    <!-- Data / settings -->
+    <string name="data_section">Data</string>
+    <string name="appearance_section">Appearance</string>
+    <string name="dark_mode">Dark theme</string>
 
-    <!-- App-Sperre (Biometrie) -->
-    <string name="security_section">Sicherheit</string>
-    <string name="app_lock_switch">App mit Biometrie schützen</string>
-    <string name="lock_title">Ausgaben entsperren</string>
-    <string name="lock_subtitle">Bitte authentifizieren, um fortzufahren</string>
-    <string name="lock_retry">Erneut versuchen</string>
-    <string name="biometric_none_enrolled">Es ist keine Entsperrmethode eingerichtet. Bitte in den Geräteeinstellungen einen Fingerabdruck, Gesichtsscan oder eine PIN/Muster/Passwort einrichten.</string>
-    <string name="biometric_no_hardware">Dieses Gerät bietet keine unterstützte Authentifizierungsmethode.</string>
-    <string name="import_csv">CSV importieren (kMyMoney)</string>
-    <string name="export_all">Kompletter Export auf Nextcloud</string>
-    <string name="backup_db">Datenbank sichern</string>
-    <string name="restore_db">Datenbank wiederherstellen</string>
-    <string name="reset_db">Datenbank zurücksetzen</string>
-    <string name="restore_confirm_title">Datenbank wiederherstellen?</string>
-    <string name="restore_confirm_message">Die aktuellen Daten werden durch das Backup ersetzt.</string>
-    <string name="restore_done">Datenbank wiederhergestellt</string>
-    <string name="restore_failed">Wiederherstellung fehlgeschlagen: %1$s</string>
-    <string name="restore_invalid">Keine gültige Datenbank-Datei</string>
-    <string name="reset_confirm_title">Datenbank zurücksetzen?</string>
-    <string name="reset_confirm_message">Alle Buchungen sowie die Konto- und Empfängerlisten werden gelöscht. Einstellungen bleiben erhalten.</string>
-    <string name="reset_done">Datenbank zurückgesetzt</string>
-    <string name="delete_account">Konto löschen</string>
-    <string name="delete_account_choose">Konto zum Löschen wählen</string>
-    <string name="delete_account_confirm_title">Konto löschen?</string>
-    <string name="delete_account_confirm_message">Alle Buchungen des Kontos „%1$s" werden dauerhaft gelöscht.</string>
-    <string name="delete_account_done">Konto „%1$s" gelöscht</string>
-    <string name="no_accounts">Keine Konten vorhanden</string>
+    <!-- App lock (biometrics) -->
+    <string name="security_section">Security</string>
+    <string name="app_lock_switch">Protect app with biometrics</string>
+    <string name="gps_switch">Use location (GPS)</string>
+    <string name="lock_title">Unlock Ausgaben</string>
+    <string name="lock_subtitle">Please authenticate to continue</string>
+    <string name="lock_retry">Try again</string>
+    <string name="biometric_none_enrolled">No unlock method is set up. Please set up a fingerprint, face scan or a PIN/pattern/password in the device settings.</string>
+    <string name="biometric_no_hardware">This device does not offer a supported authentication method.</string>
+    <string name="import_csv">Import CSV (kMyMoney)</string>
+    <string name="export_all">Full export to Nextcloud</string>
+    <string name="backup_db">Back up database</string>
+    <string name="restore_db">Restore database</string>
+    <string name="reset_db">Reset database</string>
+    <string name="restore_confirm_title">Restore database?</string>
+    <string name="restore_confirm_message">The current data is replaced by the backup.</string>
+    <string name="restore_done">Database restored</string>
+    <string name="restore_failed">Restore failed: %1$s</string>
+    <string name="restore_invalid">Not a valid database file</string>
+    <string name="reset_confirm_title">Reset database?</string>
+    <string name="reset_confirm_message">All bookings as well as the account and payee lists are deleted. Settings are kept.</string>
+    <string name="reset_done">Database reset</string>
+    <string name="delete_account">Delete account</string>
+    <string name="delete_account_choose">Choose account to delete</string>
+    <string name="delete_account_confirm_title">Delete account?</string>
+    <string name="delete_account_confirm_message">All bookings of account “%1$s” will be permanently deleted.</string>
+    <string name="delete_account_done">Account “%1$s” deleted</string>
+    <string name="no_accounts">No accounts available</string>
 
-    <!-- Orte -->
-    <string name="places_section">Orte (Bargeld-Bestände)</string>
-    <string name="places_account_hint">Konto</string>
-    <string name="place_add_hint">Neuer Ort</string>
-    <string name="place_add">Hinzufügen</string>
-    <string name="default_place_hint">Standardort (neue Buchung)</string>
-    <string name="place_remove_title">Ort entfernen?</string>
-    <string name="place_remove_message">„%1$s" und seine Bewegungen werden entfernt (fließen nach „ohne Ort").</string>
-    <string name="place_rename_title">Ort umbenennen</string>
-    <string name="rename">Umbenennen</string>
-    <string name="remove">Entfernen</string>
-    <string name="password_saved_hint">•••••• (gespeichert)</string>
-    <string name="import_done">%1$d Buchung(en) importiert (Konto ersetzt)</string>
-    <string name="import_failed">Import fehlgeschlagen: %1$s</string>
-    <string name="nextcloud_import_folder_hint">Import-Ordner (Nextcloud)</string>
-    <string name="loading_files">Dateiliste wird geladen…</string>
-    <string name="no_files">Keine CSV-Dateien im Import-Ordner gefunden</string>
-    <string name="choose_import_file">Importdatei wählen</string>
-    <string name="choose_export_folder">Bitte Zielordner für den Export wählen</string>
-    <string name="backup_done">Backup gespeichert</string>
-    <string name="backup_failed">Backup fehlgeschlagen: %1$s</string>
-    <string name="export_all_running">Kompletter Export läuft…</string>
+    <!-- Places -->
+    <string name="places_section">Places (cash balances)</string>
+    <string name="places_account_hint">Account</string>
+    <string name="place_add_hint">New place</string>
+    <string name="place_add">Add</string>
+    <string name="default_place_hint">Default place (new booking)</string>
+    <string name="place_remove_title">Remove place?</string>
+    <string name="place_remove_message">“%1$s” and its movements are removed (flow to “no place”).</string>
+    <string name="place_rename_title">Rename place</string>
+    <string name="rename">Rename</string>
+    <string name="remove">Remove</string>
+    <string name="password_saved_hint">•••••• (saved)</string>
+    <string name="import_done">Imported %1$d booking(s) (account replaced)</string>
+    <string name="import_failed">Import failed: %1$s</string>
+    <string name="nextcloud_import_folder_hint">Import folder (Nextcloud)</string>
+    <string name="loading_files">Loading file list…</string>
+    <string name="no_files">No CSV files found in the import folder</string>
+    <string name="choose_import_file">Choose import file</string>
+    <string name="choose_export_folder">Please choose a target folder for the export</string>
+    <string name="backup_done">Backup saved</string>
+    <string name="backup_failed">Backup failed: %1$s</string>
+    <string name="export_all_running">Full export running…</string>
 
-    <!-- Einstellungen -->
-    <string name="settings_title">Einstellungen</string>
-    <string name="language_section">Sprache</string>
-    <string name="language_hint">Sprache</string>
-    <string name="language_export">Vorlage exportieren</string>
-    <string name="language_upload">Sprache hochladen</string>
-    <string name="language_export_done">Vorlage gespeichert</string>
-    <string name="language_upload_done">Sprache „%1$s" geladen</string>
-    <string name="language_upload_failed">Sprachdatei ungültig: %1$s</string>
-    <string name="currency_hint">Währungskennzeichen (Standard)</string>
-    <string name="nextcloud_section">Synchronisation (Nextcloud / WebDAV / SMB)</string>
-    <string name="server_type_hint">Server-Typ</string>
+    <!-- Settings -->
+    <string name="settings_title">Settings</string>
+    <string name="language_section">Language</string>
+    <string name="language_hint">Language</string>
+    <string name="language_export">Export template</string>
+    <string name="language_upload">Upload language</string>
+    <string name="language_export_done">Template saved</string>
+    <string name="language_upload_done">Language “%1$s” loaded</string>
+    <string name="language_upload_failed">Invalid language file: %1$s</string>
+    <string name="currency_hint">Currency indicator (default)</string>
+    <string name="nextcloud_section">Sync (Nextcloud / WebDAV / SMB)</string>
+    <string name="server_type_hint">Server type</string>
     <string name="server_type_nextcloud">Nextcloud</string>
-    <string name="server_type_webdav">WebDAV (generisch)</string>
+    <string name="server_type_webdav">WebDAV (generic)</string>
     <string name="server_type_smb">SMB/Samba</string>
-    <string name="nextcloud_url_hint">Basis-URL (Nextcloud: https://cloud.example.com – WebDAV: vollständige DAV-URL)</string>
-    <string name="nextcloud_user_hint">Benutzername</string>
-    <string name="smb_url_hint">SMB-Freigabe (smb://Host/Freigabe)</string>
-    <string name="smb_user_hint">Benutzer (optional, leer = Gast; Domäne als DOMÄNE\\Benutzer)</string>
-    <string name="conn_test">Verbindung testen</string>
-    <string name="conn_testing">Verbindung wird getestet…</string>
-    <string name="conn_ok">Verbindung erfolgreich</string>
-    <string name="conn_failed">Verbindung fehlgeschlagen: %1$s</string>
-    <string name="kmy_browse">.kmy auswählen</string>
-    <string name="kmy_browse_none">Keine .kmy-Datei gefunden</string>
-    <string name="nextcloud_password_hint">App-Passwort</string>
-    <string name="nextcloud_folder_hint">Zielordner (optional, z. B. Finanzen)</string>
-    <string name="export_mode_section">Export-/Import-Format</string>
+    <string name="nextcloud_url_hint">Base URL (Nextcloud: https://cloud.example.com – WebDAV: full DAV URL)</string>
+    <string name="nextcloud_user_hint">Username</string>
+    <string name="smb_url_hint">SMB share (smb://host/share)</string>
+    <string name="smb_user_hint">User (optional, empty = guest; domain as DOMAIN\\user)</string>
+    <string name="conn_test">Test connection</string>
+    <string name="conn_testing">Testing connection…</string>
+    <string name="conn_ok">Connection successful</string>
+    <string name="conn_failed">Connection failed: %1$s</string>
+    <string name="kmy_browse">Select .kmy</string>
+    <string name="kmy_browse_none">No .kmy file found</string>
+    <string name="nextcloud_password_hint">App password</string>
+    <string name="nextcloud_folder_hint">Target folder (optional, e.g. Finances)</string>
+    <string name="export_mode_section">Export/import format</string>
     <string name="export_mode_hint">Format</string>
-    <string name="export_mode_csv">CSV (kMyMoney-Import)</string>
-    <string name="export_mode_kmy">KMyMoney-Datei (.kmy)</string>
-    <string name="kmy_path_hint">KMyMoney-Datei (Pfad, z. B. KMyMoney/gdyx.kmy)</string>
-    <string name="default_account_section">Standardkonto</string>
-    <string name="default_account_hint">Standardkonto</string>
-    <string name="settings_save">Speichern</string>
-    <string name="settings_saved">Einstellungen gespeichert</string>
+    <string name="export_mode_csv">CSV (kMyMoney import)</string>
+    <string name="export_mode_kmy">KMyMoney file (.kmy)</string>
+    <string name="kmy_path_hint">KMyMoney file (path, e.g. KMyMoney/gdyx.kmy)</string>
+    <string name="default_account_section">Default account</string>
+    <string name="default_account_hint">Default account</string>
+    <string name="settings_save">Save</string>
+    <string name="settings_saved">Settings saved</string>
 
-    <!-- KMyMoney-Export/Import -->
-    <string name="kmy_path_missing">Bitte die KMyMoney-Datei in den Einstellungen angeben</string>
-    <string name="kmy_no_files">Keine .kmy-Datei im Ordner gefunden</string>
-    <string name="kmy_choose_account">Konto auswählen</string>
-    <string name="kmy_replace_title">Konto ersetzen?</string>
-    <string name="kmy_replace_message">Die bereits exportierten Buchungen des Kontos „%1$s" werden durch den Import ersetzt.</string>
-    <string name="kmy_import_replace">Ersetzen</string>
-    <string name="kmy_import_done">%1$d Buchung(en) für Konto „%2$s" importiert</string>
-    <string name="progress_loading">Lade Dateiliste…</string>
-    <string name="progress_download">Lade KMyMoney-Datei…</string>
-    <string name="progress_importing">Importiere…</string>
-    <string name="progress_exporting">Exportiere…</string>
-    <string name="kmy_progress_processing">Verarbeite Buchungen…</string>
-    <string name="kmy_progress_backup">Sichere Original…</string>
-    <string name="kmy_progress_writing">Schreibe KMyMoney-Datei…</string>
-    <string name="kmy_none_matched">Keine Buchung konnte zugeordnet werden.</string>
-    <string name="kmy_result_written">%1$d Buchung(en) in %2$s geschrieben</string>
-    <string name="kmy_result_new_payees">, %1$d neue(r) Empfänger</string>
+    <!-- KMyMoney export/import -->
+    <string name="kmy_path_missing">Please specify the KMyMoney file in the settings</string>
+    <string name="kmy_no_files">No .kmy file found in the folder</string>
+    <string name="kmy_choose_account">Choose account</string>
+    <string name="kmy_replace_title">Replace account?</string>
+    <string name="kmy_replace_message">The already exported bookings of account “%1$s” are replaced by the import.</string>
+    <string name="kmy_import_replace">Replace</string>
+    <string name="kmy_import_done">Imported %1$d booking(s) for account “%2$s”</string>
+    <string name="progress_loading">Loading file list…</string>
+    <string name="progress_download">Downloading KMyMoney file…</string>
+    <string name="progress_importing">Importing…</string>
+    <string name="progress_exporting">Exporting…</string>
+    <string name="kmy_progress_processing">Processing bookings…</string>
+    <string name="kmy_progress_backup">Backing up original…</string>
+    <string name="kmy_progress_writing">Writing KMyMoney file…</string>
+    <string name="kmy_none_matched">No booking could be matched.</string>
+    <string name="kmy_result_written">Wrote %1$d booking(s) to %2$s</string>
+    <string name="kmy_result_new_payees">, %1$d new payee(s)</string>
     <string name="kmy_result_backup">Backup: %1$s</string>
-    <string name="kmy_skipped">%1$d übersprungen: %2$s</string>
+    <string name="kmy_skipped">%1$d skipped: %2$s</string>
 
-    <!-- Meldungen -->
-    <string name="error_amount">Bitte einen gültigen Betrag > 0 eingeben</string>
-    <string name="error_payee">Bitte einen Empfänger eingeben</string>
-    <string name="error_account">Bitte ein Konto eingeben</string>
-    <string name="booking_saved">Buchung gespeichert</string>
-    <string name="export_none">Keine neuen Buchungen zum Exportieren</string>
-    <string name="export_no_bookings">Keine Buchungen vorhanden</string>
-    <string name="export_target_missing">Kein Zielordner gewählt</string>
-    <string name="export_result_uploaded">%1$d Buchung(en) in %2$d Datei(en) hochgeladen</string>
-    <string name="export_result_saved">%1$d Buchung(en) in %2$d Datei(en) lokal gespeichert</string>
-    <string name="export_result_failed">Fehlgeschlagen – %1$s</string>
-    <string name="export_running">Export läuft…</string>
-    <string name="export_success">Exportiert &amp; auf Nextcloud hochgeladen</string>
-    <string name="export_no_config">Bitte zuerst die Nextcloud-Zugangsdaten in den Einstellungen hinterlegen</string>
-    <string name="export_failed">Export fehlgeschlagen: %1$s</string>
+    <!-- Messages -->
+    <string name="error_amount">Please enter a valid amount > 0</string>
+    <string name="error_payee">Please enter a payee</string>
+    <string name="error_account">Please enter an account</string>
+    <string name="booking_saved">Booking saved</string>
+    <string name="export_none">No new bookings to export</string>
+    <string name="export_no_bookings">No bookings available</string>
+    <string name="export_target_missing">No target folder selected</string>
+    <string name="export_result_uploaded">Uploaded %1$d booking(s) in %2$d file(s)</string>
+    <string name="export_result_saved">Saved %1$d booking(s) in %2$d file(s) locally</string>
+    <string name="export_result_failed">Failed – %1$s</string>
+    <string name="export_running">Export running…</string>
+    <string name="export_success">Exported &amp; uploaded to Nextcloud</string>
+    <string name="export_no_config">Please enter the Nextcloud credentials in the settings first</string>
+    <string name="export_failed">Export failed: %1$s</string>
 
-    <!-- Import-/Export-Detailmeldungen -->
-    <string name="err_kmy_read">KMyMoney-Datei konnte nicht gelesen werden</string>
-    <string name="err_target_not_writable">Zielordner nicht beschreibbar</string>
-    <string name="err_file_create">Datei konnte nicht angelegt werden</string>
-    <string name="err_no_write_access">Kein Schreibzugriff</string>
-    <string name="err_csv_empty">Datei ist leer</string>
-    <string name="err_csv_account_missing">Kontoname (Zeile „Kontentyp:…") nicht gefunden</string>
-    <string name="err_csv_header_missing">Kopfzeile (beginnend mit „Datum;") nicht gefunden</string>
-    <string name="skip_account_not_found">Konto nicht gefunden (%1$s)</string>
-    <string name="skip_category_not_found">Kategorie nicht gefunden (%1$s)</string>
-    <string name="skip_transfer_account_not_found">Umbuchung %1$s → %2$s: Konto nicht gefunden (%3$s)</string>
-    <string name="no_payee">(ohne Empfänger)</string>
+    <!-- Import/export detail messages -->
+    <string name="err_kmy_read">KMyMoney file could not be read</string>
+    <string name="err_target_not_writable">Target folder not writable</string>
+    <string name="err_file_create">File could not be created</string>
+    <string name="err_no_write_access">No write access</string>
+    <string name="err_csv_empty">File is empty</string>
+    <string name="err_csv_account_missing">Account name (line “Kontentyp:…”) not found</string>
+    <string name="err_csv_header_missing">Header line (starting with “Datum;”) not found</string>
+    <string name="skip_account_not_found">Account not found (%1$s)</string>
+    <string name="skip_category_not_found">Category not found (%1$s)</string>
+    <string name="skip_transfer_account_not_found">Transfer %1$s → %2$s: account not found (%3$s)</string>
+    <string name="no_payee">(no payee)</string>
 
-    <!-- CSV-Export (Kopfzeile + Kontotyp-Marker) -->
-    <string name="csv_account_type_prefix">Kontentyp:</string>
-    <string name="csv_col_date">Datum</string>
-    <string name="csv_col_payee">Empfänger</string>
-    <string name="csv_col_account">Konto</string>
-    <string name="csv_col_type">Typ</string>
-    <string name="csv_col_amount">Betrag</string>
-    <string name="csv_col_note">Notiz</string>
-    <string name="csv_col_category">Kategorie</string>
+    <!-- CSV export (header + account type marker) -->
+    <string name="csv_account_type_prefix">AccountType:</string>
+    <string name="csv_col_date">Date</string>
+    <string name="csv_col_payee">Payee</string>
+    <string name="csv_col_account">Account</string>
+    <string name="csv_col_type">Type</string>
+    <string name="csv_col_amount">Amount</string>
+    <string name="csv_col_note">Note</string>
+    <string name="csv_col_category">Category</string>
 </resources>

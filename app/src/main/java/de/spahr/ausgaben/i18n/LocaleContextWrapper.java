@@ -24,10 +24,19 @@ public class LocaleContextWrapper extends ContextWrapper {
         return new LocaleContextWrapper(base);
     }
 
+    /**
+     * Erzeugt {@link Resources}, die Texte aus dem {@link Strings}-Katalog liefern (sonst kompilierte
+     * Ressource). Auch von {@code LocalizedActivity.getResources()} genutzt, damit Material-getönte
+     * Contexts und die Menü-Inflation die Übersetzungstabelle treffen.
+     */
+    public static Resources translate(Resources base) {
+        return new TranslatedResources(base);
+    }
+
     @Override
     public Resources getResources() {
         if (wrapped == null) {
-            wrapped = new TranslatedResources(super.getResources());
+            wrapped = translate(super.getResources());
         }
         return wrapped;
     }

@@ -27,6 +27,7 @@ public class SettingsStore {
     private static final String KEY_EXPORT_MODE = "export_mode";
     private static final String KEY_KMY_PATH = "kmy_path";
     private static final String KEY_APP_LOCK = "app_lock";
+    private static final String KEY_GPS_ENABLED = "gps_enabled";
     private static final String KEY_SERVER_TYPE = "server_type";
     private static final String KEY_ALIAS_PROMPT = "alias_prompt";
     private static final String KEY_LANGUAGE = "language";
@@ -211,6 +212,18 @@ public class SettingsStore {
         prefs.edit().putBoolean(KEY_APP_LOCK, enabled).apply();
     }
 
+    /**
+     * Standort-/GPS-Nutzung (Standard: aus). Aus = keine Berechtigungsabfrage, keine GPS-Koordinaten in
+     * Buchungsnotizen, keine Betrag-only-Erfassung am Handy, kein Alias-Standort.
+     */
+    public boolean isGpsEnabled() {
+        return prefs.getBoolean(KEY_GPS_ENABLED, false);
+    }
+
+    public void setGpsEnabled(boolean enabled) {
+        prefs.edit().putBoolean(KEY_GPS_ENABLED, enabled).apply();
+    }
+
     /** Nachfrage, ob ein geänderter Empfänger als Alias gemerkt werden soll (Standard: an). */
     public boolean isAliasPromptEnabled() {
         return prefs.getBoolean(KEY_ALIAS_PROMPT, true);
@@ -220,13 +233,16 @@ public class SettingsStore {
         prefs.edit().putBoolean(KEY_ALIAS_PROMPT, enabled).apply();
     }
 
-    /** Sprachcode der App-Texte (Standard: Systemsprache, falls Englisch → „en", sonst „de"). */
+    /**
+     * Sprachcode der App-Texte. Ist noch keine Sprache gewählt (Erststart), bestimmt die Handy-Sprache:
+     * Deutsch → „de", jede andere Sprache → „en" (Standardsprache Englisch).
+     */
     public String getLanguage() {
         String stored = prefs.getString(KEY_LANGUAGE, "");
         if (!stored.isEmpty()) {
             return stored;
         }
-        return "en".equals(java.util.Locale.getDefault().getLanguage()) ? "en" : "de";
+        return "de".equals(java.util.Locale.getDefault().getLanguage()) ? "de" : "en";
     }
 
     public void setLanguage(String code) {

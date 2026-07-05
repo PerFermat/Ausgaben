@@ -72,6 +72,9 @@ dependencies {
     implementation 'org.bouncycastle:bcprov-jdk18on:1.78.1'
     implementation 'org.slf4j:slf4j-nop:2.0.9'
 
+    // Karten-Auswahl für Alias-Standort (OpenStreetMap, kein API-Key nötig).
+    implementation 'org.osmdroid:osmdroid-android:6.1.18'
+
     implementation 'com.github.PhilJay:MPAndroidChart:v3.1.0'
     implementation 'androidx.security:security-crypto:1.1.0-alpha06'
     implementation 'androidx.biometric:biometric:1.1.0'

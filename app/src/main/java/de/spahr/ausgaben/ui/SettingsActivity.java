@@ -133,6 +133,10 @@ public class SettingsActivity extends LocalizedActivity {
         switchAppLock.setChecked(settings.isAppLockEnabled());
         switchAppLock.setOnCheckedChangeListener((b, checked) -> onAppLockToggled(b, checked));
 
+        MaterialSwitch switchGps = findViewById(R.id.switchGps);
+        switchGps.setChecked(settings.isGpsEnabled());
+        switchGps.setOnCheckedChangeListener((b, checked) -> settings.setGpsEnabled(checked));
+
         MaterialSwitch switchAliasPrompt = findViewById(R.id.switchAliasPrompt);
         switchAliasPrompt.setChecked(settings.isAliasPromptEnabled());
         switchAliasPrompt.setOnCheckedChangeListener((b, checked) -> settings.setAliasPromptEnabled(checked));

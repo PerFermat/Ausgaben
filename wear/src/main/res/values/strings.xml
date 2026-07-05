@@ -1,15 +1,15 @@
 <resources>
     <string name="app_name">Ausgaben</string>
-    <string name="wear_title">Buchung erfassen</string>
-    <string name="wear_type_income">Einnahme</string>
-    <string name="wear_type_transfer">Umbuchung</string>
-    <string name="wear_type_expense">Ausgabe</string>
-    <string name="wear_cancel">Abbrechen</string>
-    <string name="wear_prompt">Buchung sagen, z. B. „Frisör 20 Euro"</string>
-    <string name="wear_listening">Sprich jetzt…</string>
-    <string name="wear_not_understood">Nicht verstanden</string>
-    <string name="wear_no_mic">Mikrofon-Berechtigung nötig</string>
-    <string name="wear_no_recognizer">Keine Spracherkennung verfügbar</string>
-    <string name="wear_pending">%d Buchungen noch nicht übertragen</string>
-    <string name="number_entry">Betrag per Ziffern</string>
+    <string name="wear_title">Record booking</string>
+    <string name="wear_type_income">Income</string>
+    <string name="wear_type_transfer">Transfer</string>
+    <string name="wear_type_expense">Expense</string>
+    <string name="wear_cancel">Cancel</string>
+    <string name="wear_prompt">Say a booking, e.g. \"Barber 20 euros\"</string>
+    <string name="wear_listening">Speak now…</string>
+    <string name="wear_not_understood">Not understood</string>
+    <string name="wear_no_mic">Microphone permission needed</string>
+    <string name="wear_no_recognizer">No speech recognition available</string>
+    <string name="wear_pending">%d bookings not yet transferred</string>
+    <string name="number_entry">Enter amount by digits</string>
 </resources>

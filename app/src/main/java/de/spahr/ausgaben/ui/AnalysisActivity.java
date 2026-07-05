@@ -174,16 +174,13 @@ public class AnalysisActivity extends LocalizedActivity {
             viewKeys.add(MainActivity.VIEW_ACCOUNT_PREFIX + acc);
             viewLabels.add(acc);
         }
-        // Orte je Konto (Standardort = Residual → als „ohne Ort" je Konto separat).
+        // Orte je Konto: alle definierten Orte (inkl. Standardort) + „ohne Ort" (Rest).
         PlacesStore ps = new PlacesStore(this);
         for (String acc : accounts) {
-            String def = ps.getDefaultPlace(acc);
             List<String> pl = ps.getPlaces(acc);
             for (String place : pl) {
-                if (!place.equals(def)) {
-                    viewKeys.add(MainActivity.VIEW_PLACE_PREFIX + acc + PLACE_SEP + place);
-                    viewLabels.add(acc + " · " + place);
-                }
+                viewKeys.add(MainActivity.VIEW_PLACE_PREFIX + acc + PLACE_SEP + place);
+                viewLabels.add(acc + " · " + place);
             }
             if (!pl.isEmpty()) {
                 viewKeys.add(MainActivity.VIEW_NOPLACE + PLACE_SEP + acc);
@@ -226,13 +223,15 @@ public class AnalysisActivity extends LocalizedActivity {
             int i = rest.indexOf(PLACE_SEP);
             String acc = i < 0 ? "" : rest.substring(0, i);
             String place = i < 0 ? rest : rest.substring(i + PLACE_SEP.length());
+            // Echter Ort = seine Bewegungen aus dem Journal (Buchungsbewegung/Umbuchen/Kassensturz).
             for (PlaceEntry e : allPlaceEntries) {
                 if (e.account.equalsIgnoreCase(acc) && e.place.equals(place)) {
                     events.add(new long[]{e.createdAt, e.amountCents});
                 }
             }
         } else if (viewKey.startsWith(MainActivity.VIEW_NOPLACE)) {
-            // „ohne Ort" eines Kontos = dessen Buchungen − dessen Ort-Bewegungen (Rest/Standardort).
+            // „ohne Ort" eines Kontos = Rest = alle Konto-Buchungen − alle Ort-Bewegungen des Kontos
+            // (Σ echte Orte). So entspricht der Verlauf jederzeit Kontosaldo − Σ echte Orts-Salden.
             String acc = viewKey.length() > MainActivity.VIEW_NOPLACE.length()
                     ? viewKey.substring(MainActivity.VIEW_NOPLACE.length() + PLACE_SEP.length())
                     : defaultAccount;

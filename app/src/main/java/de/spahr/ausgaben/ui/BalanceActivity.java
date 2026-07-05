@@ -110,30 +110,19 @@ public class BalanceActivity extends LocalizedActivity {
 
             Map<String, Long> pbal = placeBalances.get(account);
             List<String> places = placesStore.getPlaces(account);
-            String standardort = placesStore.getDefaultPlace(account);
-            boolean residualOnPlace = !standardort.isEmpty() && places.contains(standardort);
 
-            long otherSum = 0;
-            for (String p : places) {
-                if (!p.equals(standardort)) {
-                    otherSum += placeBal(pbal, p);
-                }
-            }
+            // Echte Orte: Saldo aus dem Journal; klickbar → Bewegungen des Orts (editierbar).
+            long realSum = 0;
             for (final String place : places) {
-                long bal = (residualOnPlace && place.equals(standardort))
-                        ? accBal - otherSum
-                        : placeBal(pbal, place);
+                long bal = placeBal(pbal, place);
+                realSum += bal;
                 addRow(place, bal, false, true, true, v -> openHistory(account, place), currency);
             }
-            if (!residualOnPlace && !places.isEmpty()) {
-                long sum = 0;
-                for (String p : places) {
-                    sum += placeBal(pbal, p);
-                }
-                long rest = accBal - sum;
-                if (rest != 0) {
-                    addRow(getString(R.string.no_place), rest, false, true, false, null, currency);
-                }
+            // „ohne Ort" = Rest (immer, sobald ≥1 echter Ort existiert), damit die Summe = Kontosaldo ist.
+            // Rein berechnet (kein Journal) → nicht klickbar; Zuordnung erfolgt über eine Umbuchung.
+            if (!places.isEmpty()) {
+                long rest = accBal - realSum;
+                addRow(getString(R.string.no_place), rest, false, true, false, null, currency);
             }
             addDivider();
         }

@@ -108,6 +108,8 @@
     <string name="movement_booking">Buchung</string>
     <string name="movement_transfer">Umbuchung</string>
     <string name="movement_reconcile">Kassensturz</string>
+    <string name="movement_add">Bewegung hinzufügen</string>
+    <string name="movement_edit">Bewegung bearbeiten</string>
 
     <!-- Filter -->
     <string name="filter_title">Buchungen filtern</string>

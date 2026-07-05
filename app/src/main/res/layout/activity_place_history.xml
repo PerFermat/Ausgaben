@@ -14,16 +14,46 @@
         app:navigationIcon="@drawable/ic_back"
         app:titleTextColor="@color/white" />
 
-    <ScrollView
+    <TextView
+        android:id="@+id/placeBalance"
         android:layout_width="match_parent"
-        android:layout_height="match_parent">
+        android:layout_height="wrap_content"
+        android:background="@color/saldo_bar_bg"
+        android:paddingHorizontal="16dp"
+        android:paddingVertical="12dp"
+        android:fontFamily="monospace"
+        android:textSize="16sp"
+        android:textStyle="bold" />
 
-        <LinearLayout
-            android:id="@+id/historyContainer"
+    <FrameLayout
+        android:layout_width="match_parent"
+        android:layout_height="0dp"
+        android:layout_weight="1">
+
+        <ScrollView
             android:layout_width="match_parent"
+            android:layout_height="match_parent"
+            android:clipToPadding="false"
+            android:paddingHorizontal="16dp"
+            android:paddingBottom="88dp">
+
+            <LinearLayout
+                android:id="@+id/historyContainer"
+                android:layout_width="match_parent"
+                android:layout_height="wrap_content"
+                android:orientation="vertical" />
+        </ScrollView>
+
+        <com.google.android.material.floatingactionbutton.FloatingActionButton
+            android:id="@+id/fabNewHere"
+            android:layout_width="wrap_content"
             android:layout_height="wrap_content"
-            android:orientation="vertical"
-            android:padding="16dp" />
-    </ScrollView>
+            android:layout_gravity="bottom|end"
+            android:layout_margin="16dp"
+            android:contentDescription="@string/movement_add"
+            app:srcCompat="@drawable/ic_add"
+            app:tint="@color/white"
+            app:backgroundTint="@color/green_primary" />
+    </FrameLayout>
 
 </LinearLayout>

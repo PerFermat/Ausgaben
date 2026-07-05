@@ -38,6 +38,10 @@ public interface BookingDao {
     @Query("SELECT * FROM booking WHERE note LIKE '%GPS:%' ORDER BY created_at DESC, id DESC LIMIT 500")
     List<Booking> getWithGpsNote();
 
+    /** Ort-Link an allen Buchungen eines Kontos umbenennen (folgt dem Umbenennen in der Ortsverwaltung). */
+    @Query("UPDATE booking SET place = :newName WHERE account = :account AND place = :oldName")
+    void renamePlace(String account, String oldName, String newName);
+
     @Query("SELECT * FROM booking WHERE exported = 0 ORDER BY created_at ASC, id ASC")
     List<Booking> getUnexported();
 

@@ -108,6 +108,8 @@
     <string name="movement_booking">Booking</string>
     <string name="movement_transfer">Transfer</string>
     <string name="movement_reconcile">Cash count</string>
+    <string name="movement_add">Add movement</string>
+    <string name="movement_edit">Edit movement</string>
 
     <!-- Filter -->
     <string name="filter_title">Filter bookings</string>

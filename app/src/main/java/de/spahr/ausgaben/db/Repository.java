@@ -29,10 +29,12 @@ public class Repository {
     private final PlaceEntryDao placeEntryDao;
     private final PayeeCorrectionDao correctionDao;
     private final TranslationDao translationDao;
+    private final Context appContext;
     private final ExecutorService executor = Executors.newSingleThreadExecutor();
     private final Handler mainHandler = new Handler(Looper.getMainLooper());
 
     public Repository(Context context) {
+        this.appContext = context.getApplicationContext();
         AppDatabase db = AppDatabase.getInstance(context);
         this.bookingDao = db.bookingDao();
         this.accountDao = db.accountDao();
@@ -163,6 +165,8 @@ public class Repository {
      */
     public void saveSplitBooking(final Booking booking, final List<BookingSplit> parts,
                                  final String place, final Runnable onDone) {
+        booking.place = isRealPlace(place) ? place.trim() : "";
+        booking.placeManaged = true;
         executor.execute(() -> {
             payeeDao.insertIfAbsent(new Payee(booking.payee));
             accountDao.insertIfAbsent(new Account(booking.account));
@@ -173,11 +177,7 @@ public class Repository {
                     bookingDao.insertSplit(p);
                 }
             }
-            if (isRealPlace(place)) {
-                long signed = booking.isIncome ? booking.amountCents : -booking.amountCents;
-                placeEntryDao.insert(new PlaceEntry(booking.account, place.trim(), signed,
-                        booking.createdAt, "booking"));
-            }
+            insertBookingMovement(booking);
             if (onDone != null) {
                 mainHandler.post(onDone);
             }
@@ -303,8 +303,14 @@ public class Repository {
 
     public void deleteBooking(final long id, final Runnable onDone) {
         executor.execute(() -> {
+            Booking old = bookingDao.getById(id);
             bookingDao.deleteSplits(id);
             bookingDao.delete(id);
+            // Ort-Journal nachziehen: Gegenbewegung anhängen (alte Bewegung bleibt als Historie stehen).
+            if (old != null && old.placeManaged && isRealPlace(old.place)) {
+                placeEntryDao.insert(new PlaceEntry(old.account, old.place, -signed(old),
+                        System.currentTimeMillis(), "booking", "Buchung gelöscht"));
+            }
             if (onDone != null) {
                 mainHandler.post(onDone);
             }
@@ -425,6 +431,10 @@ public class Repository {
             b.note = "";
         }
         b.note = appendGps(b.note, coords);
+        // Sprach-/Uhr-Buchung ist in der App angelegt → auf den Standardort des Kontos verbuchen.
+        String defPlace = new de.spahr.ausgaben.settings.PlacesStore(appContext).getDefaultPlace(b.account);
+        b.place = isRealPlace(defPlace) ? defPlace.trim() : "";
+        b.placeManaged = true;
         if (!b.payee.trim().isEmpty()) {
             payeeDao.insertIfAbsent(new Payee(b.payee));
         }
@@ -432,6 +442,7 @@ public class Repository {
             accountDao.insertIfAbsent(new Account(b.account));
         }
         long id = bookingDao.insert(b);
+        insertBookingMovement(b);
 
         // Splitbuchungs-Vorlage: Teilbeträge proportional auf den neuen Betrag skalieren (Rest in letzte Zeile).
         if (useTemplate && template.amountCents != 0) {
@@ -826,24 +837,40 @@ public class Repository {
     }
 
     /**
-     * Speichert eine neue Buchung und verschiebt zusätzlich den Saldo des gewählten Ortes (kontobezogen;
-     * Ort = Konto der Buchung). Ort wird NICHT an der Buchung gespeichert; „ohne Ort"/Standardort → keine
-     * explizite Ort-Bewegung (fließt automatisch in den Standardort-Rest).
+     * Speichert eine neue (in der App angelegte) Buchung und legt – falls ein echter Ort gewählt ist
+     * (Standardort zählt dazu) – eine passende Ort-Bewegung im Journal an. {@code place} leer/„ohne Ort"
+     * → keine Bewegung, die Buchung fällt in den Rest „ohne Ort". Die Buchung merkt sich ihren Ort-Link
+     * ({@code place_managed}), damit spätere Änderungen als Ausgleichs-Bewegung nachgezogen werden.
      */
     public void saveBookingWithPlace(final Booking booking, final String place, final Runnable onDone) {
+        booking.place = isRealPlace(place) ? place.trim() : "";
+        booking.placeManaged = true;
         executor.execute(() -> {
             payeeDao.insertIfAbsent(new Payee(booking.payee));
             accountDao.insertIfAbsent(new Account(booking.account));
             bookingDao.insert(booking);
-            if (isRealPlace(place)) {
-                long signed = booking.isIncome ? booking.amountCents : -booking.amountCents;
-                placeEntryDao.insert(new PlaceEntry(booking.account, place.trim(), signed,
-                        booking.createdAt, "booking"));
-            }
+            insertBookingMovement(booking);
             if (onDone != null) {
                 mainHandler.post(onDone);
             }
         });
+    }
+
+    /** Vorzeichenbehafteter Betrag einer Buchung (Einnahme = +, Ausgabe = −). */
+    private static long signed(Booking b) {
+        return b.isIncome ? b.amountCents : -b.amountCents;
+    }
+
+    /**
+     * Legt für eine neu angelegte, ort-verknüpfte Buchung die anfängliche Ort-Bewegung an (nur wenn ein
+     * echter Ort hinterlegt ist). Datum = Buchungsdatum. Läuft auf dem Executor-Thread.
+     */
+    private void insertBookingMovement(Booking b) {
+        if (b.placeManaged && isRealPlace(b.place)) {
+            String note = b.payee == null || b.payee.trim().isEmpty()
+                    ? "Buchung" : "Buchung: " + b.payee.trim();
+            placeEntryDao.insert(new PlaceEntry(b.account, b.place, signed(b), b.createdAt, "booking", note));
+        }
     }
 
     /** Ordnet noch nicht zugeordnete Ort-Bewegungen einmalig dem Standardkonto zu (Migration v4→v5). */
@@ -869,7 +896,7 @@ public class Repository {
         });
     }
 
-    /** Ort-Salden eines Kontos. */
+    /** Ort-Salden eines Kontos aus dem Journal (Σ Bewegungen je Ort). „ohne Ort" ist der berechnete Rest. */
     public void getPlaceBalances(final String account, final Callback<List<PlaceBalance>> callback) {
         executor.execute(() -> {
             final List<PlaceBalance> result = placeEntryDao.getBalances(account == null ? "" : account);
@@ -877,7 +904,7 @@ public class Repository {
         });
     }
 
-    /** Ort-Salden je (Konto, Ort) über alle Konten (für die Bestände-Gruppenliste). */
+    /** Ort-Salden je (Konto, Ort) über alle Konten aus dem Journal (für die Bestände-Gruppenliste). */
     public void getAllPlaceBalances(final Callback<List<PlaceBalance>> callback) {
         executor.execute(() -> {
             final List<PlaceBalance> result = placeEntryDao.getAllBalances();
@@ -926,7 +953,9 @@ public class Repository {
     public void saveReconcile(final String account, final String place, final long targetCents,
                               final boolean createBooking, final Runnable onDone) {
         executor.execute(() -> {
-            long current = placeEntryDao.getBalance(account == null ? "" : account, place);
+            String acct = account == null ? "" : account;
+            // Ist-Saldo aus dem Ort-Journal (Summe der Bewegungen dieses Orts).
+            long current = placeEntryDao.getBalance(acct, place);
             long diff = targetCents - current;
             if (diff != 0) {
                 long now = System.currentTimeMillis();
@@ -954,10 +983,102 @@ public class Repository {
         });
     }
 
+    /**
+     * Aktualisiert eine in der App angelegte, ort-verknüpfte Buchung und zieht die Ort-Salden per
+     * angehängter Ausgleichs-Bewegung(en) nach – die alten Bewegungen bleiben als Historie stehen (Datum
+     * der Änderung = jetzt). {@code newPlace} leer/„ohne Ort" → keine Bewegung (fällt in den Rest).
+     * {@code parts} ersetzt die Kategorie-Teile (leer/null → Einzelkategorie). Erzeugt/ändert keine
+     * andere Buchung.
+     */
+    public void updateBookingWithPlace(final Booking booking, final String newPlace,
+                                       final List<BookingSplit> parts, final Runnable onDone) {
+        executor.execute(() -> {
+            Booking old = bookingDao.getById(booking.id);
+            String np = isRealPlace(newPlace) ? newPlace.trim() : "";
+            long now = System.currentTimeMillis();
+            boolean oldReal = old != null && old.placeManaged && isRealPlace(old.place);
+            long oldSigned = old != null ? signed(old) : 0;
+            String oldPlace = old != null ? old.place : "";
+            String oldAccount = old != null ? old.account : booking.account;
+            boolean newReal = isRealPlace(np);
+            long newSigned = signed(booking);
+            String bookingNote = booking.payee == null || booking.payee.trim().isEmpty()
+                    ? "Buchung geändert" : "Buchung: " + booking.payee.trim();
+            if (oldReal && newReal && oldPlace.equals(np) && oldAccount.equals(booking.account)) {
+                long delta = newSigned - oldSigned;
+                if (delta != 0) {
+                    placeEntryDao.insert(new PlaceEntry(booking.account, np, delta, now, "booking",
+                            "Buchung geändert"));
+                }
+            } else {
+                if (oldReal) {
+                    placeEntryDao.insert(new PlaceEntry(oldAccount, oldPlace, -oldSigned, now, "booking",
+                            "Buchung umgebucht/geändert"));
+                }
+                if (newReal) {
+                    placeEntryDao.insert(new PlaceEntry(booking.account, np, newSigned, now, "booking",
+                            bookingNote));
+                }
+            }
+            booking.place = np;
+            booking.placeManaged = true;
+            payeeDao.insertIfAbsent(new Payee(booking.payee));
+            accountDao.insertIfAbsent(new Account(booking.account));
+            bookingDao.update(booking);
+            bookingDao.deleteSplits(booking.id);
+            if (parts != null) {
+                for (BookingSplit p : parts) {
+                    p.bookingId = booking.id;
+                    bookingDao.insertSplit(p);
+                }
+            }
+            if (onDone != null) {
+                mainHandler.post(onDone);
+            }
+        });
+    }
+
+    // ---- Ort-Bewegungen einzeln bearbeiten (nur Ortssaldo, keine Buchung) ----
+
+    /** Fügt eine manuelle Ort-Bewegung ins Journal ein. */
+    public void addPlaceMovement(final String account, final String place, final long cents,
+                                 final long dateMillis, final String note, final Runnable onDone) {
+        executor.execute(() -> {
+            placeEntryDao.insert(new PlaceEntry(account == null ? "" : account,
+                    place == null ? "" : place, cents, dateMillis, "transfer",
+                    note == null ? "" : note));
+            if (onDone != null) {
+                mainHandler.post(onDone);
+            }
+        });
+    }
+
+    /** Aktualisiert eine einzelne Ort-Bewegung (Datum/Betrag/Notiz). */
+    public void updatePlaceMovement(final PlaceEntry entry, final Runnable onDone) {
+        executor.execute(() -> {
+            placeEntryDao.update(entry);
+            if (onDone != null) {
+                mainHandler.post(onDone);
+            }
+        });
+    }
+
+    /** Löscht eine einzelne Ort-Bewegung. */
+    public void deletePlaceMovement(final long id, final Runnable onDone) {
+        executor.execute(() -> {
+            placeEntryDao.delete(id);
+            if (onDone != null) {
+                mainHandler.post(onDone);
+            }
+        });
+    }
+
     public void renamePlaceEntries(final String account, final String oldName, final String newName,
                                    final Runnable onDone) {
         executor.execute(() -> {
-            placeEntryDao.renamePlace(account == null ? "" : account, oldName, newName);
+            String acct = account == null ? "" : account;
+            placeEntryDao.renamePlace(acct, oldName, newName);
+            bookingDao.renamePlace(acct, oldName, newName); // Buchungen folgen dem Umbenennen
             if (onDone != null) {
                 mainHandler.post(onDone);
             }

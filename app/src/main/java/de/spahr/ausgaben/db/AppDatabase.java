@@ -11,7 +11,7 @@ import androidx.sqlite.db.SupportSQLiteDatabase;
 
 @Database(entities = {Booking.class, BookingSplit.class, Account.class, Payee.class, PlaceEntry.class,
         PayeeCorrection.class, Translation.class, Language.class},
-        version = 13, exportSchema = false)
+        version = 15, exportSchema = false)
 public abstract class AppDatabase extends RoomDatabase {
 
     /** v1 → v2: Notiz-Spalte ergänzen (bestehende Buchungen bleiben erhalten). */
@@ -142,6 +142,28 @@ public abstract class AppDatabase extends RoomDatabase {
         }
     };
 
+    /** v13 → v14: Ort an der Buchung; Orts-Bewegungsjournal auf 0 zurücksetzen (Salden aus Buchungen). */
+    static final Migration MIGRATION_13_14 = new Migration(13, 14) {
+        @Override
+        public void migrate(@NonNull SupportSQLiteDatabase db) {
+            db.execSQL("ALTER TABLE booking ADD COLUMN place TEXT NOT NULL DEFAULT ''");
+            db.execSQL("DELETE FROM place_entry");
+        }
+    };
+
+    /**
+     * v14 → v15: Ort-Bewegungsjournal ist wieder die Saldo-Quelle. {@code place_entry.note} für die
+     * Bewegungsbeschreibung; {@code booking.place_managed} kennzeichnet in der App angelegte Buchungen
+     * mit Ort-Verknüpfung (importierte bleiben 0). {@code booking.place} bleibt als loser Link erhalten.
+     */
+    static final Migration MIGRATION_14_15 = new Migration(14, 15) {
+        @Override
+        public void migrate(@NonNull SupportSQLiteDatabase db) {
+            db.execSQL("ALTER TABLE place_entry ADD COLUMN note TEXT NOT NULL DEFAULT ''");
+            db.execSQL("ALTER TABLE booking ADD COLUMN place_managed INTEGER NOT NULL DEFAULT 0");
+        }
+    };
+
     public abstract BookingDao bookingDao();
 
     public abstract AccountDao accountDao();
@@ -166,7 +188,8 @@ public abstract class AppDatabase extends RoomDatabase {
                                     "ausgaben.db")
                             .addMigrations(MIGRATION_1_2, MIGRATION_2_3, MIGRATION_3_4, MIGRATION_4_5,
                                     MIGRATION_5_6, MIGRATION_6_7, MIGRATION_7_8, MIGRATION_8_9,
-                                    MIGRATION_9_10, MIGRATION_10_11, MIGRATION_11_12, MIGRATION_12_13)
+                                    MIGRATION_9_10, MIGRATION_10_11, MIGRATION_11_12, MIGRATION_12_13,
+                                    MIGRATION_13_14, MIGRATION_14_15)
                             .build();
                 }
             }

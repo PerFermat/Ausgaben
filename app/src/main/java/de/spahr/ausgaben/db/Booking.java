@@ -41,6 +41,24 @@ public class Booking {
     @ColumnInfo(name = "note")
     public String note = "";
 
+    /**
+     * Loser Link auf den Bargeld-Ort, dem diese Buchung ihre Ort-Bewegung gutgeschrieben hat
+     * (leer = „ohne Ort"). Nur relevant, solange {@link #placeManaged} gesetzt ist; dient dazu,
+     * spätere Betrags-/Ort-/Lösch-Änderungen als Ausgleichs-Bewegung im Ort-Journal nachzuziehen.
+     * Bestimmt NICHT den Ortssaldo (der kommt aus dem place_entry-Journal).
+     */
+    @NonNull
+    @ColumnInfo(name = "place")
+    public String place = "";
+
+    /**
+     * True, wenn diese Buchung in dieser App angelegt und mit einem Ort verknüpft wurde (dann wird ihr
+     * Ort-Feld im Editor gezeigt und Folgeänderungen erzeugen Ort-Ausgleichsbewegungen). Importierte
+     * Buchungen sind {@code false} – für sie gibt es keine Ort-Verknüpfung.
+     */
+    @ColumnInfo(name = "place_managed")
+    public boolean placeManaged;
+
     @ColumnInfo(name = "created_at")
     public long createdAt;
 

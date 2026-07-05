@@ -3,6 +3,7 @@ package de.spahr.ausgaben.db;
 import androidx.room.Dao;
 import androidx.room.Insert;
 import androidx.room.Query;
+import androidx.room.Update;
 
 import java.util.List;
 
@@ -11,6 +12,13 @@ public interface PlaceEntryDao {
 
     @Insert
     long insert(PlaceEntry entry);
+
+    @Update
+    void update(PlaceEntry entry);
+
+    /** Löscht eine einzelne Ort-Bewegung (Journal-CRUD in der Ort-Ansicht). */
+    @Query("DELETE FROM place_entry WHERE id = :id")
+    void delete(long id);
 
     /** Saldo je Ort eines Kontos (Summe der Bewegungen). */
     @Query("SELECT place AS place, SUM(amount_cents) AS balance_cents FROM place_entry "

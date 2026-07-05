@@ -3,6 +3,7 @@ package de.spahr.ausgaben.db;
 import androidx.annotation.NonNull;
 import androidx.room.ColumnInfo;
 import androidx.room.Entity;
+import androidx.room.Ignore;
 import androidx.room.PrimaryKey;
 
 /**
@@ -38,9 +39,15 @@ public class PlaceEntry {
     @ColumnInfo(name = "type")
     public String type = "booking";
 
+    /** Freitext-Beschreibung der Bewegung (z. B. „Buchung: Frisör", „Betrag 20→25", „Umbuchung"). */
+    @NonNull
+    @ColumnInfo(name = "note")
+    public String note = "";
+
     public PlaceEntry() {
     }
 
+    @Ignore
     public PlaceEntry(@NonNull String account, @NonNull String place, long amountCents,
                       long createdAt, @NonNull String type) {
         this.account = account;
@@ -48,5 +55,12 @@ public class PlaceEntry {
         this.amountCents = amountCents;
         this.createdAt = createdAt;
         this.type = type;
+    }
+
+    @Ignore
+    public PlaceEntry(@NonNull String account, @NonNull String place, long amountCents,
+                      long createdAt, @NonNull String type, @NonNull String note) {
+        this(account, place, amountCents, createdAt, type);
+        this.note = note;
     }
 }

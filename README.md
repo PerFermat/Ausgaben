@@ -42,6 +42,9 @@ Dies ist eine Android-App (Java), die als mobile Ergänzung zu KMyMoney entwicke
   dürfen negativ sein.
 - **Umbuchung** (Kontotransfer): zwei Konten (Von/Nach) + optionaler Zahlungsempfänger; legt eine
   verknüpfte Buchung in beiden Konten an.
+- **Ort** (nur bei in der App angelegten Ausgaben/Einnahmen): wählbar mit dem Standardort des Kontos
+  vorbelegt; bestimmt, welchem Bargeld-Ort die Buchung ihre Ort-Bewegung gutschreibt (siehe „Orte/Bestände").
+  Bei importierten Buchungen wird kein Ort-Feld gezeigt.
 - **GPS-Koordinaten in der Notiz**: bei einer *neuen* Buchung erscheinen die aktuellen Koordinaten
   bereits während der Eingabe im Notizfeld als `GPS: lat, lon` (sichtbar und editierbar; der übrige
   Notiztext bleibt erhalten, während man tippt wird nicht überschrieben). Nur mit erteilter Standort-
@@ -76,8 +79,14 @@ Dies ist eine Android-App (Java), die als mobile Ergänzung zu KMyMoney entwicke
 - Mehrere **Konten** über eine Navigationsschublade; Liste und Saldo je Konto oder „Alle Konten".
 - Buchungsliste mit Farbkennzeichnung (negativ rot / positiv grün), „exportiert"-Markierung sowie
   Kennzeichnung von Split- (`Split`) und Umbuchungen (`→`/`←` Gegenkonto/Empfänger).
-- **Orte/Bestände** pro Konto (wo liegt das Bargeld physisch): Ort-Salden, Umbuchen zwischen Orten,
-  Kassensturz; der Standardort ist der Rest-Topf des Kontos.
+- **Orte/Bestände** pro Konto (wo liegt das Bargeld physisch): jeder Ort führt ein eigenes
+  Bewegungs-Journal; sein Saldo ist die Summe seiner Bewegungen. Eine in der App angelegte Buchung
+  erzeugt automatisch eine Ort-Bewegung auf dem **Standardort** des Kontos (spätere Betrags-/Lösch-
+  Änderungen hängen datierte Ausgleichs-Bewegungen an, die Historie bleibt erhalten). **„ohne Ort"** ist
+  der berechnete Rest (Kontosaldo − Summe der Orte), sodass die Summe der Ort-Salden stets dem Kontosaldo
+  entspricht. In den Beständen lassen sich Ort-Bewegungen einzeln anlegen/bearbeiten/löschen sowie zwischen
+  Orten umbuchen (z. B. um eine importierte Buchung einem Ort zuzuordnen); ein Kassensturz setzt den Saldo
+  eines Orts. Importierte Buchungen tragen keine Ort-Verknüpfung.
 - **Filter** nach Empfänger, Kategorie (als Baum) und Betrag. Bei Kategorie-Filter zeigt eine
   Splitbuchung nur den Teilbetrag der gewählten Kategorie.
 - **Auswertung** (Tag/Woche/Monat/Jahr) als Balken- + Linien-Diagramm mit Konto-, Orts- und

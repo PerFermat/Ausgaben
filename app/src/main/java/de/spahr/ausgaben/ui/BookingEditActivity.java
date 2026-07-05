@@ -56,6 +56,10 @@ public class BookingEditActivity extends LocalizedActivity {
     public static final String EXTRA_VOICE_SPOKEN_PAYEE = "voice_spoken_payee";
     /** Passender Alias (ID) für eine neue Sprachbuchung – füllt Konto/Kategorien/Von-Bis vor. */
     public static final String EXTRA_ALIAS_ID = "alias_id";
+    /** Neue Buchung mit vorbelegtem Konto (aus der Ort-Ansicht der Bestände). */
+    public static final String EXTRA_PRESET_ACCOUNT = "preset_account";
+    /** Neue Buchung mit vorbelegtem Ort (aus der Ort-Ansicht der Bestände; leer = „ohne Ort"). */
+    public static final String EXTRA_PRESET_PLACE = "preset_place";
 
     private Repository repository;
     private SettingsStore settings;
@@ -65,6 +69,8 @@ public class BookingEditActivity extends LocalizedActivity {
     // Ursprünglicher Typ beim Bearbeiten (für Umbuchung ↔ normale Buchung Umwandlungen).
     private boolean origIsTransfer;
     private String origTransferGroup = "";
+    // True, wenn die bearbeitete Buchung in der App angelegt (ort-verknüpft) ist – nur dann Ort-Feld zeigen.
+    private boolean origPlaceManaged;
 
     private MaterialToolbar toolbar;
     private MaterialButtonToggleGroup toggleType;
@@ -212,6 +218,15 @@ public class BookingEditActivity extends LocalizedActivity {
             repository.getBookingById(id, this::bindEditMode);
         } else {
             setupNewMode();
+            // Vorbelegtes Konto+Ort (aus der Ort-Ansicht der Bestände).
+            String presetAccount = getIntent().getStringExtra(EXTRA_PRESET_ACCOUNT);
+            if (presetAccount != null && !presetAccount.isEmpty()) {
+                editAccount.setText(presetAccount, false);
+                setupPlaceDropdown(presetAccount);
+                String presetPlace = getIntent().getStringExtra(EXTRA_PRESET_PLACE);
+                editPlace.setText(presetPlace == null || presetPlace.isEmpty()
+                        ? PlacesStore.NO_PLACE : presetPlace, false);
+            }
             // Fallback der Sprach-Erfassung (keine Vorlage gefunden): Empfänger/Betrag vorbelegen.
             String prefillPayee = getIntent().getStringExtra(EXTRA_PREFILL_PAYEE);
             if (prefillPayee != null && !prefillPayee.isEmpty()) {
@@ -398,6 +413,7 @@ public class BookingEditActivity extends LocalizedActivity {
         booking = null;
         origIsTransfer = false;
         origTransferGroup = "";
+        origPlaceManaged = true; // neue Buchung ist immer ort-verknüpft (Standardort)
         toolbar.setTitle(R.string.new_booking_title);
         toggleType.check(R.id.btnExpense);
         selectedDate.setTime(new java.util.Date());
@@ -425,6 +441,7 @@ public class BookingEditActivity extends LocalizedActivity {
         booking = b;
         origIsTransfer = b.isTransfer;
         origTransferGroup = b.transferGroup == null ? "" : b.transferGroup;
+        origPlaceManaged = b.placeManaged; // importierte Buchungen (false) bekommen kein Ort-Feld
         origPayee = b.payee;
         prefilledPayee = b.payee;
         toolbar.setTitle(R.string.edit_title);
@@ -449,6 +466,7 @@ public class BookingEditActivity extends LocalizedActivity {
         booking = null; // Neu-Modus → Speichern legt eine neue Buchung an
         origIsTransfer = false;
         origTransferGroup = "";
+        origPlaceManaged = true;
         toolbar.setTitle(R.string.new_booking_title);
         selectedDate.setTime(new java.util.Date());
         updateDateField();
@@ -488,6 +506,8 @@ public class BookingEditActivity extends LocalizedActivity {
         editPayee.setText(b.payee);
         editAccount.setText(b.account, false);
         setupPlaceDropdown(b.account);
+        // Gespeicherten Ort der Buchung vorbelegen (leer → „ohne Ort").
+        editPlace.setText(b.place == null || b.place.isEmpty() ? PlacesStore.NO_PLACE : b.place, false);
         applyTypeVisibility();
 
         final long templateAmount = b.amountCents;
@@ -529,7 +549,10 @@ public class BookingEditActivity extends LocalizedActivity {
         accountToLayout.setVisibility(transfer ? View.VISIBLE : View.GONE);
         // Empfänger gibt es auch bei einer Umbuchung („Zahlungsempfänger"); Ort/Kategorien nicht.
         payeeLayout.setVisibility(View.VISIBLE);
-        placeLayout.setVisibility(transfer ? View.GONE : View.VISIBLE);
+        // Ort-Feld nur bei nicht-Umbuchung UND in der App angelegten (ort-verknüpften) Buchungen zeigen;
+        // importierte Buchungen haben keine Ort-Verknüpfung (Korrektur über Umbuchung in Beständen).
+        boolean showPlace = !transfer && origPlaceManaged;
+        placeLayout.setVisibility(showPlace ? View.VISIBLE : View.GONE);
         splitSection.setVisibility(transfer ? View.GONE : View.VISIBLE);
         accountLayout.setHint(getString(transfer ? R.string.transfer_from : R.string.account_hint));
         payeeLayout.setHint(getString(transfer ? R.string.transfer_payee_hint : R.string.payee_hint));
@@ -842,11 +865,8 @@ public class BookingEditActivity extends LocalizedActivity {
     }
 
     private void persistNew(Booking b, String place, List<Part> parts) {
-        String p = place;
-        if (p != null && p.equals(placesStore.getDefaultPlace(b.account))) {
-            p = "";
-        }
-        final String fp = p;
+        // Ort wird an der Buchung gespeichert (Standardort ist ein echter Ort; „ohne Ort" → leer).
+        final String fp = place;
         Runnable done = () -> {
             Toast.makeText(this, R.string.booking_saved, Toast.LENGTH_SHORT).show();
             finish();
@@ -856,6 +876,13 @@ public class BookingEditActivity extends LocalizedActivity {
         } else {
             repository.saveBookingWithPlace(b, fp, done);
         }
+    }
+
+    /** Ausgewählter Ort normalisiert: „ohne Ort" bzw. leer → {@code ""}, sonst der echte Ortsname. */
+    private String selectedPlace() {
+        String sel = textOf(editPlace);
+        return (sel != null && !sel.trim().isEmpty() && !sel.equals(PlacesStore.NO_PLACE))
+                ? sel.trim() : "";
     }
 
     // ---- Aktualisieren (bestehende Buchung) ----
@@ -886,13 +913,22 @@ public class BookingEditActivity extends LocalizedActivity {
         booking.transferAccount = "";
         booking.transferGroup = "";
         booking.exported = switchExported.isChecked();
+        final boolean managed = origPlaceManaged;
+        final String place = selectedPlace();
         maybeAskCorrection(booking.payee, () -> withDateConfirm(() -> {
             booking.createdAt = composeTimestamp();
-            repository.updateSplitBooking(booking,
-                    parts.size() >= 2 ? toSplits(parts) : new ArrayList<>(), () -> {
-                        Toast.makeText(this, R.string.booking_updated, Toast.LENGTH_SHORT).show();
-                        finish();
-                    });
+            final List<BookingSplit> splits = parts.size() >= 2 ? toSplits(parts) : new ArrayList<>();
+            Runnable done = () -> {
+                Toast.makeText(this, R.string.booking_updated, Toast.LENGTH_SHORT).show();
+                finish();
+            };
+            if (managed) {
+                // App-Buchung: Ort-Journal per Ausgleichs-Bewegung nachziehen (Betrag/Ort/Löschung).
+                repository.updateBookingWithPlace(booking, place, splits, done);
+            } else {
+                // Importierte Buchung: keine Ort-Verknüpfung → Ort-Journal unberührt lassen.
+                repository.updateSplitBooking(booking, splits, done);
+            }
         }));
     }
 
@@ -957,11 +993,8 @@ public class BookingEditActivity extends LocalizedActivity {
         maybeAskCorrection(nb.payee, () -> withDateConfirm(() -> {
             nb.createdAt = composeTimestamp();
             repository.deleteTransfer(group, oldId, null);
-            String p = place;
-            if (p != null && p.equals(placesStore.getDefaultPlace(nb.account))) {
-                p = "";
-            }
-            final String fp = p;
+            // Standardort ist jetzt ein echter Ort → keine Sonderbehandlung; „ohne Ort" filtert das Repository.
+            final String fp = place;
             Runnable done = () -> {
                 Toast.makeText(this, R.string.booking_updated, Toast.LENGTH_SHORT).show();
                 finish();

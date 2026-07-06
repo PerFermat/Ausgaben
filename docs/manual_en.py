@@ -1,0 +1,430 @@
+# -*- coding: utf-8 -*-
+"""Builds the English user manual for Ausgaben as a PDF.
+Content mirrors manual_de.py. German double quotes are written as guillemets («») in the
+source and converted to English curly quotes at build time (collision-safe vs. ASCII ")."""
+import os
+from reportlab.lib.pagesizes import A4
+from reportlab.lib.units import cm
+from reportlab.lib import colors
+from reportlab.lib.styles import getSampleStyleSheet, ParagraphStyle
+from reportlab.lib.enums import TA_LEFT, TA_CENTER
+from reportlab.platypus import (SimpleDocTemplate, Paragraph, Spacer, PageBreak,
+                                Table, TableStyle, Image, KeepTogether)
+from reportlab.pdfbase import pdfmetrics
+from reportlab.pdfbase.ttfonts import TTFont
+from reportlab.lib.utils import ImageReader
+
+REPO = os.path.dirname(os.path.dirname(os.path.abspath(__file__)))
+SHOTS = os.path.join(REPO, "screenshots")
+OUT = os.path.join(REPO, "docs", "Manual-Ausgaben-en.pdf")
+os.makedirs(os.path.dirname(OUT), exist_ok=True)
+
+pdfmetrics.registerFont(TTFont("DejaVu", "/usr/share/fonts/truetype/dejavu/DejaVuSans.ttf"))
+pdfmetrics.registerFont(TTFont("DejaVu-Bold", "/usr/share/fonts/truetype/dejavu/DejaVuSans-Bold.ttf"))
+pdfmetrics.registerFont(TTFont("DejaVu-Oblique", "/usr/share/fonts/truetype/dejavu/DejaVuSans-Oblique.ttf"))
+pdfmetrics.registerFontFamily("DejaVu", normal="DejaVu", bold="DejaVu-Bold", italic="DejaVu-Oblique")
+
+GREEN = colors.HexColor("#2e7d32")
+GREY = colors.HexColor("#555555")
+LIGHT = colors.HexColor("#eef3ee")
+
+styles = getSampleStyleSheet()
+def S(name, **kw):
+    base = kw.pop("parent", styles["Normal"])
+    kw.setdefault("fontName", "DejaVu")
+    return ParagraphStyle(name, parent=base, **kw)
+
+st_title  = S("t",  fontName="DejaVu-Bold", fontSize=26, leading=30, textColor=GREEN, spaceAfter=6)
+st_sub    = S("s",  fontSize=13, leading=17, textColor=GREY, spaceAfter=2)
+st_h1     = S("h1", fontName="DejaVu-Bold", fontSize=16, leading=20, textColor=GREEN, spaceBefore=16, spaceAfter=6)
+st_h2     = S("h2", fontName="DejaVu-Bold", fontSize=12.5, leading=16, textColor=colors.HexColor("#1b4d1e"),
+              spaceBefore=10, spaceAfter=3)
+st_body   = S("b",  fontSize=10, leading=14.5, spaceAfter=5, alignment=TA_LEFT)
+st_bullet = S("bu", fontSize=10, leading=14.5, leftIndent=14, bulletIndent=2, spaceAfter=2)
+st_cell   = S("c",  fontSize=9, leading=12)
+st_cellb  = S("cb", fontName="DejaVu-Bold", fontSize=9, leading=12)
+st_sym    = S("sy", fontName="DejaVu-Bold", fontSize=13, leading=14, alignment=TA_CENTER)
+st_cap    = S("cap", fontSize=8.5, leading=11, textColor=GREY, alignment=TA_CENTER, spaceBefore=3)
+st_note   = S("n",  fontSize=9, leading=13, textColor=GREY)
+
+story = []
+_first_h1 = [True]
+def h1(t):
+    if _first_h1[0]:
+        _first_h1[0] = False
+    else:
+        story.append(PageBreak())
+    story.append(Paragraph(t, st_h1))
+def h2(t): story.append(Paragraph(t, st_h2))
+def p(t):  story.append(Paragraph(t, st_body))
+def bullets(items):
+    for it in items:
+        story.append(Paragraph(it, st_bullet, bulletText="•"))
+    story.append(Spacer(1, 4))
+def gap(h=6): story.append(Spacer(1, h))
+
+def shot(fname, caption, width=6.0*cm):
+    path = os.path.join(SHOTS, fname)
+    ir = ImageReader(path); iw, ih = ir.getSize()
+    img = Image(path, width=width, height=width*ih/iw)
+    tbl = Table([[img],[Paragraph(caption, st_cap)]], colWidths=[width])
+    tbl.setStyle(TableStyle([("ALIGN",(0,0),(-1,-1),"CENTER")]))
+    tbl.hAlign = "CENTER"
+    story.append(KeepTogether([tbl])); gap(6)
+
+def pic(relpath, caption, width=14*cm):
+    path = os.path.join(REPO, relpath)
+    ir = ImageReader(path); iw, ih = ir.getSize()
+    img = Image(path, width=width, height=width*ih/iw); img.hAlign = "CENTER"
+    box = Table([[img],[Paragraph(caption, st_cap)]], colWidths=[width])
+    box.setStyle(TableStyle([("ALIGN",(0,0),(-1,-1),"CENTER")]))
+    box.hAlign = "CENTER"
+    story.append(KeepTogether([box])); gap(6)
+
+# Guillemets in the source -> English curly quotes in the PDF (collision-safe vs. ASCII ").
+_RLParagraph = Paragraph
+def Paragraph(_t, *a, **k):
+    if isinstance(_t, str):
+        _t = _t.replace('«', '“').replace('»', '”')
+    return _RLParagraph(_t, *a, **k)
+
+# ---------------------------------------------------------------- Cover
+story.append(Spacer(1, 4.5*cm))
+story.append(Paragraph("Ausgaben", st_title))
+story.append(Paragraph("User Manual", S("st2", fontName="DejaVu-Bold", fontSize=16, textColor=GREY, spaceAfter=18)))
+story.append(Paragraph("Mobile expense / household book for Android and Wear OS "
+                       "with KMyMoney integration", st_sub))
+story.append(Spacer(1, 0.6*cm))
+story.append(Paragraph("Version 1.1 &nbsp;·&nbsp; Updated: July 2026", st_sub))
+story.append(Spacer(1, 0.3*cm))
+story.append(Paragraph("Project: github.com/PerFermat/Ausgaben &nbsp;·&nbsp; License: GPL-3.0", st_note))
+story.append(Spacer(1, 0.5*cm))
+story.append(Paragraph("Note: the screenshots show the German interface; the app is fully available "
+                       "in English as well (Settings → Language).", st_note))
+story.append(PageBreak())
+
+# ---------------------------------------------------------------- 1
+h1("1. What is Ausgaben?")
+p("<b>Ausgaben</b> (German for «expenses») is a mobile companion to the desktop finance software "
+  "<b>KMyMoney</b>. Use it to record cash expenses, income and transfers on the go – right on your "
+  "phone or a Wear OS watch – and transfer them into KMyMoney later, instead of typing everything in "
+  "by hand.")
+p("The app works fully offline and without any vendor account: data is exchanged with KMyMoney through "
+  "a folder you provide yourself (Nextcloud, WebDAV or SMB/Samba). There are no ads and no tracking.")
+h2("Key terms")
+bullets([
+  "<b>Booking</b>: a single money event (expense, income or transfer).",
+  "<b>Account</b>: e.g. «Cash», «Checking». Every booking belongs to an account.",
+  "<b>Place (holding)</b>: <i>where</i> an account's cash physically is (wallet, jar, envelope …).",
+  "<b>Category</b>: what the money was spent on or received for (e.g. «Groceries»).",
+  "<b>Alias</b>: a learned mapping «spoken term → correct payee» together with account/category.",
+  "<b>.kmy</b>: KMyMoney's file format that is exported to and imported from.",
+])
+
+# ---------------------------------------------------------------- 2
+h1("2. Getting started")
+p("All of the settings below are reached via the gear icon ⚙ at the top right.")
+shot("Einstellungen.png", "Settings: language, server connection (SMB/WebDAV) and export mode", width=6.0*cm)
+h2("Language")
+p("On first launch the language follows your phone (German → German, otherwise English). It can be "
+  "changed any time under <i>Settings → Language</i> (at the very top).")
+h2("Set up the connection to your server (SMB or WebDAV/Nextcloud)")
+p("<b>This is the most important setup step.</b> For the app to exchange data with KMyMoney, it needs "
+  "access to the folder that holds your shared <b>.kmy</b> file (or the export folder). Open the settings "
+  "and choose the <b>server type</b>:")
+bullets([
+  "<b>SMB/Samba</b>: for a Windows/NAS share on your home network («smb://host/share»).",
+  "<b>WebDAV (generic)</b> or <b>Nextcloud</b>: for a (cloud) WebDAV server.",
+])
+p("Then enter URL/share, user name and password and verify with <b>«Test connection»</b>. Also choose the "
+  "export mode (<b>.kmy</b> or CSV) and – in .kmy mode – pick the file via <b>«Choose .kmy»</b>. Full "
+  "details are in Chapter 12.")
+h2("Create accounts – required first")
+p("Next, create at least one <b>account</b>: in the account drawer (☰ top left) via <b>«Add account»</b>; "
+  "in .kmy mode the accounts can be imported directly from the KMyMoney file. <b>Important:</b> the "
+  "<b>default account</b> and the settings below it that depend on it (e.g. places per account) can only "
+  "be set <b>once accounts already exist</b>.")
+h2("App lock (optional)")
+p("In the settings you can enable the biometric app lock (fingerprint, face, PIN …).")
+
+# ---------------------------------------------------------------- 3
+h1("3. The main screen")
+p("The main screen shows the green title bar at the top, the <b>balance line</b> below it, and then the "
+  "list of bookings. The action buttons are at the bottom right.")
+shot("Hauptbildschirm.png", "Main screen with title bar, balance line and booking list")
+h2("Balance line (tap to cycle)")
+p("The coloured line below the title bar shows a balance. <b>Tapping</b> it cycles through, in order:")
+bullets([
+  "<b>Account</b>: balance of the currently selected account (only when a single account is selected).",
+  "<b>Total</b>: sum of all accounts.",
+  "<b>Net worth</b>: all accounts + current portfolio value (only after a portfolio was imported).",
+  "<b>Places</b>: balances of the account's individual cash places.",
+  "<b>Filtered</b>: sum of the currently filtered bookings (only when a filter is active).",
+])
+p("A green amount = positive/credit, a red amount = negative.")
+
+# ---------------------------------------------------------------- 4
+h1("4. Symbol and control reference")
+p("This overview explains every symbol in the app and what it does.")
+sym_rows = [
+  ("☰", "Menu / account drawer", "Top left. Opens the side drawer with all accounts, portfolios and «Add account»."),
+  ("←", "Back", "Top left on sub-screens. Returns to the previous screen."),
+  ("⬇", "Export / synchronize", "Title-bar symbol (down arrow, download style). Starts the sync: writes new bookings into the .kmy or uploads them to the sync target."),
+  ("▽", "Filter", "Funnel symbol. Opens the filter by payee, category and amount."),
+  ("▮▮", "Analysis", "Bar-chart symbol. Opens the graphical analysis."),
+  ("⚙", "Settings", "Gear. Opens the settings."),
+  ("⋮", "More items", "Three dots (overflow). Contains «Holdings», among others."),
+  ("✚", "New booking", "Round button at the bottom right. Short tap: record a booking. <b>Long press: voice input.</b>"),
+  ("⊞", "Silent amount entry", "Keypad symbol (only when location is enabled). Type just the amount; the payee is resolved via your location."),
+  ("↑", "To top", "Small arrow. Jumps to the top of the booking list."),
+  ("★", "Preferred alias", "Marks a preferred alias in the alias list (considered before bookings)."),
+  ("→", "Alias mapping", "In the alias list: «spoken term → correct payee»."),
+  ("→ / ←", "Transfer", "In the booking list: → outgoing, ← incoming transfer (shows the counter-account/payee)."),
+  ("Split", "Split booking", "Marks a booking that is split across several categories."),
+  ("exported", "Exported", "Small green hint: this booking has already been exported."),
+  ("● red/green", "Amount colour", "Red amount = expense/negative, green amount = income/positive."),
+]
+data = [[Paragraph("Symbol", st_cellb), Paragraph("Name", st_cellb), Paragraph("Meaning / function", st_cellb)]]
+for sym, name, desc in sym_rows:
+    data.append([Paragraph(sym, st_sym), Paragraph(name, st_cellb), Paragraph(desc, st_cell)])
+tbl = Table(data, colWidths=[2.1*cm, 3.3*cm, 10.4*cm], repeatRows=1)
+tbl.setStyle(TableStyle([
+    ("BACKGROUND",(0,0),(-1,0),GREEN), ("TEXTCOLOR",(0,0),(-1,0),colors.white),
+    ("FONTNAME",(0,0),(-1,0),"DejaVu-Bold"), ("VALIGN",(0,0),(-1,-1),"MIDDLE"),
+    ("ALIGN",(0,0),(0,-1),"CENTER"), ("ROWBACKGROUNDS",(0,1),(-1,-1),[colors.white, LIGHT]),
+    ("GRID",(0,0),(-1,-1),0.4,colors.HexColor("#cccccc")),
+    ("TOPPADDING",(0,0),(-1,-1),4), ("BOTTOMPADDING",(0,0),(-1,-1),4),
+]))
+story.append(tbl)
+story.append(Paragraph("Note: the title-bar symbols come from the Material Design set; their meaning is "
+    "described above. Depending on space, some items appear in the «⋮» overflow menu.", st_note))
+
+# ---------------------------------------------------------------- 5
+h1("5. Accounts and the account drawer")
+shot("Kontenmenü.png", "Account drawer with accounts, portfolio and «Add account»", width=6.0*cm)
+bullets([
+  "Open it via the ☰ symbol at the top left, or by swiping in from the left edge.",
+  "<b>«All accounts»</b> shows all bookings together; a single account filters the list to it.",
+  "<b>Long press on an account</b>: import/update that account from the .kmy.",
+  "<b>Long press on «All accounts»</b>: re-imports <b>all</b> existing accounts (full import).",
+  "<b>Portfolios</b> appear at the bottom as «… (Depot)»: short tap opens the portfolio view, long press updates it.",
+  "<b>«Add account»</b> (at the bottom): loads the .kmy and offers the contained accounts for selection.",
+])
+
+# ---------------------------------------------------------------- 6
+h1("6. Recording a booking")
+p("Tap the round <b>✚</b> button. The booking editor opens.")
+shot("Ausgaben.png", "Booking editor with type switch, amount, payee and account")
+h2("Fields and controls")
+bullets([
+  "<b>Type switch</b>: <font color='#b00020'>Expense</font> · <b>Transfer</b> · <font color='#2e7d32'>Income</font>. "
+  "Sets the kind of booking.",
+  "<b>Amount</b>, <b>payee</b>, <b>account</b> (chosen from existing accounts).",
+  "<b>Date</b>: pre-filled with today; the <b>«Today»</b> button quickly sets the current date.",
+  "<b>Note</b>: free text. With location enabled it automatically contains «GPS: lat, lon».",
+  "<b>Place</b> (only for expenses/income created in the app): which cash place the booking is credited to.",
+  "<b>«Exported» toggle</b>: marks whether the booking has already been exported.",
+])
+h2("Saving")
+bullets([
+  "<b>Save as new</b>: creates a new booking.",
+  "<b>Update</b>: saves changes to an existing booking.",
+  "<b>Delete</b>: removes the booking.",
+])
+p("<b>Date prompt when copying:</b> if you open an existing booking, leave the date unchanged and «save "
+  "as new», the app asks whether the old date or today should apply.")
+h2("Split booking (several categories)")
+p("In the «Split categories» section you can enter several categories with partial amounts. With one "
+  "category the total and category amount are linked; with several, the sum must equal the total. Partial "
+  "amounts may be negative.")
+h2("Transfer")
+p("Choose the type «Transfer», then the From and To accounts plus an optional payee. This creates a linked "
+  "booking in both accounts (marked → or ← in the list).")
+
+# ---------------------------------------------------------------- 7
+h1("7. Voice input and location capture")
+h2("Voice input")
+p("A <b>long press</b> on the ✚ button opens voice input. Say e.g. «barber 20 €»: the app looks for a "
+  "matching template (payee, account, category, booking type) and opens it with today's date and the "
+  "spoken amount. Payee search is fuzzy.")
+h2("Nearest payee")
+p("If there are several payees with the same name (e.g. «REWE location 1» and «REWE location 2») and the "
+  "location is known, the app picks the <b>geographically nearest</b> one – both for existing bookings and "
+  "for aliases with stored coordinates.")
+h2("Amount-only entry (keypad ⊞)")
+p("With location enabled, the keypad symbol appears at the bottom. Type just an amount: the app looks for a "
+  "matching template at your current location (100 m) and shows the resolved payee before you even save.")
+h2("Alias names (learned mappings)")
+p("If you change the recognized payee while saving, the app asks whether to remember the mapping as an "
+  "alias – together with account and category. So «mom 100 €» is later booked automatically to the real "
+  "name with the right account. Resolution order: <b>preferred aliases (★) → bookings → remaining aliases</b>.")
+
+# ---------------------------------------------------------------- 8
+h1("8. Booking list and filter")
+bullets([
+  "<b>Long press</b> on a booking opens it for editing.",
+  "<b>Pull down</b> to refresh the list (sync).",
+  "Markers: «Split», → / ← (transfer), «exported»; colours red/green.",
+  "<b>Filter</b> (funnel ▽): by payee, category (as a tree) and amount. With a category filter a split "
+  "booking shows only the partial amount of the chosen category.",
+])
+
+# ---------------------------------------------------------------- 9
+h1("9. Analysis")
+shot("Grafik.png", "Analysis as a bar and line chart", width=9.5*cm)
+bullets([
+  "Periods: day / week / month / year.",
+  "Views: single account, place or total.",
+  "<b>Zoom by gesture</b>: horizontal = number of bars, vertical = Y axis.",
+  "Closed accounts count only in the total view (historical balance).",
+])
+
+# ---------------------------------------------------------------- 10
+h1("10. Holdings (places) and portfolio")
+h2("Holdings / places – what are they?")
+p("A <b>place</b> describes <b>where</b> an account's cash physically is – e.g. wallet, jar, petty cash or "
+  "an envelope. An account «Cash» can thus be split into several real storage locations. <b>This feature "
+  "does not exist in KMyMoney</b>; it is an addition of this app for everyday cash handling.")
+p("Places are <b>not limited to cash accounts</b> – they can be used for <b>any account</b>. In the "
+  "following examples we stay with cash, though.")
+p("Reached via <b>⋮ → Holdings</b>. Each place keeps its own <b>movement journal</b>; its balance is the "
+  "sum of its movements. The sum of all place balances always equals the account balance: <b>«no place»</b> "
+  "is the automatically computed remainder (account balance − sum of the other places). So the account "
+  "stays consistent no matter how many places you create.")
+bullets([
+  "A booking created in the app automatically produces a movement on the account's <b>default place</b>.",
+  "Place movements can be <b>created, edited and deleted</b> individually.",
+  "Money can be <b>transferred between places</b> (e.g. to assign an imported booking to a place, or to move "
+  "cash from the envelope into the wallet).",
+  "Later amount or deletion changes append dated balancing movements – the history is preserved.",
+])
+h2("Cash count at place level")
+p("A particular advantage: the <b>cash count</b> (reconciliation) can be done <b>per place</b>. You count "
+  "only the cash of <i>one</i> place – say the wallet – enter the counted amount, and the app automatically "
+  "books the difference as a balancing movement. So you don't have to reconcile the whole account at once; "
+  "this <b>simplifies reconciliation considerably</b>. Imported bookings carry no place link.")
+h2("Portfolio (securities)")
+p("After importing a KMyMoney investment account, the <b>portfolio</b> appears in the account drawer. The "
+  "portfolio view shows <b>shares × price = current value</b> per security plus the total; fully sold "
+  "securities are hidden. A tap on a security opens its <b>movements full-screen</b> (buys green, sells red, "
+  "dividends neutral); in the balance line you toggle by tap between portfolio value and the value of that "
+  "security. The portfolio value is kept separate and also appears as «Net worth» in the main screen's "
+  "balance line.")
+
+# ---------------------------------------------------------------- 11
+h1("11. Synchronizing: performing export and import")
+p("The actual sync with KMyMoney runs through <b>a single symbol</b> in the main screen's title bar – the "
+  "<b>export/sync symbol</b> (down arrow).")
+pic("docs/img/export_button.png", "The export/sync symbol in the title bar (circled in red)", width=14*cm)
+h2("Exporting bookings")
+p("Tap the export symbol ⬇. The app loads the current .kmy from the sync target, inserts your new bookings, "
+  "makes a backup first (see below) and writes the file back. Each booking is exported only <b>once</b> and "
+  "then marked «exported». In CSV mode one CSV file per account is uploaded instead.")
+h2("(Re-)importing accounts")
+p("Import is done selectively via the account drawer (long press):")
+bullets([
+  "<b>Long press on an account</b>: imports/updates exactly that account from the .kmy.",
+  "<b>Long press on «All accounts»</b>: re-imports <b>all</b> existing accounts.",
+  "<b>«Add account»</b>: fetches an account not yet present from the .kmy.",
+  "<b>Long press on the portfolio</b>: updates securities and prices.",
+])
+p("An import replaces the already-exported bookings per account (no duplicates).")
+h2("Backup before every export")
+p("Before every write-back the app automatically creates a <b>timestamped backup</b> of the .kmy (e.g. "
+  "<i>file.kmy.bak-YYYYMMDD-HHMM</i>) right next to the original. So you always have a fallback in case "
+  "something is ever wrong with the file.")
+
+# ---------------------------------------------------------------- 12
+h1("12. Setting up synchronization (Settings)")
+p("Before synchronizing for the first time, store server, access and export mode once in the settings "
+  "(shown in Chapter 2).")
+h2("Server type and access")
+bullets([
+  "<b>Nextcloud</b>: base URL of the server + app password (Nextcloud → Security → App password).",
+  "<b>WebDAV (generic)</b>: full DAV root URL, auth via HTTP basic.",
+  "<b>SMB/Samba</b>: «smb://host/share»; empty user = guest, a domain as DOMAIN\\user. SMB2/3.",
+  "<b>«Test connection»</b> checks the credentials; in .kmy mode <b>«Choose .kmy»</b> lists the files.",
+])
+h2("Export mode")
+bullets([
+  "<b>.kmy mode</b>: writes new bookings straight into the KMyMoney file (including splits and transfers) "
+  "and imports accounts/bookings as well as the portfolio from it.",
+  "<b>CSV mode</b>: exports one CSV file per account; each booking is exported only once.",
+  "<b>Portfolio import</b>: reads securities, buys/sells/dividends and the latest price.",
+])
+p("Without a configured sync target, export goes locally into a folder you choose.")
+
+# ---------------------------------------------------------------- 13
+h1("13. Managing alias names")
+p("Under <b>Settings → Alias names</b>: the automatic prompt can be turned off (existing aliases still "
+  "apply). Via <b>«Manage alias names»</b> you create, edit and delete aliases by hand – with spoken term, "
+  "real payee, booking type, account, categories and location (settable via <b>«Open map»</b> on an "
+  "OpenStreetMap map). The <b>«prefer»</b> toggle (★) puts an alias ahead of the booking search. The same "
+  "spoken term may point to several payees, which are then distinguished by location.")
+
+# ---------------------------------------------------------------- 14
+h1("14. Wear OS (watch)")
+shot("UhranlagemitAlias.png", "Recording on the watch", width=6.0*cm)
+p("With the watch app you record an expense by voice right on your wrist. The watch only captures the text; "
+  "processing and creating the booking happen on the phone (the same parser).")
+bullets([
+  "<b>Three type buttons</b>: income (green), transfer (yellow), expense (red). Then voice starts.",
+  "The recognized text is shown for 10 seconds with «Cancel» and otherwise processed automatically.",
+  "<b>Silent digit entry</b>: enter an amount silently via the digits symbol (resolved by location on the phone).",
+  "<b>Wear tile</b>: quick access as a tile.",
+  "<b>Offline</b>: bookings not yet transmitted are shown and delivered automatically once the phone is "
+  "reachable – without loss and without duplication.",
+])
+p("Requirement: the phone and watch apps share the same signature (same key).")
+
+# ---------------------------------------------------------------- 15
+h1("15. Security, privacy & settings")
+bullets([
+  "<b>App lock</b>: optional via biometrics/device credential (fingerprint, face, PIN, pattern, password) – "
+  "on start and when returning from the background.",
+  "<b>Location (GPS)</b> switch (default <b>off</b>): controls all location use. Off = no permission prompt, "
+  "no GPS note, no amount-only entry, no alias location. The position is used locally only, never sent to a service.",
+  "<b>Currency symbol</b>: default; taken per account from the file on .kmy import.",
+  "<b>Theme</b>: light/dark. <b>Backup/restore</b> of the database.",
+  "<b>Delete/close account</b>: an account can be <b>closed</b> when its balance is 0 (otherwise only deleted) "
+  "and reopened at any time. A closed account no longer appears anywhere – only in the total analysis view "
+  "does its historical balance still count.",
+])
+h2("Disclaimer")
+p("This app is provided as-is, with no warranty. In particular, there is no guarantee that the .kmy file "
+  "remains fully valid after an export. Thanks to the automatic backup before every export, however, you "
+  "always have a fallback. Keep your own regular backups as well.")
+
+# ---------------------------------------------------------------- 16
+h1("16. CSV format (export)")
+p("German locale: column separator «;», decimal separator «,», date DD.MM.YYYY, UTF-8. Split bookings are "
+  "written as one line per category.")
+code = ("Datum;Empfänger;Konto;Typ;Betrag;Notiz;Kategorie<br/>"
+        "29.06.2026;Metzgerei;Bargeld;Ausgabe;-7,30;Mittagessen;Lebensmittel")
+story.append(Paragraph(code, S("code", fontName="DejaVu", fontSize=8.5, leading=12,
+             backColor=LIGHT, borderPadding=6, textColor=colors.HexColor("#333333"))))
+
+# ---- footer ----
+def footer(canvas, doc):
+    canvas.saveState()
+    canvas.setFont("DejaVu", 8); canvas.setFillColor(GREY)
+    canvas.drawString(2*cm, 1.2*cm, "Ausgaben · User Manual (Version 1.1)")
+    canvas.drawRightString(A4[0]-2*cm, 1.2*cm, "Page %d" % doc.page)
+    canvas.restoreState()
+
+def _keep_headings_with_next(flowables):
+    out, i, n = [], 0, len(flowables)
+    while i < n:
+        f = flowables[i]
+        name = getattr(getattr(f, "style", None), "name", "")
+        if name == "h2" and i + 1 < n:
+            out.append(KeepTogether([f, flowables[i + 1]])); i += 2; continue
+        out.append(f); i += 1
+    return out
+story = _keep_headings_with_next(story)
+
+doc = SimpleDocTemplate(OUT, pagesize=A4, leftMargin=2*cm, rightMargin=2*cm,
+                        topMargin=1.8*cm, bottomMargin=1.8*cm,
+                        title="Ausgaben – User Manual", author="Ausgaben")
+doc.build(story, onFirstPage=footer, onLaterPages=footer)
+print("OK ->", OUT)

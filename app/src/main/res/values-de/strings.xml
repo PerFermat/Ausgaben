@@ -84,6 +84,7 @@
 
     <!-- Saldo-Leiste -->
     <string name="saldo_total">Gesamt</string>
+    <string name="saldo_networth">Gesamtvermögen</string>
     <string name="saldo_filtered">Gefiltert</string>
     <string name="no_place">ohne Ort</string>
 
@@ -269,6 +270,20 @@
     <string name="kmy_path_missing">Bitte die KMyMoney-Datei in den Einstellungen angeben</string>
     <string name="kmy_no_files">Keine .kmy-Datei im Ordner gefunden</string>
     <string name="kmy_choose_account">Konto auswählen</string>
+    <string name="kmy_choose_depot">%1$s (Depot)</string>
+    <string name="depot_import_done">Depot „%1$s" importiert</string>
+    <string name="depot_title">Depot</string>
+    <string name="depot_value_total">Depotwert: %1$s</string>
+    <string name="depot_value_label">Depotwert</string>
+    <string name="depot_empty">Noch kein Depot importiert</string>
+    <string name="depot_no_history">Keine Bewegungen</string>
+    <string name="depot_shares_unit">Stück</string>
+    <string name="action_buy">Kauf</string>
+    <string name="action_sell">Verkauf</string>
+    <string name="action_dividend">Dividende</string>
+    <string name="action_add">Einbuchung</string>
+    <string name="action_remove">Ausbuchung</string>
+    <string name="action_reinvest">Wiederanlage</string>
     <string name="kmy_replace_title">Konto ersetzen?</string>
     <string name="kmy_replace_message">Die bereits exportierten Buchungen des Kontos „%1$s" werden durch den Import ersetzt.</string>
     <string name="kmy_import_replace">Ersetzen</string>

@@ -113,6 +113,16 @@ Dies ist eine Android-App (Java), die als mobile Ergänzung zu KMyMoney entwicke
 - **kMyMoney-`.kmy`-Modus**: schreibt neue Buchungen direkt in die `.kmy` (gzip-XML) und importiert
   Konten/Buchungen daraus – inkl. Splitbuchungen und Umbuchungen. Import ersetzt je Konto die bereits
   exportierten Buchungen.
+- **Depot-Import**: das **Investment-Konto** (Depot) wird in der Import-Auswahl **einmal** als „… (Depot)"
+  angeboten (nicht mehr jedes Wertpapier einzeln). Der Import liest die **Wertpapiere**, ihre
+  **Käufe/Verkäufe/Dividenden/Einbuchungen** und den **letzten Kurs** je Wertpapier. Das Depot erscheint
+  nach dem Import **in der Kontenschublade** (kurzer Tipp öffnet die Depot-Ansicht, langer Tipp
+  aktualisiert es aus der .kmy). Die **Depot-Ansicht** zeigt je Wertpapier Stückzahl × Kurs = aktueller
+  Wert und den Gesamt-Depotwert; ein Tipp auf ein Wertpapier öffnet seine **Bewegungen im Vollbild** (im
+  Kopf der Wertpapiername, in der Saldenzeile per Tipp umschaltbar zwischen Depotwert und dem Wert dieses
+  Wertpapiers). Der Depotwert wird **getrennt** geführt (nicht in Konto-Salden/Bestände/Auswertung
+  gemischt); die Kaufkosten/Dividenden erscheinen wie gehabt auf dem jeweiligen Geldkonto. In der
+  Saldenzeile der Hauptansicht gibt es zusätzlich **„Gesamtvermögen"** = alle Konten + Depotwert.
 - **CSV-Import** von kMyMoney-Ledger-CSV (Konto aus `Kontentyp:`-Zeile, ISO-Datum, Vorzeichen → Typ).
 
 ### Sprachen

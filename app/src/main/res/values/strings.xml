@@ -84,6 +84,7 @@
 
     <!-- Balance bar -->
     <string name="saldo_total">Total</string>
+    <string name="saldo_networth">Net worth</string>
     <string name="saldo_filtered">Filtered</string>
     <string name="no_place">no place</string>
 
@@ -269,6 +270,20 @@
     <string name="kmy_path_missing">Please specify the KMyMoney file in the settings</string>
     <string name="kmy_no_files">No .kmy file found in the folder</string>
     <string name="kmy_choose_account">Choose account</string>
+    <string name="kmy_choose_depot">%1$s (portfolio)</string>
+    <string name="depot_import_done">Portfolio “%1$s” imported</string>
+    <string name="depot_title">Portfolio</string>
+    <string name="depot_value_total">Portfolio value: %1$s</string>
+    <string name="depot_value_label">Portfolio value</string>
+    <string name="depot_empty">No portfolio imported yet</string>
+    <string name="depot_no_history">No transactions</string>
+    <string name="depot_shares_unit">shares</string>
+    <string name="action_buy">Buy</string>
+    <string name="action_sell">Sell</string>
+    <string name="action_dividend">Dividend</string>
+    <string name="action_add">Add</string>
+    <string name="action_remove">Remove</string>
+    <string name="action_reinvest">Reinvest</string>
     <string name="kmy_replace_title">Replace account?</string>
     <string name="kmy_replace_message">The already exported bookings of account “%1$s” are replaced by the import.</string>
     <string name="kmy_import_replace">Replace</string>

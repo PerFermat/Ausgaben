@@ -10,8 +10,8 @@ import androidx.room.migration.Migration;
 import androidx.sqlite.db.SupportSQLiteDatabase;
 
 @Database(entities = {Booking.class, BookingSplit.class, Account.class, Payee.class, PlaceEntry.class,
-        PayeeCorrection.class, Translation.class, Language.class},
-        version = 16, exportSchema = false)
+        PayeeCorrection.class, Translation.class, Language.class, Security.class, SecurityTx.class},
+        version = 17, exportSchema = false)
 public abstract class AppDatabase extends RoomDatabase {
 
     /** v1 → v2: Notiz-Spalte ergänzen (bestehende Buchungen bleiben erhalten). */
@@ -172,6 +172,26 @@ public abstract class AppDatabase extends RoomDatabase {
         }
     };
 
+    /** v16 → v17: Depot-Import – Wertpapiere (mit letztem Kurs) und ihre Bewegungen. */
+    static final Migration MIGRATION_16_17 = new Migration(16, 17) {
+        @Override
+        public void migrate(@NonNull SupportSQLiteDatabase db) {
+            db.execSQL("CREATE TABLE IF NOT EXISTS security ("
+                    + "id INTEGER PRIMARY KEY AUTOINCREMENT NOT NULL, "
+                    + "depot TEXT NOT NULL, kmy_id TEXT NOT NULL, name TEXT NOT NULL, "
+                    + "symbol TEXT NOT NULL, currency TEXT NOT NULL, "
+                    + "price REAL NOT NULL, price_date INTEGER NOT NULL)");
+            db.execSQL("CREATE UNIQUE INDEX IF NOT EXISTS index_security_depot_kmy_id "
+                    + "ON security(depot, kmy_id)");
+            db.execSQL("CREATE TABLE IF NOT EXISTS security_tx ("
+                    + "id INTEGER PRIMARY KEY AUTOINCREMENT NOT NULL, "
+                    + "depot TEXT NOT NULL, security_kmy_id TEXT NOT NULL, security_name TEXT NOT NULL, "
+                    + "date INTEGER NOT NULL, action TEXT NOT NULL, shares REAL NOT NULL, "
+                    + "amount_cents INTEGER NOT NULL)");
+            db.execSQL("CREATE INDEX IF NOT EXISTS index_security_tx_depot ON security_tx(depot)");
+        }
+    };
+
     public abstract BookingDao bookingDao();
 
     public abstract AccountDao accountDao();
@@ -183,6 +203,8 @@ public abstract class AppDatabase extends RoomDatabase {
     public abstract PayeeCorrectionDao payeeCorrectionDao();
 
     public abstract TranslationDao translationDao();
+
+    public abstract SecurityDao securityDao();
 
     private static volatile AppDatabase instance;
 
@@ -197,7 +219,8 @@ public abstract class AppDatabase extends RoomDatabase {
                             .addMigrations(MIGRATION_1_2, MIGRATION_2_3, MIGRATION_3_4, MIGRATION_4_5,
                                     MIGRATION_5_6, MIGRATION_6_7, MIGRATION_7_8, MIGRATION_8_9,
                                     MIGRATION_9_10, MIGRATION_10_11, MIGRATION_11_12, MIGRATION_12_13,
-                                    MIGRATION_13_14, MIGRATION_14_15, MIGRATION_15_16)
+                                    MIGRATION_13_14, MIGRATION_14_15, MIGRATION_15_16,
+                                    MIGRATION_16_17)
                             .build();
                 }
             }

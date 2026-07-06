@@ -10,6 +10,8 @@ import java.io.ByteArrayOutputStream;
 import java.io.IOException;
 import java.io.StringReader;
 import java.nio.charset.StandardCharsets;
+import java.text.ParseException;
+import java.text.SimpleDateFormat;
 import java.util.ArrayList;
 import java.util.LinkedHashMap;
 import java.util.List;
@@ -33,6 +35,8 @@ public class KmyDocument {
     private static final int TYPE_INCOME = 12;
     private static final int TYPE_EXPENSE = 13;
     private static final int TYPE_EQUITY = 16;
+    private static final int TYPE_INVESTMENT = 7; // Depot
+    private static final int TYPE_STOCK = 15;     // Wertpapier im Depot
 
     private final String xml;
 
@@ -49,6 +53,13 @@ public class KmyDocument {
     private final Map<String, String> selectableAccounts = new LinkedHashMap<>();
     /** kleingeschriebener Kontoname → id (für den Export-Lookup). */
     private final Map<String, String> assetNameToId = new LinkedHashMap<>();
+    /** Anzeigename → id der Depots (Investment-Konten, Typ 7). */
+    private final Map<String, String> depotAccounts = new LinkedHashMap<>();
+
+    /** Wertpapier-ID (E00000x) → Anzeigedaten aus dem SECURITY-Block. */
+    private final Map<String, String[]> securityInfo = new LinkedHashMap<>(); // {name, symbol, currency}
+    /** Wertpapier-ID → letzter Kurs {price, dateMillis}. */
+    private final Map<String, double[]> securityPrice = new LinkedHashMap<>();
 
     /** kleingeschriebener Kategorie-Pfad (bzw. Blattname) → id. */
     private final Map<String, String> categoryToId = new LinkedHashMap<>();
@@ -68,6 +79,7 @@ public class KmyDocument {
         this.xml = gunzip(raw);
         parseHeader();
         buildDerivedMaps();
+        parseSecuritiesAndPrices();
         scanMaxNumbers();
     }
 
@@ -121,6 +133,42 @@ public class KmyDocument {
         return t == null ? 0 : t;
     }
 
+    /** Übergeordnetes Konto (parentaccount) eines Kontos, sonst leer. */
+    public String accountParentOf(String id) {
+        String p = accountParent.get(id);
+        return p == null ? "" : p;
+    }
+
+    /** Währungskennzeichen eines beliebigen Kontos (bei Typ 15 = Wertpapier-ID E00000x). */
+    public String accountCurrencyOf(String id) {
+        String c = accountCurrency.get(id);
+        return c == null ? "" : c;
+    }
+
+    /** Anzeigenamen der Depots (Investment-Konten, Typ 7). */
+    public List<String> depotNames() {
+        return new ArrayList<>(depotAccounts.keySet());
+    }
+
+    public String depotId(String name) {
+        return name == null ? null : depotAccounts.get(name);
+    }
+
+    /** Alle Konto-IDs (für den Import über Stock-Konten eines Depots). */
+    public java.util.Set<String> allAccountIds() {
+        return accountName.keySet();
+    }
+
+    /** SECURITY-Anzeigedaten {name, symbol, currency} zur Wertpapier-ID, oder {@code null}. */
+    public String[] securityInfo(String kmyId) {
+        return securityInfo.get(kmyId);
+    }
+
+    /** Letzter Kurs {price, dateMillis} zur Wertpapier-ID, oder {@code null}. */
+    public double[] securityPrice(String kmyId) {
+        return securityPrice.get(kmyId);
+    }
+
     public long maxTransactionNumber() {
         return maxTransactionNumber;
     }
@@ -171,6 +219,90 @@ public class KmyDocument {
         }
     }
 
+    /**
+     * Liest den (nach TRANSACTIONS stehenden) SECURITIES- und PRICES-Block: Wertpapier-Stammdaten und je
+     * Wertpapier den <b>letzten</b> Kurs in seiner Handelswährung.
+     */
+    private void parseSecuritiesAndPrices() throws IOException {
+        try {
+            XmlPullParser parser = Xml.newPullParser();
+            parser.setFeature(XmlPullParser.FEATURE_PROCESS_NAMESPACES, false);
+            parser.setInput(new StringReader(xml));
+            int event = parser.getEventType();
+            String curFrom = null;
+            String curTo = null;
+            while (event != XmlPullParser.END_DOCUMENT) {
+                if (event == XmlPullParser.START_TAG) {
+                    String tag = parser.getName();
+                    if ("SECURITY".equals(tag)) {
+                        String id = parser.getAttributeValue(null, "id");
+                        if (id != null) {
+                            securityInfo.put(id, new String[]{
+                                    orEmpty(parser.getAttributeValue(null, "name")).trim(),
+                                    orEmpty(parser.getAttributeValue(null, "symbol")).trim(),
+                                    orEmpty(parser.getAttributeValue(null, "trading-currency")).trim()});
+                        }
+                    } else if ("PRICEPAIR".equals(tag)) {
+                        curFrom = parser.getAttributeValue(null, "from");
+                        curTo = parser.getAttributeValue(null, "to");
+                    } else if ("PRICE".equals(tag) && curFrom != null) {
+                        String[] info = securityInfo.get(curFrom);
+                        String tc = info == null ? "" : info[2];
+                        // Kurs in der Handelswährung des Wertpapiers (bei EUR-Papieren „to=EUR").
+                        if (tc.isEmpty() || tc.equalsIgnoreCase(curTo)) {
+                            long d = parseKmyDate(parser.getAttributeValue(null, "date"));
+                            double p = fractionToDouble(parser.getAttributeValue(null, "price"));
+                            double[] prev = securityPrice.get(curFrom);
+                            if (d >= 0 && p > 0 && (prev == null || d >= (long) prev[1])) {
+                                securityPrice.put(curFrom, new double[]{p, d});
+                            }
+                        }
+                    }
+                } else if (event == XmlPullParser.END_TAG && "PRICEPAIR".equals(parser.getName())) {
+                    curFrom = null;
+                    curTo = null;
+                }
+                event = parser.next();
+            }
+        } catch (XmlPullParserException e) {
+            throw new IOException(ctx.getString(de.spahr.ausgaben.R.string.err_kmy_read), e);
+        }
+    }
+
+    /** KMyMoney-Bruch „num/den" (oder Dezimalzahl) → double. */
+    static double fractionToDouble(String v) {
+        if (v == null || v.trim().isEmpty()) {
+            return 0;
+        }
+        try {
+            int slash = v.indexOf('/');
+            if (slash < 0) {
+                return Double.parseDouble(v.trim());
+            }
+            double num = Double.parseDouble(v.substring(0, slash).trim());
+            double den = Double.parseDouble(v.substring(slash + 1).trim());
+            return den == 0 ? 0 : num / den;
+        } catch (NumberFormatException e) {
+            return 0;
+        }
+    }
+
+    /** „yyyy-MM-dd" → ms, sonst -1. */
+    static long parseKmyDate(String s) {
+        if (s == null || s.trim().isEmpty()) {
+            return -1;
+        }
+        try {
+            return new SimpleDateFormat("yyyy-MM-dd", Locale.US).parse(s.trim()).getTime();
+        } catch (ParseException e) {
+            return -1;
+        }
+    }
+
+    private static String orEmpty(String s) {
+        return s == null ? "" : s;
+    }
+
     private void buildDerivedMaps() {
         for (Map.Entry<String, String> e : accountName.entrySet()) {
             String id = e.getKey();
@@ -184,7 +316,10 @@ public class KmyDocument {
                 categoryToId.put(path.toLowerCase(Locale.GERMANY), id);
                 categoryToId.put(name.trim().toLowerCase(Locale.GERMANY), id); // Blatt-Fallback
                 categoryIdToPath.put(id, path);
-            } else if (type != TYPE_EQUITY) {
+            } else if (type == TYPE_INVESTMENT) {
+                depotAccounts.put(name, id); // Depot – eigener Import-Pfad (Wertpapiere)
+            } else if (type != TYPE_EQUITY && type != TYPE_STOCK) {
+                // Wertpapier-Unterkonten (Typ 15) NICHT als wählbare Konten führen.
                 selectableAccounts.put(name, id);
                 assetNameToId.put(name.trim().toLowerCase(Locale.GERMANY), id);
             }

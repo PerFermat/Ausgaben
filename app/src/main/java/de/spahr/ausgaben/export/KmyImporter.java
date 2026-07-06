@@ -15,8 +15,13 @@ import java.util.ArrayList;
 import java.util.List;
 import java.util.Locale;
 
+import java.util.HashMap;
+import java.util.Map;
+
 import de.spahr.ausgaben.db.Booking;
 import de.spahr.ausgaben.db.BookingSplit;
+import de.spahr.ausgaben.db.Security;
+import de.spahr.ausgaben.db.SecurityTx;
 
 /**
  * Liest aus einer {@link KmyDocument} die Buchungen eines gewählten (Bargeld-/Vermögens-)Kontos und
@@ -36,6 +41,154 @@ public class KmyImporter {
 
     public List<String> accountNames() {
         return doc.accountNames();
+    }
+
+    /** Anzeigenamen der Depots (Investment-Konten). */
+    public List<String> depotNames() {
+        return doc.depotNames();
+    }
+
+    /** Ergebnis eines Depot-Imports: Wertpapiere (mit letztem Kurs) + ihre Bewegungen. */
+    public static final class DepotData {
+        public final List<Security> securities = new ArrayList<>();
+        public final List<SecurityTx> transactions = new ArrayList<>();
+    }
+
+    /**
+     * Importiert ein Depot: seine Wertpapiere (Typ-15-Unterkonten) samt letztem Kurs und die
+     * Käufe/Verkäufe/Dividenden/Einbuchungen aus dem Hauptbuch.
+     */
+    public DepotData importDepot(String depotName) throws IOException {
+        DepotData data = new DepotData();
+        String depotId = doc.depotId(depotName);
+        if (depotId == null) {
+            return data;
+        }
+        // Stock-Konten des Depots (Typ 15, parent = Depot): id → {securityKmyId, securityName}.
+        Map<String, String[]> stockAccounts = new HashMap<>();
+        for (String id : doc.allAccountIds()) {
+            if (doc.accountTypeOf(id) == 15 && depotId.equals(doc.accountParentOf(id))) {
+                String secId = doc.accountCurrencyOf(id);
+                String secName = orEmpty(doc.accountNameById(id)).trim();
+                stockAccounts.put(id, new String[]{secId, secName});
+                String[] info = doc.securityInfo(secId);
+                double[] price = doc.securityPrice(secId);
+                String name = info != null && !info[0].isEmpty() ? info[0] : secName;
+                String symbol = info != null ? info[1] : "";
+                String currency = info != null && !info[2].isEmpty() ? info[2] : "EUR";
+                data.securities.add(new Security(depotName, secId, name, symbol, currency,
+                        price != null ? price[0] : 0, price != null ? (long) price[1] : 0));
+            }
+        }
+        if (stockAccounts.isEmpty()) {
+            return data;
+        }
+
+        try {
+            XmlPullParser parser = Xml.newPullParser();
+            parser.setFeature(XmlPullParser.FEATURE_PROCESS_NAMESPACES, false);
+            parser.setInput(new StringReader(doc.xml()));
+            int event = parser.getEventType();
+            boolean inLedger = false;
+            String postdate = null;
+            String entrydate = null;
+            List<String[]> splits = null; // je Split: {account, value, action, shares}
+            while (event != XmlPullParser.END_DOCUMENT) {
+                if (event == XmlPullParser.START_TAG) {
+                    String tag = parser.getName();
+                    if ("TRANSACTIONS".equals(tag)) {
+                        inLedger = true;
+                    } else if (inLedger && "TRANSACTION".equals(tag)) {
+                        postdate = parser.getAttributeValue(null, "postdate");
+                        entrydate = parser.getAttributeValue(null, "entrydate");
+                        splits = new ArrayList<>();
+                    } else if (inLedger && "SPLIT".equals(tag) && splits != null) {
+                        splits.add(new String[]{
+                                orEmpty(parser.getAttributeValue(null, "account")),
+                                orEmpty(parser.getAttributeValue(null, "value")),
+                                orEmpty(parser.getAttributeValue(null, "action")),
+                                orEmpty(parser.getAttributeValue(null, "shares"))});
+                    }
+                } else if (event == XmlPullParser.END_TAG) {
+                    String tag = parser.getName();
+                    if ("TRANSACTIONS".equals(tag)) {
+                        break;
+                    } else if (inLedger && "TRANSACTION".equals(tag)) {
+                        SecurityTx tx = toSecurityTx(depotName, stockAccounts, postdate, entrydate, splits);
+                        if (tx != null) {
+                            data.transactions.add(tx);
+                        }
+                        splits = null;
+                    }
+                }
+                event = parser.next();
+            }
+        } catch (XmlPullParserException e) {
+            throw new IOException(ctx.getString(de.spahr.ausgaben.R.string.err_kmy_read), e);
+        }
+        return data;
+    }
+
+    private SecurityTx toSecurityTx(String depotName, Map<String, String[]> stockAccounts,
+                                    String postdate, String entrydate, List<String[]> splits) {
+        if (splits == null) {
+            return null;
+        }
+        String[] stock = null;
+        for (String[] s : splits) {
+            if (stockAccounts.containsKey(s[0])) {
+                stock = s;
+                break;
+            }
+        }
+        if (stock == null) {
+            return null; // Transaktion betrifft kein Wertpapier dieses Depots
+        }
+        String[] sec = stockAccounts.get(stock[0]);
+        String action = normalizeAction(stock[2]);
+        double shares = de.spahr.ausgaben.export.KmyDocument.fractionToDouble(stock[3]);
+        long amountCents;
+        if ("dividend".equals(action)) {
+            amountCents = dividendAmount(splits);
+        } else if ("add".equals(action) || "remove".equals(action)) {
+            amountCents = 0;
+        } else {
+            amountCents = Math.abs(valueToCents(stock[1]));
+        }
+        return new SecurityTx(depotName, sec[0], sec[1],
+                parseDate(postdate, entrydate), action, shares, amountCents);
+    }
+
+    /** Dividendenbetrag: aus dem Einnahme-Kategorie-Split (Typ 12), sonst dem positiven Geld-Split. */
+    private long dividendAmount(List<String[]> splits) {
+        for (String[] s : splits) {
+            if (doc.accountTypeOf(s[0]) == 12) {
+                return Math.abs(valueToCents(s[1]));
+            }
+        }
+        for (String[] s : splits) {
+            int t = doc.accountTypeOf(s[0]);
+            long v = valueToCents(s[1]);
+            if (t != 15 && v > 0) {
+                return v;
+            }
+        }
+        return 0;
+    }
+
+    private static String normalizeAction(String a) {
+        String x = a == null ? "" : a.trim().toLowerCase(Locale.US);
+        switch (x) {
+            case "buy":
+            case "sell":
+            case "dividend":
+            case "add":
+            case "remove":
+            case "reinvest":
+                return x;
+            default:
+                return x.isEmpty() ? "buy" : x;
+        }
     }
 
     /** Währungskennzeichen des Kontos aus der KMyMoney-Datei (z. B. „EUR"), sonst leer. */

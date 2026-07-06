@@ -70,6 +70,7 @@ public class MainActivity extends LocalizedActivity {
     private java.util.Map<Long, List<BookingSplit>> splitsByBooking = new java.util.HashMap<>();
     private java.util.Map<String, Long> placeBalances = new java.util.LinkedHashMap<>();
     private long totalBalance = 0;
+    private long depotValueCents = 0;
     private long allPlaceEntrySum = 0;
     private long filteredSum = 0;
     private final List<SaldoView> saldoViews = new ArrayList<>();
@@ -85,6 +86,8 @@ public class MainActivity extends LocalizedActivity {
 
     /** Gewähltes Konto (leer = „Alle Konten"). Standard beim Start = Standardkonto. */
     private String selectedAccount = "";
+    /** true, wenn Depotdaten importiert wurden (steuert das „Depot"-Menü). */
+    private boolean hasDepot = false;
     private boolean accountInitialized = false;
     private long selectedAccountBalance = 0;
     /** Aktuell in der App vorhandene Konten (für „Alle Konten aktualisieren"). */
@@ -108,6 +111,7 @@ public class MainActivity extends LocalizedActivity {
     }
 
     public static final String VIEW_TOTAL = "TOTAL";
+    public static final String VIEW_NETWORTH = "NETWORTH";
     public static final String VIEW_NOPLACE = "NOPLACE";
     public static final String VIEW_FILTERED = "FILTERED";
     public static final String VIEW_PLACE_PREFIX = "PLACE:";
@@ -161,6 +165,20 @@ public class MainActivity extends LocalizedActivity {
                     public void onImport(String account, boolean isAll) {
                         drawerLayout.closeDrawers();
                         onImportRequested(account, isAll);
+                    }
+
+                    @Override
+                    public void onDepotSelect(String depot) {
+                        drawerLayout.closeDrawers();
+                        Intent i = new Intent(MainActivity.this, DepotActivity.class);
+                        i.putExtra(DepotActivity.EXTRA_DEPOT, depot);
+                        startActivity(i);
+                    }
+
+                    @Override
+                    public void onDepotImport(String depot) {
+                        drawerLayout.closeDrawers();
+                        reimportDepot(depot);
                     }
                 });
         accountList.setAdapter(accountAdapter);
@@ -285,6 +303,12 @@ public class MainActivity extends LocalizedActivity {
         if (gps && locationTagger != null && hasLocationPermission()) {
             locationTagger.start();
         }
+        // Depots in die Kontenschublade übernehmen und den Depotwert (für „Gesamtvermögen") laden.
+        repository.getDepots(depots -> {
+            hasDepot = !depots.isEmpty();
+            accountAdapter.setDepots(depots);
+            loadDepotTotal(depots);
+        });
         refreshBookings();
     }
 
@@ -646,6 +670,11 @@ public class MainActivity extends LocalizedActivity {
         }
         // 2. Gesamt (alle Konten)
         saldoViews.add(new SaldoView(VIEW_TOTAL, getString(R.string.saldo_total), totalBalance));
+        // 2b. Gesamtvermögen (alle Konten + Depotwert), sobald ein Depot importiert wurde.
+        if (hasDepot) {
+            saldoViews.add(new SaldoView(VIEW_NETWORTH, getString(R.string.saldo_networth),
+                    totalBalance + depotValueCents));
+        }
         // 3. Orte des gewählten Kontos (Standardort = Rest-Topf des Kontos).
         if (!selectedAccount.isEmpty()) {
             List<String> places = placesStore.getPlaces(selectedAccount);
@@ -671,6 +700,30 @@ public class MainActivity extends LocalizedActivity {
         }
         if (saldoIndex >= saldoViews.size()) {
             saldoIndex = 0;
+        }
+    }
+
+    /** Summiert den Depotwert über alle Depots (für „Gesamtvermögen") und baut die Saldo-Leiste neu. */
+    private void loadDepotTotal(List<String> depots) {
+        if (depots == null || depots.isEmpty()) {
+            depotValueCents = 0;
+            buildSaldoViews();
+            showSaldo();
+            return;
+        }
+        final long[] total = {0};
+        final int[] pending = {depots.size()};
+        for (String depot : depots) {
+            repository.getDepotHoldings(depot, holdings -> {
+                for (Repository.DepotHolding h : holdings) {
+                    total[0] += h.valueCents;
+                }
+                if (--pending[0] == 0) {
+                    depotValueCents = total[0];
+                    buildSaldoViews();
+                    showSaldo();
+                }
+            });
         }
     }
 
@@ -1049,10 +1102,11 @@ public class MainActivity extends LocalizedActivity {
                 runOnUiThread(() -> {
                     dismissProgress();
                     List<String> accounts = importer.accountNames();
-                    if (accounts.isEmpty()) {
+                    List<String> depots = importer.depotNames();
+                    if (accounts.isEmpty() && depots.isEmpty()) {
                         Toast.makeText(this, R.string.kmy_no_files, Toast.LENGTH_LONG).show();
                     } else {
-                        chooseAccountForImport(importer, accounts);
+                        chooseAccountForImport(importer, accounts, depots);
                     }
                 });
             } catch (Exception e) {
@@ -1061,18 +1115,80 @@ public class MainActivity extends LocalizedActivity {
         }).start();
     }
 
-    private void chooseAccountForImport(KmyImporter importer, List<String> accounts) {
-        String[] items = accounts.toArray(new String[0]);
+    /** Auswahl-Dialog: normale Konten + Depots (mit „(Depot)" markiert). */
+    private void chooseAccountForImport(KmyImporter importer, List<String> accounts, List<String> depots) {
+        List<String> labels = new ArrayList<>(accounts);
+        for (String d : depots) {
+            labels.add(getString(R.string.kmy_choose_depot, d));
+        }
+        final int accountCount = accounts.size();
+        String[] items = labels.toArray(new String[0]);
         new MaterialAlertDialogBuilder(this, R.style.ThemeOverlay_Ausgaben_Dialog)
                 .setTitle(R.string.kmy_choose_account)
                 .setItems(items, (d, w) -> {
-                    showProgress(getString(R.string.progress_importing));
-                    List<String> one = new ArrayList<>();
-                    one.add(items[w]);
-                    new Thread(() -> replaceFromImporter(importer, one)).start();
+                    if (w >= accountCount) {
+                        importDepotFlow(importer, depots.get(w - accountCount));
+                    } else {
+                        showProgress(getString(R.string.progress_importing));
+                        List<String> one = new ArrayList<>();
+                        one.add(accounts.get(w));
+                        new Thread(() -> replaceFromImporter(importer, one)).start();
+                    }
                 })
                 .setNegativeButton(R.string.cancel, null)
                 .show();
+    }
+
+    /** Langer Tipp in der Schublade: lädt die .kmy und aktualisiert genau dieses Depot. */
+    private void reimportDepot(String depotName) {
+        if (!settings.isKmyMode()) {
+            Toast.makeText(this, R.string.export_no_config, Toast.LENGTH_LONG).show();
+            return;
+        }
+        if (!settings.hasRemoteConfig()) {
+            Toast.makeText(this, R.string.export_no_config, Toast.LENGTH_LONG).show();
+            return;
+        }
+        String path = settings.getKmyPath();
+        if (path.isEmpty()) {
+            Toast.makeText(this, R.string.kmy_path_missing, Toast.LENGTH_LONG).show();
+            return;
+        }
+        showProgress(getString(R.string.progress_download));
+        new Thread(() -> {
+            try {
+                byte[] raw = RemoteStorage.from(settings).downloadBytes(folderOf(path), fileOf(path));
+                KmyImporter importer = new KmyImporter(
+                        new KmyDocument(raw, getApplicationContext()), getApplicationContext());
+                runOnUiThread(() -> {
+                    updateProgress(getString(R.string.progress_importing));
+                    new Thread(() -> importAndReplaceDepot(importer, depotName)).start();
+                });
+            } catch (Exception e) {
+                postImportError(e);
+            }
+        }).start();
+    }
+
+    /** Importiert ein Depot (Wertpapiere + Bewegungen) und ersetzt dessen Daten. */
+    private void importDepotFlow(KmyImporter importer, String depotName) {
+        showProgress(getString(R.string.progress_importing));
+        new Thread(() -> importAndReplaceDepot(importer, depotName)).start();
+    }
+
+    /** Läuft im Hintergrund: Depot importieren, Daten ersetzen, Toast + Schublade aktualisieren. */
+    private void importAndReplaceDepot(KmyImporter importer, String depotName) {
+        try {
+            KmyImporter.DepotData data = importer.importDepot(depotName);
+            repository.replaceDepotImport(depotName, data.securities, data.transactions, () -> {
+                dismissProgress();
+                Toast.makeText(this, getString(R.string.depot_import_done, depotName),
+                        Toast.LENGTH_LONG).show();
+                refreshBookings(); // Schublade + Depotwert aktualisieren
+            });
+        } catch (Exception e) {
+            postImportError(e);
+        }
     }
 
     /** Lädt die .kmy und importiert ein Konto ({@code null} = alle bereits vorhandenen App-Konten). */

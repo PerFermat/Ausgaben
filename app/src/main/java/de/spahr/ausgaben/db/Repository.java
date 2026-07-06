@@ -29,6 +29,7 @@ public class Repository {
     private final PlaceEntryDao placeEntryDao;
     private final PayeeCorrectionDao correctionDao;
     private final TranslationDao translationDao;
+    private final SecurityDao securityDao;
     private final Context appContext;
     private final ExecutorService executor = Executors.newSingleThreadExecutor();
     private final Handler mainHandler = new Handler(Looper.getMainLooper());
@@ -42,6 +43,7 @@ public class Repository {
         this.placeEntryDao = db.placeEntryDao();
         this.correctionDao = db.payeeCorrectionDao();
         this.translationDao = db.translationDao();
+        this.securityDao = db.securityDao();
     }
 
     // ---- Mehrsprachigkeit ----
@@ -926,6 +928,80 @@ public class Repository {
     public void getCategoryNames(final Callback<List<String>> callback) {
         executor.execute(() -> {
             final List<String> result = bookingDao.getDistinctCategories();
+            mainHandler.post(() -> callback.onResult(result));
+        });
+    }
+
+    // ---- Depot (Wertpapiere) ----
+
+    /** Aktueller Bestand eines Wertpapiers: Name/Symbol, Stückzahl, Kurs, Wert (Cent). */
+    public static final class DepotHolding {
+        public final String name;
+        public final String symbol;
+        public final String kmyId;
+        public final double shares;
+        public final double price;
+        public final long valueCents;
+
+        DepotHolding(String name, String symbol, String kmyId, double shares, double price,
+                     long valueCents) {
+            this.name = name;
+            this.symbol = symbol;
+            this.kmyId = kmyId;
+            this.shares = shares;
+            this.price = price;
+            this.valueCents = valueCents;
+        }
+    }
+
+    /** Ersetzt die Depotdaten (Wertpapiere + Bewegungen) eines Depots. */
+    public void replaceDepotImport(final String depot, final List<Security> securities,
+                                   final List<SecurityTx> transactions, final Runnable onDone) {
+        executor.execute(() -> {
+            securityDao.deleteTx(depot);
+            securityDao.deleteSecurities(depot);
+            for (Security s : securities) {
+                securityDao.insertSecurity(s);
+            }
+            for (SecurityTx t : transactions) {
+                securityDao.insertTx(t);
+            }
+            if (onDone != null) {
+                mainHandler.post(onDone);
+            }
+        });
+    }
+
+    /** Depot-Namen mit vorhandenen Wertpapieren. */
+    public void getDepots(final Callback<List<String>> callback) {
+        executor.execute(() -> {
+            final List<String> result = securityDao.distinctDepots();
+            mainHandler.post(() -> callback.onResult(result));
+        });
+    }
+
+    /** Bestände eines Depots: je Wertpapier Stückzahl × letzter Kurs = Wert. */
+    public void getDepotHoldings(final String depot, final Callback<List<DepotHolding>> callback) {
+        executor.execute(() -> {
+            Map<String, Double> shares = new HashMap<>();
+            for (SecurityDao.ShareSum ss : securityDao.getShareSums(depot)) {
+                shares.put(ss.kmyId, ss.shares);
+            }
+            List<DepotHolding> result = new ArrayList<>();
+            for (Security s : securityDao.getSecurities(depot)) {
+                double q = shares.containsKey(s.kmyId) ? shares.get(s.kmyId) : 0.0;
+                long value = Math.round(q * s.price * 100.0);
+                result.add(new DepotHolding(s.name, s.symbol, s.kmyId, q, s.price, value));
+            }
+            mainHandler.post(() -> callback.onResult(result));
+        });
+    }
+
+    /** Bewegungen eines Wertpapiers (neueste zuerst). */
+    public void getSecurityTransactions(final String depot, final String kmyId,
+                                        final Callback<List<SecurityTx>> callback) {
+        executor.execute(() -> {
+            final List<SecurityTx> result = securityDao.getTxBySecurity(depot, kmyId);
             mainHandler.post(() -> callback.onResult(result));
         });
     }

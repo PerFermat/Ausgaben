@@ -69,6 +69,17 @@
             android:parentActivityName=".ui.MainActivity" />
 
         <activity
+            android:name=".ui.DepotActivity"
+            android:exported="false"
+            android:label="@string/depot_title"
+            android:parentActivityName=".ui.MainActivity" />
+
+        <activity
+            android:name=".ui.SecurityHistoryActivity"
+            android:exported="false"
+            android:parentActivityName=".ui.DepotActivity" />
+
+        <activity
             android:name=".ui.PlaceHistoryActivity"
             android:exported="false"
             android:parentActivityName=".ui.BalanceActivity" />

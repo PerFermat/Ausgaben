@@ -15,20 +15,28 @@ import java.util.List;
 import de.spahr.ausgaben.R;
 
 /**
- * Kontenliste in der Navigations-Schublade. Erster Eintrag ist „Alle Konten"; kurzer Tipp wählt das
- * Konto, langer Tipp löst den Import aus. Der gewählte Eintrag wird hervorgehoben.
+ * Kontenliste in der Navigations-Schublade. Erster Eintrag ist „Alle Konten"; danach die Konten,
+ * am Ende die Depots. Kurzer Tipp wählt Konto/öffnet Depot, langer Tipp importiert bzw. aktualisiert.
+ * Der gewählte Eintrag wird hervorgehoben.
  */
 public class AccountDrawerAdapter extends RecyclerView.Adapter<AccountDrawerAdapter.VH> {
 
     public interface Listener {
-        /** Kurzer Tipp: Konto anzeigen. {@code isAll} = „Alle Konten". */
+        /** Kurzer Tipp auf ein Konto. {@code isAll} = „Alle Konten". */
         void onSelect(String account, boolean isAll);
 
-        /** Langer Tipp: Konto (bzw. alle) importieren. */
+        /** Langer Tipp auf ein Konto (bzw. alle): importieren. */
         void onImport(String account, boolean isAll);
+
+        /** Kurzer Tipp auf ein Depot: Depot-Ansicht öffnen. */
+        void onDepotSelect(String depot);
+
+        /** Langer Tipp auf ein Depot: Depot neu importieren/aktualisieren. */
+        void onDepotImport(String depot);
     }
 
-    private final List<String> items = new ArrayList<>();
+    private final List<String> accounts = new ArrayList<>();
+    private final List<String> depots = new ArrayList<>();
     private final String allLabel;
     private String selected = "";
     private final Listener listener;
@@ -40,10 +48,18 @@ public class AccountDrawerAdapter extends RecyclerView.Adapter<AccountDrawerAdap
 
     /** Setzt die Kontenliste (ohne „Alle Konten"; das wird vorangestellt). */
     public void setAccounts(List<String> accounts) {
-        items.clear();
-        items.add(allLabel);
+        this.accounts.clear();
         if (accounts != null) {
-            items.addAll(accounts);
+            this.accounts.addAll(accounts);
+        }
+        notifyDataSetChanged();
+    }
+
+    /** Setzt die Depots (werden hinter den Konten angezeigt). */
+    public void setDepots(List<String> depots) {
+        this.depots.clear();
+        if (depots != null) {
+            this.depots.addAll(depots);
         }
         notifyDataSetChanged();
     }
@@ -63,8 +79,19 @@ public class AccountDrawerAdapter extends RecyclerView.Adapter<AccountDrawerAdap
 
     @Override
     public void onBindViewHolder(@NonNull VH h, int position) {
-        String item = items.get(position);
-        boolean isAll = position == 0;
+        if (position == 0) {
+            bindAccount(h, allLabel, true);
+            return;
+        }
+        int accIndex = position - 1;
+        if (accIndex < accounts.size()) {
+            bindAccount(h, accounts.get(accIndex), false);
+            return;
+        }
+        bindDepot(h, depots.get(accIndex - accounts.size()));
+    }
+
+    private void bindAccount(VH h, String item, boolean isAll) {
         boolean isSelected = isAll ? selected.isEmpty() : item.equals(selected);
         h.text.setText(item);
         h.text.setTypeface(Typeface.DEFAULT, isSelected ? Typeface.BOLD : Typeface.NORMAL);
@@ -78,9 +105,20 @@ public class AccountDrawerAdapter extends RecyclerView.Adapter<AccountDrawerAdap
         });
     }
 
+    private void bindDepot(VH h, String depot) {
+        h.text.setText(h.text.getResources().getString(R.string.kmy_choose_depot, depot));
+        h.text.setTypeface(Typeface.DEFAULT, Typeface.NORMAL);
+        h.text.setBackgroundColor(android.graphics.Color.TRANSPARENT);
+        h.text.setOnClickListener(v -> listener.onDepotSelect(depot));
+        h.text.setOnLongClickListener(v -> {
+            listener.onDepotImport(depot);
+            return true;
+        });
+    }
+
     @Override
     public int getItemCount() {
-        return items.size();
+        return 1 + accounts.size() + depots.size();
     }
 
     static class VH extends RecyclerView.ViewHolder {

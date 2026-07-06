@@ -29,10 +29,20 @@ public interface PayeeCorrectionDao {
             + "AND spoken LIKE '%' || :term || '%' ORDER BY created_at DESC LIMIT 1")
     PayeeCorrection findBySpokenLike(String term, int pref);
 
+    /** Alle Aliase (bevorzugt/übrig), deren {@code spoken} den Begriff enthält – für die GPS-Auswahl. */
+    @Query("SELECT * FROM payee_correction WHERE preferred = :pref "
+            + "AND spoken LIKE '%' || :term || '%' ORDER BY created_at DESC")
+    List<PayeeCorrection> findAllBySpokenLike(String term, int pref);
+
     /** Alias (bevorzugt/übrig) zu einem exakt bekannten {@code spoken}-Begriff. */
     @Query("SELECT * FROM payee_correction WHERE preferred = :pref AND spoken = :spoken "
             + "ORDER BY created_at DESC LIMIT 1")
     PayeeCorrection findBySpokenExact(String spoken, int pref);
+
+    /** Alle Aliase (bevorzugt/übrig) zu einem exakt bekannten {@code spoken}-Begriff – für die GPS-Auswahl. */
+    @Query("SELECT * FROM payee_correction WHERE preferred = :pref AND spoken = :spoken "
+            + "ORDER BY created_at DESC")
+    List<PayeeCorrection> findAllBySpokenExact(String spoken, int pref);
 
     /** Erkannte Begriffe der bevorzugten bzw. übrigen Aliase – Kandidaten für die unscharfe Suche. */
     @Query("SELECT spoken FROM payee_correction WHERE preferred = :pref")

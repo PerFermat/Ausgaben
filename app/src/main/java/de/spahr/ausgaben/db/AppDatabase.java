@@ -11,7 +11,7 @@ import androidx.sqlite.db.SupportSQLiteDatabase;
 
 @Database(entities = {Booking.class, BookingSplit.class, Account.class, Payee.class, PlaceEntry.class,
         PayeeCorrection.class, Translation.class, Language.class, Security.class, SecurityTx.class},
-        version = 17, exportSchema = false)
+        version = 18, exportSchema = false)
 public abstract class AppDatabase extends RoomDatabase {
 
     /** v1 → v2: Notiz-Spalte ergänzen (bestehende Buchungen bleiben erhalten). */
@@ -192,6 +192,17 @@ public abstract class AppDatabase extends RoomDatabase {
         }
     };
 
+    // Alias-Unique von spoken → (spoken, corrected): gleicher gesprochener Begriff darf auf mehrere
+    // Empfänger zeigen (per GPS unterschieden). Bestehende Daten sind eindeutig, daher unproblematisch.
+    static final Migration MIGRATION_17_18 = new Migration(17, 18) {
+        @Override
+        public void migrate(@NonNull SupportSQLiteDatabase db) {
+            db.execSQL("DROP INDEX IF EXISTS index_payee_correction_spoken");
+            db.execSQL("CREATE UNIQUE INDEX IF NOT EXISTS index_payee_correction_spoken_corrected "
+                    + "ON payee_correction(spoken, corrected)");
+        }
+    };
+
     public abstract BookingDao bookingDao();
 
     public abstract AccountDao accountDao();
@@ -220,7 +231,7 @@ public abstract class AppDatabase extends RoomDatabase {
                                     MIGRATION_5_6, MIGRATION_6_7, MIGRATION_7_8, MIGRATION_8_9,
                                     MIGRATION_9_10, MIGRATION_10_11, MIGRATION_11_12, MIGRATION_12_13,
                                     MIGRATION_13_14, MIGRATION_14_15, MIGRATION_15_16,
-                                    MIGRATION_16_17)
+                                    MIGRATION_16_17, MIGRATION_17_18)
                             .build();
                 }
             }

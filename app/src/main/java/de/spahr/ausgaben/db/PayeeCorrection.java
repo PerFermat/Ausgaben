@@ -13,7 +13,10 @@ import androidx.room.PrimaryKey;
  * jede Buchungsart abdeckt – ein {@link #account}, je bis zu zwei Kategorien für Einnahmen/Ausgaben sowie
  * Von-/Bis-Konto für Umbuchungen hinterlegt werden. Wird bei der Sprach-Erfassung konsultiert.
  */
-@Entity(tableName = "payee_correction", indices = {@Index(value = "spoken", unique = true)})
+// Unique über (spoken, corrected): derselbe gesprochene Begriff darf mehrfach vorkommen, solange er auf
+// verschiedene Empfänger zeigt (z. B. „rewe" → „Rewe Ort1" und „rewe" → „Rewe Ort2", per GPS unterschieden).
+@Entity(tableName = "payee_correction",
+        indices = {@Index(value = {"spoken", "corrected"}, unique = true)})
 public class PayeeCorrection {
 
     @PrimaryKey(autoGenerate = true)

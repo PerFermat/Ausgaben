@@ -479,21 +479,57 @@ public class Repository {
      * ({@code spoken}), sonst unscharf über alle bekannten {@code spoken}. Liefert den vollen Alias oder
      * {@code null}.
      */
-    private PayeeCorrection matchAlias(String term, boolean preferred, java.util.Set<String> closed) {
+    private PayeeCorrection matchAlias(String term, boolean preferred, double[] coords,
+                                       java.util.Set<String> closed) {
         String t = term == null ? "" : term.trim();
         if (t.isEmpty()) {
             return null;
         }
         int pref = preferred ? 1 : 0;
-        PayeeCorrection alias = correctionDao.findBySpokenLike(t, pref);
-        if (alias == null) {
+        List<PayeeCorrection> matches = correctionDao.findAllBySpokenLike(t, pref);
+        if (matches.isEmpty()) {
             String bestSpoken = de.spahr.ausgaben.voice.VoiceInput.bestFuzzyPayee(
                     t, correctionDao.getSpokenByPreferred(pref));
             if (bestSpoken != null) {
-                alias = correctionDao.findBySpokenExact(bestSpoken, pref);
+                matches = correctionDao.findAllBySpokenExact(bestSpoken, pref);
             }
         }
-        return aliasBlocked(alias, closed) ? null : alias;
+        // Nur offene (nicht auf geschlossene Konten zeigende) Aliase.
+        List<PayeeCorrection> open = new ArrayList<>();
+        for (PayeeCorrection a : matches) {
+            if (!aliasBlocked(a, closed)) {
+                open.add(a);
+            }
+        }
+        if (open.isEmpty()) {
+            return null;
+        }
+        // Mehrere gleichnamige Aliase + bekannter Standort → den nächstgelegenen wählen. Der Nutzer hat den
+        // Empfänger explizit genannt, daher ohne Radius-Deckel. Sonst der neueste (open ist created_at DESC).
+        if (open.size() > 1 && coords != null) {
+            PayeeCorrection near = nearestAliasUncapped(coords[0], coords[1], open);
+            if (near != null) {
+                return near;
+            }
+        }
+        return open.get(0);
+    }
+
+    /** Nächstgelegener Alias mit Standort, ohne Radius-Deckel (für explizit genannte Empfänger). */
+    private PayeeCorrection nearestAliasUncapped(double lat, double lon, List<PayeeCorrection> list) {
+        PayeeCorrection best = null;
+        double bestD = Double.MAX_VALUE;
+        for (PayeeCorrection a : list) {
+            if (a.lat == 0 && a.lon == 0) {
+                continue;
+            }
+            double d = de.spahr.ausgaben.location.Geo.distanceMeters(lat, lon, a.lat, a.lon);
+            if (d < bestD) {
+                bestD = d;
+                best = a;
+            }
+        }
+        return best;
     }
 
     /**
@@ -503,12 +539,12 @@ public class Repository {
      */
     private void resolve(String term, double[] coords, java.util.Set<String> closed,
                          Booking[] outBooking, PayeeCorrection[] outAlias) {
-        PayeeCorrection alias = matchAlias(term, true, closed);
+        PayeeCorrection alias = matchAlias(term, true, coords, closed);
         Booking booking = null;
         if (alias == null) {
             booking = findVoiceTemplate(term, coords, closed);
             if (booking == null) {
-                alias = matchAlias(term, false, closed);
+                alias = matchAlias(term, false, coords, closed);
             }
         }
         outBooking[0] = booking;
@@ -607,7 +643,7 @@ public class Repository {
         return best;
     }
 
-    /** Speichert bzw. ersetzt einen Alias (gleicher {@code spoken}). */
+    /** Speichert einen Alias bzw. ersetzt einen bestehenden mit gleichem {@code spoken}+{@code corrected}. */
     public void saveAlias(final PayeeCorrection alias) {
         if (alias == null) {
             return;

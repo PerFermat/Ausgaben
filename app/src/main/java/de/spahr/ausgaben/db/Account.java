@@ -23,6 +23,13 @@ public class Account {
     @ColumnInfo(name = "currency")
     public String currency = "";
 
+    /**
+     * Geschlossenes (inaktives) Konto: nicht mehr auswählbar (Menü/Dropdowns/Bestände/Einzel-Auswertung),
+     * zählt nur noch historisch in der Auswertung-Gesamtsicht. Kann wieder geöffnet werden.
+     */
+    @ColumnInfo(name = "closed")
+    public boolean closed;
+
     public Account() {
     }
 

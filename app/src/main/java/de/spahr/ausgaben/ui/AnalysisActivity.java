@@ -67,6 +67,8 @@ public class AnalysisActivity extends LocalizedActivity {
     private List<PlaceEntry> allPlaceEntries = new ArrayList<>();
     private boolean bookingsLoaded = false;
     private boolean placesLoaded = false;
+    /** Aktive (nicht geschlossene) Konten – nur diese sind als Einzel-/Orts-Sicht wählbar. */
+    private java.util.Set<String> activeAccounts = null;
 
     private Granularity granularity = Granularity.MONTH;
     private int lastIndex = 0;
@@ -155,6 +157,11 @@ public class AnalysisActivity extends LocalizedActivity {
             placesLoaded = true;
             if (bookingsLoaded) renderChart();
         });
+        // Aktive Konten laden → geschlossene Konten nicht als Einzel-/Orts-Sicht anbieten.
+        repository.getAccountNames(names -> {
+            activeAccounts = new java.util.HashSet<>(names);
+            if (bookingsLoaded) setupViewSelector();
+        });
     }
 
     private void setupViewSelector() {
@@ -163,10 +170,12 @@ public class AnalysisActivity extends LocalizedActivity {
         // Gesamt (alle Konten)
         viewKeys.add(MainActivity.VIEW_TOTAL);
         viewLabels.add(getString(R.string.saldo_total));
-        // Jedes Konto (aus den vorhandenen Buchungen, stabile Reihenfolge)
+        // Jedes aktive Konto (aus den vorhandenen Buchungen, stabile Reihenfolge); geschlossene Konten
+        // erscheinen nicht als Einzel-/Orts-Sicht – nur die Gesamtsicht enthält ihren historischen Saldo.
         java.util.LinkedHashSet<String> accounts = new java.util.LinkedHashSet<>();
         for (Booking b : allBookings) {
-            if (b.account != null && !b.account.isEmpty()) {
+            if (b.account != null && !b.account.isEmpty()
+                    && activeAccounts != null && activeAccounts.contains(b.account)) {
                 accounts.add(b.account);
             }
         }

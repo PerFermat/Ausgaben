@@ -194,6 +194,16 @@
     <string name="delete_account_confirm_message">Alle Buchungen des Kontos „%1$s" werden dauerhaft gelöscht.</string>
     <string name="delete_account_done">Konto „%1$s" gelöscht</string>
     <string name="no_accounts">Keine Konten vorhanden</string>
+    <string name="account_manage">Konto löschen/schließen</string>
+    <string name="account_manage_choose">Konto wählen</string>
+    <string name="account_status_active">Aktiv</string>
+    <string name="account_status_closed">Geschlossen</string>
+    <string name="account_status_line">%1$s — %2$s</string>
+    <string name="account_close">Schließen</string>
+    <string name="account_reopen">Öffnen</string>
+    <string name="account_close_needs_zero">Schließen nur bei Saldo 0 möglich (aktuell %1$s).</string>
+    <string name="account_closed_done">Konto „%1$s" geschlossen</string>
+    <string name="account_reopened_done">Konto „%1$s" geöffnet</string>
 
     <!-- Orte -->
     <string name="places_section">Orte (Bargeld-Bestände)</string>

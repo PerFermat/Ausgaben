@@ -370,14 +370,15 @@ public class Repository {
         // Auflösung: mit Empfänger normal; bei reinem Betrag über den aktuellen Standort (100 m).
         Booking[] resolvedBooking = new Booking[1];
         PayeeCorrection[] resolvedAlias = new PayeeCorrection[1];
+        java.util.Set<String> closed = closedAccounts();
         if (term.isEmpty()) {
             double[] ll = de.spahr.ausgaben.location.Geo.parse(coords);
             if (ll != null) {
-                resolveGps(ll[0], ll[1], resolvedBooking, resolvedAlias);
+                resolveGps(ll[0], ll[1], closed, resolvedBooking, resolvedAlias);
             }
         } else {
             // Mit Empfänger: bei mehreren gleichnamigen Treffern den zur aktuellen Position nächsten wählen.
-            resolve(term, de.spahr.ausgaben.location.Geo.parse(coords), resolvedBooking, resolvedAlias);
+            resolve(term, de.spahr.ausgaben.location.Geo.parse(coords), closed, resolvedBooking, resolvedAlias);
         }
         Booking template = resolvedBooking[0];
         PayeeCorrection alias = resolvedAlias[0];
@@ -476,7 +477,7 @@ public class Repository {
      * ({@code spoken}), sonst unscharf über alle bekannten {@code spoken}. Liefert den vollen Alias oder
      * {@code null}.
      */
-    private PayeeCorrection matchAlias(String term, boolean preferred) {
+    private PayeeCorrection matchAlias(String term, boolean preferred, java.util.Set<String> closed) {
         String t = term == null ? "" : term.trim();
         if (t.isEmpty()) {
             return null;
@@ -490,20 +491,22 @@ public class Repository {
                 alias = correctionDao.findBySpokenExact(bestSpoken, pref);
             }
         }
-        return alias;
+        return aliasBlocked(alias, closed) ? null : alias;
     }
 
     /**
      * Auflösung in der gewünschten Reihenfolge: zuerst die <b>bevorzugten</b> Aliase, dann die bestehenden
      * Buchungen, erst danach die übrigen Aliase. Setzt {@code out[0]}=Vorlage-Buchung, {@code out[1]}=Alias.
+     * Geschlossene Konten ({@code closed}) werden übersprungen.
      */
-    private void resolve(String term, double[] coords, Booking[] outBooking, PayeeCorrection[] outAlias) {
-        PayeeCorrection alias = matchAlias(term, true);
+    private void resolve(String term, double[] coords, java.util.Set<String> closed,
+                         Booking[] outBooking, PayeeCorrection[] outAlias) {
+        PayeeCorrection alias = matchAlias(term, true, closed);
         Booking booking = null;
         if (alias == null) {
-            booking = findVoiceTemplate(term, coords);
+            booking = findVoiceTemplate(term, coords, closed);
             if (booking == null) {
-                alias = matchAlias(term, false);
+                alias = matchAlias(term, false, closed);
             }
         }
         outBooking[0] = booking;
@@ -513,20 +516,60 @@ public class Repository {
     /**
      * Auflösung per Standort (Betrag-only): innerhalb {@link de.spahr.ausgaben.location.Geo#RADIUS_M} in
      * strenger Reihenfolge – bevorzugte Aliase → Buchungen → übrige Aliase; der erste Tier mit Treffer
-     * gewinnt, innerhalb eines Tiers der nächstgelegene.
+     * gewinnt, innerhalb eines Tiers der nächstgelegene. Geschlossene Konten werden übersprungen.
      */
-    private void resolveGps(double lat, double lon, Booking[] outBooking, PayeeCorrection[] outAlias) {
-        PayeeCorrection a = nearestAlias(lat, lon, correctionDao.getWithGps(1));
+    private void resolveGps(double lat, double lon, java.util.Set<String> closed,
+                            Booking[] outBooking, PayeeCorrection[] outAlias) {
+        PayeeCorrection a = nearestAlias(lat, lon, openAliases(correctionDao.getWithGps(1), closed));
         if (a != null) {
             outAlias[0] = a;
             return;
         }
-        Booking b = nearestBooking(lat, lon, bookingDao.getWithGpsNote());
+        Booking b = nearestBooking(lat, lon, openBookings(bookingDao.getWithGpsNote(), closed));
         if (b != null) {
             outBooking[0] = b;
             return;
         }
-        outAlias[0] = nearestAlias(lat, lon, correctionDao.getWithGps(0));
+        outAlias[0] = nearestAlias(lat, lon, openAliases(correctionDao.getWithGps(0), closed));
+    }
+
+    /** Namen der geschlossenen Konten (läuft bereits auf dem Executor-Thread). */
+    private java.util.Set<String> closedAccounts() {
+        return new java.util.HashSet<>(accountDao.getClosedNames());
+    }
+
+    /** True, wenn der Alias auf ein geschlossenes (Ziel-)Konto zeigt und daher nicht gewählt werden darf. */
+    private static boolean aliasBlocked(PayeeCorrection a, java.util.Set<String> closed) {
+        if (a == null || closed == null || closed.isEmpty()) {
+            return false;
+        }
+        return closed.contains(a.account) || closed.contains(a.fromAccount) || closed.contains(a.toAccount);
+    }
+
+    private static List<Booking> openBookings(List<Booking> list, java.util.Set<String> closed) {
+        if (closed == null || closed.isEmpty()) {
+            return list;
+        }
+        List<Booking> out = new ArrayList<>();
+        for (Booking b : list) {
+            if (!closed.contains(b.account)) {
+                out.add(b);
+            }
+        }
+        return out;
+    }
+
+    private static List<PayeeCorrection> openAliases(List<PayeeCorrection> list, java.util.Set<String> closed) {
+        if (closed == null || closed.isEmpty()) {
+            return list;
+        }
+        List<PayeeCorrection> out = new ArrayList<>();
+        for (PayeeCorrection a : list) {
+            if (!aliasBlocked(a, closed)) {
+                out.add(a);
+            }
+        }
+        return out;
     }
 
     private PayeeCorrection nearestAlias(double lat, double lon, List<PayeeCorrection> list) {
@@ -625,16 +668,16 @@ public class Repository {
      * und ist die aktuelle Position {@code coords} bekannt, wird der zur Position nächstgelegene Treffer
      * mit GPS-Notiz gewählt – sonst die neueste Buchung.
      */
-    private Booking findVoiceTemplate(String term, double[] coords) {
+    private Booking findVoiceTemplate(String term, double[] coords, java.util.Set<String> closed) {
         if (term == null || term.isEmpty()) {
             return null;
         }
-        Booking template = pickTemplate(bookingDao.findByPayeeLike(term), coords);
+        Booking template = pickTemplate(openBookings(bookingDao.findByPayeeLike(term), closed), coords);
         if (template == null) {
             String best = de.spahr.ausgaben.voice.VoiceInput.bestFuzzyPayee(
                     term, bookingDao.getDistinctPayees());
             if (best != null) {
-                template = pickTemplate(bookingDao.findByPayeeLike(best), coords);
+                template = pickTemplate(openBookings(bookingDao.findByPayeeLike(best), closed), coords);
             }
         }
         return template;
@@ -702,7 +745,7 @@ public class Repository {
             String t = term == null ? "" : term.trim();
             Booking[] booking = new Booking[1];
             PayeeCorrection[] alias = new PayeeCorrection[1];
-            resolve(t, de.spahr.ausgaben.location.Geo.parse(coords), booking, alias);
+            resolve(t, de.spahr.ausgaben.location.Geo.parse(coords), closedAccounts(), booking, alias);
             String payee = alias[0] != null ? alias[0].corrected : t;
             final Booking fb = booking[0];
             final PayeeCorrection fa = alias[0];
@@ -722,7 +765,7 @@ public class Repository {
             PayeeCorrection[] alias = new PayeeCorrection[1];
             double[] ll = de.spahr.ausgaben.location.Geo.parse(coords);
             if (ll != null) {
-                resolveGps(ll[0], ll[1], booking, alias);
+                resolveGps(ll[0], ll[1], closedAccounts(), booking, alias);
             }
             String payee = alias[0] != null ? alias[0].corrected
                     : (booking[0] != null ? booking[0].payee : "");
@@ -852,10 +895,31 @@ public class Repository {
         });
     }
 
+    /** Nur aktive Konten – geschlossene Konten sind nirgends auswählbar. */
     public void getAccountNames(final Callback<List<String>> callback) {
         executor.execute(() -> {
-            final List<String> result = accountDao.getAllNames();
+            final List<String> result = accountDao.getActiveNames();
             mainHandler.post(() -> callback.onResult(result));
+        });
+    }
+
+    /** Alle Konten mit Status (aktiv/geschlossen) – für die Konto-Verwaltung. */
+    public void getAllAccountsWithStatus(final Callback<List<Account>> callback) {
+        executor.execute(() -> {
+            final List<Account> result = accountDao.getAllOrdered();
+            mainHandler.post(() -> callback.onResult(result));
+        });
+    }
+
+    /** Konto schließen (inaktiv) oder wieder öffnen. */
+    public void setAccountClosed(final String name, final boolean closed, final Runnable onDone) {
+        executor.execute(() -> {
+            if (name != null && !name.trim().isEmpty()) {
+                accountDao.setClosed(name.trim(), closed);
+            }
+            if (onDone != null) {
+                mainHandler.post(onDone);
+            }
         });
     }
 

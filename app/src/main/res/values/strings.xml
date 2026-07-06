@@ -194,6 +194,16 @@
     <string name="delete_account_confirm_message">All bookings of account “%1$s” will be permanently deleted.</string>
     <string name="delete_account_done">Account “%1$s” deleted</string>
     <string name="no_accounts">No accounts available</string>
+    <string name="account_manage">Delete/close account</string>
+    <string name="account_manage_choose">Choose account</string>
+    <string name="account_status_active">Active</string>
+    <string name="account_status_closed">Closed</string>
+    <string name="account_status_line">%1$s — %2$s</string>
+    <string name="account_close">Close</string>
+    <string name="account_reopen">Reopen</string>
+    <string name="account_close_needs_zero">Closing is only possible with a zero balance (currently %1$s).</string>
+    <string name="account_closed_done">Account “%1$s” closed</string>
+    <string name="account_reopened_done">Account “%1$s” reopened</string>
 
     <!-- Places -->
     <string name="places_section">Places (cash balances)</string>

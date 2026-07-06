@@ -134,7 +134,13 @@ Dies ist eine Android-App (Java), die als mobile Ergänzung zu KMyMoney entwicke
   Berechtigungsabfrage, keine GPS-Notiz, keine Betrag-only-Erfassung am Handy und kein Alias-Standort.
 - Einstellungen: Sprache, **Währungskennzeichen** (Standard; wird beim `.kmy`-Import je Konto aus der
   Datei übernommen), Nextcloud-Zugang (App-Passwort verschlüsselt), Export-Modus (CSV/`.kmy`),
-  Standardkonto, Orte je Konto, Alias-Namen, Hell-/Dunkel-Design, Datenbank-Backup/Restore, Konto löschen.
+  Standardkonto, Orte je Konto, Alias-Namen, Hell-/Dunkel-Design, Datenbank-Backup/Restore,
+  **Konto löschen/schließen**.
+- **Konto schließen statt löschen**: unter „Konto löschen/schließen" zeigt eine Liste alle Konten mit Status
+  (Aktiv/Geschlossen). Ein Konto lässt sich **schließen**, wenn sein Saldo **0** ist (sonst nur löschen), und
+  jederzeit wieder **öffnen**. Ein geschlossenes Konto erscheint nirgends mehr (Kontenmenü, Buchungs-Auswahl
+  manuell/automatisch, Bestände inkl. seiner Orte, Einzel-Auswertung) – nur in der **Auswertung-Gesamtsicht**
+  zählt sein historischer Saldo weiter. Löschen entfernt Buchungen + Orte dauerhaft.
 
 ## Wear OS (Sprach-Schnellerfassung)
 

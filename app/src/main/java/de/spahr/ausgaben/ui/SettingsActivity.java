@@ -166,7 +166,7 @@ public class SettingsActivity extends LocalizedActivity {
         ((MaterialButton) findViewById(R.id.btnBackup)).setOnClickListener(
                 v -> backupLauncher.launch("ausgaben-backup-" + timestamp() + ".db"));
         ((MaterialButton) findViewById(R.id.btnRestore)).setOnClickListener(v -> confirmRestore());
-        ((MaterialButton) findViewById(R.id.btnDeleteAccount)).setOnClickListener(v -> chooseAccountToDelete());
+        ((MaterialButton) findViewById(R.id.btnDeleteAccount)).setOnClickListener(v -> manageAccounts());
         ((MaterialButton) findViewById(R.id.btnReset)).setOnClickListener(v -> confirmReset());
 
         setupPlaces();
@@ -543,20 +543,64 @@ public class SettingsActivity extends LocalizedActivity {
         }
     }
 
-    /** „Konto löschen": Konto wählen → bestätigen → alle Buchungen + Konto entfernen. */
-    private void chooseAccountToDelete() {
-        repository.getAccountNames(names -> {
-            if (names.isEmpty()) {
+    /** „Konto löschen/schließen": alle Konten mit Status anzeigen → Aktion (löschen/schließen/öffnen). */
+    private void manageAccounts() {
+        repository.getAllAccountsWithStatus(accounts -> {
+            if (accounts.isEmpty()) {
                 Toast.makeText(this, R.string.no_accounts, Toast.LENGTH_LONG).show();
                 return;
             }
-            String[] items = names.toArray(new String[0]);
+            String[] items = new String[accounts.size()];
+            for (int i = 0; i < accounts.size(); i++) {
+                de.spahr.ausgaben.db.Account a = accounts.get(i);
+                String status = getString(a.closed
+                        ? R.string.account_status_closed : R.string.account_status_active);
+                items[i] = getString(R.string.account_status_line, a.name, status);
+            }
             new MaterialAlertDialogBuilder(this, R.style.ThemeOverlay_Ausgaben_Dialog)
-                    .setTitle(R.string.delete_account_choose)
-                    .setItems(items, (d, w) -> confirmDeleteAccount(items[w]))
+                    .setTitle(R.string.account_manage_choose)
+                    .setItems(items, (d, w) -> onAccountChosen(accounts.get(w)))
                     .setNegativeButton(R.string.cancel, null)
                     .show();
         });
+    }
+
+    /** Aktions-Dialog für ein Konto: schließen (nur bei Saldo 0) bzw. öffnen, oder löschen. */
+    private void onAccountChosen(de.spahr.ausgaben.db.Account a) {
+        if (a.closed) {
+            showAccountActions(a.name, true, false, 0);
+        } else {
+            repository.getAccountBalance(a.name, bal -> showAccountActions(a.name, false, bal == 0, bal));
+        }
+    }
+
+    private void showAccountActions(String name, boolean closed, boolean canClose, long balance) {
+        MaterialAlertDialogBuilder b = new MaterialAlertDialogBuilder(this, R.style.ThemeOverlay_Ausgaben_Dialog)
+                .setTitle(name);
+        if (closed) {
+            b.setPositiveButton(R.string.account_reopen, (d, w) -> repository.setAccountClosed(name, false, () -> {
+                Toast.makeText(this, getString(R.string.account_reopened_done, name), Toast.LENGTH_SHORT).show();
+                manageAccounts();
+            }));
+        } else if (canClose) {
+            b.setPositiveButton(R.string.account_close, (d, w) -> repository.setAccountClosed(name, true, () -> {
+                Toast.makeText(this, getString(R.string.account_closed_done, name), Toast.LENGTH_SHORT).show();
+                manageAccounts();
+            }));
+        } else {
+            b.setMessage(getString(R.string.account_close_needs_zero, formatCents(balance, name)));
+        }
+        b.setNeutralButton(R.string.delete, (d, w) -> confirmDeleteAccount(name));
+        b.setNegativeButton(R.string.cancel, null);
+        b.show();
+    }
+
+    private String formatCents(long cents, String account) {
+        long euros = cents / 100;
+        long c = Math.abs(cents % 100);
+        String sign = (cents < 0 && euros == 0) ? "-" : "";
+        return sign + euros + "," + String.format(Locale.GERMANY, "%02d", c) + " "
+                + de.spahr.ausgaben.settings.Currencies.forAccount(account);
     }
 
     private void confirmDeleteAccount(String account) {

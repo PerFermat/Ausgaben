@@ -1,24 +1,28 @@
-# Projektbeschreibung
+# Ausgaben
 
-## Ausgaben
+**English** · [Deutsch](README.de.md)
 
-Dies ist eine Android-App (Java), die als mobile Ergänzung zu KMyMoney entwickelt wird. Sie ermöglicht es, Bargeld-Ausgaben, -Einnahmen und Umbuchungen unterwegs direkt auf dem Smartphone oder einer Wear-OS-Uhr zu erfassen, anstatt diese später manuell in KMyMoney nachzutragen.
+A mobile companion app for **[KMyMoney](https://kmymoney.org/)** (Android, Java). Record cash expenses,
+income and transfers on the go — right on your phone or a Wear OS watch — and export them into KMyMoney,
+instead of typing everything in by hand later.
 
+> Offline-first · no account, no ads, no tracking · open source.
 
-## Warum diese App für KMyMoney-Nutzer interessant sein könnte
+*(“Ausgaben” is German for “expenses”.)*
 
-* Mobile Erweiterung für KMyMoney
-* Bargeldausgaben unterwegs sofort erfassen
-* Keine zusätzliche Cloud oder Herstellerkonto erforderlich
-* Vollständig offline nutzbar
-* Wear-OS-App mit Spracheingabe
-* Splitbuchungen und Umbuchungen
-* Biometrischer Schutz
-* Nahtlose KMyMoney-Integration über .kmy-Dateien oder CSV-Import
-* KMyMoney-Integration über gemeinsam genutzte WebDAV-Ordner
-* Keine Werbung
-* Open Source
+## Why it might be useful for KMyMoney users
 
+- 📲 **Mobile extension for KMyMoney** — capture cash spending the moment it happens
+- 🔌 **Seamless KMyMoney integration** via `.kmy` files or CSV import
+- 🗂️ **Sync through a shared WebDAV or SMB folder** — your own server, your data
+- 🔒 **Fully offline** — no extra cloud, no vendor account required
+- ⌚ **Wear OS app with voice input** — speak an expense right from your wrist
+- ➗ **Split bookings and transfers**, categories, places and per-account balances
+- 📈 **Charts and analysis** (bar/line, per account, place or total), portfolio import
+- 🌍 **Multilingual by design** — ships in **English and German**, currency per account, and you can
+  **add more languages yourself** by uploading a translation file (no rebuild needed)
+- 👆 **Biometric lock**, encrypted credentials, backup & restore
+- 🆓 **No ads. Open source.**
 
 ## Screenshots
 
@@ -31,209 +35,214 @@ Dies ist eine Android-App (Java), die als mobile Ergänzung zu KMyMoney entwicke
   <img src="screenshots/UhranlagemitAlias.png" width="150">
 </p>
 
+## Download
 
-## Funktionen
+Grab the latest APKs from the **[Releases page](../../releases/latest)**:
 
-### Buchungen erfassen
-- Typ-Umschalter **Ausgabe / Umbuchung / Einnahme**, Betrag, Geldempfänger, Konto (Auswahl aus
-  vorhandenen Konten), Notiz und Datum (heute vorbelegt, „Heute"-Schnellwahl). Ist im Hauptbildschirm ein
-  einzelnes Konto gewählt, wird die neue Buchung in diesem Konto angelegt.
-- **Datum-Rückfrage** nur beim Kopieren: Öffnet man eine bestehende Buchung, lässt das Datum unverändert und
-  legt daraus per „als neu speichern" eine Kopie an, fragt die App, ob das (alte) Datum oder heute gelten
-  soll. Beim reinen Ändern der Buchung oder selbst gesetztem Datum kommt keine Rückfrage.
-- **Splitbuchungen**: mehrere Kategorien mit Teilbeträgen. Bei einer Kategorie sind Gesamt- und
-  Kategoriebetrag gekoppelt; bei mehreren muss die Summe dem Gesamtbetrag entsprechen. Teilbeträge
-  dürfen negativ sein.
-- **Umbuchung** (Kontotransfer): zwei Konten (Von/Nach) + optionaler Zahlungsempfänger; legt eine
-  verknüpfte Buchung in beiden Konten an.
-- **Ort** (nur bei in der App angelegten Ausgaben/Einnahmen): wählbar mit dem Standardort des Kontos
-  vorbelegt; bestimmt, welchem Bargeld-Ort die Buchung ihre Ort-Bewegung gutschreibt (siehe „Orte/Bestände").
-  Bei importierten Buchungen wird kein Ort-Feld gezeigt.
-- **GPS-Koordinaten in der Notiz**: nur wenn der Standort-Schalter (Einstellungen → Sicherheit, siehe unten)
-  **eingeschaltet** ist. Dann erscheinen bei einer *neuen* Buchung die aktuellen Koordinaten bereits während
-  der Eingabe im Notizfeld als `GPS: lat, lon` (sichtbar und editierbar; der übrige Notiztext bleibt
-  erhalten, während man tippt wird nicht überschrieben). Rein lokal – die Position wird nicht an einen
-  externen Dienst gesendet. Ohne Berechtigung/Position bleibt das Feld leer; bestehende Buchungen werden
-  nicht angefasst.
-- **Sprach-Schnellerfassung**: langer Druck auf **„Neue Buchung"** öffnet die Spracheingabe. Sagt man
-  z. B. „Frisör 20 €", wird eine passende Buchung als Vorlage geöffnet (Empfänger, Konto, Kategorie(n),
-  Notiz, Buchungsart) – mit heutigem Datum und dem gesprochenen Betrag. Die Empfängersuche ist unscharf
-  (findet „Frisör Frank" auch bei „Friseur"). Gibt es **mehrere gleichnamige Empfänger** (z. B. „REWE - Zell"
-  und „REWE - Stuttgart"), wird bei bekanntem Standort der **nächstgelegene** als Vorlage gewählt.
-- **Nur den Betrag erfassen (Standort-Auflösung)**: nur bei eingeschaltetem Standort-Schalter. Sagt man nur
-  einen Betrag (oder tippt ihn über das **Ziffern-Symbol** unten still ein), sucht die App am aktuellen
-  Standort (100 m) eine passende Vorlage – in den bestehenden Buchungen und im Alias-Verzeichnis
-  (Reihenfolge: bevorzugte Aliase → Buchungen → übrige Aliase) – und übernimmt deren Daten. Im
-  Ziffern-Dialog wird der so gefundene **Geldempfänger schon vor dem Speichern** unter dem Betrag angezeigt
-  (aktualisiert sich mit dem Standort-Fix). Aliase erhalten ihren Standort automatisch, wenn sie aus einer
-  Buchung gelernt werden, oder man setzt ihn im Alias per **„Karte öffnen"** (OpenStreetMap). Ohne Treffer
-  wird nur der Betrag übernommen. Ist der Standort-Schalter **aus**, entfällt die Betrag-only-Erfassung am
-  Handy (Ziffern-Symbol ausgeblendet); auf der Uhr bleibt sie möglich – die Buchung entsteht dann mit leerem
-  Empfänger.
-- **Alias-Namen (gelernte Zuordnungen)**: ändert man beim Speichern den per Sprache erkannten (oder beim
-  Bearbeiten den bestehenden) Empfänger, fragt die App, ob sie sich die Zuordnung als Alias merken soll.
-  Dabei wird der **Kontext der Buchung mitgespeichert** – Buchungsart, Konto und Kategorie(n) bzw.
-  Von-/Bis-Konto bei Umbuchungen. Die hinterlegte **Buchungsart** bestimmt am Phone den Typ der neuen
-  Buchung (in der Wear-App gilt die per Knopf gewählte Art). Kommt derselbe gesprochene Begriff später erneut, wird der Alias gefunden (gleiche unscharfe
-  Logik wie die Buchungssuche) und die neue Buchung mit richtigem Empfänger **und** den hinterlegten
-  Konto-/Kategorie-Daten vorbelegt – auch für die Wear-Erfassung. So deckt ein Alias jede Buchungsart ab.
-  Damit lässt sich die Tabelle auch bewusst als **Alias/Abkürzung** nutzen: „Mama 100 €" kann automatisch
-  auf den realen Namen samt Konto/Kategorie gebucht werden.
-- **Suchreihenfolge**: zuerst die als **„bevorzugt"** markierten Aliase, dann die bestehenden Buchungen,
-  erst danach die übrigen Aliase. „Bevorzugt" ist eine Eigenschaft des einzelnen Alias (im Formular
-  einstellbar, in der Liste mit ★ markiert).
-- Einstellbar unter **Einstellungen → Alias-Namen**: die Nachfrage lässt sich abschalten (bestehende
-  Aliase werden weiterhin angewandt, es kommen nur keine neuen Nachfragen hinzu), und über
-  **„Alias-Namen verwalten"** lassen sich alle Aliase mit allen Feldern manuell anlegen, ändern und löschen.
+- **Ausgaben-v1.0.apk** — the phone app (Android 8 / API 26 and newer)
+- **Ausgaben-Wear-v1.0.apk** — the Wear OS watch app (sends spoken expenses to the phone app). Only needed
+  if your watch doesn't receive the app automatically with the phone install; otherwise sideload it
+  separately.
 
-### Übersicht & Auswertung
-- Mehrere **Konten** über eine Navigationsschublade; Liste und Saldo je Konto oder „Alle Konten".
-- Buchungsliste mit Farbkennzeichnung (negativ rot / positiv grün), „exportiert"-Markierung sowie
-  Kennzeichnung von Split- (`Split`) und Umbuchungen (`→`/`←` Gegenkonto/Empfänger).
-- **Orte/Bestände** pro Konto (wo liegt das Bargeld physisch): jeder Ort führt ein eigenes
-  Bewegungs-Journal; sein Saldo ist die Summe seiner Bewegungen. Eine in der App angelegte Buchung
-  erzeugt automatisch eine Ort-Bewegung auf dem **Standardort** des Kontos (spätere Betrags-/Lösch-
-  Änderungen hängen datierte Ausgleichs-Bewegungen an, die Historie bleibt erhalten). **„ohne Ort"** ist
-  der berechnete Rest (Kontosaldo − Summe der Orte), sodass die Summe der Ort-Salden stets dem Kontosaldo
-  entspricht. In den Beständen lassen sich Ort-Bewegungen einzeln anlegen/bearbeiten/löschen sowie zwischen
-  Orten umbuchen (z. B. um eine importierte Buchung einem Ort zuzuordnen); ein Kassensturz setzt den Saldo
-  eines Orts. Importierte Buchungen tragen keine Ort-Verknüpfung.
-- **Filter** nach Empfänger, Kategorie (als Baum) und Betrag. Bei Kategorie-Filter zeigt eine
-  Splitbuchung nur den Teilbetrag der gewählten Kategorie.
-- **Auswertung** (Tag/Woche/Monat/Jahr) als Balken- + Linien-Diagramm mit Konto-, Orts- und
-  Gesamt-Sichten; per Fingergeste zoombar (horizontal = Balkenanzahl, vertikal = Y-Achse).
+Both APKs are signed with the same key (required for the Wear Data Layer pairing). To install, allow
+“install from unknown sources”.
 
-### Synchronisierung
-- **Server-Typ** wählbar: **Nextcloud** (Pfadschema `…/remote.php/dav/files/<user>/`) oder ein
-  **generischer WebDAV-Server** (dann ist die eingetragene Basis-URL bereits die DAV-Wurzel). Protokoll
-  ist in beiden Fällen WebDAV mit HTTP-Basic-Auth.
-- **CSV-Export** auf Nextcloud: pro Konto eine Datei `<Konto>-<Zeitstempel>.csv`; jede Buchung wird nur
-  einmal exportiert (erst nach erfolgreichem Upload als exportiert markiert). Kompletter Export über die
-  Einstellungen.
-- **kMyMoney-`.kmy`-Modus**: schreibt neue Buchungen direkt in die `.kmy` (gzip-XML) und importiert
-  Konten/Buchungen daraus – inkl. Splitbuchungen und Umbuchungen. Import ersetzt je Konto die bereits
-  exportierten Buchungen.
-- **Depot-Import**: das **Investment-Konto** (Depot) wird in der Import-Auswahl **einmal** als „… (Depot)"
-  angeboten (nicht mehr jedes Wertpapier einzeln). Der Import liest die **Wertpapiere**, ihre
-  **Käufe/Verkäufe/Dividenden/Einbuchungen** und den **letzten Kurs** je Wertpapier. Das Depot erscheint
-  nach dem Import **in der Kontenschublade** (kurzer Tipp öffnet die Depot-Ansicht, langer Tipp
-  aktualisiert es aus der .kmy). Die **Depot-Ansicht** zeigt je Wertpapier Stückzahl × Kurs = aktueller
-  Wert und den Gesamt-Depotwert; ein Tipp auf ein Wertpapier öffnet seine **Bewegungen im Vollbild** (im
-  Kopf der Wertpapiername, in der Saldenzeile per Tipp umschaltbar zwischen Depotwert und dem Wert dieses
-  Wertpapiers). Der Depotwert wird **getrennt** geführt (nicht in Konto-Salden/Bestände/Auswertung
-  gemischt); die Kaufkosten/Dividenden erscheinen wie gehabt auf dem jeweiligen Geldkonto. In der
-  Saldenzeile der Hauptansicht gibt es zusätzlich **„Gesamtvermögen"** = alle Konten + Depotwert.
-- **CSV-Import** von kMyMoney-Ledger-CSV (Konto aus `Kontentyp:`-Zeile, ISO-Datum, Vorzeichen → Typ).
+## Features
 
-### Sprachen
-- **Deutsch und Englisch** sind fest eingebaut und in den Einstellungen (ganz oben) umschaltbar –
-  Phone **und** Uhr (die Uhr übernimmt die am Phone gewählte Sprache automatisch).
-- **Standardsprache Englisch.** Beim allerersten Start entscheidet die Handy-Sprache: Deutsch → Deutsch,
-  jede andere → Englisch. Danach gilt die selbst gewählte Sprache.
-- Alle Texte liegen in einer **Datenbank-Tabelle** (beim Start aus dem Programm mit DE/EN gefüllt; die
-  Anzeige liest durchgängig aus dieser Tabelle – Buttons, Hinweise, Feld-Labels, Menüs, Dialoge). Über
-  **„Vorlage exportieren"** wird eine JSON-Struktur mit allen Schlüsseln (inkl. der Uhr-Texte) als lokale
-  Datei gespeichert; diese lässt sich manuell in einer weiteren Sprache befüllen und über **„Sprache
-  hochladen"** einlesen. Danach ist die neue Sprache auswählbar und gilt auch für die Uhr. **Fehlt eine
-  Übersetzung, wird immer auf Englisch zurückgegriffen** (nie auf eine andere Sprache).
+### Recording bookings
+- Type switch **Expense / Transfer / Income**, amount, payee, account (chosen from existing accounts), note
+  and date (defaults to today, with a “Today” shortcut). If a single account is selected on the main screen,
+  the new booking is created in that account.
+- **Date prompt only when copying**: if you open an existing booking, leave the date unchanged and “save as
+  new”, the app asks whether the (old) date or today should apply. Just editing the booking, or setting the
+  date yourself, triggers no prompt.
+- **Split bookings**: several categories with partial amounts. With one category the total and category
+  amount are linked; with several, the sum must equal the total. Partial amounts may be negative.
+- **Transfer** (account-to-account): two accounts (From/To) + an optional payee; creates a linked booking in
+  both accounts.
+- **Place** (only for expenses/income created in the app): pre-filled with the account's default place;
+  determines which cash place the booking credits its movement to (see “Places/Holdings”). Imported bookings
+  show no place field.
+- **GPS coordinates in the note**: only when the location switch (Settings → Security, see below) is
+  **on**. For a *new* booking the current coordinates then appear in the note field while you type, as
+  `GPS: lat, lon` (visible and editable; the rest of the note is preserved and never overwritten while
+  typing). Purely local — the position is never sent to an external service. Without permission/position the
+  field stays empty; existing bookings are left untouched.
+- **Voice quick entry**: a long press on **“New booking”** opens voice input. Saying e.g. “barber 20 €”
+  opens a matching booking as a template (payee, account, category/-ies, note, booking type) — with today's
+  date and the spoken amount. Payee search is fuzzy (finds “Barber Frank” even for “barbers”). If there are
+  **several payees with the same name** (e.g. “REWE - Zell” and “REWE - Stuttgart”), the **nearest** one is
+  chosen as the template when the location is known.
+- **Amount-only entry (location resolution)**: only when the location switch is on. If you say just an amount
+  (or type it silently via the **digits icon** at the bottom), the app looks for a matching template at your
+  current location (100 m) — in existing bookings and in the alias directory (order: preferred aliases →
+  bookings → remaining aliases) — and adopts its data. In the digits dialog the resolved **payee is shown
+  under the amount before saving** (updating as the location fix arrives). Aliases get their location
+  automatically when learned from a booking, or you set it in the alias via **“Open map”** (OpenStreetMap).
+  With no match, only the amount is used. If the location switch is **off**, amount-only entry on the phone is
+  disabled (digits icon hidden); on the watch it stays available — the booking is then created with an empty
+  payee.
+- **Alias names (learned mappings)**: if you change the voice-recognized payee (or, when editing, the
+  existing one) while saving, the app asks whether to remember the mapping as an alias. The **booking context
+  is stored with it** — booking type, account and category/-ies, or From/To accounts for transfers. The
+  stored **booking type** determines the type of the new booking on the phone (in the Wear app the type
+  chosen by button applies). When the same spoken term comes up again, the alias is found (same fuzzy logic
+  as the booking search) and the new booking is pre-filled with the correct payee **and** the stored
+  account/category data — including for Wear entry. So one alias covers every booking type. This also lets you
+  use the table deliberately as an **alias/shortcut**: “mom 100 €” can be booked automatically to the real
+  name with account/category.
+- **Search order**: first the aliases marked **“preferred”**, then existing bookings, and only then the
+  remaining aliases. “Preferred” is a property of the individual alias (set in the form, marked with ★ in the
+  list).
+- Configurable under **Settings → Alias names**: the prompt can be turned off (existing aliases are still
+  applied, only no new prompts appear), and **“Manage alias names”** lets you create, edit and delete all
+  aliases with all fields by hand.
 
-### Sicherheit & Einstellungen
-- Optionale **App-Sperre** per Biometrie/Geräte-Anmeldung (Fingerabdruck, Gesicht, PIN, Muster,
-  Passwort) – Authentifizierung beim Start bzw. bei Rückkehr aus dem Hintergrund.
-- **Standort (GPS)**-Schalter (Standard **aus**): steuert die gesamte Standortnutzung. Aus = keine
-  Berechtigungsabfrage, keine GPS-Notiz, keine Betrag-only-Erfassung am Handy und kein Alias-Standort.
-- Einstellungen: Sprache, **Währungskennzeichen** (Standard; wird beim `.kmy`-Import je Konto aus der
-  Datei übernommen), Nextcloud-Zugang (App-Passwort verschlüsselt), Export-Modus (CSV/`.kmy`),
-  Standardkonto, Orte je Konto, Alias-Namen, Hell-/Dunkel-Design, Datenbank-Backup/Restore,
-  **Konto löschen/schließen**.
-- **Konto schließen statt löschen**: unter „Konto löschen/schließen" zeigt eine Liste alle Konten mit Status
-  (Aktiv/Geschlossen). Ein Konto lässt sich **schließen**, wenn sein Saldo **0** ist (sonst nur löschen), und
-  jederzeit wieder **öffnen**. Ein geschlossenes Konto erscheint nirgends mehr (Kontenmenü, Buchungs-Auswahl
-  manuell/automatisch, Bestände inkl. seiner Orte, Einzel-Auswertung) – nur in der **Auswertung-Gesamtsicht**
-  zählt sein historischer Saldo weiter. Löschen entfernt Buchungen + Orte dauerhaft.
+### Overview & analysis
+- Multiple **accounts** via a navigation drawer; list and balance per account or “All accounts”.
+- Booking list with colour coding (negative red / positive green), an “exported” marker, and markers for
+  splits (`Split`) and transfers (`→`/`←` counter-account/payee).
+- **Places/Holdings** per account (where the cash physically is): each place keeps its own movement journal;
+  its balance is the sum of its movements. A booking created in the app automatically produces a place
+  movement on the account's **default place** (later amount/deletion changes append dated balancing
+  movements, so the history is preserved). **“No place”** is the computed remainder (account balance − sum of
+  places), so the sum of place balances always equals the account balance. In Holdings you can create/edit/
+  delete individual place movements and transfer between places (e.g. to assign an imported booking to a
+  place); a cash count sets a place's balance. Imported bookings carry no place link.
+- **Filter** by payee, category (as a tree) and amount. With a category filter, a split booking shows only
+  the partial amount of the chosen category.
+- **Analysis** (day/week/month/year) as a bar + line chart with account, place and total views; zoomable by
+  gesture (horizontal = number of bars, vertical = Y axis).
 
-## Wear OS (Sprach-Schnellerfassung)
+### Synchronization
+- **Server type** selectable: **Nextcloud** (path scheme `…/remote.php/dav/files/<user>/`) or a **generic
+  WebDAV server** (then the base URL you enter is already the DAV root). Either way the protocol is WebDAV
+  with HTTP basic auth.
+- **CSV export** to Nextcloud: one file `<account>-<timestamp>.csv` per account; each booking is exported
+  only once (marked exported only after a successful upload). Full export via the settings.
+- **KMyMoney `.kmy` mode**: writes new bookings straight into the `.kmy` (gzip XML) and imports
+  accounts/bookings from it — including splits and transfers. Import replaces the already-exported bookings
+  per account.
+- **Portfolio import**: the **investment account** (portfolio) is offered **once** in the import picker as
+  “… (Depot)” (no longer each security individually). The import reads the **securities**, their
+  **buys/sells/dividends/add-ins** and the **latest price** per security. After import the portfolio appears
+  **in the account drawer** (short tap opens the portfolio view, long tap refreshes it from the `.kmy`). The
+  **portfolio view** shows shares × price = current value per security plus the total; a tap on a security
+  opens its **movements full-screen** (the security name in the header, the balance line toggling by tap
+  between portfolio value and the value of that security). The portfolio value is kept **separate** (not
+  mixed into account balances/holdings/analysis); the buy costs/dividends still appear on the respective cash
+  account. The main screen's balance line additionally offers **“Net worth”** = all accounts + portfolio
+  value.
+- **CSV import** of KMyMoney ledger CSV (account from the `Kontentyp:` line, ISO date, sign → type).
 
-Ein zusätzliches Modul `:wear` erlaubt das Erfassen einer Bargeldausgabe per Sprache direkt auf einer
-Wear-OS-Uhr („Frisör 20 Euro"). Die Uhr nimmt nur den Text auf; die eigentliche Verarbeitung (derselbe
-Parser wie am Phone) und die Buchungsanlage passieren auf dem Smartphone.
+### Languages
+- **German and English** are built in and switchable in the settings (at the very top) — phone **and** watch
+  (the watch adopts the language chosen on the phone automatically).
+- **Default language is English.** On the very first launch the phone language decides: German → German, any
+  other → English. After that your own choice applies.
+- All texts live in a **database table** (filled at startup with DE/EN from the app; the UI reads
+  consistently from this table — buttons, hints, field labels, menus, dialogs). **“Export template”** saves a
+  JSON structure with all keys (including the watch texts) as a local file; you can fill it in another
+  language by hand and read it back via **“Upload language”**. The new language is then selectable and also
+  applies to the watch. **If a translation is missing, English is always used** (never another language).
 
-- **Uhr**: ein Screen „Buchung erfassen" mit drei Typ-Knöpfen (Einnahme grün, Umbuchung gelb, Ausgabe
-  rot) + Wear-Tile („Widget"). Nach der Typwahl startet die Sprache; der erkannte Text wird 10 Sekunden
-  mit „Abbrechen" angezeigt und – falls nicht abgebrochen – ohne weitere Aktion verarbeitet. Der Typ
-  wird mitübertragen und auf dem Phone erzwungen. Ist das Phone offline, steht unter den Knöpfen
-  „x Buchungen noch nicht übertragen".
-- **Stille Zifferneingabe**: auf dem „Sprich jetzt"-Schirm gibt es unten ein **Ziffern-Symbol** →
-  Zahlenblock (0–9 + Komma, Rücktaste, Enter, oben die eingegebene Zahl). So lässt sich eine Buchung
-  **lautlos** erfassen; der Betrag wird am Phone über den aktuellen Standort aufgelöst (siehe „Nur den
-  Betrag erfassen").
-- **Offline & Sync**: Die Übertragung läuft **vollautomatisch** über die Wear Data Layer API als
-  **DataItem** (`DataClient`). Ist das Phone nicht erreichbar, bleibt der Eintrag PENDING; der Data Layer
-  stellt ihn bei Wiederverbindung automatisch zu (ohne dass die Uhr wach bleiben oder pollen muss). Das
-  Phone verarbeitet ihn und löscht den DataItem – das bestätigt der Uhr die Übertragung.
-- **Kein Verlust / keine Dopplung**: Jeder Eintrag hat eine eindeutige ID. Das Phone verarbeitet jede ID
-  nur einmal und bestätigt den Empfang (ACK); erst danach entfernt die Uhr den Eintrag.
+### Security & settings
+- Optional **app lock** via biometrics/device credential (fingerprint, face, PIN, pattern, password) —
+  authentication on start or when returning from the background.
+- **Location (GPS) switch** (default **off**): controls all location use. Off = no permission prompt, no GPS
+  note, no amount-only entry on the phone and no alias location.
+- Settings: language, **currency symbol** (default; taken per account from the file on `.kmy` import),
+  Nextcloud access (app password encrypted), export mode (CSV/`.kmy`), default account, places per account,
+  alias names, light/dark theme, database backup/restore, **delete/close account**.
+- **Close an account instead of deleting it**: under “Delete/close account” a list shows all accounts with
+  their status (Active/Closed). An account can be **closed** when its balance is **0** (otherwise only
+  deleted), and **reopened** any time. A closed account no longer appears anywhere (account menu, booking
+  selection manual/automatic, holdings including its places, single-account analysis) — only in the **total
+  analysis view** does its historical balance still count. Deleting removes bookings + places permanently.
 
-**Datenfluss:**
+## Wear OS (voice quick entry)
+
+An additional `:wear` module lets you record a cash expense by voice directly on a Wear OS watch (“barber 20
+euro”). The watch only captures the text; the actual processing (the same parser as on the phone) and the
+booking creation happen on the phone.
+
+- **Watch**: a “Record booking” screen with three type buttons (income green, transfer yellow, expense red)
+  + a Wear tile (“widget”). After choosing the type, voice starts; the recognized text is shown for 10
+  seconds with “Cancel” and — unless cancelled — processed without further action. The type is transmitted
+  along and enforced on the phone. If the phone is offline, “x bookings not yet transmitted” is shown under
+  the buttons.
+- **Silent digit entry**: on the “speak now” screen there is a **digits icon** at the bottom → a keypad (0–9
+  + comma, backspace, enter, the entered number on top). This lets you record a booking **silently**; the
+  amount is resolved on the phone via the current location (see “Amount-only entry”).
+- **Offline & sync**: transmission runs **fully automatically** over the Wear Data Layer API as a **DataItem**
+  (`DataClient`). If the phone is unreachable, the entry stays PENDING; the Data Layer delivers it
+  automatically on reconnect (without the watch having to stay awake or poll). The phone processes it and
+  deletes the DataItem — which confirms the transmission to the watch.
+- **No loss / no duplication**: each entry has a unique ID. The phone processes every ID only once and
+  acknowledges receipt (ACK); only then does the watch remove the entry.
+
+**Data flow:**
 
 ```
-Uhr (Sprache)
-  → lokale Speicherung (PENDING, id/text/timestamp)
-  → Übertragung  MessageClient  /expense/new  {id,text,timestamp}
-  → Smartphone  WearableListenerService
-  → Parser (VoiceInput) + Buchung anlegen (Repository, Dedup per id)
+Watch (voice)
+  → local storage (PENDING, id/text/timestamp)
+  → transmission  MessageClient  /expense/new  {id,text,timestamp}
+  → phone  WearableListenerService
+  → parser (VoiceInput) + create booking (Repository, dedup by id)
   → ACK  /expense/ack  {id}
-  → Uhr: Eintrag SYNCED/entfernt  → Synchronisation abgeschlossen
+  → watch: entry SYNCED/removed  → synchronization complete
 ```
 
-Voraussetzung: Phone- und Wear-App haben dieselbe `applicationId` **und** dieselbe Signatur (für den
-Release-Build dieselbe `keystore.properties`; im Debug ohnehin derselbe Debug-Key).
+Requirement: the phone and Wear apps share the same `applicationId` **and** the same signature (for the
+release build the same `keystore.properties`; in debug the same debug key anyway).
 
-## CSV-Format (Export)
+## CSV format (export)
 
-Deutsch: Spaltentrenner `;`, Dezimaltrennzeichen `,`, Datum `TT.MM.JJJJ`, UTF-8, CRLF. Splitbuchungen
-werden je Kategorie als eigene Zeile geschrieben.
+German locale: column separator `;`, decimal separator `,`, date `DD.MM.YYYY`, UTF-8, CRLF. Split bookings
+are written as one line per category.
 
 ```
 Datum;Empfänger;Konto;Typ;Betrag;Notiz;Kategorie
 29.06.2026;Metzgerei;Bargeld;Ausgabe;-7,30;Mittagessen;Lebensmittel
 ```
 
-## Technik
+## Tech
 
-- Java, Gradle 8.9 / AGP 8.7.3, `minSdk 26` (`:app`) bzw. `minSdk 30` (`:wear`), `compileSdk 34`.
-- Module: `:app` (Phone) und `:wear` (Wear OS).
-- [Room](https://developer.android.com/training/data-storage/room) (SQLite, DB-Version 13), OkHttp
-  (WebDAV), [MPAndroidChart](https://github.com/PhilJay/MPAndroidChart),
+- Java, Gradle 8.9 / AGP 8.7.3, `minSdk 26` (`:app`) / `minSdk 30` (`:wear`), `compileSdk 34`.
+- Modules: `:app` (phone) and `:wear` (Wear OS).
+- [Room](https://developer.android.com/training/data-storage/room) (SQLite, DB version 17), OkHttp
+  (WebDAV), [smbj](https://github.com/hierynomus/smbj) (SMB), [MPAndroidChart](https://github.com/PhilJay/MPAndroidChart),
+  [osmdroid](https://github.com/osmdroid/osmdroid) (map picker),
   [androidx.security](https://developer.android.com/jetpack/androidx/releases/security)
-  (verschlüsselte Prefs), [androidx.biometric](https://developer.android.com/jetpack/androidx/releases/biometric),
+  (encrypted prefs), [androidx.biometric](https://developer.android.com/jetpack/androidx/releases/biometric),
   [play-services-wearable](https://developer.android.com/training/wearables/data/data-layer) (Data Layer)
-  und [androidx.wear.tiles](https://developer.android.com/training/wearables/tiles) (Tile).
+  and [androidx.wear.tiles](https://developer.android.com/training/wearables/tiles) (tile).
 
-## Bauen
+## Building
 
 ```bash
 ./gradlew assembleDebug
 ```
 
-Das Android-SDK wird über `local.properties` (`sdk.dir=…`) gefunden – diese Datei ist nicht
-eingecheckt und muss lokal vorhanden sein (legt Android Studio automatisch an). Für einen signierten
-Release-Build wird `keystore.properties` benötigt (ebenfalls nicht eingecheckt); fehlt sie, entsteht
-ein unsigniertes Release.
+The Android SDK is located via `local.properties` (`sdk.dir=…`) — this file is not checked in and must be
+present locally (Android Studio creates it automatically). A signed release build needs
+`keystore.properties` (also not checked in); without it an unsigned release is produced.
 
-## Sync-Ziel einrichten (Nextcloud / WebDAV / SMB)
+## Setting up a sync target (Nextcloud / WebDAV / SMB)
 
-In den Einstellungen den **Server-Typ** wählen, dann Basis-URL/Freigabe, Benutzername und Passwort
-eintragen, optional Ziel-/Importordner bzw. im `.kmy`-Modus den Pfad zur `.kmy`-Datei. Ein Button
-**„Verbindung testen"** prüft die Zugangsdaten; im `.kmy`-Modus listet **„.kmy auswählen"** die
-`.kmy`-Dateien der Freigabe/des Ordners zur Auswahl. Ohne konfiguriertes Sync-Ziel wird lokal in einen per
-SAF gewählten Ordner exportiert.
+In the settings choose the **server type**, then enter base URL/share, username and password, optionally a
+target/import folder or — in `.kmy` mode — the path to the `.kmy` file. A **“Test connection”** button
+checks the credentials; in `.kmy` mode **“Choose .kmy”** lists the `.kmy` files of the share/folder for
+selection. Without a configured sync target, export goes locally into a folder chosen via SAF.
 
-- **Nextcloud**: Basis-URL = Server (z. B. `https://cloud.example.com`) und ein **App-Passwort**
-  (Nextcloud → Einstellungen → Sicherheit → App-Passwort). Die Dateien landen unter
-  `<URL>/remote.php/dav/files/<user>/<Ordner>/`.
-- **WebDAV (generisch)**: Basis-URL = vollständige DAV-Wurzel (z. B.
-  `https://host/dav/`); der Ordner wird direkt daran angehängt. Auth per HTTP-Basic.
-- **SMB/Samba**: „URL" = `smb://Host/Freigabe` (optional mit Basis-Unterordner); Ordner- und
-  `.kmy`-Pfade sind relativ zur Freigabe. Benutzer/Passwort wie üblich – **leerer Benutzer = Gast**;
-  eine Windows-Domäne als `DOMÄNE\Benutzer`. SMB2/3.
+- **Nextcloud**: base URL = server (e.g. `https://cloud.example.com`) and an **app password** (Nextcloud →
+  Settings → Security → App password). Files end up under `<URL>/remote.php/dav/files/<user>/<folder>/`.
+- **WebDAV (generic)**: base URL = full DAV root (e.g. `https://host/dav/`); the folder is appended directly.
+  Auth via HTTP basic.
+- **SMB/Samba**: “URL” = `smb://host/share` (optionally with a base subfolder); folder and `.kmy` paths are
+  relative to the share. Username/password as usual — **empty user = guest**; a Windows domain as
+  `DOMAIN\user`. SMB2/3.
+
+## License
+
+Released under the **GNU General Public License v3.0** — see [LICENSE](LICENSE).

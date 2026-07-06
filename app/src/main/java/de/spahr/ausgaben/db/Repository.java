@@ -376,7 +376,8 @@ public class Repository {
                 resolveGps(ll[0], ll[1], resolvedBooking, resolvedAlias);
             }
         } else {
-            resolve(term, resolvedBooking, resolvedAlias);
+            // Mit Empfänger: bei mehreren gleichnamigen Treffern den zur aktuellen Position nächsten wählen.
+            resolve(term, de.spahr.ausgaben.location.Geo.parse(coords), resolvedBooking, resolvedAlias);
         }
         Booking template = resolvedBooking[0];
         PayeeCorrection alias = resolvedAlias[0];
@@ -496,11 +497,11 @@ public class Repository {
      * Auflösung in der gewünschten Reihenfolge: zuerst die <b>bevorzugten</b> Aliase, dann die bestehenden
      * Buchungen, erst danach die übrigen Aliase. Setzt {@code out[0]}=Vorlage-Buchung, {@code out[1]}=Alias.
      */
-    private void resolve(String term, Booking[] outBooking, PayeeCorrection[] outAlias) {
+    private void resolve(String term, double[] coords, Booking[] outBooking, PayeeCorrection[] outAlias) {
         PayeeCorrection alias = matchAlias(term, true);
         Booking booking = null;
         if (alias == null) {
-            booking = findVoiceTemplate(term);
+            booking = findVoiceTemplate(term, coords);
             if (booking == null) {
                 alias = matchAlias(term, false);
             }
@@ -619,20 +620,59 @@ public class Repository {
         return base.isEmpty() ? tag : base + " " + tag;
     }
 
-    /** Vorlage-Buchung per Empfänger suchen (exakter Teilstring, sonst unscharf). */
-    private Booking findVoiceTemplate(String term) {
+    /**
+     * Vorlage-Buchung per Empfänger suchen (exakter Teilstring, sonst unscharf). Gibt es mehrere Treffer
+     * und ist die aktuelle Position {@code coords} bekannt, wird der zur Position nächstgelegene Treffer
+     * mit GPS-Notiz gewählt – sonst die neueste Buchung.
+     */
+    private Booking findVoiceTemplate(String term, double[] coords) {
         if (term == null || term.isEmpty()) {
             return null;
         }
-        Booking template = bookingDao.findLatestByPayeeLike(term);
+        Booking template = pickTemplate(bookingDao.findByPayeeLike(term), coords);
         if (template == null) {
             String best = de.spahr.ausgaben.voice.VoiceInput.bestFuzzyPayee(
                     term, bookingDao.getDistinctPayees());
             if (best != null) {
-                template = bookingDao.findLatestByPayeeLike(best);
+                template = pickTemplate(bookingDao.findByPayeeLike(best), coords);
             }
         }
         return template;
+    }
+
+    /** Aus den Treffern die zur Position nächste Buchung mit GPS-Notiz, sonst die erste (= neueste). */
+    private Booking pickTemplate(List<Booking> matches, double[] coords) {
+        if (matches == null || matches.isEmpty()) {
+            return null;
+        }
+        if (coords != null) {
+            Booking near = nearestByNote(coords[0], coords[1], matches);
+            if (near != null) {
+                return near;
+            }
+        }
+        return matches.get(0);
+    }
+
+    /**
+     * Nächstgelegene Buchung mit GPS-Notiz aus der Liste – <b>ohne</b> 100‑m‑Deckel (der Empfänger wurde
+     * explizit genannt, es soll der geografisch nächste unter den gleichnamigen Empfängern gewinnen).
+     */
+    private Booking nearestByNote(double lat, double lon, List<Booking> list) {
+        Booking best = null;
+        double bestD = Double.MAX_VALUE;
+        for (Booking b : list) {
+            double[] ll = de.spahr.ausgaben.location.Geo.parse(b.note);
+            if (ll == null) {
+                continue;
+            }
+            double d = de.spahr.ausgaben.location.Geo.distanceMeters(lat, lon, ll[0], ll[1]);
+            if (d < bestD) {
+                bestD = d;
+                best = b;
+            }
+        }
+        return best;
     }
 
     /** Ergebnis der Sprach-Empfängersuche: Vorlage-Buchung und/oder Alias + aufzulösender Empfänger. */
@@ -656,12 +696,13 @@ public class Repository {
      * dann über bestehende Buchungen, erst danach über die übrigen Aliase. Liefert Vorlage-Buchung und/oder
      * Alias sowie den – ggf. ersetzten – Empfänger für die Vorbelegung.
      */
-    public void resolveVoice(final String term, final Callback<VoiceResolution> callback) {
+    public void resolveVoice(final String term, final String coords,
+                             final Callback<VoiceResolution> callback) {
         executor.execute(() -> {
             String t = term == null ? "" : term.trim();
             Booking[] booking = new Booking[1];
             PayeeCorrection[] alias = new PayeeCorrection[1];
-            resolve(t, booking, alias);
+            resolve(t, de.spahr.ausgaben.location.Geo.parse(coords), booking, alias);
             String payee = alias[0] != null ? alias[0].corrected : t;
             final Booking fb = booking[0];
             final PayeeCorrection fa = alias[0];

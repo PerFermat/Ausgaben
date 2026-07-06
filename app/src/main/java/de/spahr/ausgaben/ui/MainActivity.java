@@ -343,7 +343,10 @@ public class MainActivity extends LocalizedActivity {
             repository.resolveVoiceByGps(coords, res -> openVoiceEditor(res, amount, ""));
             return;
         }
-        repository.resolveVoice(parsed.payee, res -> openVoiceEditor(res, amount, parsed.payee));
+        // Aktuelle Position mitgeben (nur bei GPS an) → bei mehreren gleichnamigen Empfängern der nächste.
+        String coords = settings.isGpsEnabled() && locationTagger != null
+                ? locationTagger.currentCoordinates() : null;
+        repository.resolveVoice(parsed.payee, coords, res -> openVoiceEditor(res, amount, parsed.payee));
     }
 
     /** Wählt aus den Erkennungs-Alternativen die erste, aus der ein Betrag lesbar ist (sonst die beste),
@@ -383,7 +386,10 @@ public class MainActivity extends LocalizedActivity {
         startActivity(i);
     }
 
-    /** Stille Zifferneingabe: Betrag eintippen → gleicher Betrag-only-Pfad (Auflösung per Standort). */
+    /**
+     * Stille Zifferneingabe: Betrag eintippen → Betrag-only-Pfad (Auflösung per Standort). Der anhand der
+     * aktuellen GPS-Position ermittelte Empfänger wird live unter dem Betrag angezeigt.
+     */
     private void showNumberEntry() {
         if (locationTagger != null && !hasLocationPermission()) {
             locationPermissionLauncher.launch(android.Manifest.permission.ACCESS_FINE_LOCATION);
@@ -393,17 +399,56 @@ public class MainActivity extends LocalizedActivity {
         field.setHint(R.string.amount_hint);
         field.setInputType(android.text.InputType.TYPE_CLASS_NUMBER
                 | android.text.InputType.TYPE_NUMBER_FLAG_DECIMAL);
+
+        final android.widget.TextView payeeView = new android.widget.TextView(this);
+        payeeView.setText(getString(R.string.voice_payee_resolved, "—"));
+
         int pad = Math.round(16 * getResources().getDisplayMetrics().density);
-        android.widget.FrameLayout box = new android.widget.FrameLayout(this);
+        android.widget.LinearLayout box = new android.widget.LinearLayout(this);
+        box.setOrientation(android.widget.LinearLayout.VERTICAL);
         box.setPadding(pad, pad / 2, pad, 0);
         box.addView(field);
+        payeeView.setPadding(0, pad / 2, 0, 0);
+        box.addView(payeeView);
+
+        // Empfänger anhand der aktuellen Position ermitteln und anzeigen (aktualisiert sich bei neuem Fix).
+        final Repository.VoiceResolution[] lastRes = new Repository.VoiceResolution[1];
+        final Runnable resolveShow = () -> {
+            String coords = settings.isGpsEnabled() && locationTagger != null
+                    ? locationTagger.currentCoordinates() : null;
+            if (coords == null) {
+                return;
+            }
+            repository.resolveVoiceByGps(coords, res -> {
+                lastRes[0] = res;
+                String name = res != null && res.payee != null && !res.payee.isEmpty() ? res.payee : "—";
+                payeeView.setText(getString(R.string.voice_payee_resolved, name));
+            });
+        };
+        resolveShow.run();
+        if (locationTagger != null) {
+            locationTagger.setOnLocationUpdate(resolveShow::run);
+        }
+
         new com.google.android.material.dialog.MaterialAlertDialogBuilder(
                 this, R.style.ThemeOverlay_Ausgaben_Dialog)
                 .setTitle(R.string.new_booking)
                 .setView(box)
+                .setOnDismissListener(d -> {
+                    if (locationTagger != null) {
+                        locationTagger.setOnLocationUpdate(null);
+                    }
+                })
                 .setPositiveButton(R.string.save, (d, w) -> {
                     String amt = field.getText() == null ? "" : field.getText().toString().trim();
-                    if (!amt.isEmpty()) {
+                    if (amt.isEmpty()) {
+                        return;
+                    }
+                    // Bereits ermittelten Empfänger wiederverwenden (konsistent mit der Anzeige).
+                    Long cents = lastRes[0] != null ? VoiceInput.parse(amt).amountCents : null;
+                    if (cents != null && cents > 0) {
+                        openVoiceEditor(lastRes[0], cents, "");
+                    } else {
                         handleVoiceResult(amt); // payee leer + Betrag → Betrag-only-Pfad
                     }
                 })

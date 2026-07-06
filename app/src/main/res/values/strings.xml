@@ -12,6 +12,7 @@
     <string name="voice_no_recognizer">No speech recognition available</string>
     <string name="voice_not_understood">Not understood – please try again</string>
     <string name="voice_not_found">No booking found for “%1$s” – new booking</string>
+    <string name="voice_payee_resolved">Payee: %1$s</string>
     <string name="correction_title">Remember name correction?</string>
     <string name="correction_message">Recognized “%1$s”, booked as “%2$s”. Should speech recognition use “%1$s” as “%2$s” automatically from now on?</string>
     <string name="correction_save">Remember</string>

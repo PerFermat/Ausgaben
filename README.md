@@ -56,17 +56,20 @@ Dies ist eine Android-App (Java), die als mobile Ergänzung zu KMyMoney entwicke
   externen Dienst gesendet. Ohne Berechtigung/Position bleibt das Feld leer; bestehende Buchungen werden
   nicht angefasst.
 - **Sprach-Schnellerfassung**: langer Druck auf **„Neue Buchung"** öffnet die Spracheingabe. Sagt man
-  z. B. „Frisör 20 €", wird die zuletzt passende Buchung als Vorlage geöffnet (Empfänger, Konto,
-  Kategorie(n), Notiz, Buchungsart) – mit heutigem Datum und dem gesprochenen Betrag. Die Empfängersuche
-  ist unscharf (findet „Frisör Frank" auch bei „Friseur").
+  z. B. „Frisör 20 €", wird eine passende Buchung als Vorlage geöffnet (Empfänger, Konto, Kategorie(n),
+  Notiz, Buchungsart) – mit heutigem Datum und dem gesprochenen Betrag. Die Empfängersuche ist unscharf
+  (findet „Frisör Frank" auch bei „Friseur"). Gibt es **mehrere gleichnamige Empfänger** (z. B. „REWE - Zell"
+  und „REWE - Stuttgart"), wird bei bekanntem Standort der **nächstgelegene** als Vorlage gewählt.
 - **Nur den Betrag erfassen (Standort-Auflösung)**: nur bei eingeschaltetem Standort-Schalter. Sagt man nur
   einen Betrag (oder tippt ihn über das **Ziffern-Symbol** unten still ein), sucht die App am aktuellen
   Standort (100 m) eine passende Vorlage – in den bestehenden Buchungen und im Alias-Verzeichnis
-  (Reihenfolge: bevorzugte Aliase → Buchungen → übrige Aliase) – und übernimmt deren Daten. Aliase erhalten
-  ihren Standort automatisch, wenn sie aus einer Buchung gelernt werden, oder man setzt ihn im Alias per
-  **„Karte öffnen"** (OpenStreetMap). Ohne Treffer wird nur der Betrag übernommen. Ist der Standort-Schalter
-  **aus**, entfällt die Betrag-only-Erfassung am Handy (Ziffern-Symbol ausgeblendet); auf der Uhr bleibt sie
-  möglich – die Buchung entsteht dann mit leerem Empfänger.
+  (Reihenfolge: bevorzugte Aliase → Buchungen → übrige Aliase) – und übernimmt deren Daten. Im
+  Ziffern-Dialog wird der so gefundene **Geldempfänger schon vor dem Speichern** unter dem Betrag angezeigt
+  (aktualisiert sich mit dem Standort-Fix). Aliase erhalten ihren Standort automatisch, wenn sie aus einer
+  Buchung gelernt werden, oder man setzt ihn im Alias per **„Karte öffnen"** (OpenStreetMap). Ohne Treffer
+  wird nur der Betrag übernommen. Ist der Standort-Schalter **aus**, entfällt die Betrag-only-Erfassung am
+  Handy (Ziffern-Symbol ausgeblendet); auf der Uhr bleibt sie möglich – die Buchung entsteht dann mit leerem
+  Empfänger.
 - **Alias-Namen (gelernte Zuordnungen)**: ändert man beim Speichern den per Sprache erkannten (oder beim
   Bearbeiten den bestehenden) Empfänger, fragt die App, ob sie sich die Zuordnung als Alias merken soll.
   Dabei wird der **Kontext der Buchung mitgespeichert** – Buchungsart, Konto und Kategorie(n) bzw.

@@ -12,6 +12,7 @@
     <string name="voice_no_recognizer">Keine Spracherkennung verfügbar</string>
     <string name="voice_not_understood">Nicht verstanden – bitte erneut versuchen</string>
     <string name="voice_not_found">Keine Buchung für „%1$s" gefunden – neue Buchung</string>
+    <string name="voice_payee_resolved">Geldempfänger: %1$s</string>
     <string name="correction_title">Namenskorrektur merken?</string>
     <string name="correction_message">Erkannt wurde „%1$s", gebucht auf „%2$s". Soll die Spracherkennung „%1$s" künftig automatisch als „%2$s" übernehmen?</string>
     <string name="correction_save">Merken</string>

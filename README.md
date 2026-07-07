@@ -246,3 +246,14 @@ selection. Without a configured sync target, export goes locally into a folder c
 ## License
 
 Released under the **GNU General Public License v3.0** — see [LICENSE](LICENSE).
+
+## Disclaimer
+
+This project was initially developed with extensive AI assistance.
+
+I have been working as a software developer for approximately 25 years, but primarily in technologies outside the modern mobile application ecosystem. While I have experience with Java and have reviewed parts of the codebase, I cannot claim to fully understand every implementation detail generated during the development process.
+
+The application has been tested and is actively used, but there may still be bugs, architectural shortcomings, or code that could be improved by developers with more Android-specific experience.
+
+I am continuously reviewing, learning from, and refining the generated code. Contributions, code reviews, bug reports, and suggestions are therefore especially welcome.
+

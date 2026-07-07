@@ -255,3 +255,14 @@ SAF gewählten Ordner exportiert.
 ## Lizenz
 
 Veröffentlicht unter der **GNU General Public License v3.0** – siehe [LICENSE](LICENSE).
+
+## Haftungsausschluss / Hinweis zum Entwicklungsprozess
+
+Dieses Projekt wurde ursprünglich mit umfangreicher Unterstützung durch KI entwickelt.
+
+Ich arbeite seit etwa 25 Jahren als Softwareentwickler, allerdings überwiegend in Technologien außerhalb des modernen Mobile-App-Umfelds. Obwohl ich Erfahrung mit Java habe und Teile des Quellcodes geprüft habe, kann ich nicht behaupten, jedes während der Entwicklung erzeugte Implementierungsdetail vollständig zu verstehen.
+
+Die Anwendung wurde getestet und wird aktiv genutzt. Dennoch können Fehler, architektonische Schwächen oder Codebereiche vorhanden sein, die von Entwicklern mit mehr Android-spezifischer Erfahrung verbessert werden könnten.
+
+Ich überprüfe den erzeugten Code kontinuierlich, erweitere mein Verständnis der Implementierung und entwickle das Projekt fortlaufend weiter. Code-Reviews, Fehlermeldungen, Verbesserungsvorschläge und Beiträge aus der Community sind daher ausdrücklich willkommen.
+

@@ -1,0 +1,77 @@
+<?xml version="1.0" encoding="utf-8"?>
+<ScrollView xmlns:android="http://schemas.android.com/apk/res/android"
+    xmlns:app="http://schemas.android.com/apk/res-auto"
+    android:layout_width="match_parent"
+    android:layout_height="wrap_content">
+
+    <LinearLayout
+        android:layout_width="match_parent"
+        android:layout_height="wrap_content"
+        android:orientation="vertical"
+        android:paddingHorizontal="24dp"
+        android:paddingTop="8dp">
+
+        <com.google.android.material.checkbox.MaterialCheckBox
+            android:id="@+id/cbBuy"
+            android:layout_width="match_parent"
+            android:layout_height="wrap_content"
+            android:text="@string/depot_buys" />
+
+        <com.google.android.material.checkbox.MaterialCheckBox
+            android:id="@+id/cbSell"
+            android:layout_width="match_parent"
+            android:layout_height="wrap_content"
+            android:text="@string/depot_sells" />
+
+        <com.google.android.material.checkbox.MaterialCheckBox
+            android:id="@+id/cbDividend"
+            android:layout_width="match_parent"
+            android:layout_height="wrap_content"
+            android:text="@string/depot_dividends" />
+
+        <TextView
+            android:layout_width="wrap_content"
+            android:layout_height="wrap_content"
+            android:layout_marginTop="12dp"
+            android:text="@string/filter_date_range"
+            android:textStyle="bold" />
+
+        <com.google.android.material.slider.RangeSlider
+            android:id="@+id/dateSlider"
+            android:layout_width="match_parent"
+            android:layout_height="wrap_content" />
+
+        <LinearLayout
+            android:layout_width="match_parent"
+            android:layout_height="wrap_content"
+            android:orientation="horizontal">
+
+            <com.google.android.material.textfield.TextInputLayout
+                android:layout_width="0dp"
+                android:layout_height="wrap_content"
+                android:layout_weight="1"
+                android:layout_marginEnd="8dp"
+                android:hint="@string/filter_date_from">
+
+                <com.google.android.material.textfield.TextInputEditText
+                    android:id="@+id/dateFrom"
+                    android:layout_width="match_parent"
+                    android:layout_height="wrap_content"
+                    android:inputType="date" />
+            </com.google.android.material.textfield.TextInputLayout>
+
+            <com.google.android.material.textfield.TextInputLayout
+                android:layout_width="0dp"
+                android:layout_height="wrap_content"
+                android:layout_weight="1"
+                android:hint="@string/filter_date_to">
+
+                <com.google.android.material.textfield.TextInputEditText
+                    android:id="@+id/dateTo"
+                    android:layout_width="match_parent"
+                    android:layout_height="wrap_content"
+                    android:inputType="date" />
+            </com.google.android.material.textfield.TextInputLayout>
+        </LinearLayout>
+    </LinearLayout>
+</ScrollView>

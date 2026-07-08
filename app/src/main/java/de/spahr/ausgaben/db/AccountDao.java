@@ -24,6 +24,20 @@ public interface AccountDao {
     @Query("SELECT name FROM account WHERE closed = 1")
     List<String> getClosedNames();
 
+    /** Aktive Anlagekonten (alles außer Verbindlichkeitstypen 4/5/10), nach Name sortiert. */
+    @Query("SELECT name FROM account WHERE closed = 0 AND acct_type NOT IN (4,5,10) "
+            + "ORDER BY name COLLATE NOCASE ASC")
+    List<String> getAssetNames();
+
+    /** Aktive Verbindlichkeitskonten (KMyMoney-Typ 4/5/10), nach Name sortiert. */
+    @Query("SELECT name FROM account WHERE closed = 0 AND acct_type IN (4,5,10) "
+            + "ORDER BY name COLLATE NOCASE ASC")
+    List<String> getLiabilityNames();
+
+    /** KMyMoney-Kontotyp setzen (beim Import). */
+    @Query("UPDATE account SET acct_type = :type WHERE name = :name")
+    void setType(String name, int type);
+
     @Query("SELECT * FROM account")
     List<Account> getAll();
 

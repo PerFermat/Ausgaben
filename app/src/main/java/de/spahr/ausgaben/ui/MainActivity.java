@@ -81,8 +81,11 @@ public class MainActivity extends LocalizedActivity {
     private boolean filterCategoryIsMain = false;
     private Long filterAmountFrom = null;
     private Long filterAmountTo = null;
+    private Long filterDateFrom = null;
+    private Long filterDateTo = null;
 
-    private List<String> allCategories = new ArrayList<>();
+    private List<String> catExpense = new ArrayList<>();
+    private List<String> catIncome = new ArrayList<>();
 
     /** Gewähltes Konto (leer = „Alle Konten"). Standard beim Start = Standardkonto. */
     private String selectedAccount = "";
@@ -109,6 +112,11 @@ public class MainActivity extends LocalizedActivity {
             this.cents = cents;
         }
     }
+
+    /** Extra: dieses Konto beim Start auswählen (z. B. aus der Depot-Schublade). */
+    public static final String EXTRA_SELECT_ACCOUNT = "select_account";
+    /** Extra: nach dem Start sofort den Export/Sync ausführen (z. B. aus dem Depot-Menü). */
+    public static final String EXTRA_RUN_EXPORT = "run_export";
 
     public static final String VIEW_TOTAL = "TOTAL";
     public static final String VIEW_NETWORTH = "NETWORTH";
@@ -137,6 +145,13 @@ public class MainActivity extends LocalizedActivity {
         repository = new Repository(this);
         settings = new SettingsStore(this);
         placesStore = new PlacesStore(this);
+
+        // Von der Depot-Schublade aus kann ein Konto vorgewählt werden.
+        String preselect = getIntent().getStringExtra(EXTRA_SELECT_ACCOUNT);
+        if (preselect != null) {
+            selectedAccount = preselect;
+            accountInitialized = true;
+        }
 
         // Einmalige Migration: früher globale Orte + Ort-Bewegungen dem Standardkonto zuordnen.
         placesStore.migrateLegacyGlobalPlaces(settings.getDefaultAccount());
@@ -310,6 +325,11 @@ public class MainActivity extends LocalizedActivity {
             loadDepotTotal(depots);
         });
         refreshBookings();
+        // Export/Sync aus dem Depot-Menü nachholen.
+        if (getIntent().getBooleanExtra(EXTRA_RUN_EXPORT, false)) {
+            getIntent().removeExtra(EXTRA_RUN_EXPORT);
+            doExport();
+        }
     }
 
     @Override
@@ -490,7 +510,10 @@ public class MainActivity extends LocalizedActivity {
     }
 
     private void refreshBookings() {
-        repository.getCategoryNames(cats -> allCategories = cats);
+        repository.getCategoriesGrouped(g -> {
+            catExpense = g.expense;
+            catIncome = g.income;
+        });
         repository.getAccountNames(this::populateAccountDrawer);
         repository.getAllBookings(result -> {
             allBookings = result;
@@ -523,7 +546,8 @@ public class MainActivity extends LocalizedActivity {
         if (names != null) {
             appAccounts.addAll(names);
         }
-        accountAdapter.setAccounts(names);
+        // Schublade nach Anlage-/Verbindlichkeitskonten gruppieren.
+        repository.getAccountsGrouped(g -> accountAdapter.setAccounts(g.assets, g.liabilities));
         if (!accountInitialized) {
             String def = settings.getDefaultAccount();
             selectedAccount = def == null ? "" : def.trim();
@@ -538,6 +562,17 @@ public class MainActivity extends LocalizedActivity {
         saldoIndex = 0;
         updateAccountUi();
         reloadPlacesAndApply();
+    }
+
+    @Override
+    protected void onNewIntent(Intent intent) {
+        super.onNewIntent(intent);
+        setIntent(intent);
+        // Kontowahl aus der Depot-Schublade übernehmen, wenn MainActivity wiederverwendet wird.
+        String sel = intent.getStringExtra(EXTRA_SELECT_ACCOUNT);
+        if (sel != null) {
+            selectAccount(sel);
+        }
     }
 
     /** Aktualisiert Toolbar-Titel und markiert den gewählten Schubladen-Eintrag. */
@@ -599,7 +634,13 @@ public class MainActivity extends LocalizedActivity {
         if (filterAmountFrom != null && b.amountCents < filterAmountFrom) {
             return false;
         }
-        return filterAmountTo == null || b.amountCents <= filterAmountTo;
+        if (filterAmountTo != null && b.amountCents > filterAmountTo) {
+            return false;
+        }
+        if (filterDateFrom != null && b.createdAt < filterDateFrom) {
+            return false;
+        }
+        return filterDateTo == null || b.createdAt <= filterDateTo;
     }
 
     /**
@@ -656,7 +697,8 @@ public class MainActivity extends LocalizedActivity {
 
     private boolean isFilterActive() {
         return !filterPayee.isEmpty() || !filterCategory.isEmpty()
-                || filterAmountFrom != null || filterAmountTo != null;
+                || filterAmountFrom != null || filterAmountTo != null
+                || filterDateFrom != null || filterDateTo != null;
     }
 
     // ---- Saldo-Leiste (Durchschalten) ----
@@ -800,8 +842,10 @@ public class MainActivity extends LocalizedActivity {
         // Kategorie-Baum
         final String[] catValue = {filterCategory};
         final boolean[] catIsMain = {filterCategoryIsMain};
-        CategoryFilterAdapter catAdapter =
-                new CategoryFilterAdapter(this, getString(R.string.category_all), allCategories);
+        CategoryFilterAdapter catAdapter = new CategoryFilterAdapter(this,
+                getString(R.string.category_all),
+                getString(R.string.category_group_expense), catExpense,
+                getString(R.string.category_group_income), catIncome);
         fCategory.setAdapter(catAdapter);
         fCategory.setText(filterCategory, false);
         fCategory.setOnItemClickListener((parent, v, pos, id) -> {
@@ -880,6 +924,31 @@ public class MainActivity extends LocalizedActivity {
             fTo.setEnabled(false);
         }
 
+        // Datums-Range (Slider in Monatsschritten; taggenau direkt im Feld eingebbar).
+        com.google.android.material.slider.RangeSlider dateSlider = view.findViewById(R.id.filterDateSlider);
+        TextInputEditText dFrom = view.findViewById(R.id.filterDateFrom);
+        TextInputEditText dTo = view.findViewById(R.id.filterDateTo);
+        long dtMin = Long.MAX_VALUE;
+        long dtMax = Long.MIN_VALUE;
+        for (Booking b : allBookings) {
+            dtMin = Math.min(dtMin, b.createdAt);
+            dtMax = Math.max(dtMax, b.createdAt);
+        }
+        final MonthRange dateRange;
+        if (!allBookings.isEmpty()) {
+            dateRange = MonthRange.attach(dateSlider, dFrom, dTo, dtMin, dtMax, filterDateFrom, filterDateTo);
+        } else {
+            dateRange = null;
+            dateSlider.setValueFrom(0f);
+            dateSlider.setValueTo(1f);
+            dateSlider.setValues(0f, 1f);
+            dateSlider.setEnabled(false);
+            dFrom.setEnabled(false);
+            dTo.setEnabled(false);
+        }
+        final long dtDataMin = dtMin;
+        final long dtDataMax = dtMax;
+
         new MaterialAlertDialogBuilder(this, R.style.ThemeOverlay_Ausgaben_Dialog)
                 .setTitle(R.string.filter_title)
                 .setView(view)
@@ -887,6 +956,20 @@ public class MainActivity extends LocalizedActivity {
                     filterPayee = textOf(fPayee).trim();
                     filterCategory = catValue[0] == null ? "" : catValue[0].trim();
                     filterCategoryIsMain = catIsMain[0];
+                    if (dateRange != null) {
+                        long df = dateRange.getFromMillis();
+                        long dt = dateRange.getToMillis();
+                        if (df <= dtDataMin && dt >= dtDataMax) {
+                            filterDateFrom = null;
+                            filterDateTo = null;
+                        } else {
+                            filterDateFrom = df;
+                            filterDateTo = dt;
+                        }
+                    } else {
+                        filterDateFrom = null;
+                        filterDateTo = null;
+                    }
                     if (hasRange) {
                         java.util.List<Float> vals = slider.getValues();
                         long fromC = Math.round(vals.get(0) * 100);
@@ -916,6 +999,8 @@ public class MainActivity extends LocalizedActivity {
                     filterCategoryIsMain = false;
                     filterAmountFrom = null;
                     filterAmountTo = null;
+                    filterDateFrom = null;
+                    filterDateTo = null;
                     saldoIndex = 0;
                     applyFilter();
                     showSaldo();
@@ -990,6 +1075,10 @@ public class MainActivity extends LocalizedActivity {
                     filterAmountFrom == null ? Long.MIN_VALUE : filterAmountFrom);
             i.putExtra(AnalysisActivity.EXTRA_FILTER_AMOUNT_TO,
                     filterAmountTo == null ? Long.MAX_VALUE : filterAmountTo);
+            i.putExtra(AnalysisActivity.EXTRA_FILTER_DATE_FROM,
+                    filterDateFrom == null ? Long.MIN_VALUE : filterDateFrom);
+            i.putExtra(AnalysisActivity.EXTRA_FILTER_DATE_TO,
+                    filterDateTo == null ? Long.MAX_VALUE : filterDateTo);
             i.putExtra(AnalysisActivity.EXTRA_VIEW_KEY, currentViewKey());
             startActivity(i);
             return true;
@@ -1235,9 +1324,11 @@ public class MainActivity extends LocalizedActivity {
             java.util.LinkedHashMap<String, List<Booking>> map = new java.util.LinkedHashMap<>();
             for (String acc : accounts) {
                 map.put(acc, importer.bookingsForAccount(acc));
-                // Währungskennzeichen aus der KMyMoney-Datei pro Konto übernehmen.
+                // Währungskennzeichen aus der KMyMoney-Datei je Konto übernehmen.
                 repository.setAccountCurrency(acc, importer.currencyOf(acc));
             }
+            // Anlage/Verbindlichkeit für ALLE vorhandenen Konten aus der .kmy klassifizieren (nicht nur die neu importierten).
+            repository.applyAccountTypes(importer.accountTypes());
             runOnUiThread(() -> repository.replaceImportAccounts(map, res -> {
                 dismissProgress();
                 Toast.makeText(this, getString(R.string.kmy_import_done_multi, res[1], res[0]),

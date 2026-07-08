@@ -196,6 +196,21 @@ public class KmyImporter {
         return doc.currencyOfAccount(accountName);
     }
 
+    /** KMyMoney-Kontotyp (für die Trennung Anlage/Verbindlichkeit); 0 wenn unbekannt. */
+    public int accountType(String accountName) {
+        String id = doc.accountId(accountName);
+        return id == null ? 0 : doc.accountTypeOf(id);
+    }
+
+    /** Kontoname → KMyMoney-Typ für alle wählbaren Konten (zum Klassifizieren aller App-Konten beim Import). */
+    public java.util.Map<String, Integer> accountTypes() {
+        java.util.Map<String, Integer> out = new java.util.LinkedHashMap<>();
+        for (String name : doc.accountNames()) {
+            out.put(name, accountType(name));
+        }
+        return out;
+    }
+
     /** Alle Buchungen, die einen Split auf dem gewählten Konto haben. */
     public List<Booking> bookingsForAccount(String accountName) throws IOException {
         List<Booking> out = new ArrayList<>();

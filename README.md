@@ -72,7 +72,8 @@ permission is unaffected). F-Droid packaging notes are in [`fdroid/`](fdroid/).
 - **Split bookings**: several categories with partial amounts. With one category the total and category
   amount are linked; with several, the sum must equal the total. Partial amounts may be negative.
 - **Transfer** (account-to-account): two accounts (From/To) + an optional payee; creates a linked booking in
-  both accounts.
+  both accounts. You can also pick a **from-place and a to-place** – then the respective **place journal** is
+  updated (from-account −amount, to-account +amount); editing/deleting rolls the place movements back.
 - **Place** (only for expenses/income created in the app): pre-filled with the account's default place;
   determines which cash place the booking credits its movement to (see “Places/Holdings”). Imported bookings
   show no place field.
@@ -122,8 +123,9 @@ permission is unaffected). F-Droid packaging notes are in [`fdroid/`](fdroid/).
   places), so the sum of place balances always equals the account balance. In Holdings you can create/edit/
   delete individual place movements and transfer between places (e.g. to assign an imported booking to a
   place); a cash count sets a place's balance. Imported bookings carry no place link.
-- **Filter** by payee, category (as a tree) and amount. With a category filter, a split booking shows only
-  the partial amount of the chosen category.
+- **Filter** by payee, category (as a tree), amount (slider) and **date from–to** (slider in whole-month
+  steps; for an exact day type it into the field). The filter applies to the list **and** the analysis. With
+  a category filter, a split booking shows only the partial amount of the chosen category.
 - **Analysis** (day/week/month/year) as a bar + line chart with account, place and total views; zoomable by
   gesture (horizontal = number of bars, vertical = Y axis).
 
@@ -140,12 +142,18 @@ permission is unaffected). F-Droid packaging notes are in [`fdroid/`](fdroid/).
   “… (Depot)” (no longer each security individually). The import reads the **securities**, their
   **buys/sells/dividends/add-ins** and the **latest price** per security. After import the portfolio appears
   **in the account drawer** (short tap opens the portfolio view, long tap refreshes it from the `.kmy`). The
-  **portfolio view** shows shares × price = current value per security plus the total; a tap on a security
-  opens its **movements full-screen** (the security name in the header, the balance line toggling by tap
-  between portfolio value and the value of that security). The portfolio value is kept **separate** (not
-  mixed into account balances/holdings/analysis); the buy costs/dividends still appear on the respective cash
-  account. The main screen's balance line additionally offers **“Net worth”** = all accounts + portfolio
-  value.
+  **portfolio view** is laid out like an account view (drawer, header with the portfolio name, its own menu,
+  filter) and shows shares × price = current value per security. The **balance line toggles by tap** through
+  portfolio value → buys → sells (if any) → dividends (if any) → **net invested** (buys − sells − dividends)
+  → **gain/loss** (coloured, with percentage). The **portfolio filter** narrows the securities by name and
+  **value (slider)**. A tap on a security opens its **movements full-screen** with the same figures for that
+  security plus a **filter by buys/sells/dividends** and a **date slider** (start date = first purchase). The
+  portfolio value is kept **separate** (not mixed into account balances/analysis); the buy costs/dividends
+  still appear on the respective cash account. The main screen's balance line additionally offers **“Net
+  worth”** = all accounts + portfolio value.
+- **Asset and liability accounts**: accounts are split by their KMyMoney type into **asset accounts** and
+  **liability accounts** (loans, credit cards) — with section headers both in the account drawer **and** in
+  the holdings view. In holdings the portfolio counts as one line (portfolio value) towards the **total**.
 - **CSV import** of KMyMoney ledger CSV (account from the `Kontentyp:` line, ISO date, sign → type).
 
 ### Languages

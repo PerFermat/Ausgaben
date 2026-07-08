@@ -59,6 +59,53 @@ public class Repository {
         });
     }
 
+    /** KMyMoney-Kontotyp beim Import übernehmen (Trennung Anlage/Verbindlichkeit). Typ 0 = ignorieren. */
+    public void setAccountType(final String account, final int type) {
+        if (account == null || account.trim().isEmpty() || type == 0) {
+            return;
+        }
+        executor.execute(() -> {
+            accountDao.insertIfAbsent(new Account(account.trim()));
+            accountDao.setType(account.trim(), type);
+        });
+    }
+
+    /**
+     * Klassifiziert beim Import <b>alle</b> bereits vorhandenen Konten neu (Name → KMyMoney-Typ). Nur ein
+     * reines UPDATE – Konten, die (noch) nicht existieren, werden nicht angelegt. Typ 0 wird übersprungen.
+     */
+    public void applyAccountTypes(final java.util.Map<String, Integer> types) {
+        if (types == null || types.isEmpty()) {
+            return;
+        }
+        executor.execute(() -> {
+            for (java.util.Map.Entry<String, Integer> e : types.entrySet()) {
+                if (e.getKey() != null && !e.getKey().trim().isEmpty()
+                        && e.getValue() != null && e.getValue() != 0) {
+                    accountDao.setType(e.getKey().trim(), e.getValue());
+                }
+            }
+        });
+    }
+
+    /** Aktive Konten in Anlage/Verbindlichkeit getrennt – für Schublade und Bestände. */
+    public void getAccountsGrouped(final Callback<AccountGroups> callback) {
+        executor.execute(() -> {
+            final AccountGroups g = new AccountGroups(accountDao.getAssetNames(), accountDao.getLiabilityNames());
+            mainHandler.post(() -> callback.onResult(g));
+        });
+    }
+
+    /** Aktive Konten nach Typ getrennt. */
+    public static final class AccountGroups {
+        public final List<String> assets;
+        public final List<String> liabilities;
+        public AccountGroups(List<String> assets, List<String> liabilities) {
+            this.assets = assets;
+            this.liabilities = liabilities;
+        }
+    }
+
     public void getLanguages(final Callback<List<Language>> callback) {
         executor.execute(() -> {
             final List<Language> result = translationDao.getLanguages();
@@ -190,9 +237,17 @@ public class Repository {
     public void saveTransferBooking(final String from, final String to, final long cents,
                                     final String payee, final String note, final long createdAt,
                                     final Runnable onDone) {
+        saveTransferBooking(from, to, cents, payee, note, createdAt, "", "", onDone);
+    }
+
+    /** Wie {@link #saveTransferBooking}, füllt zusätzlich das Ortsjournal für Von-/Nach-Ort. */
+    public void saveTransferBooking(final String from, final String to, final long cents,
+                                    final String payee, final String note, final long createdAt,
+                                    final String fromPlace, final String toPlace,
+                                    final Runnable onDone) {
         executor.execute(() -> {
             String group = UUID.randomUUID().toString();
-            insertTransferPair(from, to, cents, payee, note, createdAt, false, group);
+            insertTransferPair(from, to, cents, payee, note, createdAt, false, group, fromPlace, toPlace);
             if (onDone != null) {
                 mainHandler.post(onDone);
             }
@@ -206,11 +261,20 @@ public class Repository {
     public void updateTransferBooking(final Booking existing, final String from, final String to,
                                       final long cents, final String payee, final String note,
                                       final long createdAt, final Runnable onDone) {
+        updateTransferBooking(existing, from, to, cents, payee, note, createdAt, "", "", onDone);
+    }
+
+    /** Wie {@link #updateTransferBooking}, aktualisiert zusätzlich das Ortsjournal (Von-/Nach-Ort). */
+    public void updateTransferBooking(final Booking existing, final String from, final String to,
+                                      final long cents, final String payee, final String note,
+                                      final long createdAt, final String fromPlace, final String toPlace,
+                                      final Runnable onDone) {
         executor.execute(() -> {
             if (existing.transferGroup != null && !existing.transferGroup.isEmpty()) {
+                rollbackTransferPlaces(existing.transferGroup);
                 bookingDao.deleteByTransferGroup(existing.transferGroup);
                 insertTransferPair(from, to, cents, payee, note, createdAt, existing.exported,
-                        existing.transferGroup);
+                        existing.transferGroup, fromPlace, toPlace);
             } else {
                 // Importierte einseitige Umbuchung: an das ursprüngliche Konto gebunden lassen.
                 String orig = existing.account;
@@ -246,6 +310,17 @@ public class Repository {
     /** Fügt die beiden Seiten einer Umbuchung ein (läuft bereits auf dem Executor-Thread). */
     private void insertTransferPair(String from, String to, long cents, String payee, String note,
                                     long createdAt, boolean exported, String group) {
+        insertTransferPair(from, to, cents, payee, note, createdAt, exported, group, "", "");
+    }
+
+    /**
+     * Fügt die beiden Seiten einer Umbuchung ein und – falls ein echter Ort gewählt ist – die passenden
+     * Ort-Bewegungen (Von-Konto: −Betrag am {@code fromPlace}, Nach-Konto: +Betrag am {@code toPlace}).
+     * Läuft bereits auf dem Executor-Thread.
+     */
+    private void insertTransferPair(String from, String to, long cents, String payee, String note,
+                                    long createdAt, boolean exported, String group,
+                                    String fromPlace, String toPlace) {
         accountDao.insertIfAbsent(new Account(from));
         accountDao.insertIfAbsent(new Account(to));
         String memo = note == null ? "" : note;
@@ -253,6 +328,12 @@ public class Repository {
         if (!p.isEmpty()) {
             payeeDao.insertIfAbsent(new Payee(p));
         }
+        boolean fromManaged = isRealPlace(fromPlace);
+        boolean toManaged = isRealPlace(toPlace);
+        String fromP = fromManaged ? fromPlace.trim() : "";
+        String toP = toManaged ? toPlace.trim() : "";
+        String moveNote = p.isEmpty() ? "Umbuchung" : "Umbuchung: " + p;
+
         Booking out = new Booking();
         out.amountCents = cents;
         out.isIncome = false;
@@ -264,7 +345,13 @@ public class Repository {
         out.note = memo;
         out.createdAt = createdAt;
         out.exported = exported;
+        out.place = fromP;
+        out.placeManaged = fromManaged;
         bookingDao.insert(out);
+        if (fromManaged) {
+            placeEntryDao.insert(new PlaceEntry(from, fromP, -cents, createdAt, "transfer", moveNote));
+        }
+
         Booking in = new Booking();
         in.amountCents = cents;
         in.isIncome = true;
@@ -276,7 +363,28 @@ public class Repository {
         in.note = memo;
         in.createdAt = createdAt;
         in.exported = exported;
+        in.place = toP;
+        in.placeManaged = toManaged;
         bookingDao.insert(in);
+        if (toManaged) {
+            placeEntryDao.insert(new PlaceEntry(to, toP, cents, createdAt, "transfer", moveNote));
+        }
+    }
+
+    /**
+     * Zieht die Ort-Bewegungen einer bestehenden Umbuchung zurück (Gegenbewegung je Seite mit echtem Ort),
+     * bevor die Buchungen gelöscht/neu aufgebaut werden. Läuft auf dem Executor-Thread.
+     */
+    private void rollbackTransferPlaces(String group) {
+        if (group == null || group.isEmpty()) {
+            return;
+        }
+        for (Booking b : bookingDao.getByTransferGroup(group)) {
+            if (b.placeManaged && isRealPlace(b.place)) {
+                placeEntryDao.insert(new PlaceEntry(b.account, b.place, -signed(b),
+                        System.currentTimeMillis(), "transfer", "Umbuchung geändert"));
+            }
+        }
     }
 
     /** Kategorie-Teile einer Buchung (für den Editor im Bearbeiten-Modus). */
@@ -323,6 +431,7 @@ public class Repository {
     public void deleteTransfer(final String group, final long fallbackId, final Runnable onDone) {
         executor.execute(() -> {
             if (group != null && !group.isEmpty()) {
+                rollbackTransferPlaces(group);
                 bookingDao.deleteByTransferGroup(group);
             } else {
                 bookingDao.delete(fallbackId);
@@ -330,6 +439,14 @@ public class Repository {
             if (onDone != null) {
                 mainHandler.post(onDone);
             }
+        });
+    }
+
+    /** Beide Seiten einer Umbuchung (für die Ort-Vorbelegung im Editor). */
+    public void getTransferGroup(final String group, final Callback<List<Booking>> callback) {
+        executor.execute(() -> {
+            final List<Booking> result = bookingDao.getByTransferGroup(group);
+            mainHandler.post(() -> callback.onResult(result));
         });
     }
 
@@ -406,8 +523,11 @@ public class Repository {
                 payee = template.payee;
                 note = template.note;
             } else {
+                // Uhr: Umbuchung mit gesprochenem Namen → der Name ist der Empfänger (nicht das Zielkonto);
+                // das Zielkonto bleibt leer und wird am Handy ergänzt.
                 from = def;
-                to = term;
+                to = "";
+                payee = term;
             }
             note = appendGps(note, coords);
             insertTransferPair(from, to, amount, payee, note, now, false, UUID.randomUUID().toString());
@@ -968,6 +1088,25 @@ public class Repository {
         });
     }
 
+    /** Kategorien getrennt nach Ausgabe/Einnahme (eine Kategorie darf in beiden vorkommen). */
+    public void getCategoriesGrouped(final Callback<CategoryGroups> callback) {
+        executor.execute(() -> {
+            final CategoryGroups g = new CategoryGroups(
+                    bookingDao.getExpenseCategories(), bookingDao.getIncomeCategories());
+            mainHandler.post(() -> callback.onResult(g));
+        });
+    }
+
+    /** Kategorien nach Buchungsart getrennt. */
+    public static final class CategoryGroups {
+        public final List<String> expense;
+        public final List<String> income;
+        public CategoryGroups(List<String> expense, List<String> income) {
+            this.expense = expense;
+            this.income = income;
+        }
+    }
+
     // ---- Depot (Wertpapiere) ----
 
     /** Aktueller Bestand eines Wertpapiers: Name/Symbol, Stückzahl, Kurs, Wert (Cent). */
@@ -1039,6 +1178,81 @@ public class Repository {
         executor.execute(() -> {
             final List<SecurityTx> result = securityDao.getTxBySecurity(depot, kmyId);
             mainHandler.post(() -> callback.onResult(result));
+        });
+    }
+
+    /** Kennzahlen: Depotwert, Käufe/Verkäufe/Dividenden, Nettoeinsatz (Käufe − Verkäufe − Dividenden),
+     *  Gewinn/Verlust (Cent + Prozent). */
+    public static final class DepotMetrics {
+        public final long valueCents;
+        public final long buyCents;
+        public final long sellCents;
+        public final long dividendCents;
+        public final long netInvestedCents;
+        public final long gainCents;
+        public final double gainPct;
+        DepotMetrics(long value, long buy, long sell, long dividend) {
+            this.valueCents = value;
+            this.buyCents = buy;
+            this.sellCents = sell;
+            this.dividendCents = dividend;
+            this.netInvestedCents = buy - sell - dividend;
+            this.gainCents = value - netInvestedCents;
+            this.gainPct = netInvestedCents != 0
+                    ? (double) gainCents / Math.abs(netInvestedCents) * 100.0 : 0.0;
+        }
+    }
+
+    private static DepotMetrics metricsFrom(long valueCents, List<SecurityDao.ActionSum> sums) {
+        long buy = 0, sell = 0, dividend = 0;
+        for (SecurityDao.ActionSum s : sums) {
+            String a = s.action == null ? "" : s.action;
+            if ("buy".equals(a) || "reinvest".equals(a)) {
+                buy += s.amount;
+            } else if ("sell".equals(a)) {
+                sell += s.amount;
+            } else if ("dividend".equals(a)) {
+                dividend += s.amount;
+            }
+        }
+        return new DepotMetrics(valueCents, buy, sell, dividend);
+    }
+
+    /** Kennzahlen für das komplette Depot. */
+    public void getDepotMetrics(final String depot, final Callback<DepotMetrics> callback) {
+        executor.execute(() -> {
+            Map<String, Double> shares = new HashMap<>();
+            for (SecurityDao.ShareSum ss : securityDao.getShareSums(depot)) {
+                shares.put(ss.kmyId, ss.shares);
+            }
+            long value = 0;
+            for (Security s : securityDao.getSecurities(depot)) {
+                double q = shares.containsKey(s.kmyId) ? shares.get(s.kmyId) : 0.0;
+                value += Math.round(q * s.price * 100.0);
+            }
+            final DepotMetrics m = metricsFrom(value, securityDao.getActionSums(depot));
+            mainHandler.post(() -> callback.onResult(m));
+        });
+    }
+
+    /** Kennzahlen für ein einzelnes Wertpapier. */
+    public void getSecurityMetrics(final String depot, final String kmyId,
+                                   final Callback<DepotMetrics> callback) {
+        executor.execute(() -> {
+            double q = 0.0;
+            for (SecurityDao.ShareSum ss : securityDao.getShareSums(depot)) {
+                if (kmyId != null && kmyId.equals(ss.kmyId)) {
+                    q = ss.shares;
+                }
+            }
+            long value = 0;
+            for (Security s : securityDao.getSecurities(depot)) {
+                if (kmyId != null && kmyId.equals(s.kmyId)) {
+                    value = Math.round(q * s.price * 100.0);
+                }
+            }
+            final DepotMetrics m = metricsFrom(value, securityDao.getActionSumsBySecurity(depot, kmyId));
+            mainHandler.post(() -> callback.onResult(m));
         });
     }
 

@@ -87,6 +87,8 @@ public class BookingEditActivity extends LocalizedActivity {
     private MaterialAutoCompleteTextView editAccountTo;
     private TextInputLayout placeLayout;
     private MaterialAutoCompleteTextView editPlace;
+    private TextInputLayout placeToLayout;
+    private MaterialAutoCompleteTextView editPlaceTo;
     private View splitSection;
     private android.widget.LinearLayout splitContainer;
     private TextInputEditText editNote;
@@ -110,7 +112,7 @@ public class BookingEditActivity extends LocalizedActivity {
     /** Passender Alias für die Vorbelegung einer neuen Sprachbuchung (null = keiner). */
     private PayeeCorrection activeAlias;
 
-    private ArrayAdapter<String> categoryAdapter;
+    private CategoryFilterAdapter categoryAdapter;
     /** Unterdrückt die dynamische Split-Logik während des programmatischen Befüllens. */
     private boolean suppressSplitEvents;
     /** Verhindert Rückkopplung beim gegenseitigen Abgleich von Gesamtbetrag und Teilbeträgen. */
@@ -142,6 +144,8 @@ public class BookingEditActivity extends LocalizedActivity {
         editAccountTo = findViewById(R.id.editAccountTo);
         placeLayout = findViewById(R.id.placeLayout);
         editPlace = findViewById(R.id.editPlace);
+        placeToLayout = findViewById(R.id.placeToLayout);
+        editPlaceTo = findViewById(R.id.editPlaceTo);
         splitSection = findViewById(R.id.splitSection);
         splitContainer = findViewById(R.id.splitContainer);
         editNote = findViewById(R.id.editNote);
@@ -166,14 +170,28 @@ public class BookingEditActivity extends LocalizedActivity {
             editAccount.setAdapter(new ArrayAdapter<>(this, android.R.layout.simple_list_item_1, names));
             editAccountTo.setAdapter(new ArrayAdapter<>(this, android.R.layout.simple_list_item_1, names));
         });
-        repository.getCategoryNames(names -> {
-            categoryAdapter = new ArrayAdapter<>(this, android.R.layout.simple_list_item_1, names);
+        repository.getCategoriesGrouped(g -> {
+            // Kategoriefeld nach Ausgabe/Einnahme gruppiert (Überschriften), ohne „alle"-Eintrag.
+            categoryAdapter = new CategoryFilterAdapter(this, null,
+                    getString(R.string.category_group_expense), g.expense,
+                    getString(R.string.category_group_income), g.income);
             applyCategoryAdapterToRows();
         });
 
-        // Ort-Dropdown folgt dem gewählten Konto (nur bei Ausgabe/Einnahme relevant).
-        editAccount.setOnItemClickListener((parent, view, position, id) ->
-                setupPlaceDropdown(textOf(editAccount).trim()));
+        // Ort-Dropdown folgt dem gewählten Konto: bei Ausgabe/Einnahme der Ort, bei Umbuchung der Von-Ort.
+        editAccount.setOnItemClickListener((parent, view, position, id) -> {
+            if (isTransferType()) {
+                setupPlaceOptions(editPlace, textOf(editAccount).trim(), false);
+            } else {
+                setupPlaceDropdown(textOf(editAccount).trim());
+            }
+        });
+        // Bei einer Umbuchung folgt der Nach-Ort dem Nach-Konto.
+        editAccountTo.setOnItemClickListener((parent, view, position, id) -> {
+            if (isTransferType()) {
+                setupPlaceOptions(editPlaceTo, textOf(editAccountTo).trim(), false);
+            }
+        });
 
         // Gesamtbetrag ↔ Teilbeträge koppeln; Konto wirkt auf die Freischaltung der Buttons.
         editAmount.addTextChangedListener(new SimpleWatcher(this::onTotalChanged));
@@ -506,6 +524,22 @@ public class BookingEditActivity extends LocalizedActivity {
             }
             editAmount.setText(formatCents(total));
             applyTypeVisibility();
+            // Von-/Nach-Ort aus beiden Seiten der Umbuchung vorbelegen.
+            if (b.transferGroup != null && !b.transferGroup.isEmpty()) {
+                repository.getTransferGroup(b.transferGroup, pair -> {
+                    for (Booking side : pair) {
+                        String pl = (side.place == null || side.place.isEmpty())
+                                ? PlacesStore.NO_PLACE : side.place;
+                        if (side.isIncome) {
+                            setupPlaceOptions(editPlaceTo, textOf(editAccountTo).trim(), false);
+                            editPlaceTo.setText(pl, false);
+                        } else {
+                            setupPlaceOptions(editPlace, textOf(editAccount).trim(), false);
+                            editPlace.setText(pl, false);
+                        }
+                    }
+                });
+            }
             updateSaveEnabled();
             return;
         }
@@ -555,12 +589,22 @@ public class BookingEditActivity extends LocalizedActivity {
     private void applyTypeVisibility() {
         boolean transfer = isTransferType();
         accountToLayout.setVisibility(transfer ? View.VISIBLE : View.GONE);
-        // Empfänger gibt es auch bei einer Umbuchung („Zahlungsempfänger"); Ort/Kategorien nicht.
+        // Empfänger gibt es auch bei einer Umbuchung („Zahlungsempfänger"); Kategorien nicht.
         payeeLayout.setVisibility(View.VISIBLE);
-        // Ort-Feld nur bei nicht-Umbuchung UND in der App angelegten (ort-verknüpften) Buchungen zeigen;
-        // importierte Buchungen haben keine Ort-Verknüpfung (Korrektur über Umbuchung in Beständen).
-        boolean showPlace = !transfer && origPlaceManaged;
-        placeLayout.setVisibility(showPlace ? View.VISIBLE : View.GONE);
+        if (transfer) {
+            // Umbuchung: zwei Ortsfelder (Von-Ort/Nach-Ort), Dropdowns folgen dem jeweiligen Konto.
+            placeLayout.setVisibility(View.VISIBLE);
+            placeLayout.setHint(getString(R.string.transfer_place_from));
+            placeToLayout.setVisibility(View.VISIBLE);
+            setupPlaceOptions(editPlace, textOf(editAccount).trim(), true);
+            setupPlaceOptions(editPlaceTo, textOf(editAccountTo).trim(), true);
+        } else {
+            // Ort-Feld nur bei in der App angelegten (ort-verknüpften) Buchungen zeigen; importierte
+            // Buchungen haben keine Ort-Verknüpfung (Korrektur über Umbuchung in Beständen).
+            placeLayout.setHint(getString(R.string.place_hint));
+            placeLayout.setVisibility(origPlaceManaged ? View.VISIBLE : View.GONE);
+            placeToLayout.setVisibility(View.GONE);
+        }
         splitSection.setVisibility(transfer ? View.GONE : View.VISIBLE);
         accountLayout.setHint(getString(transfer ? R.string.transfer_from : R.string.account_hint));
         payeeLayout.setHint(getString(transfer ? R.string.transfer_payee_hint : R.string.payee_hint));
@@ -834,6 +878,27 @@ public class BookingEditActivity extends LocalizedActivity {
         editPlace.setText(preset, false);
     }
 
+    /**
+     * Befüllt ein Ort-Dropdown (Umbuchung) mit den Orten des Kontos; Standard ist „ohne Ort", sodass ohne
+     * bewusste Auswahl keine Ortsbewegung entsteht. {@code keepCurrent} behält einen gültigen aktuellen Wert.
+     */
+    private void setupPlaceOptions(MaterialAutoCompleteTextView field, String account, boolean keepCurrent) {
+        List<String> options = new ArrayList<>(placesStore.getPlaces(account));
+        options.add(PlacesStore.NO_PLACE);
+        field.setAdapter(new ArrayAdapter<>(this, android.R.layout.simple_list_item_1, options));
+        String cur = textOf(field).trim();
+        if (!(keepCurrent && !cur.isEmpty() && options.contains(cur))) {
+            field.setText(PlacesStore.NO_PLACE, false);
+        }
+    }
+
+    /** Ausgewählter Nach-Ort (Umbuchung), normalisiert: „ohne Ort"/leer → {@code ""}. */
+    private String selectedPlaceTo() {
+        String sel = textOf(editPlaceTo);
+        return (sel != null && !sel.trim().isEmpty() && !sel.equals(PlacesStore.NO_PLACE))
+                ? sel.trim() : "";
+    }
+
     // ---- Speichern (neu) ----
 
     private void saveAsNew() {
@@ -869,9 +934,11 @@ public class BookingEditActivity extends LocalizedActivity {
         }
         final String note = textOf(editNote).trim();
         final String payee = textOf(editPayee).trim();
+        final String fromPlace = selectedPlace();
+        final String toPlace = selectedPlaceTo();
         maybeAskCorrection(payee, () -> maybeDateConfirm(() ->
                 repository.saveTransferBooking(from, to, cents, payee, note,
-                composeTimestamp(), () -> {
+                composeTimestamp(), fromPlace, toPlace, () -> {
                     Toast.makeText(this, R.string.transfer_saved, Toast.LENGTH_SHORT).show();
                     finish();
                 })));
@@ -959,9 +1026,11 @@ public class BookingEditActivity extends LocalizedActivity {
         }
         final String note = textOf(editNote).trim();
         final String payee = textOf(editPayee).trim();
+        final String fromPlace = selectedPlace();
+        final String toPlace = selectedPlaceTo();
         maybeAskCorrection(payee, () ->
                 repository.updateTransferBooking(booking, from, to, cents, payee, note,
-                composeTimestamp(), () -> {
+                composeTimestamp(), fromPlace, toPlace, () -> {
                     Toast.makeText(this, R.string.booking_updated, Toast.LENGTH_SHORT).show();
                     finish();
                 }));
@@ -981,11 +1050,13 @@ public class BookingEditActivity extends LocalizedActivity {
         }
         final String note = textOf(editNote).trim();
         final String payee = textOf(editPayee).trim();
+        final String fromPlace = selectedPlace();
+        final String toPlace = selectedPlaceTo();
         final long oldId = booking.id;
         maybeAskCorrection(payee, () -> {
             long ts = composeTimestamp();
             repository.deleteBooking(oldId, null);
-            repository.saveTransferBooking(from, to, cents, payee, note, ts, () -> {
+            repository.saveTransferBooking(from, to, cents, payee, note, ts, fromPlace, toPlace, () -> {
                 Toast.makeText(this, R.string.booking_updated, Toast.LENGTH_SHORT).show();
                 finish();
             });

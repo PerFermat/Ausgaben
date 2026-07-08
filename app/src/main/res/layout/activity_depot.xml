@@ -1,43 +1,106 @@
 <?xml version="1.0" encoding="utf-8"?>
-<LinearLayout xmlns:android="http://schemas.android.com/apk/res/android"
+<androidx.drawerlayout.widget.DrawerLayout xmlns:android="http://schemas.android.com/apk/res/android"
     xmlns:app="http://schemas.android.com/apk/res-auto"
+    android:id="@+id/drawerLayout"
     android:layout_width="match_parent"
-    android:layout_height="match_parent"
-    android:orientation="vertical">
+    android:layout_height="match_parent">
 
-    <com.google.android.material.appbar.MaterialToolbar
-        android:id="@+id/toolbar"
-        android:layout_width="match_parent"
-        android:layout_height="?attr/actionBarSize"
-        android:background="@color/green_primary"
-        android:theme="@style/ThemeOverlay.Ausgaben.Toolbar"
-        app:navigationIcon="@drawable/ic_back"
-        app:title="@string/depot_title"
-        app:titleTextColor="@color/white" />
-
-    <TextView
-        android:id="@+id/depotTotal"
-        android:layout_width="match_parent"
-        android:layout_height="wrap_content"
-        android:background="@color/saldo_bar_bg"
-        android:paddingHorizontal="16dp"
-        android:paddingVertical="12dp"
-        android:fontFamily="monospace"
-        android:textSize="16sp"
-        android:textStyle="bold" />
-
-    <ScrollView
+    <LinearLayout
         android:layout_width="match_parent"
         android:layout_height="match_parent"
-        android:clipToPadding="false"
-        android:paddingHorizontal="16dp"
-        android:paddingBottom="24dp">
+        android:orientation="vertical">
+
+        <com.google.android.material.appbar.MaterialToolbar
+            android:id="@+id/toolbar"
+            android:layout_width="match_parent"
+            android:layout_height="?attr/actionBarSize"
+            android:background="@color/green_primary"
+            android:theme="@style/ThemeOverlay.Ausgaben.Toolbar"
+            app:contentInsetStartWithNavigation="0dp"
+            app:titleMarginStart="0dp"
+            app:titleTextColor="@color/white" />
 
         <LinearLayout
-            android:id="@+id/depotContainer"
+            android:id="@+id/saldoHeader"
             android:layout_width="match_parent"
             android:layout_height="wrap_content"
-            android:orientation="vertical" />
-    </ScrollView>
+            android:orientation="horizontal"
+            android:gravity="center_vertical"
+            android:paddingHorizontal="16dp"
+            android:paddingVertical="12dp"
+            android:clickable="true"
+            android:focusable="true"
+            android:background="@color/saldo_bar_bg"
+            android:foreground="?attr/selectableItemBackground">
 
-</LinearLayout>
+            <TextView
+                android:id="@+id/textSaldoLabel"
+                android:layout_width="0dp"
+                android:layout_height="wrap_content"
+                android:layout_weight="1"
+                android:textSize="16sp"
+                android:textStyle="bold" />
+
+            <TextView
+                android:id="@+id/textBalance"
+                android:layout_width="wrap_content"
+                android:layout_height="wrap_content"
+                android:fontFamily="monospace"
+                android:textSize="16sp"
+                android:textStyle="bold" />
+        </LinearLayout>
+
+        <ScrollView
+            android:layout_width="match_parent"
+            android:layout_height="match_parent"
+            android:clipToPadding="false"
+            android:paddingHorizontal="16dp"
+            android:paddingBottom="24dp">
+
+            <LinearLayout
+                android:id="@+id/depotContainer"
+                android:layout_width="match_parent"
+                android:layout_height="wrap_content"
+                android:orientation="vertical" />
+        </ScrollView>
+    </LinearLayout>
+
+    <LinearLayout
+        android:layout_width="300dp"
+        android:layout_height="match_parent"
+        android:layout_gravity="start"
+        android:orientation="vertical"
+        android:background="?attr/colorSurface"
+        android:fitsSystemWindows="true">
+
+        <include layout="@layout/nav_header" />
+
+        <androidx.recyclerview.widget.RecyclerView
+            android:id="@+id/accountList"
+            android:layout_width="match_parent"
+            android:layout_height="0dp"
+            android:layout_weight="1" />
+
+        <View
+            android:layout_width="match_parent"
+            android:layout_height="1dp"
+            android:background="@color/list_divider" />
+
+        <TextView
+            android:id="@+id/addAccount"
+            android:layout_width="match_parent"
+            android:layout_height="wrap_content"
+            android:minHeight="52dp"
+            android:gravity="center_vertical"
+            android:paddingHorizontal="20dp"
+            android:paddingVertical="12dp"
+            android:drawablePadding="12dp"
+            android:text="@string/add_account"
+            android:textSize="16sp"
+            android:textColor="@color/button_accent"
+            app:drawableStartCompat="@drawable/ic_add"
+            app:drawableTint="@color/button_accent"
+            android:background="?attr/selectableItemBackground" />
+    </LinearLayout>
+
+</androidx.drawerlayout.widget.DrawerLayout>

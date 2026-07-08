@@ -239,7 +239,9 @@ p("In the «Split categories» section you can enter several categories with par
   "amounts may be negative.")
 h2("Transfer")
 p("Choose the type «Transfer», then the From and To accounts plus an optional payee. This creates a linked "
-  "booking in both accounts (marked → or ← in the list).")
+  "booking in both accounts (marked → or ← in the list). You can also choose a <b>from-place</b> and a "
+  "<b>to-place</b>; then the respective place journal is updated (from-account −amount, to-account +amount). "
+  "Editing or deleting the transfer rolls the place movements back.")
 
 # ---------------------------------------------------------------- 7
 h1("7. Voice input and location capture")
@@ -265,8 +267,9 @@ bullets([
   "<b>Long press</b> on a booking opens it for editing.",
   "<b>Pull down</b> to refresh the list (sync).",
   "Markers: «Split», → / ← (transfer), «exported»; colours red/green.",
-  "<b>Filter</b> (funnel ▽): by payee, category (as a tree) and amount. With a category filter a split "
-  "booking shows only the partial amount of the chosen category.",
+  "<b>Filter</b> (funnel ▽): by payee, category (as a tree), amount (slider) and <b>date from–to</b> "
+  "(slider in whole-month steps; type an exact day into the field). The filter applies to the list and the "
+  "analysis. With a category filter a split booking shows only the partial amount of the chosen category.",
 ])
 
 # ---------------------------------------------------------------- 9
@@ -303,13 +306,21 @@ p("A particular advantage: the <b>cash count</b> (reconciliation) can be done <b
   "only the cash of <i>one</i> place – say the wallet – enter the counted amount, and the app automatically "
   "books the difference as a balancing movement. So you don't have to reconcile the whole account at once; "
   "this <b>simplifies reconciliation considerably</b>. Imported bookings carry no place link.")
+h2("Asset and liability accounts")
+p("Accounts are split by their KMyMoney type into <b>asset accounts</b> and <b>liability accounts</b> "
+  "(loans, credit cards) – with section headers both in the account drawer and in the holdings view. In "
+  "holdings the portfolio counts as one line (portfolio value) towards the <b>total</b>. The split is taken "
+  "from the .kmy on import (visible after a re-import).")
 h2("Portfolio (securities)")
 p("After importing a KMyMoney investment account, the <b>portfolio</b> appears in the account drawer. The "
-  "portfolio view shows <b>shares × price = current value</b> per security plus the total; fully sold "
-  "securities are hidden. A tap on a security opens its <b>movements full-screen</b> (buys green, sells red, "
-  "dividends neutral); in the balance line you toggle by tap between portfolio value and the value of that "
-  "security. The portfolio value is kept separate and also appears as «Net worth» in the main screen's "
-  "balance line.")
+  "portfolio view is laid out like an account view (drawer, header with the portfolio name, its own menu, "
+  "filter) and shows <b>shares × price = current value</b> per security; fully sold securities are hidden. "
+  "The <b>balance line toggles by tap</b> through portfolio value → buys → sells (if any) → dividends (if "
+  "any) → <b>net invested</b> (buys − sells − dividends) → <b>gain/loss</b> (coloured, with percentage). The "
+  "<b>portfolio filter</b> narrows the securities by name and value (slider). A tap on a security opens its "
+  "<b>movements full-screen</b> (buys green, sells red, dividends neutral) with the same figures for that "
+  "security plus a <b>filter by buys/sells/dividends</b> and a date slider (start date = first purchase). "
+  "The portfolio value is kept separate and also appears as «Net worth» in the main screen's balance line.")
 
 # ---------------------------------------------------------------- 11
 h1("11. Synchronizing: performing export and import")

@@ -11,7 +11,7 @@ import androidx.sqlite.db.SupportSQLiteDatabase;
 
 @Database(entities = {Booking.class, BookingSplit.class, Account.class, Payee.class, PlaceEntry.class,
         PayeeCorrection.class, Translation.class, Language.class, Security.class, SecurityTx.class},
-        version = 18, exportSchema = false)
+        version = 19, exportSchema = false)
 public abstract class AppDatabase extends RoomDatabase {
 
     /** v1 → v2: Notiz-Spalte ergänzen (bestehende Buchungen bleiben erhalten). */
@@ -203,6 +203,14 @@ public abstract class AppDatabase extends RoomDatabase {
         }
     };
 
+    // Konto-Typ (KMyMoney) für die Trennung in Anlage-/Verbindlichkeitskonten. 0 = unbekannt/Anlage.
+    static final Migration MIGRATION_18_19 = new Migration(18, 19) {
+        @Override
+        public void migrate(@NonNull SupportSQLiteDatabase db) {
+            db.execSQL("ALTER TABLE account ADD COLUMN acct_type INTEGER NOT NULL DEFAULT 0");
+        }
+    };
+
     public abstract BookingDao bookingDao();
 
     public abstract AccountDao accountDao();
@@ -231,7 +239,7 @@ public abstract class AppDatabase extends RoomDatabase {
                                     MIGRATION_5_6, MIGRATION_6_7, MIGRATION_7_8, MIGRATION_8_9,
                                     MIGRATION_9_10, MIGRATION_10_11, MIGRATION_11_12, MIGRATION_12_13,
                                     MIGRATION_13_14, MIGRATION_14_15, MIGRATION_15_16,
-                                    MIGRATION_16_17, MIGRATION_17_18)
+                                    MIGRATION_16_17, MIGRATION_17_18, MIGRATION_18_19)
                             .build();
                 }
             }

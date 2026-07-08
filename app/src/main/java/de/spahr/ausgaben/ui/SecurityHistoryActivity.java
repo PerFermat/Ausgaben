@@ -3,11 +3,16 @@ package de.spahr.ausgaben.ui;
 import android.graphics.Typeface;
 import android.os.Bundle;
 import android.view.Gravity;
+import android.view.LayoutInflater;
 import android.view.View;
+import android.widget.EditText;
 import android.widget.LinearLayout;
 import android.widget.TextView;
 
 import com.google.android.material.appbar.MaterialToolbar;
+import com.google.android.material.checkbox.MaterialCheckBox;
+import com.google.android.material.dialog.MaterialAlertDialogBuilder;
+import com.google.android.material.slider.RangeSlider;
 
 import java.text.SimpleDateFormat;
 import java.util.Date;
@@ -20,7 +25,8 @@ import de.spahr.ausgaben.settings.Currencies;
 
 /**
  * Vollbild-Historie eines Wertpapiers: im grünen Kopf der Wertpapiername, in der Saldenzeile per Klick
- * umschaltbar zwischen Depotwert und dem Wert dieses Wertpapiers, darunter alle Käufe/Verkäufe/Dividenden.
+ * durchschaltbar Wert → Nettoeinsatz → Gewinn/Verlust – jeweils nur für dieses Wertpapier. Darunter alle
+ * Käufe/Verkäufe/Dividenden.
  */
 public class SecurityHistoryActivity extends LocalizedActivity {
 
@@ -28,18 +34,23 @@ public class SecurityHistoryActivity extends LocalizedActivity {
     public static final String EXTRA_KMY_ID = "kmyId";
     public static final String EXTRA_NAME = "name";
     public static final String EXTRA_SECURITY_VALUE = "securityValue";
-    public static final String EXTRA_DEPOT_VALUE = "depotValue";
 
     private final SimpleDateFormat dateFormat = new SimpleDateFormat("dd.MM.yyyy", Locale.GERMANY);
 
     private String securityName = "";
-    private long securityValueCents = 0;
-    private long depotValueCents = 0;
-    /** 0 = Depotwert, 1 = Wert dieses Wertpapiers. */
-    private int saldoMode = 0;
+    private Repository.DepotMetrics metrics;
+    private java.util.List<Integer> saldoModes = new java.util.ArrayList<>();
+    private int saldoIndex = 0;
 
     private TextView saldoLabel;
     private TextView saldoValue;
+    private LinearLayout container;
+
+    private java.util.List<SecurityTx> allTx = new java.util.ArrayList<>();
+    /** Aktive Bewegungsarten (leer = alle). */
+    private final java.util.Set<String> filterActions = new java.util.HashSet<>();
+    private Long filterFrom;
+    private Long filterTo;
 
     @Override
     protected void onCreate(Bundle savedInstanceState) {
@@ -49,44 +60,135 @@ public class SecurityHistoryActivity extends LocalizedActivity {
         String depot = getIntent().getStringExtra(EXTRA_DEPOT);
         String kmyId = getIntent().getStringExtra(EXTRA_KMY_ID);
         securityName = orEmpty(getIntent().getStringExtra(EXTRA_NAME));
-        securityValueCents = getIntent().getLongExtra(EXTRA_SECURITY_VALUE, 0);
-        depotValueCents = getIntent().getLongExtra(EXTRA_DEPOT_VALUE, 0);
 
         MaterialToolbar toolbar = findViewById(R.id.toolbar);
         toolbar.setTitle(securityName);
         toolbar.setNavigationOnClickListener(v -> finish());
+        toolbar.inflateMenu(R.menu.security_menu);
+        toolbar.getMenu().findItem(R.id.action_filter).setTitle(getString(R.string.action_filter));
+        toolbar.setOnMenuItemClickListener(item -> {
+            if (item.getItemId() == R.id.action_filter) {
+                showFilterDialog();
+                return true;
+            }
+            return false;
+        });
 
         saldoLabel = findViewById(R.id.textSaldoLabel);
         saldoValue = findViewById(R.id.textBalance);
         findViewById(R.id.saldoHeader).setOnClickListener(v -> {
-            saldoMode = 1 - saldoMode;
+            if (!saldoModes.isEmpty()) {
+                saldoIndex = (saldoIndex + 1) % saldoModes.size();
+                showSaldo();
+            }
+        });
+
+        container = findViewById(R.id.historyContainer);
+        Repository repository = new Repository(this);
+        repository.getSecurityMetrics(depot, kmyId, m -> {
+            metrics = m;
+            saldoModes = DepotSaldo.modes(m);
+            if (saldoIndex >= saldoModes.size()) {
+                saldoIndex = 0;
+            }
             showSaldo();
         });
-        showSaldo();
-
-        LinearLayout container = findViewById(R.id.historyContainer);
-        Repository repository = new Repository(this);
         repository.getSecurityTransactions(depot, kmyId, txs -> {
-            container.removeAllViews();
-            if (txs.isEmpty()) {
-                TextView t = new TextView(this);
-                t.setText(R.string.depot_no_history);
-                t.setPadding(0, 24, 0, 0);
-                container.addView(t);
-                return;
-            }
-            for (SecurityTx tx : txs) {
-                container.addView(buildRow(tx));
-            }
+            allTx = txs;
+            renderTx();
         });
     }
 
+    private void renderTx() {
+        container.removeAllViews();
+        boolean any = false;
+        for (SecurityTx tx : allTx) {
+            if (!matchesFilter(tx)) {
+                continue;
+            }
+            any = true;
+            container.addView(buildRow(tx));
+        }
+        if (!any) {
+            TextView t = new TextView(this);
+            t.setText(allTx.isEmpty() ? R.string.depot_no_history : R.string.depot_no_match);
+            t.setPadding(0, 24, 0, 0);
+            container.addView(t);
+        }
+    }
+
     private void showSaldo() {
-        boolean depotMode = saldoMode == 0;
-        saldoLabel.setText(depotMode ? getString(R.string.depot_value_label) : securityName);
-        long cents = depotMode ? depotValueCents : securityValueCents;
-        saldoValue.setText(money(cents));
-        saldoValue.setTextColor(cents < 0 ? getColor(R.color.expense_red) : getColor(R.color.income_green));
+        if (metrics == null || saldoModes.isEmpty()) {
+            return;
+        }
+        int mode = saldoModes.get(saldoIndex % saldoModes.size());
+        DepotSaldo.apply(this, saldoLabel, saldoValue, metrics, mode, securityName);
+    }
+
+    private boolean matchesFilter(SecurityTx tx) {
+        if (!filterActions.isEmpty() && !filterActions.contains(tx.action)) {
+            return false;
+        }
+        if (filterFrom != null && tx.date < filterFrom) {
+            return false;
+        }
+        return filterTo == null || tx.date <= filterTo;
+    }
+
+    private void showFilterDialog() {
+        if (allTx.isEmpty()) {
+            return;
+        }
+        View view = LayoutInflater.from(this).inflate(R.layout.dialog_security_filter, null, false);
+        MaterialCheckBox cbBuy = view.findViewById(R.id.cbBuy);
+        MaterialCheckBox cbSell = view.findViewById(R.id.cbSell);
+        MaterialCheckBox cbDividend = view.findViewById(R.id.cbDividend);
+        boolean all = filterActions.isEmpty();
+        cbBuy.setChecked(all || filterActions.contains("buy"));
+        cbSell.setChecked(all || filterActions.contains("sell"));
+        cbDividend.setChecked(all || filterActions.contains("dividend"));
+
+        long min = Long.MAX_VALUE;
+        long max = Long.MIN_VALUE;
+        for (SecurityTx tx : allTx) {
+            min = Math.min(min, tx.date);
+            max = Math.max(max, tx.date);
+        }
+        RangeSlider slider = view.findViewById(R.id.dateSlider);
+        EditText fromField = view.findViewById(R.id.dateFrom);
+        EditText toField = view.findViewById(R.id.dateTo);
+        final MonthRange range = MonthRange.attach(slider, fromField, toField, min, max, filterFrom, filterTo);
+
+        new MaterialAlertDialogBuilder(this, R.style.ThemeOverlay_Ausgaben_Dialog)
+                .setTitle(R.string.action_filter)
+                .setView(view)
+                .setNeutralButton(R.string.filter_reset, (d, w) -> {
+                    filterActions.clear();
+                    filterFrom = null;
+                    filterTo = null;
+                    renderTx();
+                })
+                .setPositiveButton(android.R.string.ok, (d, w) -> {
+                    filterActions.clear();
+                    // Alle drei gewählt (oder keine) → keine Aktions-Einschränkung (zeigt auch Ein-/Ausbuchungen).
+                    if (!(cbBuy.isChecked() && cbSell.isChecked() && cbDividend.isChecked())) {
+                        if (cbBuy.isChecked()) {
+                            filterActions.add("buy");
+                            filterActions.add("reinvest");
+                        }
+                        if (cbSell.isChecked()) {
+                            filterActions.add("sell");
+                        }
+                        if (cbDividend.isChecked()) {
+                            filterActions.add("dividend");
+                        }
+                    }
+                    filterFrom = range.getFromMillis();
+                    filterTo = range.getToMillis();
+                    renderTx();
+                })
+                .setNegativeButton(R.string.cancel, null)
+                .show();
     }
 
     /** Tabellarische Zeile im Stil der Kontenbewegungen: links Aktion + Datum/Stück, rechts der Betrag (farbig). */

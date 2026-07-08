@@ -74,12 +74,31 @@ public interface BookingDao {
     @Query("DELETE FROM booking WHERE transfer_group = :group")
     void deleteByTransferGroup(String group);
 
+    @Query("SELECT * FROM booking WHERE transfer_group = :group")
+    List<Booking> getByTransferGroup(String group);
+
     /** Kategorien aus Einzelbuchungen UND Splitbuchungs-Teilen (für Filter/Baum/Auswertung). */
     @Query("SELECT DISTINCT category FROM ("
             + "SELECT category FROM booking WHERE category != '' "
             + "UNION SELECT category FROM booking_split WHERE category != '') "
             + "ORDER BY category COLLATE NOCASE ASC")
     List<String> getDistinctCategories();
+
+    /** Einnahme-Kategorien (Buchungen mit is_income=1; Split-Teile über die zugehörige Buchung). */
+    @Query("SELECT DISTINCT category FROM ("
+            + "SELECT category FROM booking WHERE category != '' AND is_income = 1 "
+            + "UNION SELECT bs.category FROM booking_split bs JOIN booking b ON bs.booking_id = b.id "
+            + "WHERE bs.category != '' AND b.is_income = 1) "
+            + "ORDER BY category COLLATE NOCASE ASC")
+    List<String> getIncomeCategories();
+
+    /** Ausgabe-Kategorien (Buchungen mit is_income=0; Split-Teile über die zugehörige Buchung). */
+    @Query("SELECT DISTINCT category FROM ("
+            + "SELECT category FROM booking WHERE category != '' AND is_income = 0 "
+            + "UNION SELECT bs.category FROM booking_split bs JOIN booking b ON bs.booking_id = b.id "
+            + "WHERE bs.category != '' AND b.is_income = 0) "
+            + "ORDER BY category COLLATE NOCASE ASC")
+    List<String> getExpenseCategories();
 
     // ---- Splitbuchungs-Teile ----
 

@@ -249,7 +249,10 @@ p("Im Abschnitt «Split-Kategorien» lassen sich mehrere Kategorien mit Teilbetr
   "entsprechen. Teilbeträge dürfen negativ sein.")
 h2("Umbuchung")
 p("Wählen Sie den Typ «Umbuchung», dann Von- und Nach-Konto sowie optional einen Empfänger. Es entsteht "
-  "eine verknüpfte Buchung in beiden Konten (in der Liste mit → bzw. ← markiert).")
+  "eine verknüpfte Buchung in beiden Konten (in der Liste mit → bzw. ← markiert). Zusätzlich können Sie "
+  "einen <b>Von-Ort</b> und einen <b>Nach-Ort</b> wählen; dann wird das jeweilige Ortsjournal mitgeführt "
+  "(Von-Konto −Betrag, Nach-Konto +Betrag). Bearbeiten oder Löschen der Umbuchung rollt die Ort-Bewegungen "
+  "wieder zurück.")
 
 # ---------------------------------------------------------------- 7 Sprache & Standort
 h1("7. Spracheingabe und Standort-Erfassung")
@@ -277,8 +280,10 @@ bullets([
   "<b>Langer Druck</b> auf eine Buchung öffnet sie zum Bearbeiten.",
   "<b>Herunterziehen</b> aktualisiert die Liste (Sync).",
   "Markierungen: «Split», → / ← (Umbuchung), «exportiert»; Farben rot/grün.",
-  "<b>Filter</b> (Trichter ▽): nach Empfänger, Kategorie (als Baum) und Betrag. Bei Kategorie-Filter zeigt "
-  "eine Splitbuchung nur den Teilbetrag der gewählten Kategorie.",
+  "<b>Filter</b> (Trichter ▽): nach Empfänger, Kategorie (als Baum), Betrag (Schieberegler) und "
+  "<b>Datum von–bis</b> (Schieberegler in Monatsschritten; ein taggenaues Datum geben Sie direkt im Feld "
+  "ein). Der Filter wirkt auf Liste und Auswertung. Bei Kategorie-Filter zeigt eine Splitbuchung nur den "
+  "Teilbetrag der gewählten Kategorie.",
 ])
 
 # ---------------------------------------------------------------- 9 Auswertung
@@ -317,13 +322,23 @@ p("Ein besonderer Vorteil: Der <b>Kassensturz</b> (Soll-Ist-Abgleich) lässt sic
   "gezählten Betrag ein, und die App bucht automatisch die Differenz als Ausgleichs-Bewegung. Sie müssen "
   "also nicht das gesamte Konto auf einmal abstimmen; das <b>vereinfacht den Abgleich erheblich</b>. "
   "Importierte Buchungen tragen keine Ort-Verknüpfung.")
+h2("Anlage- und Verbindlichkeitskonten")
+p("Konten werden anhand ihres KMyMoney-Typs in <b>Anlagekonten</b> und <b>Verbindlichkeitskonten</b> "
+  "(Kredite, Kreditkarten) getrennt – mit Überschriften sowohl in der Kontenschublade als auch in den "
+  "Beständen. In den Beständen zählt das Depot als eine Zeile (Depotwert) zum <b>Gesamt</b> mit. Die "
+  "Einteilung wird beim Import aus der .kmy übernommen (nach einem erneuten Import sichtbar).")
 h2("Depot (Wertpapiere)")
-p("Nach dem Import eines KMyMoney-Investmentkontos erscheint das <b>Depot</b> in der Kontenschublade. "
-  "Die Depot-Ansicht zeigt je Wertpapier <b>Stückzahl × Kurs = aktueller Wert</b> und den Gesamt-Depotwert; "
-  "vollständig verkaufte Papiere werden ausgeblendet. Ein Tipp auf ein Wertpapier öffnet seine "
-  "<b>Bewegungen im Vollbild</b> (Käufe grün, Verkäufe rot, Dividenden neutral); in der Saldenzeile "
-  "schalten Sie per Tipp zwischen Depotwert und dem Wert des Wertpapiers um. Der Depotwert wird getrennt "
-  "geführt und erscheint zusätzlich als «Gesamtvermögen» in der Saldenzeile des Hauptbildschirms.")
+p("Nach dem Import eines KMyMoney-Investmentkontos erscheint das <b>Depot</b> in der Kontenschublade. Die "
+  "Depot-Ansicht ist wie eine Konto-Ansicht aufgebaut (Schublade, Kopf mit Depotname, eigenes Menü, Filter) "
+  "und zeigt je Wertpapier <b>Stückzahl × Kurs = aktueller Wert</b>; vollständig verkaufte Papiere werden "
+  "ausgeblendet. Die <b>Saldenzeile schaltet per Tipp</b> durch Depotwert → Käufe → Verkäufe (falls "
+  "vorhanden) → Dividenden (falls vorhanden) → <b>Nettoeinsatz</b> (Käufe − Verkäufe − Dividenden) → "
+  "<b>Gewinn/Verlust</b> (farbig, mit Prozent). Der <b>Depot-Filter</b> grenzt die Wertpapiere nach Name "
+  "und Wert (Schieberegler) ein. Ein Tipp auf ein Wertpapier öffnet seine <b>Bewegungen im Vollbild</b> "
+  "(Käufe grün, Verkäufe rot, Dividenden neutral) mit denselben Kennzahlen für dieses Papier und einem "
+  "<b>Filter nach Käufen/Verkäufen/Dividenden</b> sowie einem Datums-Slider (Startdatum = erster Kauf). Der "
+  "Depotwert wird getrennt geführt und erscheint zusätzlich als «Gesamtvermögen» in der Saldenzeile des "
+  "Hauptbildschirms.")
 
 # ---------------------------------------------------------------- 11 Synchronisieren durchführen
 h1("11. Synchronisieren: Export und Import durchführen")

@@ -15,27 +15,33 @@ import java.util.List;
 import de.spahr.ausgaben.R;
 
 /**
- * Kontenliste in der Navigations-Schublade. Erster Eintrag ist „Alle Konten"; danach die Konten,
- * am Ende die Depots. Kurzer Tipp wählt Konto/öffnet Depot, langer Tipp importiert bzw. aktualisiert.
- * Der gewählte Eintrag wird hervorgehoben.
+ * Kontenliste in der Navigations-Schublade. Aufbau: „Alle Konten", dann – jeweils mit Überschrift –
+ * die Anlage- und Verbindlichkeitskonten, am Ende die Depots. Kurzer Tipp wählt Konto/öffnet Depot,
+ * langer Tipp importiert bzw. aktualisiert. Der gewählte Eintrag wird hervorgehoben.
  */
 public class AccountDrawerAdapter extends RecyclerView.Adapter<AccountDrawerAdapter.VH> {
 
     public interface Listener {
-        /** Kurzer Tipp auf ein Konto. {@code isAll} = „Alle Konten". */
         void onSelect(String account, boolean isAll);
-
-        /** Langer Tipp auf ein Konto (bzw. alle): importieren. */
         void onImport(String account, boolean isAll);
-
-        /** Kurzer Tipp auf ein Depot: Depot-Ansicht öffnen. */
         void onDepotSelect(String depot);
-
-        /** Langer Tipp auf ein Depot: Depot neu importieren/aktualisieren. */
         void onDepotImport(String depot);
     }
 
-    private final List<String> accounts = new ArrayList<>();
+    private static final int KIND_ALL = 0;
+    private static final int KIND_HEADER = 1;
+    private static final int KIND_ACCOUNT = 2;
+    private static final int KIND_DEPOT = 3;
+
+    private static final class Row {
+        final int kind;
+        final String text;
+        Row(int kind, String text) { this.kind = kind; this.text = text; }
+    }
+
+    private final List<Row> rows = new ArrayList<>();
+    private final List<String> assets = new ArrayList<>();
+    private final List<String> liabilities = new ArrayList<>();
     private final List<String> depots = new ArrayList<>();
     private final String allLabel;
     private String selected = "";
@@ -46,27 +52,40 @@ public class AccountDrawerAdapter extends RecyclerView.Adapter<AccountDrawerAdap
         this.listener = listener;
     }
 
-    /** Setzt die Kontenliste (ohne „Alle Konten"; das wird vorangestellt). */
-    public void setAccounts(List<String> accounts) {
-        this.accounts.clear();
-        if (accounts != null) {
-            this.accounts.addAll(accounts);
-        }
-        notifyDataSetChanged();
+    /** Setzt die Kontolisten (getrennt nach Anlage/Verbindlichkeit). */
+    public void setAccounts(List<String> assetAccounts, List<String> liabilityAccounts) {
+        assets.clear();
+        liabilities.clear();
+        if (assetAccounts != null) assets.addAll(assetAccounts);
+        if (liabilityAccounts != null) liabilities.addAll(liabilityAccounts);
+        rebuild();
     }
 
-    /** Setzt die Depots (werden hinter den Konten angezeigt). */
-    public void setDepots(List<String> depots) {
-        this.depots.clear();
-        if (depots != null) {
-            this.depots.addAll(depots);
-        }
-        notifyDataSetChanged();
+    /** Setzt die Depots (hinter den Konten). */
+    public void setDepots(List<String> depotNames) {
+        depots.clear();
+        if (depotNames != null) depots.addAll(depotNames);
+        rebuild();
     }
 
     /** Markiert das gewählte Konto (leer = „Alle Konten"). */
     public void setSelected(String account) {
         this.selected = account == null ? "" : account;
+        notifyDataSetChanged();
+    }
+
+    private void rebuild() {
+        rows.clear();
+        rows.add(new Row(KIND_ALL, allLabel));
+        if (!assets.isEmpty()) {
+            rows.add(new Row(KIND_HEADER, "accounts_asset"));
+            for (String a : assets) rows.add(new Row(KIND_ACCOUNT, a));
+        }
+        if (!liabilities.isEmpty()) {
+            rows.add(new Row(KIND_HEADER, "accounts_liability"));
+            for (String a : liabilities) rows.add(new Row(KIND_ACCOUNT, a));
+        }
+        for (String d : depots) rows.add(new Row(KIND_DEPOT, d));
         notifyDataSetChanged();
     }
 
@@ -79,25 +98,46 @@ public class AccountDrawerAdapter extends RecyclerView.Adapter<AccountDrawerAdap
 
     @Override
     public void onBindViewHolder(@NonNull VH h, int position) {
-        if (position == 0) {
-            bindAccount(h, allLabel, true);
-            return;
+        Row r = rows.get(position);
+        switch (r.kind) {
+            case KIND_ALL:
+                bindAccount(h, allLabel, true);
+                break;
+            case KIND_ACCOUNT:
+                bindAccount(h, r.text, false);
+                break;
+            case KIND_DEPOT:
+                bindDepot(h, r.text);
+                break;
+            case KIND_HEADER:
+            default:
+                bindHeader(h, r.text);
+                break;
         }
-        int accIndex = position - 1;
-        if (accIndex < accounts.size()) {
-            bindAccount(h, accounts.get(accIndex), false);
-            return;
-        }
-        bindDepot(h, depots.get(accIndex - accounts.size()));
+    }
+
+    private void bindHeader(VH h, String key) {
+        int resId = "accounts_liability".equals(key) ? R.string.accounts_liability : R.string.accounts_asset;
+        h.text.setText(h.text.getResources().getString(resId));
+        h.text.setTypeface(Typeface.DEFAULT, Typeface.BOLD);
+        h.text.setBackgroundColor(android.graphics.Color.TRANSPARENT);
+        h.text.setTextColor(h.text.getResources().getColor(R.color.grey_text, null));
+        h.text.setOnClickListener(null);
+        h.text.setClickable(false);
+        h.text.setOnLongClickListener(null);
+        h.text.setLongClickable(false);
     }
 
     private void bindAccount(VH h, String item, boolean isAll) {
         boolean isSelected = isAll ? selected.isEmpty() : item.equals(selected);
         h.text.setText(item);
         h.text.setTypeface(Typeface.DEFAULT, isSelected ? Typeface.BOLD : Typeface.NORMAL);
+        h.text.setTextColor(primaryText(h.text));
         h.text.setBackgroundColor(isSelected
                 ? h.text.getResources().getColor(R.color.saldo_bar_bg, null)
                 : android.graphics.Color.TRANSPARENT);
+        h.text.setClickable(true);
+        h.text.setLongClickable(true);
         h.text.setOnClickListener(v -> listener.onSelect(isAll ? "" : item, isAll));
         h.text.setOnLongClickListener(v -> {
             listener.onImport(isAll ? "" : item, isAll);
@@ -108,7 +148,10 @@ public class AccountDrawerAdapter extends RecyclerView.Adapter<AccountDrawerAdap
     private void bindDepot(VH h, String depot) {
         h.text.setText(h.text.getResources().getString(R.string.kmy_choose_depot, depot));
         h.text.setTypeface(Typeface.DEFAULT, Typeface.NORMAL);
+        h.text.setTextColor(primaryText(h.text));
         h.text.setBackgroundColor(android.graphics.Color.TRANSPARENT);
+        h.text.setClickable(true);
+        h.text.setLongClickable(true);
         h.text.setOnClickListener(v -> listener.onDepotSelect(depot));
         h.text.setOnLongClickListener(v -> {
             listener.onDepotImport(depot);
@@ -116,14 +159,19 @@ public class AccountDrawerAdapter extends RecyclerView.Adapter<AccountDrawerAdap
         });
     }
 
+    private static int primaryText(TextView t) {
+        android.util.TypedValue tv = new android.util.TypedValue();
+        t.getContext().getTheme().resolveAttribute(android.R.attr.textColorPrimary, tv, true);
+        return t.getContext().getColor(tv.resourceId != 0 ? tv.resourceId : android.R.color.black);
+    }
+
     @Override
     public int getItemCount() {
-        return 1 + accounts.size() + depots.size();
+        return rows.size();
     }
 
     static class VH extends RecyclerView.ViewHolder {
         final TextView text;
-
         VH(TextView itemView) {
             super(itemView);
             this.text = itemView;

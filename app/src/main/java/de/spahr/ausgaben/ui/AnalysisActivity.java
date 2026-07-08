@@ -51,6 +51,8 @@ public class AnalysisActivity extends LocalizedActivity {
     public static final String EXTRA_FILTER_CATEGORY_MAIN = "filter_category_main";
     public static final String EXTRA_FILTER_AMOUNT_FROM = "filter_amount_from";
     public static final String EXTRA_FILTER_AMOUNT_TO = "filter_amount_to";
+    public static final String EXTRA_FILTER_DATE_FROM = "filter_date_from";
+    public static final String EXTRA_FILTER_DATE_TO = "filter_date_to";
     public static final String EXTRA_VIEW_KEY = "view_key";
 
     private enum Granularity {DAY, WEEK, MONTH, YEAR}
@@ -78,6 +80,8 @@ public class AnalysisActivity extends LocalizedActivity {
     private boolean filterCategoryIsMain = false;
     private Long filterAmountFrom = null;
     private Long filterAmountTo = null;
+    private Long filterDateFrom = null;
+    private Long filterDateTo = null;
 
     private String defaultAccount = "";
     /** Trennt Konto und Ort im View-Key (nicht in Namen enthalten). */
@@ -106,6 +110,10 @@ public class AnalysisActivity extends LocalizedActivity {
         long to = getIntent().getLongExtra(EXTRA_FILTER_AMOUNT_TO, Long.MAX_VALUE);
         filterAmountFrom = from == Long.MIN_VALUE ? null : from;
         filterAmountTo = to == Long.MAX_VALUE ? null : to;
+        long dFrom = getIntent().getLongExtra(EXTRA_FILTER_DATE_FROM, Long.MIN_VALUE);
+        long dTo = getIntent().getLongExtra(EXTRA_FILTER_DATE_TO, Long.MAX_VALUE);
+        filterDateFrom = dFrom == Long.MIN_VALUE ? null : dFrom;
+        filterDateTo = dTo == Long.MAX_VALUE ? null : dTo;
         viewKey = orEmpty(getIntent().getStringExtra(EXTRA_VIEW_KEY));
         if (viewKey.isEmpty()) {
             viewKey = MainActivity.VIEW_TOTAL;
@@ -213,7 +221,8 @@ public class AnalysisActivity extends LocalizedActivity {
 
     private boolean isFilterActive() {
         return !filterPayee.isEmpty() || !filterCategory.isEmpty()
-                || filterAmountFrom != null || filterAmountTo != null;
+                || filterAmountFrom != null || filterAmountTo != null
+                || filterDateFrom != null || filterDateTo != null;
     }
 
     // ---- Ereignisstrom je Sicht (Zeit, vorzeichenbehaftete Cent) ----
@@ -283,7 +292,13 @@ public class AnalysisActivity extends LocalizedActivity {
         if (filterAmountFrom != null && b.amountCents < filterAmountFrom) {
             return false;
         }
-        return filterAmountTo == null || b.amountCents <= filterAmountTo;
+        if (filterAmountTo != null && b.amountCents > filterAmountTo) {
+            return false;
+        }
+        if (filterDateFrom != null && b.createdAt < filterDateFrom) {
+            return false;
+        }
+        return filterDateTo == null || b.createdAt <= filterDateTo;
     }
 
     /** Bei Kategorie-Filter nur den Teilbetrag der gewählten Kategorie einer Splitbuchung; sonst {@code full}. */

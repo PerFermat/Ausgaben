@@ -71,7 +71,9 @@ Mikrofon-Berechtigung ist davon unberührt). Hinweise zur F-Droid-Paketierung in
   Kategoriebetrag gekoppelt; bei mehreren muss die Summe dem Gesamtbetrag entsprechen. Teilbeträge
   dürfen negativ sein.
 - **Umbuchung** (Kontotransfer): zwei Konten (Von/Nach) + optionaler Zahlungsempfänger; legt eine
-  verknüpfte Buchung in beiden Konten an.
+  verknüpfte Buchung in beiden Konten an. Zusätzlich lassen sich **Von-Ort und Nach-Ort** wählen – dann
+  wird das jeweilige **Ortsjournal** mitgeführt (Von-Konto −Betrag, Nach-Konto +Betrag); Bearbeiten/Löschen
+  rollt die Ort-Bewegungen wieder zurück.
 - **Ort** (nur bei in der App angelegten Ausgaben/Einnahmen): wählbar mit dem Standardort des Kontos
   vorbelegt; bestimmt, welchem Bargeld-Ort die Buchung ihre Ort-Bewegung gutschreibt (siehe „Orte/Bestände").
   Bei importierten Buchungen wird kein Ort-Feld gezeigt.
@@ -124,8 +126,10 @@ Mikrofon-Berechtigung ist davon unberührt). Hinweise zur F-Droid-Paketierung in
   entspricht. In den Beständen lassen sich Ort-Bewegungen einzeln anlegen/bearbeiten/löschen sowie zwischen
   Orten umbuchen (z. B. um eine importierte Buchung einem Ort zuzuordnen); ein Kassensturz setzt den Saldo
   eines Orts. Importierte Buchungen tragen keine Ort-Verknüpfung.
-- **Filter** nach Empfänger, Kategorie (als Baum) und Betrag. Bei Kategorie-Filter zeigt eine
-  Splitbuchung nur den Teilbetrag der gewählten Kategorie.
+- **Filter** nach Empfänger, Kategorie (als Baum), Betrag (Schieberegler) und **Datum von–bis**
+  (Schieberegler in Monatsschritten; für ein taggenaues Datum tippt man es direkt ins Feld). Der Filter
+  wirkt auf Liste **und** Auswertung. Bei Kategorie-Filter zeigt eine Splitbuchung nur den Teilbetrag der
+  gewählten Kategorie.
 - **Auswertung** (Tag/Woche/Monat/Jahr) als Balken- + Linien-Diagramm mit Konto-, Orts- und
   Gesamt-Sichten; per Fingergeste zoombar (horizontal = Balkenanzahl, vertikal = Y-Achse).
 
@@ -143,12 +147,19 @@ Mikrofon-Berechtigung ist davon unberührt). Hinweise zur F-Droid-Paketierung in
   angeboten (nicht mehr jedes Wertpapier einzeln). Der Import liest die **Wertpapiere**, ihre
   **Käufe/Verkäufe/Dividenden/Einbuchungen** und den **letzten Kurs** je Wertpapier. Das Depot erscheint
   nach dem Import **in der Kontenschublade** (kurzer Tipp öffnet die Depot-Ansicht, langer Tipp
-  aktualisiert es aus der .kmy). Die **Depot-Ansicht** zeigt je Wertpapier Stückzahl × Kurs = aktueller
-  Wert und den Gesamt-Depotwert; ein Tipp auf ein Wertpapier öffnet seine **Bewegungen im Vollbild** (im
-  Kopf der Wertpapiername, in der Saldenzeile per Tipp umschaltbar zwischen Depotwert und dem Wert dieses
-  Wertpapiers). Der Depotwert wird **getrennt** geführt (nicht in Konto-Salden/Bestände/Auswertung
-  gemischt); die Kaufkosten/Dividenden erscheinen wie gehabt auf dem jeweiligen Geldkonto. In der
-  Saldenzeile der Hauptansicht gibt es zusätzlich **„Gesamtvermögen"** = alle Konten + Depotwert.
+  aktualisiert es aus der .kmy). Die **Depot-Ansicht** ist wie eine Konto-Ansicht aufgebaut (Schublade,
+  Kopf mit Depotname, eigenes Menü, Filter) und zeigt je Wertpapier Stückzahl × Kurs = aktueller Wert. Die
+  **Saldenzeile schaltet per Tipp** durch Depotwert → Käufe → Verkäufe (falls vorhanden) → Dividenden
+  (falls vorhanden) → **Nettoeinsatz** (Käufe − Verkäufe − Dividenden) → **Gewinn/Verlust** (farbig, mit
+  Prozent). Der **Depot-Filter** grenzt die Wertpapiere nach Name und **Wert (Schieberegler)** ein. Ein
+  Tipp auf ein Wertpapier öffnet seine **Bewegungen im Vollbild** mit denselben Kennzahlen für dieses
+  Papier und einem **Filter nach Käufen/Verkäufen/Dividenden** sowie einem **Datums-Slider** (Startdatum =
+  erster Kauf). Der Depotwert wird **getrennt** geführt (nicht in Konto-Salden/Auswertung gemischt); die
+  Kaufkosten/Dividenden erscheinen wie gehabt auf dem jeweiligen Geldkonto. In der Saldenzeile der
+  Hauptansicht gibt es zusätzlich **„Gesamtvermögen"** = alle Konten + Depotwert.
+- **Anlage- und Verbindlichkeitskonten**: Konten werden anhand ihres KMyMoney-Typs in **Anlagekonten** und
+  **Verbindlichkeitskonten** (Kredite, Kreditkarten) getrennt – mit Überschriften in der Kontenschublade
+  **und** in den Beständen. In den Beständen zählt das Depot als eine Zeile (Depotwert) zum **Gesamt** mit.
 - **CSV-Import** von kMyMoney-Ledger-CSV (Konto aus `Kontentyp:`-Zeile, ISO-Datum, Vorzeichen → Typ).
 
 ### Sprachen

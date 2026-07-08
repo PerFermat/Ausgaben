@@ -46,6 +46,10 @@ public class BalanceActivity extends LocalizedActivity {
     /** Konto → (Ort → Saldo). */
     private final Map<String, Map<String, Long>> placeBalances = new LinkedHashMap<>();
     private List<String> accountsOrder = new ArrayList<>();
+    private List<String> assetAccounts = new ArrayList<>();
+    private List<String> liabilityAccounts = new ArrayList<>();
+    private final List<String> depotOrder = new ArrayList<>();
+    private final Map<String, List<Repository.DepotHolding>> depotHoldings = new LinkedHashMap<>();
     private long total = 0;
 
     @Override
@@ -93,41 +97,109 @@ public class BalanceActivity extends LocalizedActivity {
                             }
                             m.put(p.place, p.balanceCents);
                         }
-                        render();
+                        loadGroupsAndDepots();
                     });
                 });
             });
         });
     }
 
-    /** Gruppenliste: je Konto (fett + Saldo) → dessen Orte (eingerückt + Saldo) → Trennstrich; am Ende Gesamt. */
+    /** Lädt Anlage/Verbindlichkeit-Gruppen und die Depots, dann Neuaufbau. */
+    private void loadGroupsAndDepots() {
+        repository.getAccountsGrouped(g -> {
+            assetAccounts = g.assets;
+            liabilityAccounts = g.liabilities;
+            repository.getDepots(depots -> {
+                depotOrder.clear();
+                depotHoldings.clear();
+                if (depots.isEmpty()) {
+                    render();
+                    return;
+                }
+                final int[] pending = {depots.size()};
+                for (String d : depots) {
+                    repository.getDepotHoldings(d, h -> {
+                        depotOrder.add(d);
+                        depotHoldings.put(d, h);
+                        if (--pending[0] == 0) {
+                            render();
+                        }
+                    });
+                }
+            });
+        });
+    }
+
+    /** Gruppenliste: Anlage-/Verbindlichkeitskonten (mit Überschrift) → Orte → Depots → Gesamt. */
     private void render() {
         container.removeAllViews();
-        for (final String account : accountsOrder) {
-            final String currency = de.spahr.ausgaben.settings.Currencies.forAccount(account);
-            long accBal = accountBalances.containsKey(account) ? accountBalances.get(account) : 0L;
-            addRow(account, accBal, true, false, false, null, currency);
-
-            Map<String, Long> pbal = placeBalances.get(account);
-            List<String> places = placesStore.getPlaces(account);
-
-            // Echte Orte: Saldo aus dem Journal; klickbar → Bewegungen des Orts (editierbar).
-            long realSum = 0;
-            for (final String place : places) {
-                long bal = placeBal(pbal, place);
-                realSum += bal;
-                addRow(place, bal, false, true, true, v -> openHistory(account, place), currency);
+        if (!assetAccounts.isEmpty()) {
+            addSectionHeader(getString(R.string.accounts_asset));
+            for (String account : assetAccounts) {
+                renderAccount(account);
             }
-            // „ohne Ort" = Rest (immer, sobald ≥1 echter Ort existiert), damit die Summe = Kontosaldo ist.
-            // Rein berechnet (kein Journal) → nicht klickbar; Zuordnung erfolgt über eine Umbuchung.
-            if (!places.isEmpty()) {
-                long rest = accBal - realSum;
-                addRow(getString(R.string.no_place), rest, false, true, false, null, currency);
-            }
-            addDivider();
         }
-        addRow(getString(R.string.saldo_total), total, true, false, false, null,
+        if (!liabilityAccounts.isEmpty()) {
+            addSectionHeader(getString(R.string.accounts_liability));
+            for (String account : liabilityAccounts) {
+                renderAccount(account);
+            }
+        }
+        long depotTotal = 0;
+        for (String depot : depotOrder) {
+            depotTotal += renderDepotSection(depot);
+        }
+        // Gesamt = Konten-Gesamt + Depotwert.
+        addRow(getString(R.string.saldo_total), total + depotTotal, true, false, false, null,
                 de.spahr.ausgaben.settings.Currencies.getDefault());
+    }
+
+    /** Ein Konto (fett + Saldo) mit seinen Orten (eingerückt) und Trennstrich. */
+    private void renderAccount(final String account) {
+        final String currency = de.spahr.ausgaben.settings.Currencies.forAccount(account);
+        long accBal = accountBalances.containsKey(account) ? accountBalances.get(account) : 0L;
+        addRow(account, accBal, true, false, false, null, currency);
+
+        Map<String, Long> pbal = placeBalances.get(account);
+        List<String> places = placesStore.getPlaces(account);
+
+        long realSum = 0;
+        for (final String place : places) {
+            long bal = placeBal(pbal, place);
+            realSum += bal;
+            addRow(place, bal, false, true, true, v -> openHistory(account, place), currency);
+        }
+        if (!places.isEmpty()) {
+            long rest = accBal - realSum;
+            addRow(getString(R.string.no_place), rest, false, true, false, null, currency);
+        }
+        addDivider();
+    }
+
+    /** Depot-Sektion in den Beständen: nur der Depotwert (keine Einzel-Wertpapiere). Liefert den Wert. */
+    private long renderDepotSection(String depot) {
+        List<Repository.DepotHolding> holdings = depotHoldings.get(depot);
+        if (holdings == null) {
+            return 0;
+        }
+        long sub = 0;
+        for (Repository.DepotHolding h : holdings) {
+            sub += h.valueCents;
+        }
+        addRow(depot, sub, true, false, false, null, de.spahr.ausgaben.settings.Currencies.getDefault());
+        addDivider();
+        return sub;
+    }
+
+    private void addSectionHeader(String title) {
+        TextView header = new TextView(this);
+        header.setText(title);
+        header.setTextColor(getColor(R.color.grey_text));
+        header.setTextSize(13f);
+        header.setTypeface(android.graphics.Typeface.DEFAULT_BOLD);
+        header.setAllCaps(true);
+        header.setPadding(0, 18, 0, 4);
+        container.addView(header);
     }
 
     private long placeBal(Map<String, Long> map, String place) {

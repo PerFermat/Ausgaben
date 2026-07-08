@@ -1,0 +1,20 @@
+<?xml version="1.0" encoding="utf-8"?>
+<!-- „full"-Flavor (GitHub): Wear-OS-Anbindung über Google Play Services (Data Layer). Der Listener wird
+     nur hier registriert; der „foss"-Flavor (F-Droid) enthält kein GMS. -->
+<manifest xmlns:android="http://schemas.android.com/apk/res/android">
+
+    <application>
+
+        <!-- Empfängt gesprochene Ausgaben von der Wear-OS-Uhr (Data Layer). -->
+        <service
+            android:name=".wear.ExpenseWearListenerService"
+            android:exported="true">
+            <intent-filter>
+                <action android:name="com.google.android.gms.wearable.DATA_CHANGED" />
+                <data android:scheme="wear" android:host="*" android:pathPrefix="/expense" />
+            </intent-filter>
+        </service>
+
+    </application>
+
+</manifest>

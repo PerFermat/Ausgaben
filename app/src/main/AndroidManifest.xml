@@ -89,15 +89,8 @@
             android:exported="false"
             android:theme="@style/Theme.Ausgaben" />
 
-        <!-- Empfängt gesprochene Ausgaben von der Wear-OS-Uhr (Data Layer). -->
-        <service
-            android:name=".wear.ExpenseWearListenerService"
-            android:exported="true">
-            <intent-filter>
-                <action android:name="com.google.android.gms.wearable.DATA_CHANGED" />
-                <data android:scheme="wear" android:host="*" android:pathPrefix="/expense" />
-            </intent-filter>
-        </service>
+        <!-- Der Wear-Data-Layer-Listener (Google Play Services) wird nur im „full"-Flavor registriert:
+             siehe app/src/full/AndroidManifest.xml. Der „foss"-Flavor (F-Droid) enthält kein GMS. -->
 
     </application>
 

@@ -1,6 +1,7 @@
 package de.spahr.ausgaben.wear;
 
 import android.content.Context;
+import android.os.Build;
 import android.util.AttributeSet;
 import android.view.LayoutInflater;
 import android.view.View;
@@ -8,18 +9,11 @@ import android.widget.TextView;
 
 import androidx.appcompat.app.AppCompatDelegate;
 
-import java.lang.reflect.Constructor;
-import java.util.concurrent.ConcurrentHashMap;
-
 /**
  * Übersetzt beim Aufblasen die Text-Attribute der Uhr-Layouts (die {@code @string/…} verweisen) anhand von
  * {@link WearStrings}. Nötig, weil {@code @string/…} in Layouts die {@code Resources}-Überschreibung umgeht.
  */
 public class WearViewFactory implements LayoutInflater.Factory2 {
-
-    private static final Class<?>[] CTOR_SIG = {Context.class, AttributeSet.class};
-    private static final ConcurrentHashMap<String, Constructor<? extends View>> CTOR_CACHE =
-            new ConcurrentHashMap<>();
 
     private final AppCompatDelegate delegate;
     private final LayoutInflater inflater;
@@ -32,16 +26,13 @@ public class WearViewFactory implements LayoutInflater.Factory2 {
     @Override
     public View onCreateView(View parent, String name, Context context, AttributeSet attrs) {
         View view = delegate.createView(parent, name, context, attrs);
-        // Eigene/Material-Views selbst über den themenbehafteten context erzeugen (korrektes Styling).
+        // Eigene/Material-Views über den LayoutInflater selbst erzeugen (kein eigenes Reflection); der
+        // themenbehaftete context sorgt für korrektes Styling. Bei Fehlern übernimmt der Standard-Inflater.
         if (view == null && name.indexOf('.') > -1) {
             try {
-                Constructor<? extends View> ctor = CTOR_CACHE.get(name);
-                if (ctor == null) {
-                    ctor = context.getClassLoader().loadClass(name).asSubclass(View.class)
-                            .getConstructor(CTOR_SIG);
-                    CTOR_CACHE.put(name, ctor);
-                }
-                view = ctor.newInstance(context, attrs);
+                view = Build.VERSION.SDK_INT >= 29
+                        ? inflater.createView(context, name, null, attrs)
+                        : inflater.createView(name, null, attrs);
             } catch (Throwable ignored) {
             }
         }

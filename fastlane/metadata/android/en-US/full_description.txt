@@ -1,0 +1,18 @@
+Ausgaben ("expenses" in German) is a mobile companion to the desktop finance software KMyMoney. Record cash expenses, income and transfers on the go and export them into KMyMoney, instead of typing everything in by hand later.
+
+The app works fully offline and without any vendor account: data is exchanged with KMyMoney through a folder you provide yourself (WebDAV, Nextcloud or SMB/Samba). No ads, no tracking.
+
+Features:
+
+* Seamless KMyMoney integration via .kmy files or CSV import
+* Sync through a shared WebDAV or SMB folder — your own server, your data
+* Split bookings and transfers, categories, and per-account "places" (track where your cash physically is)
+* Charts and analysis per account, place or total
+* Portfolio import (securities with buys/sells/dividends, latest prices, net worth)
+* Fuzzy voice entry with optional location-based payee suggestion
+* Multilingual — English and German built in, more languages via upload
+* Biometric lock and encrypted credentials
+
+Note on this F-Droid build: it is the phone app without Google Play Services. The optional Wear OS companion (voice entry from a watch) requires the Google Wear Data Layer and is only available from the project's GitHub releases.
+
+Free and open source (GPL-3.0).

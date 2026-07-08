@@ -1,0 +1,1 @@
+Depot-Import: Wertpapiere mit Käufen/Verkäufen/Dividenden und letztem Kurs, Depot-Ansicht und "Gesamtvermögen"-Zeile. Alias-Spracherkennung wählt bei gleichnamigen Aliasen den geografisch nächsten Empfänger. Diverse Korrekturen.

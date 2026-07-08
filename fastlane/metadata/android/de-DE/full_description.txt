@@ -1,0 +1,18 @@
+Ausgaben ist eine mobile Ergänzung zur Desktop-Finanzsoftware KMyMoney. Erfassen Sie Bargeld-Ausgaben, -Einnahmen und Umbuchungen unterwegs und exportieren Sie sie nach KMyMoney, statt alles später von Hand nachzutragen.
+
+Die App arbeitet vollständig offline und ohne Herstellerkonto: Der Datenaustausch mit KMyMoney läuft über einen von Ihnen bereitgestellten Ordner (WebDAV, Nextcloud oder SMB/Samba). Keine Werbung, kein Tracking.
+
+Funktionen:
+
+* Nahtlose KMyMoney-Integration über .kmy-Dateien oder CSV-Import
+* Sync über einen gemeinsamen WebDAV- oder SMB-Ordner — eigener Server, eigene Daten
+* Splitbuchungen und Umbuchungen, Kategorien und Orte je Konto (wo das Bargeld physisch liegt)
+* Diagramme und Auswertung je Konto, Ort oder gesamt
+* Depot-Import (Wertpapiere mit Käufen/Verkäufen/Dividenden, letzter Kurs, Gesamtvermögen)
+* Unscharfe Spracheingabe mit optionaler standortbasierter Empfänger-Erkennung
+* Mehrsprachig — Deutsch und Englisch eingebaut, weitere Sprachen per Upload
+* Biometrische Sperre und verschlüsselte Zugangsdaten
+
+Hinweis zu diesem F-Droid-Build: Es ist die Handy-App ohne Google Play Services. Die optionale Wear-OS-App (Spracheingabe von der Uhr) benötigt den Google Wear Data Layer und ist nur über die GitHub-Releases des Projekts erhältlich.
+
+Freie und quelloffene Software (GPL-3.0).

@@ -1,0 +1,46 @@
+# F-Droid build recipe for Ausgaben (reference copy).
+#
+# This is the metadata that goes into the fdroiddata repository as
+# metadata/de.spahr.ausgaben.yml (via a merge request), NOT into this app repo's build.
+# It builds the GMS-free "foss" product flavor of the :app module. The Wear OS companion
+# (:wear) needs Google Play Services and is intentionally NOT packaged for F-Droid.
+#
+# Two things still need attention when the MR is opened:
+#  1. MPAndroidChart comes from JitPack, which F-Droid does not allow. It is pulled in from
+#     source via the `MPAndroidChart` srclib (PhilJay/MPAndroidChart @ v3.1.0). If that srclib
+#     does not exist yet in fdroiddata, add srclibs/MPAndroidChart.yml pointing at
+#     https://github.com/PhilJay/MPAndroidChart .
+#  2. Adjust the `prebuild` swap below to whatever the fdroiddata CI expects (project include
+#     vs. built .aar). The lint/build run on F-Droid's side is authoritative.
+
+Categories:
+  - Money
+License: GPL-3.0-only
+AuthorName: Michael Spahr
+SourceCode: https://github.com/PerFermat/Ausgaben
+IssueTracker: https://github.com/PerFermat/Ausgaben/issues
+Changelog: https://github.com/PerFermat/Ausgaben/releases
+
+RepoType: git
+Repo: https://github.com/PerFermat/Ausgaben.git
+
+Builds:
+  - versionName: 1.1
+    versionCode: 2
+    commit: v1.1
+    subdir: app
+    gradle:
+      - foss
+    srclibs:
+      - MPAndroidChart@v3.1.0
+    prebuild:
+      # Replace the JitPack binary with the source-built MPAndroidChart module.
+      - echo "include ':MPAndroidChart'" >> ../settings.gradle
+      - sed -i -e "s|implementation 'com.github.PhilJay:MPAndroidChart:v3.1.0'|implementation project(':MPAndroidChart')|" build.gradle
+    # Output of :app:assembleFossRelease (unsigned; F-Droid signs it):
+    # app/build/outputs/apk/foss/release/app-foss-release-unsigned.apk
+
+AutoUpdateMode: Version v%v
+UpdateCheckMode: Tags
+CurrentVersion: "1.1"
+CurrentVersionCode: 2

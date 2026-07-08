@@ -43,6 +43,15 @@ android {
         }
     }
 
+    // Zwei Distributionen: „full" (GitHub) mit Wear-Anbindung über Google Play Services; „foss" (F-Droid)
+    // ohne jegliches GMS. Die GMS-Klassen liegen nur im src/full-Sourceset (+ full-Manifest), die Dependency
+    // ist fullImplementation. „foss" bekommt einen No-op-Stub für LanguageSync.
+    flavorDimensions "dist"
+    productFlavors {
+        full { dimension "dist" }
+        foss { dimension "dist" }
+    }
+
     compileOptions {
         sourceCompatibility JavaVersion.VERSION_17
         targetCompatibility JavaVersion.VERSION_17
@@ -78,5 +87,8 @@ dependencies {
     implementation 'com.github.PhilJay:MPAndroidChart:v3.1.0'
     implementation 'androidx.security:security-crypto:1.1.0-alpha06'
     implementation 'androidx.biometric:biometric:1.1.0'
-    implementation 'com.google.android.gms:play-services-wearable:18.2.0'
+
+    // Nur im „full"-Flavor: Wear Data Layer (Google Play Services, proprietär). Der „foss"-Flavor (F-Droid)
+    // enthält kein GMS – siehe src/foss/.../wear/LanguageSync.java (No-op) und das fehlende full-Manifest.
+    fullImplementation 'com.google.android.gms:play-services-wearable:18.2.0'
 }

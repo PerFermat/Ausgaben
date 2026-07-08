@@ -294,7 +294,7 @@ public class MainActivity extends LocalizedActivity {
         super.onResume();
         androidx.core.content.ContextCompat.registerReceiver(this, bookingsChangedReceiver,
                 new android.content.IntentFilter(
-                        de.spahr.ausgaben.wear.ExpenseWearListenerService.ACTION_BOOKINGS_CHANGED),
+                        de.spahr.ausgaben.wear.WearBridge.ACTION_BOOKINGS_CHANGED),
                 androidx.core.content.ContextCompat.RECEIVER_NOT_EXPORTED);
         de.spahr.ausgaben.settings.Currencies.refresh(this);
         boolean gps = settings.isGpsEnabled();

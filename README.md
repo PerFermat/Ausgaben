@@ -47,6 +47,19 @@ Grab the latest APKs from the **[Releases page](../../releases/latest)**:
 Both APKs are signed with the same key (required for the Wear Data Layer pairing). To install, allow
 “install from unknown sources”.
 
+### Build flavors / F-Droid
+
+The phone app builds in two flavors:
+
+- **`full`** — with the Wear OS companion over Google Play Services (Wear Data Layer). This is what the
+  GitHub release APK uses (`./gradlew :app:assembleFullRelease`).
+- **`foss`** — the same app **without any Google Play Services** (`./gradlew :app:assembleFossRelease`).
+  This is the flavor intended for **F-Droid**. Phone voice input, sync and all other features work; only the
+  Wear OS bridge is absent.
+
+The Wear OS app (`:wear`) needs the Google Wear Data Layer and is therefore **GitHub-only** (its microphone
+permission is unaffected). F-Droid packaging notes are in [`fdroid/`](fdroid/).
+
 ## Features
 
 ### Recording bookings

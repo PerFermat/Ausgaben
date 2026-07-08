@@ -1,6 +1,7 @@
 package de.spahr.ausgaben.i18n;
 
 import android.content.Context;
+import android.os.Build;
 import android.util.AttributeSet;
 import android.view.LayoutInflater;
 import android.view.View;
@@ -11,9 +12,6 @@ import androidx.appcompat.widget.Toolbar;
 
 import com.google.android.material.textfield.TextInputLayout;
 
-import java.lang.reflect.Constructor;
-import java.util.concurrent.ConcurrentHashMap;
-
 /**
  * Übersetzt beim Aufblasen jedes Views die Text-Attribute ({@code android:text}, {@code hint}, Toolbar-
  * Titel, {@code contentDescription}), die auf einen {@code @string}-Schlüssel verweisen, anhand des aktiven
@@ -22,10 +20,6 @@ import java.util.concurrent.ConcurrentHashMap;
  * ({@code getString(...)}) laufen weiterhin über die {@code Resources}-Überschreibung.
  */
 public class I18nViewFactory implements LayoutInflater.Factory2 {
-
-    private static final Class<?>[] CTOR_SIG = {Context.class, AttributeSet.class};
-    private static final ConcurrentHashMap<String, Constructor<? extends View>> CTOR_CACHE =
-            new ConcurrentHashMap<>();
 
     private final AppCompatDelegate delegate;
     private final LayoutInflater inflater;
@@ -44,7 +38,7 @@ public class I18nViewFactory implements LayoutInflater.Factory2 {
         // android:theme-Umhüllung passiert vor diesem Aufruf) an den (Context, AttributeSet)-Konstruktor
         // geht – genau wie es der LayoutInflater intern tut. Bei Fehlern null → Standard-Inflater übernimmt.
         if (view == null && name.indexOf('.') > -1) {
-            view = createByReflection(name, context, attrs);
+            view = createByInflater(name, context, attrs);
         }
         if (view != null) {
             translate(view, context, attrs);
@@ -52,15 +46,18 @@ public class I18nViewFactory implements LayoutInflater.Factory2 {
         return view;
     }
 
-    private View createByReflection(String name, Context context, AttributeSet attrs) {
+    /**
+     * Erzeugt eine voll qualifizierte (Material-/Custom-)View über den {@link LayoutInflater} selbst –
+     * dieselbe Instanziierung, die der Standard-Inflater intern nutzt, nur dass wir sie hier anstoßen, um die
+     * View anschließend übersetzen zu können. Kein eigenes Reflection im App-Code. Der themenbehaftete
+     * {@code context} sorgt (ab API 29 explizit) für korrektes Styling; bei Fehlern null → Standard-Inflater.
+     */
+    private View createByInflater(String name, Context context, AttributeSet attrs) {
         try {
-            Constructor<? extends View> ctor = CTOR_CACHE.get(name);
-            if (ctor == null) {
-                ctor = context.getClassLoader().loadClass(name).asSubclass(View.class)
-                        .getConstructor(CTOR_SIG);
-                CTOR_CACHE.put(name, ctor);
+            if (Build.VERSION.SDK_INT >= 29) {
+                return inflater.createView(context, name, null, attrs);
             }
-            return ctor.newInstance(context, attrs);
+            return inflater.createView(name, null, attrs);
         } catch (Throwable t) {
             return null;
         }

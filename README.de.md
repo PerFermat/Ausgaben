@@ -45,6 +45,19 @@ Die aktuellen APKs findest du auf der **[Releases-Seite](../../releases/latest)*
 Beide sind mit demselben Schlüssel signiert (Voraussetzung für die Wear-Data-Layer-Kopplung). Zum
 Installieren „Unbekannte Quellen zulassen".
 
+### Build-Flavors / F-Droid
+
+Die Handy-App baut in zwei Varianten:
+
+- **`full`** – mit der Wear-OS-Anbindung über Google Play Services (Wear Data Layer). Diese Variante nutzt
+  das GitHub-Release (`./gradlew :app:assembleFullRelease`).
+- **`foss`** – dieselbe App **ohne jegliches Google Play Services** (`./gradlew :app:assembleFossRelease`).
+  Diese Variante ist für **F-Droid** gedacht. Sprachaufnahme am Handy, Sync und alle übrigen Funktionen
+  bleiben; nur die Wear-OS-Brücke fehlt.
+
+Die Wear-OS-App (`:wear`) benötigt den Google Wear Data Layer und bleibt daher **GitHub-only** (die
+Mikrofon-Berechtigung ist davon unberührt). Hinweise zur F-Droid-Paketierung in [`fdroid/`](fdroid/).
+
 ## Funktionen
 
 ### Buchungen erfassen

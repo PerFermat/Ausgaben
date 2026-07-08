@@ -1,0 +1,1 @@
+Portfolio (Depot) import: securities with buys/sells/dividends and latest prices, portfolio view, and a "Net worth" line. Alias voice matching now picks the geographically nearest payee among same-name aliases. Various fixes.

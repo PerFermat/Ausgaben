@@ -38,8 +38,9 @@ public class ExpenseWearListenerService extends WearableListenerService {
     private static final String PREFS = "wear_processed";
     private static final String KEY_IDS = "processed_ids";
 
-    /** Interner Broadcast: eine (Uhr-)Buchung wurde angelegt → offene Anzeige aktualisieren. */
-    public static final String ACTION_BOOKINGS_CHANGED = "de.spahr.ausgaben.BOOKINGS_CHANGED";
+    /** Interner Broadcast: eine (Uhr-)Buchung wurde angelegt → offene Anzeige aktualisieren.
+     *  Die Konstante liegt GMS-frei in {@link WearBridge}, damit MainActivity sie in beiden Flavors nutzt. */
+    public static final String ACTION_BOOKINGS_CHANGED = WearBridge.ACTION_BOOKINGS_CHANGED;
 
     @Override
     public void onDataChanged(@NonNull DataEventBuffer dataEvents) {

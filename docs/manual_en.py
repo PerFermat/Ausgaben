@@ -258,8 +258,11 @@ p("With location enabled, the keypad symbol appears at the bottom. Type just an 
   "matching template at your current location (100 m) and shows the resolved payee before you even save.")
 h2("Alias names (learned mappings)")
 p("If you change the recognized payee while saving, the app asks whether to remember the mapping as an "
-  "alias – together with account and category. So «mom 100 €» is later booked automatically to the real "
-  "name with the right account. Resolution order: <b>preferred aliases (★) → bookings → remaining aliases</b>.")
+  "alias – together with account, category and <b>place</b> (for transfers the from/to accounts and "
+  "from/to places). So «mom 100 €» is later booked automatically to the real name with the right "
+  "account/place. The category and place fields in the alias form behave like the booking editor (grouped "
+  "category picker; a place field only for accounts that have places). Resolution order: <b>preferred "
+  "aliases (★) → bookings → remaining aliases</b>.")
 
 # ---------------------------------------------------------------- 8
 h1("8. Booking list and filter")
@@ -307,10 +310,10 @@ p("A particular advantage: the <b>cash count</b> (reconciliation) can be done <b
   "books the difference as a balancing movement. So you don't have to reconcile the whole account at once; "
   "this <b>simplifies reconciliation considerably</b>. Imported bookings carry no place link.")
 h2("Asset and liability accounts")
-p("Accounts are split by their KMyMoney type into <b>asset accounts</b> and <b>liability accounts</b> "
-  "(loans, credit cards) – with section headers both in the account drawer and in the holdings view. In "
-  "holdings the portfolio counts as one line (portfolio value) towards the <b>total</b>. The split is taken "
-  "from the .kmy on import (visible after a re-import).")
+p("Accounts are grouped by their KMyMoney type into <b>asset accounts</b>, <b>liability accounts</b> "
+  "(loans, credit cards) and <b>portfolios</b> – with matching section headers both in the account drawer "
+  "and in the holdings view. In holdings the portfolio counts as one line (portfolio value) towards the "
+  "<b>total</b>. The split is taken from the .kmy on import (visible after a re-import).")
 h2("Portfolio (securities)")
 p("After importing a KMyMoney investment account, the <b>portfolio</b> appears in the account drawer. The "
   "portfolio view is laid out like an account view (drawer, header with the portfolio name, its own menu, "
@@ -354,7 +357,8 @@ bullets([
   "<b>Nextcloud</b>: base URL of the server + app password (Nextcloud → Security → App password).",
   "<b>WebDAV (generic)</b>: full DAV root URL, auth via HTTP basic.",
   "<b>SMB/Samba</b>: «smb://host/share»; empty user = guest, a domain as DOMAIN\\user. SMB2/3.",
-  "<b>«Test connection»</b> checks the credentials; in .kmy mode <b>«Choose .kmy»</b> lists the files.",
+  "<b>«Test connection»</b> checks the credentials; in .kmy mode <b>«Choose .kmy»</b> opens a file browser "
+  "with subfolders and .kmy files – descend into subfolders and go back up with «..».",
 ])
 h2("Export mode")
 bullets([

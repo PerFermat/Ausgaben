@@ -65,6 +65,20 @@ public class PayeeCorrection {
     @ColumnInfo(name = "to_account")
     public String toAccount = "";
 
+    /** Ort für Einnahme/Ausgabe (leer = keiner/Standardort). */
+    @NonNull
+    @ColumnInfo(name = "place")
+    public String place = "";
+
+    /** Von-/Nach-Ort für Umbuchungen (leer = keiner). */
+    @NonNull
+    @ColumnInfo(name = "from_place")
+    public String fromPlace = "";
+
+    @NonNull
+    @ColumnInfo(name = "to_place")
+    public String toPlace = "";
+
     /** true = dieser Alias wird vor der Suche in bestehenden Buchungen berücksichtigt. */
     @ColumnInfo(name = "preferred")
     public boolean preferred;

@@ -136,6 +136,25 @@ public class SmbStorage implements RemoteStorage {
     }
 
     @Override
+    public List<String> listFolders(String folder) throws IOException {
+        final String dir = joinPath(base, folder);
+        return withShare(disk -> {
+            List<String> names = new ArrayList<>();
+            long dirFlag = FileAttributes.FILE_ATTRIBUTE_DIRECTORY.getValue();
+            for (FileIdBothDirectoryInformation info : disk.list(dir)) {
+                String name = info.getFileName();
+                if (name == null || name.equals(".") || name.equals("..")) {
+                    continue;
+                }
+                if ((info.getFileAttributes() & dirFlag) != 0) {
+                    names.add(name);
+                }
+            }
+            return names;
+        });
+    }
+
+    @Override
     public String downloadText(String folder, String fileName) throws IOException {
         return new String(downloadBytes(folder, fileName), StandardCharsets.UTF_8);
     }

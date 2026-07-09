@@ -270,9 +270,11 @@ p("Bei eingeschaltetem Standort erscheint unten das Ziffernblock-Symbol. Tippen 
   "bereits vor dem Speichern an.")
 h2("Alias-Namen (gelernte Zuordnungen)")
 p("Ändern Sie beim Speichern den erkannten Empfänger, fragt die App, ob sie sich die Zuordnung als Alias "
-  "merken soll – samt Konto und Kategorie. So wird «Mama 100 €» künftig automatisch auf den echten Namen "
-  "mit passendem Konto gebucht. Reihenfolge der Auflösung: <b>bevorzugte Aliase (★) → Buchungen → übrige "
-  "Aliase</b>.")
+  "merken soll – samt Konto, Kategorie und <b>Ort</b> (bei Umbuchungen Von-/Nach-Konto und Von-/Nach-Ort). "
+  "So wird «Mama 100 €» künftig automatisch auf den echten Namen mit passendem Konto/Ort gebucht. Die "
+  "Kategorie- und Ort-Felder im Alias-Formular verhalten sich wie im Buchungseditor (gruppierte Kategorie-"
+  "Auswahl; ein Ortsfeld nur bei Konten mit Orten). Reihenfolge der Auflösung: <b>bevorzugte Aliase (★) → "
+  "Buchungen → übrige Aliase</b>.")
 
 # ---------------------------------------------------------------- 8 Liste & Filter
 h1("8. Buchungsliste und Filter")
@@ -323,10 +325,11 @@ p("Ein besonderer Vorteil: Der <b>Kassensturz</b> (Soll-Ist-Abgleich) lässt sic
   "also nicht das gesamte Konto auf einmal abstimmen; das <b>vereinfacht den Abgleich erheblich</b>. "
   "Importierte Buchungen tragen keine Ort-Verknüpfung.")
 h2("Anlage- und Verbindlichkeitskonten")
-p("Konten werden anhand ihres KMyMoney-Typs in <b>Anlagekonten</b> und <b>Verbindlichkeitskonten</b> "
-  "(Kredite, Kreditkarten) getrennt – mit Überschriften sowohl in der Kontenschublade als auch in den "
-  "Beständen. In den Beständen zählt das Depot als eine Zeile (Depotwert) zum <b>Gesamt</b> mit. Die "
-  "Einteilung wird beim Import aus der .kmy übernommen (nach einem erneuten Import sichtbar).")
+p("Konten werden anhand ihres KMyMoney-Typs in <b>Anlagekonten</b>, <b>Verbindlichkeitskonten</b> "
+  "(Kredite, Kreditkarten) und <b>Depots</b> gruppiert – mit gleich gestalteten Überschriften sowohl in der "
+  "Kontenschublade als auch in den Beständen. In den Beständen zählt das Depot als eine Zeile (Depotwert) "
+  "zum <b>Gesamt</b> mit. Die Einteilung wird beim Import aus der .kmy übernommen (nach einem erneuten "
+  "Import sichtbar).")
 h2("Depot (Wertpapiere)")
 p("Nach dem Import eines KMyMoney-Investmentkontos erscheint das <b>Depot</b> in der Kontenschublade. Die "
   "Depot-Ansicht ist wie eine Konto-Ansicht aufgebaut (Schublade, Kopf mit Depotname, eigenes Menü, Filter) "
@@ -373,7 +376,8 @@ bullets([
   "<b>Nextcloud</b>: Basis-URL des Servers + App-Passwort (Nextcloud → Sicherheit → App-Passwort).",
   "<b>WebDAV (generisch)</b>: vollständige DAV-Wurzel-URL, Auth per HTTP-Basic.",
   "<b>SMB/Samba</b>: «smb://Host/Freigabe»; leerer Benutzer = Gast, Domäne als DOMÄNE\\Benutzer. SMB2/3.",
-  "<b>«Verbindung testen»</b> prüft die Zugangsdaten; im .kmy-Modus listet <b>«.kmy auswählen»</b> die Dateien.",
+  "<b>«Verbindung testen»</b> prüft die Zugangsdaten; im .kmy-Modus öffnet <b>«.kmy auswählen»</b> einen "
+  "Datei-Browser mit Unterordnern und .kmy-Dateien – man navigiert in Unterordner und mit «..» zurück.",
 ])
 h2("Export-Modus")
 bullets([

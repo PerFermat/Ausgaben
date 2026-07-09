@@ -85,7 +85,10 @@ public class AccountDrawerAdapter extends RecyclerView.Adapter<AccountDrawerAdap
             rows.add(new Row(KIND_HEADER, "accounts_liability"));
             for (String a : liabilities) rows.add(new Row(KIND_ACCOUNT, a));
         }
-        for (String d : depots) rows.add(new Row(KIND_DEPOT, d));
+        if (!depots.isEmpty()) {
+            rows.add(new Row(KIND_HEADER, "accounts_depot"));
+            for (String d : depots) rows.add(new Row(KIND_DEPOT, d));
+        }
         notifyDataSetChanged();
     }
 
@@ -117,19 +120,50 @@ public class AccountDrawerAdapter extends RecyclerView.Adapter<AccountDrawerAdap
     }
 
     private void bindHeader(VH h, String key) {
-        int resId = "accounts_liability".equals(key) ? R.string.accounts_liability : R.string.accounts_asset;
+        int resId;
+        if ("accounts_liability".equals(key)) {
+            resId = R.string.accounts_liability;
+        } else if ("accounts_depot".equals(key)) {
+            resId = R.string.accounts_depot;
+        } else {
+            resId = R.string.accounts_asset;
+        }
         h.text.setText(h.text.getResources().getString(resId));
         h.text.setTypeface(Typeface.DEFAULT, Typeface.BOLD);
-        h.text.setBackgroundColor(android.graphics.Color.TRANSPARENT);
-        h.text.setTextColor(h.text.getResources().getColor(R.color.grey_text, null));
+        // Invers-Darstellung: hell = dunkler Grund/weiße Schrift, dunkel = 50 % Grau/schwarze Schrift.
+        boolean night = (h.text.getResources().getConfiguration().uiMode
+                & android.content.res.Configuration.UI_MODE_NIGHT_MASK)
+                == android.content.res.Configuration.UI_MODE_NIGHT_YES;
+        h.text.setBackgroundColor(night ? 0xFF808080 : 0xFF303030);
+        h.text.setTextColor(night ? android.graphics.Color.BLACK : android.graphics.Color.WHITE);
+        // Kompakter als Konto-Zeilen und bündig an die folgende Konto-Zeile (kein sichtbarer Abstand).
+        applyRowMetrics(h, true);
         h.text.setOnClickListener(null);
         h.text.setClickable(false);
         h.text.setOnLongClickListener(null);
         h.text.setLongClickable(false);
     }
 
+    /** Setzt Zeilenhöhe/-abstände: Überschriften kompakt und unten bündig, sonst die Standard-Konto-Zeile. */
+    private void applyRowMetrics(VH h, boolean header) {
+        float d = h.text.getResources().getDisplayMetrics().density;
+        int padH = Math.round(20 * d);
+        if (header) {
+            h.text.setMinHeight(0);
+            h.text.setMinimumHeight(0);
+            h.text.setGravity(android.view.Gravity.BOTTOM | android.view.Gravity.START);
+            h.text.setPadding(padH, Math.round(16 * d), padH, Math.round(4 * d));
+        } else {
+            h.text.setMinHeight(Math.round(52 * d));
+            h.text.setMinimumHeight(Math.round(52 * d));
+            h.text.setGravity(android.view.Gravity.CENTER_VERTICAL);
+            h.text.setPadding(padH, Math.round(12 * d), padH, Math.round(12 * d));
+        }
+    }
+
     private void bindAccount(VH h, String item, boolean isAll) {
         boolean isSelected = isAll ? selected.isEmpty() : item.equals(selected);
+        applyRowMetrics(h, false);
         h.text.setText(item);
         h.text.setTypeface(Typeface.DEFAULT, isSelected ? Typeface.BOLD : Typeface.NORMAL);
         h.text.setTextColor(primaryText(h.text));
@@ -146,6 +180,7 @@ public class AccountDrawerAdapter extends RecyclerView.Adapter<AccountDrawerAdap
     }
 
     private void bindDepot(VH h, String depot) {
+        applyRowMetrics(h, false);
         h.text.setText(h.text.getResources().getString(R.string.kmy_choose_depot, depot));
         h.text.setTypeface(Typeface.DEFAULT, Typeface.NORMAL);
         h.text.setTextColor(primaryText(h.text));

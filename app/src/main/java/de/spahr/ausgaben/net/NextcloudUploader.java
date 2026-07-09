@@ -116,6 +116,29 @@ public class NextcloudUploader {
         }
     }
 
+    /** Listet die Unterordner-Namen im angegebenen Ordner (ohne Dateien, ohne den Ordner selbst). */
+    public List<String> listFolders(String baseUrl, String user, String password, String folder)
+            throws IOException {
+        String url = buildFolderUrl(baseUrl, user, folder);
+        String body = "<?xml version=\"1.0\"?><d:propfind xmlns:d=\"DAV:\">"
+                + "<d:prop><d:resourcetype/></d:prop></d:propfind>";
+        Request request = new Request.Builder()
+                .url(url)
+                .header("Authorization", Credentials.basic(user, password))
+                .header("Depth", "1")
+                .method("PROPFIND", RequestBody.create(body, XML))
+                .build();
+
+        try (Response response = client.newCall(request).execute()) {
+            ResponseBody rb = response.body();
+            String xml = rb == null ? "" : rb.string();
+            if (!response.isSuccessful()) {
+                throw new IOException("HTTP " + response.code() + " " + response.message());
+            }
+            return parseFolders(xml, pathOf(url));
+        }
+    }
+
     /** Lädt den Textinhalt einer Datei aus dem Ordner herunter. */
     public String downloadText(String baseUrl, String user, String password, String folder,
                                String fileName) throws IOException {
@@ -191,6 +214,75 @@ public class NextcloudUploader {
             throw new IOException("Antwort konnte nicht gelesen werden", e);
         }
         return names;
+    }
+
+    /** Extrahiert die Unterordner-Namen (Collections) aus der Multistatus-Antwort, ohne den Ordner selbst. */
+    private List<String> parseFolders(String xml, String selfPath) throws IOException {
+        List<String> names = new ArrayList<>();
+        try {
+            XmlPullParser parser = Xml.newPullParser();
+            parser.setFeature(XmlPullParser.FEATURE_PROCESS_NAMESPACES, false);
+            parser.setInput(new StringReader(xml));
+            int event = parser.getEventType();
+            String currentHref = null;
+            boolean isCollection = false;
+            while (event != XmlPullParser.END_DOCUMENT) {
+                String name = parser.getName();
+                if (event == XmlPullParser.START_TAG && name != null) {
+                    String local = localName(name);
+                    if (local.equals("response")) {
+                        currentHref = null;
+                        isCollection = false;
+                    } else if (local.equals("href")) {
+                        currentHref = parser.nextText();
+                    } else if (local.equals("collection")) {
+                        isCollection = true;
+                    }
+                } else if (event == XmlPullParser.END_TAG && "response".equals(localName(name))) {
+                    if (currentHref != null && isCollection) {
+                        // Den Ordner selbst (gleicher Pfad wie die Anfrage) auslassen.
+                        if (!stripSlash(decode(hrefPath(currentHref))).equals(stripSlash(selfPath))) {
+                            names.add(lastSegment(currentHref));
+                        }
+                    }
+                }
+                event = parser.next();
+            }
+        } catch (XmlPullParserException e) {
+            throw new IOException("Antwort konnte nicht gelesen werden", e);
+        }
+        return names;
+    }
+
+    /** Pfad-Anteil einer (evtl. absoluten) URL bzw. eines href (host wird entfernt). */
+    private String pathOf(String urlOrHref) {
+        String s = urlOrHref;
+        int scheme = s.indexOf("://");
+        if (scheme >= 0) {
+            int slash = s.indexOf('/', scheme + 3);
+            s = slash < 0 ? "" : s.substring(slash);
+        }
+        return s;
+    }
+
+    private String hrefPath(String href) {
+        return pathOf(href);
+    }
+
+    private String decode(String s) {
+        try {
+            return URLDecoder.decode(s, "UTF-8");
+        } catch (Exception e) {
+            return s;
+        }
+    }
+
+    private String stripSlash(String s) {
+        String r = s == null ? "" : s;
+        while (r.endsWith("/")) {
+            r = r.substring(0, r.length() - 1);
+        }
+        return r;
     }
 
     private String localName(String qName) {

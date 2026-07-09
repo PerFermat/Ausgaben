@@ -146,6 +146,9 @@ public class BalanceActivity extends LocalizedActivity {
             }
         }
         long depotTotal = 0;
+        if (!depotOrder.isEmpty()) {
+            addSectionHeader(getString(R.string.accounts_depot));
+        }
         for (String depot : depotOrder) {
             depotTotal += renderDepotSection(depot);
         }
@@ -191,14 +194,24 @@ public class BalanceActivity extends LocalizedActivity {
         return sub;
     }
 
+    /** Abschnittsüberschrift im Invers-Schema der Kontenschublade (siehe AccountDrawerAdapter). */
     private void addSectionHeader(String title) {
+        boolean night = (getResources().getConfiguration().uiMode
+                & android.content.res.Configuration.UI_MODE_NIGHT_MASK)
+                == android.content.res.Configuration.UI_MODE_NIGHT_YES;
         TextView header = new TextView(this);
         header.setText(title);
-        header.setTextColor(getColor(R.color.grey_text));
-        header.setTextSize(13f);
-        header.setTypeface(android.graphics.Typeface.DEFAULT_BOLD);
-        header.setAllCaps(true);
-        header.setPadding(0, 18, 0, 4);
+        header.setTypeface(android.graphics.Typeface.DEFAULT, android.graphics.Typeface.BOLD);
+        header.setTextSize(15f);
+        header.setBackgroundColor(night ? 0xFF808080 : 0xFF303030);
+        header.setTextColor(night ? android.graphics.Color.BLACK : android.graphics.Color.WHITE);
+        int padH = Math.round(16 * getResources().getDisplayMetrics().density);
+        header.setPadding(padH, Math.round(10 * getResources().getDisplayMetrics().density),
+                padH, Math.round(8 * getResources().getDisplayMetrics().density));
+        LinearLayout.LayoutParams lp = new LinearLayout.LayoutParams(
+                LinearLayout.LayoutParams.MATCH_PARENT, LinearLayout.LayoutParams.WRAP_CONTENT);
+        lp.topMargin = Math.round(12 * getResources().getDisplayMetrics().density);
+        header.setLayoutParams(lp);
         container.addView(header);
     }
 

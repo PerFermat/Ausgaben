@@ -146,16 +146,15 @@
             </com.google.android.material.textfield.TextInputLayout>
 
             <com.google.android.material.textfield.TextInputLayout
-                android:id="@+id/accountToLayout"
+                android:id="@+id/placeLayout"
                 style="@style/Widget.Material3.TextInputLayout.OutlinedBox.ExposedDropdownMenu"
                 android:layout_width="match_parent"
                 android:layout_height="wrap_content"
                 android:layout_marginTop="12dp"
-                android:hint="@string/transfer_to"
-                android:visibility="gone">
+                android:hint="@string/place_hint">
 
                 <com.google.android.material.textfield.MaterialAutoCompleteTextView
-                    android:id="@+id/editAccountTo"
+                    android:id="@+id/editPlace"
                     android:layout_width="match_parent"
                     android:layout_height="wrap_content"
                     android:minHeight="64dp"
@@ -167,15 +166,16 @@
             </com.google.android.material.textfield.TextInputLayout>
 
             <com.google.android.material.textfield.TextInputLayout
-                android:id="@+id/placeLayout"
+                android:id="@+id/accountToLayout"
                 style="@style/Widget.Material3.TextInputLayout.OutlinedBox.ExposedDropdownMenu"
                 android:layout_width="match_parent"
                 android:layout_height="wrap_content"
                 android:layout_marginTop="12dp"
-                android:hint="@string/place_hint">
+                android:hint="@string/transfer_to"
+                android:visibility="gone">
 
                 <com.google.android.material.textfield.MaterialAutoCompleteTextView
-                    android:id="@+id/editPlace"
+                    android:id="@+id/editAccountTo"
                     android:layout_width="match_parent"
                     android:layout_height="wrap_content"
                     android:minHeight="64dp"

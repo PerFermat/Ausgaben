@@ -37,6 +37,11 @@ public class WebDavStorage implements RemoteStorage {
     }
 
     @Override
+    public List<String> listFolders(String folder) throws IOException {
+        return uploader.listFolders(baseUrl, user, password, folder);
+    }
+
+    @Override
     public String downloadText(String folder, String fileName) throws IOException {
         return uploader.downloadText(baseUrl, user, password, folder, fileName);
     }

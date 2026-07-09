@@ -179,18 +179,21 @@ public class BookingEditActivity extends LocalizedActivity {
         });
 
         // Ort-Dropdown folgt dem gewählten Konto: bei Ausgabe/Einnahme der Ort, bei Umbuchung der Von-Ort.
+        // Danach die Sichtbarkeit aktualisieren (Ortsfeld nur bei Konten mit Orten).
         editAccount.setOnItemClickListener((parent, view, position, id) -> {
             if (isTransferType()) {
                 setupPlaceOptions(editPlace, textOf(editAccount).trim(), false);
             } else {
                 setupPlaceDropdown(textOf(editAccount).trim());
             }
+            applyTypeVisibility();
         });
         // Bei einer Umbuchung folgt der Nach-Ort dem Nach-Konto.
         editAccountTo.setOnItemClickListener((parent, view, position, id) -> {
             if (isTransferType()) {
                 setupPlaceOptions(editPlaceTo, textOf(editAccountTo).trim(), false);
             }
+            applyTypeVisibility();
         });
 
         // Gesamtbetrag ↔ Teilbeträge koppeln; Konto wirkt auf die Freischaltung der Buttons.
@@ -376,8 +379,11 @@ public class BookingEditActivity extends LocalizedActivity {
         if (isTransferType()) {
             a.fromAccount = textOf(editAccount).trim();
             a.toAccount = textOf(editAccountTo).trim();
+            a.fromPlace = selectedPlace();
+            a.toPlace = selectedPlaceTo();
         } else {
             a.account = textOf(editAccount).trim();
+            a.place = selectedPlace();
             List<Part> parts = collectParts();
             String c1 = parts.size() > 0 ? parts.get(0).category : "";
             String c2 = parts.size() > 1 ? parts.get(1).category : "";
@@ -410,11 +416,22 @@ public class BookingEditActivity extends LocalizedActivity {
             if (!activeAlias.toAccount.isEmpty()) {
                 editAccountTo.setText(activeAlias.toAccount, false);
             }
+            // Ort-Dropdowns/Sichtbarkeit für die neuen Konten aufbauen, dann Alias-Orte vorbelegen.
+            applyTypeVisibility();
+            if (!activeAlias.fromPlace.isEmpty()) {
+                editPlace.setText(activeAlias.fromPlace, false);
+            }
+            if (!activeAlias.toPlace.isEmpty()) {
+                editPlaceTo.setText(activeAlias.toPlace, false);
+            }
             return;
         }
         if (!activeAlias.account.isEmpty()) {
             editAccount.setText(activeAlias.account, false);
             setupPlaceDropdown(activeAlias.account);
+            if (!activeAlias.place.isEmpty()) {
+                editPlace.setText(activeAlias.place, false);
+            }
         }
         boolean income = toggleType.getCheckedButtonId() == R.id.btnIncome;
         String c1 = income ? activeAlias.catIncome1 : activeAlias.catExpense1;
@@ -429,6 +446,8 @@ public class BookingEditActivity extends LocalizedActivity {
         }
         suppressSplitEvents = false;
         ensureTrailingRow();
+        // Ortsfeld-Sichtbarkeit an das vom Alias gesetzte Konto anpassen.
+        applyTypeVisibility();
         updateSaveEnabled();
     }
 
@@ -592,17 +611,17 @@ public class BookingEditActivity extends LocalizedActivity {
         // Empfänger gibt es auch bei einer Umbuchung („Zahlungsempfänger"); Kategorien nicht.
         payeeLayout.setVisibility(View.VISIBLE);
         if (transfer) {
-            // Umbuchung: zwei Ortsfelder (Von-Ort/Nach-Ort), Dropdowns folgen dem jeweiligen Konto.
-            placeLayout.setVisibility(View.VISIBLE);
+            // Umbuchung: Von-/Nach-Ort nur, wenn das jeweilige Konto Orte hat; Dropdowns folgen dem Konto.
             placeLayout.setHint(getString(R.string.transfer_place_from));
-            placeToLayout.setVisibility(View.VISIBLE);
             setupPlaceOptions(editPlace, textOf(editAccount).trim(), true);
             setupPlaceOptions(editPlaceTo, textOf(editAccountTo).trim(), true);
+            placeLayout.setVisibility(hasPlaces(textOf(editAccount)) ? View.VISIBLE : View.GONE);
+            placeToLayout.setVisibility(hasPlaces(textOf(editAccountTo)) ? View.VISIBLE : View.GONE);
         } else {
-            // Ort-Feld nur bei in der App angelegten (ort-verknüpften) Buchungen zeigen; importierte
-            // Buchungen haben keine Ort-Verknüpfung (Korrektur über Umbuchung in Beständen).
+            // Ort-Feld nur bei in der App angelegten (ort-verknüpften) Buchungen UND wenn das Konto Orte hat.
             placeLayout.setHint(getString(R.string.place_hint));
-            placeLayout.setVisibility(origPlaceManaged ? View.VISIBLE : View.GONE);
+            placeLayout.setVisibility(
+                    origPlaceManaged && hasPlaces(textOf(editAccount)) ? View.VISIBLE : View.GONE);
             placeToLayout.setVisibility(View.GONE);
         }
         splitSection.setVisibility(transfer ? View.GONE : View.VISIBLE);
@@ -867,6 +886,12 @@ public class BookingEditActivity extends LocalizedActivity {
                 })
                 .setNeutralButton(R.string.cancel, null)
                 .show();
+    }
+
+    /** True, wenn das Konto mindestens einen Ort besitzt (steuert die Sichtbarkeit des Ortsfelds). */
+    private boolean hasPlaces(String account) {
+        return account != null && !account.trim().isEmpty()
+                && !placesStore.getPlaces(account.trim()).isEmpty();
     }
 
     private void setupPlaceDropdown(String account) {

@@ -36,12 +36,15 @@
     <string name="alias_type_income">Income</string>
     <string name="alias_type_transfer">Transfer</string>
     <string name="alias_account_hint">Account (income/expense)</string>
+    <string name="alias_place_hint">Place (income/expense)</string>
     <string name="alias_cat_income_1_hint">Income category 1</string>
     <string name="alias_cat_income_2_hint">Income category 2</string>
     <string name="alias_cat_expense_1_hint">Expense category 1</string>
     <string name="alias_cat_expense_2_hint">Expense category 2</string>
     <string name="alias_from_account_hint">From account (transfer)</string>
+    <string name="alias_from_place_hint">Place (from account)</string>
     <string name="alias_to_account_hint">To account (transfer)</string>
+    <string name="alias_to_place_hint">Place (to account)</string>
     <string name="alias_error_required">Spoken name and correct payee are required</string>
     <string name="alias_saved">Alias saved</string>
     <string name="alias_deleted">Alias deleted</string>
@@ -292,6 +295,7 @@
     <string name="depot_no_match">No securities match the filter</string>
     <string name="accounts_asset">Asset accounts</string>
     <string name="accounts_liability">Liability accounts</string>
+    <string name="accounts_depot">Portfolios</string>
     <string name="category_group_expense">Expense</string>
     <string name="category_group_income">Income</string>
     <string name="depot_empty">No portfolio imported yet</string>

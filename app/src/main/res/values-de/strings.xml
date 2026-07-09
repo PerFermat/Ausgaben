@@ -36,12 +36,15 @@
     <string name="alias_type_income">Einnahme</string>
     <string name="alias_type_transfer">Umbuchung</string>
     <string name="alias_account_hint">Konto (Einnahme/Ausgabe)</string>
+    <string name="alias_place_hint">Ort (Einnahme/Ausgabe)</string>
     <string name="alias_cat_income_1_hint">Kategorie Einnahme 1</string>
     <string name="alias_cat_income_2_hint">Kategorie Einnahme 2</string>
     <string name="alias_cat_expense_1_hint">Kategorie Ausgabe 1</string>
     <string name="alias_cat_expense_2_hint">Kategorie Ausgabe 2</string>
     <string name="alias_from_account_hint">Von-Konto (Umbuchung)</string>
+    <string name="alias_from_place_hint">Ort (Von-Konto)</string>
     <string name="alias_to_account_hint">Bis-Konto (Umbuchung)</string>
+    <string name="alias_to_place_hint">Ort (Nach-Konto)</string>
     <string name="alias_error_required">Gesprochener Name und korrekter Empfänger sind nötig</string>
     <string name="alias_saved">Alias gespeichert</string>
     <string name="alias_deleted">Alias gelöscht</string>
@@ -292,6 +295,7 @@
     <string name="depot_no_match">Keine Wertpapiere für den Filter</string>
     <string name="accounts_asset">Anlagekonten</string>
     <string name="accounts_liability">Verbindlichkeitskonten</string>
+    <string name="accounts_depot">Depots</string>
     <string name="category_group_expense">Ausgabe</string>
     <string name="category_group_income">Einnahme</string>
     <string name="depot_empty">Noch kein Depot importiert</string>

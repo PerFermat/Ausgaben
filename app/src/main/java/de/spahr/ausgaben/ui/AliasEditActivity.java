@@ -16,11 +16,14 @@ import com.google.android.material.dialog.MaterialAlertDialogBuilder;
 import com.google.android.material.textfield.MaterialAutoCompleteTextView;
 import com.google.android.material.textfield.TextInputEditText;
 
+import java.util.ArrayList;
+import java.util.List;
 import java.util.Locale;
 
 import de.spahr.ausgaben.R;
 import de.spahr.ausgaben.db.PayeeCorrection;
 import de.spahr.ausgaben.db.Repository;
+import de.spahr.ausgaben.settings.PlacesStore;
 import de.spahr.ausgaben.settings.SettingsStore;
 
 /** Formular zum Anlegen/Ändern/Löschen eines Alias mit allen Feldern (deckt alle Buchungsarten ab). */
@@ -41,6 +44,13 @@ public class AliasEditActivity extends LocalizedActivity {
     private MaterialAutoCompleteTextView editCatIncome2;
     private MaterialAutoCompleteTextView editFrom;
     private MaterialAutoCompleteTextView editTo;
+    private MaterialAutoCompleteTextView editPlace;
+    private MaterialAutoCompleteTextView editFromPlace;
+    private MaterialAutoCompleteTextView editToPlace;
+    private View placeLayout;
+    private View fromPlaceLayout;
+    private View toPlaceLayout;
+    private PlacesStore placesStore;
     private com.google.android.material.materialswitch.MaterialSwitch switchPreferred;
     private MaterialButton btnDelete;
     private View gpsSection;
@@ -74,8 +84,23 @@ public class AliasEditActivity extends LocalizedActivity {
         editCatIncome2 = findViewById(R.id.editAliasCatIncome2);
         editFrom = findViewById(R.id.editAliasFrom);
         editTo = findViewById(R.id.editAliasTo);
+        editPlace = findViewById(R.id.editAliasPlace);
+        editFromPlace = findViewById(R.id.editAliasFromPlace);
+        editToPlace = findViewById(R.id.editAliasToPlace);
+        placeLayout = findViewById(R.id.aliasPlaceLayout);
+        fromPlaceLayout = findViewById(R.id.aliasFromPlaceLayout);
+        toPlaceLayout = findViewById(R.id.aliasToPlaceLayout);
+        placesStore = new PlacesStore(this);
         switchPreferred = findViewById(R.id.switchAliasPreferred);
         btnDelete = findViewById(R.id.btnDeleteAlias);
+
+        // Ort-Felder folgen dem jeweils getippten Konto und erscheinen nur, wenn das Konto Orte hat.
+        editAccount.addTextChangedListener(afterText(() ->
+                setupPlaceField(editPlace, placeLayout, text(editAccount))));
+        editFrom.addTextChangedListener(afterText(() ->
+                setupPlaceField(editFromPlace, fromPlaceLayout, text(editFrom))));
+        editTo.addTextChangedListener(afterText(() ->
+                setupPlaceField(editToPlace, toPlaceLayout, text(editTo))));
 
         // Standort-Bereich nur bei aktiviertem GPS zeigen.
         gpsSection = findViewById(R.id.aliasGpsSection);
@@ -113,11 +138,16 @@ public class AliasEditActivity extends LocalizedActivity {
             editFrom.setAdapter(a);
             editTo.setAdapter(a);
         });
-        repository.getCategoryNames(names -> {
-            editCatExpense1.setAdapter(new ArrayAdapter<>(this, android.R.layout.simple_list_item_1, names));
-            editCatExpense2.setAdapter(new ArrayAdapter<>(this, android.R.layout.simple_list_item_1, names));
-            editCatIncome1.setAdapter(new ArrayAdapter<>(this, android.R.layout.simple_list_item_1, names));
-            editCatIncome2.setAdapter(new ArrayAdapter<>(this, android.R.layout.simple_list_item_1, names));
+        // Kategorie-Felder wie im Buchungseditor: gruppierte Baum-Anzeige (Überschrift + Einrückung).
+        repository.getCategoriesGrouped(g -> {
+            CategoryFilterAdapter expenseAdapter = new CategoryFilterAdapter(this, null,
+                    getString(R.string.category_group_expense), g.expense, null, new ArrayList<>());
+            CategoryFilterAdapter incomeAdapter = new CategoryFilterAdapter(this, null,
+                    null, new ArrayList<>(), getString(R.string.category_group_income), g.income);
+            editCatExpense1.setAdapter(expenseAdapter);
+            editCatExpense2.setAdapter(expenseAdapter);
+            editCatIncome1.setAdapter(incomeAdapter);
+            editCatIncome2.setAdapter(incomeAdapter);
         });
 
         long id = getIntent().getLongExtra(EXTRA_ALIAS_ID, -1);
@@ -147,6 +177,13 @@ public class AliasEditActivity extends LocalizedActivity {
         editCatIncome2.setText(a.catIncome2, false);
         editFrom.setText(a.fromAccount, false);
         editTo.setText(a.toAccount, false);
+        // Ort-Dropdowns für die geladenen Konten aufbauen, dann die Alias-Orte setzen.
+        setupPlaceField(editPlace, placeLayout, a.account);
+        setupPlaceField(editFromPlace, fromPlaceLayout, a.fromAccount);
+        setupPlaceField(editToPlace, toPlaceLayout, a.toAccount);
+        editPlace.setText(a.place, false);
+        editFromPlace.setText(a.fromPlace, false);
+        editToPlace.setText(a.toPlace, false);
         switchPreferred.setChecked(a.preferred);
         editLat.setText(a.lat == 0 && a.lon == 0 ? "" : formatCoord(a.lat));
         editLon.setText(a.lat == 0 && a.lon == 0 ? "" : formatCoord(a.lon));
@@ -170,6 +207,9 @@ public class AliasEditActivity extends LocalizedActivity {
         a.catIncome2 = text(editCatIncome2);
         a.fromAccount = text(editFrom);
         a.toAccount = text(editTo);
+        a.place = text(editPlace);
+        a.fromPlace = text(editFromPlace);
+        a.toPlace = text(editToPlace);
         a.preferred = switchPreferred.isChecked();
         // Standort aus den Feldern übernehmen (beide leer/ungültig → 0/0 = keiner).
         Double lat = parseCoord(text(editLat));
@@ -224,6 +264,22 @@ public class AliasEditActivity extends LocalizedActivity {
 
     private String text(android.widget.EditText field) {
         return field.getText() == null ? "" : field.getText().toString().trim();
+    }
+
+    /** Befüllt ein Ort-Dropdown mit den Orten des Kontos und zeigt es nur, wenn das Konto Orte hat. */
+    private void setupPlaceField(MaterialAutoCompleteTextView field, View layout, String account) {
+        List<String> places = placesStore.getPlaces(account == null ? "" : account.trim());
+        field.setAdapter(new ArrayAdapter<>(this, android.R.layout.simple_list_item_1, places));
+        layout.setVisibility(places.isEmpty() ? View.GONE : View.VISIBLE);
+    }
+
+    /** Kleiner TextWatcher, der nur auf Textänderungen reagiert. */
+    private android.text.TextWatcher afterText(Runnable action) {
+        return new android.text.TextWatcher() {
+            @Override public void beforeTextChanged(CharSequence s, int a, int b, int c) { }
+            @Override public void onTextChanged(CharSequence s, int a, int b, int c) { }
+            @Override public void afterTextChanged(android.text.Editable e) { action.run(); }
+        };
     }
 
     private void selectType(String type) {

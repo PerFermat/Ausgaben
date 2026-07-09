@@ -100,8 +100,10 @@ Mikrofon-Berechtigung ist davon unberührt). Hinweise zur F-Droid-Paketierung in
   Empfänger.
 - **Alias-Namen (gelernte Zuordnungen)**: ändert man beim Speichern den per Sprache erkannten (oder beim
   Bearbeiten den bestehenden) Empfänger, fragt die App, ob sie sich die Zuordnung als Alias merken soll.
-  Dabei wird der **Kontext der Buchung mitgespeichert** – Buchungsart, Konto und Kategorie(n) bzw.
-  Von-/Bis-Konto bei Umbuchungen. Die hinterlegte **Buchungsart** bestimmt am Phone den Typ der neuen
+  Dabei wird der **Kontext der Buchung mitgespeichert** – Buchungsart, Konto, Kategorie(n) und **Ort** bzw.
+  Von-/Bis-Konto und Von-/Nach-Ort bei Umbuchungen. Die Kategoriefelder und die Ort-Anzeige im
+  Alias-Formular entsprechen dabei denen im Buchungseditor (gruppierte Kategorie-Baumauswahl; ein Ortsfeld
+  erscheint nur bei einem Konto mit Orten). Die hinterlegte **Buchungsart** bestimmt am Phone den Typ der neuen
   Buchung (in der Wear-App gilt die per Knopf gewählte Art). Kommt derselbe gesprochene Begriff später erneut, wird der Alias gefunden (gleiche unscharfe
   Logik wie die Buchungssuche) und die neue Buchung mit richtigem Empfänger **und** den hinterlegten
   Konto-/Kategorie-Daten vorbelegt – auch für die Wear-Erfassung. So deckt ein Alias jede Buchungsart ab.
@@ -157,9 +159,10 @@ Mikrofon-Berechtigung ist davon unberührt). Hinweise zur F-Droid-Paketierung in
   erster Kauf). Der Depotwert wird **getrennt** geführt (nicht in Konto-Salden/Auswertung gemischt); die
   Kaufkosten/Dividenden erscheinen wie gehabt auf dem jeweiligen Geldkonto. In der Saldenzeile der
   Hauptansicht gibt es zusätzlich **„Gesamtvermögen"** = alle Konten + Depotwert.
-- **Anlage- und Verbindlichkeitskonten**: Konten werden anhand ihres KMyMoney-Typs in **Anlagekonten** und
-  **Verbindlichkeitskonten** (Kredite, Kreditkarten) getrennt – mit Überschriften in der Kontenschublade
-  **und** in den Beständen. In den Beständen zählt das Depot als eine Zeile (Depotwert) zum **Gesamt** mit.
+- **Anlage- und Verbindlichkeitskonten**: Konten werden anhand ihres KMyMoney-Typs in **Anlagekonten**,
+  **Verbindlichkeitskonten** (Kredite, Kreditkarten) und **Depots** gruppiert – mit gleich gestalteten
+  Überschriften in der Kontenschublade **und** in den Beständen. In den Beständen zählt das Depot als eine
+  Zeile (Depotwert) zum **Gesamt** mit.
 - **CSV-Import** von kMyMoney-Ledger-CSV (Konto aus `Kontentyp:`-Zeile, ISO-Datum, Vorzeichen → Typ).
 
 ### Sprachen
@@ -263,9 +266,10 @@ ein unsigniertes Release.
 
 In den Einstellungen den **Server-Typ** wählen, dann Basis-URL/Freigabe, Benutzername und Passwort
 eintragen, optional Ziel-/Importordner bzw. im `.kmy`-Modus den Pfad zur `.kmy`-Datei. Ein Button
-**„Verbindung testen"** prüft die Zugangsdaten; im `.kmy`-Modus listet **„.kmy auswählen"** die
-`.kmy`-Dateien der Freigabe/des Ordners zur Auswahl. Ohne konfiguriertes Sync-Ziel wird lokal in einen per
-SAF gewählten Ordner exportiert.
+**„Verbindung testen"** prüft die Zugangsdaten; im `.kmy`-Modus öffnet **„.kmy auswählen"** einen
+**Datei-Browser**, der Unterordner (📁) und `.kmy`-Dateien anzeigt – man kann in Unterordner navigieren und
+mit **„.. "** wieder eine Ebene höher. Ohne konfiguriertes Sync-Ziel wird lokal in einen per SAF gewählten
+Ordner exportiert.
 
 - **Nextcloud**: Basis-URL = Server (z. B. `https://cloud.example.com`) und ein **App-Passwort**
   (Nextcloud → Einstellungen → Sicherheit → App-Passwort). Die Dateien landen unter

@@ -32,6 +32,7 @@ import java.io.InputStream;
 import java.io.OutputStream;
 import java.nio.charset.StandardCharsets;
 import java.text.SimpleDateFormat;
+import java.util.ArrayList;
 import java.util.Date;
 import java.util.List;
 import java.util.Locale;
@@ -253,24 +254,35 @@ public class SettingsActivity extends LocalizedActivity {
         }).start();
     }
 
-    /** Listet die .kmy-Dateien im Ordner des aktuellen kmy-Pfads und lässt eine auswählen. */
+    /** Öffnet den .kmy-Datei-Browser im Ordner des aktuellen kmy-Pfads (navigierbar in Unterordner). */
     private void browseKmy() {
+        browseKmyAt(folderOf(textOf(editKmyPath)));
+    }
+
+    /**
+     * Listet Unterordner und .kmy-Dateien im {@code folder} und zeigt sie in einem navigierbaren Dialog:
+     * „..“ (eine Ebene hoch), dann Ordner, dann Dateien. Zugangsdaten werden je Aufruf aus den Feldern
+     * gelesen.
+     */
+    private void browseKmyAt(String folder) {
         final String serverType = selectedServerType;
         final String url = textOf(editUrl);
         final String user = textOf(editUser);
         String pw = textOf(editPassword);
         final String password = pw.isEmpty() ? settings.getPassword() : pw;
-        final String folder = folderOf(textOf(editKmyPath));
         Toast.makeText(this, R.string.loading_files, Toast.LENGTH_SHORT).show();
         new Thread(() -> {
             try {
-                List<String> files = RemoteStorage.from(serverType, url, user, password)
-                        .listFiles(folder, "kmy");
+                RemoteStorage storage = RemoteStorage.from(serverType, url, user, password);
+                List<String> folders = storage.listFolders(folder);
+                List<String> files = storage.listFiles(folder, "kmy");
+                java.util.Collections.sort(folders, String.CASE_INSENSITIVE_ORDER);
+                java.util.Collections.sort(files, String.CASE_INSENSITIVE_ORDER);
                 runOnUiThread(() -> {
-                    if (files.isEmpty()) {
+                    if (folder.isEmpty() && folders.isEmpty() && files.isEmpty()) {
                         Toast.makeText(this, R.string.kmy_browse_none, Toast.LENGTH_LONG).show();
                     } else {
-                        showKmyPick(folder, files);
+                        showKmyPick(folder, folders, files);
                     }
                 });
             } catch (Exception e) {
@@ -281,18 +293,43 @@ public class SettingsActivity extends LocalizedActivity {
         }).start();
     }
 
-    private void showKmyPick(String folder, List<String> files) {
-        String[] items = files.toArray(new String[0]);
+    private void showKmyPick(String folder, List<String> folders, List<String> files) {
+        final List<String> labels = new ArrayList<>();
+        final List<Runnable> actions = new ArrayList<>();
+        if (!folder.isEmpty()) {
+            labels.add("↑  ..");
+            actions.add(() -> browseKmyAt(parentFolder(folder)));
+        }
+        for (String d : folders) {
+            labels.add("📁  " + d);
+            final String target = folder.isEmpty() ? d : folder + "/" + d;
+            actions.add(() -> browseKmyAt(target));
+        }
+        for (String f : files) {
+            labels.add(f);
+            final String path = folder.isEmpty() ? f : folder + "/" + f;
+            actions.add(() -> editKmyPath.setText(path));
+        }
+        String title = folder.isEmpty() ? getString(R.string.kmy_browse) : "/" + folder;
         new MaterialAlertDialogBuilder(this, R.style.ThemeOverlay_Ausgaben_Dialog)
-                .setTitle(R.string.kmy_browse)
-                .setItems(items, (d, w) ->
-                        editKmyPath.setText(folder.isEmpty() ? items[w] : folder + "/" + items[w]))
+                .setTitle(title)
+                .setItems(labels.toArray(new String[0]), (d, w) -> actions.get(w).run())
                 .setNegativeButton(R.string.cancel, null)
                 .show();
     }
 
     private static String folderOf(String path) {
         String p = path == null ? "" : path.trim();
+        int slash = p.lastIndexOf('/');
+        return slash < 0 ? "" : p.substring(0, slash);
+    }
+
+    /** Übergeordneter Ordner („a/b/c“ → „a/b“, „a“ → „“). */
+    private static String parentFolder(String folder) {
+        String p = folder == null ? "" : folder.trim();
+        while (p.endsWith("/")) {
+            p = p.substring(0, p.length() - 1);
+        }
         int slash = p.lastIndexOf('/');
         return slash < 0 ? "" : p.substring(0, slash);
     }

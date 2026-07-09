@@ -11,7 +11,14 @@ import java.util.List;
 public interface AccountDao {
 
     @Insert(onConflict = OnConflictStrategy.IGNORE)
-    void insertIfAbsent(Account account);
+    void insertRaw(Account account);
+
+    /** Legt ein Konto nur an, wenn es einen nicht-leeren Namen hat (kein namenloses Konto). */
+    default void insertIfAbsent(Account account) {
+        if (account != null && account.name != null && !account.name.trim().isEmpty()) {
+            insertRaw(account);
+        }
+    }
 
     @Query("SELECT name FROM account ORDER BY name COLLATE NOCASE ASC")
     List<String> getAllNames();

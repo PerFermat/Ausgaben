@@ -530,7 +530,10 @@ public class Repository {
                 payee = term;
             }
             note = appendGps(note, coords);
-            insertTransferPair(from, to, amount, payee, note, now, false, UUID.randomUUID().toString());
+            String fromPlace = alias != null ? alias.fromPlace : "";
+            String toPlace = alias != null ? alias.toPlace : "";
+            insertTransferPair(from, to, amount, payee, note, now, false, UUID.randomUUID().toString(),
+                    fromPlace, toPlace);
             return true;
         }
 
@@ -560,9 +563,11 @@ public class Repository {
             b.note = "";
         }
         b.note = appendGps(b.note, coords);
-        // Sprach-/Uhr-Buchung ist in der App angelegt → auf den Standardort des Kontos verbuchen.
-        String defPlace = new de.spahr.ausgaben.settings.PlacesStore(appContext).getDefaultPlace(b.account);
-        b.place = isRealPlace(defPlace) ? defPlace.trim() : "";
+        // Sprach-/Uhr-Buchung ist in der App angelegt → Ort des Alias, sonst Standardort des Kontos.
+        String aliasPlace = alias != null ? alias.place : "";
+        String place = isRealPlace(aliasPlace) ? aliasPlace.trim()
+                : new de.spahr.ausgaben.settings.PlacesStore(appContext).getDefaultPlace(b.account);
+        b.place = isRealPlace(place) ? place.trim() : "";
         b.placeManaged = true;
         if (!b.payee.trim().isEmpty()) {
             payeeDao.insertIfAbsent(new Payee(b.payee));

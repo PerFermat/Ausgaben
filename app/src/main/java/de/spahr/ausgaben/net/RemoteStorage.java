@@ -19,6 +19,11 @@ public interface RemoteStorage {
     /** Dateinamen im Ordner mit der Endung {@code ext} (ohne Punkt, z. B. "csv" oder "kmy"). */
     List<String> listFiles(String folder, String ext) throws IOException;
 
+    /** Unterordner-Namen im Ordner (für den Datei-Browser); leere Liste, wenn nicht unterstützt. */
+    default List<String> listFolders(String folder) throws IOException {
+        return java.util.Collections.emptyList();
+    }
+
     String downloadText(String folder, String fileName) throws IOException;
 
     byte[] downloadBytes(String folder, String fileName) throws IOException;

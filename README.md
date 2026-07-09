@@ -98,7 +98,9 @@ permission is unaffected). F-Droid packaging notes are in [`fdroid/`](fdroid/).
   payee.
 - **Alias names (learned mappings)**: if you change the voice-recognized payee (or, when editing, the
   existing one) while saving, the app asks whether to remember the mapping as an alias. The **booking context
-  is stored with it** — booking type, account and category/-ies, or From/To accounts for transfers. The
+  is stored with it** — booking type, account, category/-ies and **place**, or From/To accounts and
+  from/to places for transfers. The alias form's category fields and place display match the booking editor
+  (grouped category tree; a place field appears only for an account that has places). The
   stored **booking type** determines the type of the new booking on the phone (in the Wear app the type
   chosen by button applies). When the same spoken term comes up again, the alias is found (same fuzzy logic
   as the booking search) and the new booking is pre-filled with the correct payee **and** the stored
@@ -151,9 +153,10 @@ permission is unaffected). F-Droid packaging notes are in [`fdroid/`](fdroid/).
   portfolio value is kept **separate** (not mixed into account balances/analysis); the buy costs/dividends
   still appear on the respective cash account. The main screen's balance line additionally offers **“Net
   worth”** = all accounts + portfolio value.
-- **Asset and liability accounts**: accounts are split by their KMyMoney type into **asset accounts** and
-  **liability accounts** (loans, credit cards) — with section headers both in the account drawer **and** in
-  the holdings view. In holdings the portfolio counts as one line (portfolio value) towards the **total**.
+- **Asset and liability accounts**: accounts are grouped by their KMyMoney type into **asset accounts**,
+  **liability accounts** (loans, credit cards) and **portfolios** — with matching section headers both in the
+  account drawer **and** in the holdings view. In holdings the portfolio counts as one line (portfolio value)
+  towards the **total**.
 - **CSV import** of KMyMoney ledger CSV (account from the `Kontentyp:` line, ISO date, sign → type).
 
 ### Languages
@@ -253,8 +256,9 @@ present locally (Android Studio creates it automatically). A signed release buil
 
 In the settings choose the **server type**, then enter base URL/share, username and password, optionally a
 target/import folder or — in `.kmy` mode — the path to the `.kmy` file. A **“Test connection”** button
-checks the credentials; in `.kmy` mode **“Choose .kmy”** lists the `.kmy` files of the share/folder for
-selection. Without a configured sync target, export goes locally into a folder chosen via SAF.
+checks the credentials; in `.kmy` mode **“Choose .kmy”** opens a **file browser** showing subfolders (📁)
+and `.kmy` files — you can descend into subfolders and go back up one level with **“..”**. Without a
+configured sync target, export goes locally into a folder chosen via SAF.
 
 - **Nextcloud**: base URL = server (e.g. `https://cloud.example.com`) and an **app password** (Nextcloud →
   Settings → Security → App password). Files end up under `<URL>/remote.php/dav/files/<user>/<folder>/`.

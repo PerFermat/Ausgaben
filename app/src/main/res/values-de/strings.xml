@@ -246,6 +246,9 @@
     <string name="currency_hint">Währungskennzeichen (Standard)</string>
     <string name="number_format_hint">Zahlenformat</string>
     <string name="show_currency_symbol">Währungskennzeichen anzeigen</string>
+    <string name="dividend_gross_switch">Dividenden brutto anzeigen (aus = netto)</string>
+    <string name="depot_dividends_gross">Dividenden (brutto)</string>
+    <string name="depot_dividends_net">Dividenden (netto)</string>
     <string name="number_format_de_group">1.234,56 (Tausenderpunkt, Komma)</string>
     <string name="number_format_en_group">1,234.56 (Tausenderkomma, Punkt)</string>
     <string name="number_format_plain_comma">1234,56 (ohne Tausender, Komma)</string>
@@ -286,6 +289,7 @@
     <string name="depot_title">Depot</string>
     <string name="depot_value_total">Depotwert: %1$s</string>
     <string name="depot_value_label">Depotwert</string>
+    <string name="depot_chart_title">Depot-Diagramm</string>
     <string name="depot_net_invested">Nettoeinsatz</string>
     <string name="depot_gain">Gewinn</string>
     <string name="depot_loss">Verlust</string>

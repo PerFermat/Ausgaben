@@ -1208,7 +1208,8 @@ public class Repository {
         }
     }
 
-    private static DepotMetrics metricsFrom(long valueCents, List<SecurityDao.ActionSum> sums) {
+    private static DepotMetrics metricsFrom(long valueCents, List<SecurityDao.ActionSum> sums,
+                                            boolean grossDividends) {
         long buy = 0, sell = 0, dividend = 0;
         for (SecurityDao.ActionSum s : sums) {
             String a = s.action == null ? "" : s.action;
@@ -1217,10 +1218,16 @@ public class Repository {
             } else if ("sell".equals(a)) {
                 sell += s.amount;
             } else if ("dividend".equals(a)) {
-                dividend += s.amount;
+                // Brutto = amount (Einnahme-Split), Netto = net (gutgeschriebenes Geld).
+                dividend += grossDividends ? s.amount : s.net;
             }
         }
         return new DepotMetrics(valueCents, buy, sell, dividend);
+    }
+
+    /** Einstellung „Dividenden brutto anzeigen" (Standard true). Auf dem Executor-Thread gelesen. */
+    private boolean dividendsGross() {
+        return new de.spahr.ausgaben.settings.SettingsStore(appContext).isDividendGross();
     }
 
     /** Kennzahlen für das komplette Depot. */
@@ -1235,7 +1242,7 @@ public class Repository {
                 double q = shares.containsKey(s.kmyId) ? shares.get(s.kmyId) : 0.0;
                 value += Math.round(q * s.price * 100.0);
             }
-            final DepotMetrics m = metricsFrom(value, securityDao.getActionSums(depot));
+            final DepotMetrics m = metricsFrom(value, securityDao.getActionSums(depot), dividendsGross());
             mainHandler.post(() -> callback.onResult(m));
         });
     }
@@ -1256,7 +1263,8 @@ public class Repository {
                     value = Math.round(q * s.price * 100.0);
                 }
             }
-            final DepotMetrics m = metricsFrom(value, securityDao.getActionSumsBySecurity(depot, kmyId));
+            final DepotMetrics m = metricsFrom(value,
+                    securityDao.getActionSumsBySecurity(depot, kmyId), dividendsGross());
             mainHandler.post(() -> callback.onResult(m));
         });
     }

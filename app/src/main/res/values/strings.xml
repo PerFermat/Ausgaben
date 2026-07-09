@@ -246,6 +246,9 @@
     <string name="currency_hint">Currency indicator (default)</string>
     <string name="number_format_hint">Number format</string>
     <string name="show_currency_symbol">Show currency symbol</string>
+    <string name="dividend_gross_switch">Show dividends gross (off = net)</string>
+    <string name="depot_dividends_gross">Dividends (gross)</string>
+    <string name="depot_dividends_net">Dividends (net)</string>
     <string name="number_format_de_group">1.234,56 (grouping dot, comma)</string>
     <string name="number_format_en_group">1,234.56 (grouping comma, point)</string>
     <string name="number_format_plain_comma">1234,56 (no grouping, comma)</string>
@@ -286,6 +289,7 @@
     <string name="depot_title">Portfolio</string>
     <string name="depot_value_total">Portfolio value: %1$s</string>
     <string name="depot_value_label">Portfolio value</string>
+    <string name="depot_chart_title">Portfolio chart</string>
     <string name="depot_net_invested">Net invested</string>
     <string name="depot_gain">Gain</string>
     <string name="depot_loss">Loss</string>

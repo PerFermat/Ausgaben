@@ -51,6 +51,8 @@ public class SecurityHistoryActivity extends LocalizedActivity {
     private final java.util.Set<String> filterActions = new java.util.HashSet<>();
     private Long filterFrom;
     private Long filterTo;
+    /** Dividenden brutto (true) oder netto anzeigen – aus den Einstellungen. */
+    private boolean dividendGross = true;
 
     @Override
     protected void onCreate(Bundle savedInstanceState) {
@@ -100,6 +102,7 @@ public class SecurityHistoryActivity extends LocalizedActivity {
     }
 
     private void renderTx() {
+        dividendGross = new de.spahr.ausgaben.settings.SettingsStore(this).isDividendGross();
         container.removeAllViews();
         boolean any = false;
         for (SecurityTx tx : allTx) {
@@ -221,8 +224,10 @@ public class SecurityHistoryActivity extends LocalizedActivity {
         left.addView(action);
         left.addView(sub);
 
+        // Dividenden je nach Einstellung brutto (amountCents) oder netto (netCents) anzeigen.
+        long shown = "dividend".equals(tx.action) && !dividendGross ? tx.netCents : tx.amountCents;
         TextView amount = new TextView(this);
-        amount.setText(tx.amountCents != 0 ? money(tx.amountCents) : "");
+        amount.setText(shown != 0 ? money(shown) : "");
         amount.setTextSize(16f);
         amount.setTypeface(Typeface.MONOSPACE, Typeface.BOLD);
         amount.setGravity(Gravity.END);

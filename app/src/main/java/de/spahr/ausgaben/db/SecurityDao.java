@@ -32,13 +32,13 @@ public interface SecurityDao {
     @Query("SELECT DISTINCT depot FROM security ORDER BY depot COLLATE NOCASE ASC")
     List<String> distinctDepots();
 
-    /** Beträge je Bewegungsart über das ganze Depot (für Nettoeinsatz/Gewinn). */
-    @Query("SELECT action, SUM(amount_cents) AS amount FROM security_tx "
+    /** Beträge je Bewegungsart über das ganze Depot (Brutto + Netto; für Nettoeinsatz/Gewinn). */
+    @Query("SELECT action, SUM(amount_cents) AS amount, SUM(net_cents) AS net FROM security_tx "
             + "WHERE depot = :depot GROUP BY action")
     List<ActionSum> getActionSums(String depot);
 
-    /** Beträge je Bewegungsart eines einzelnen Wertpapiers. */
-    @Query("SELECT action, SUM(amount_cents) AS amount FROM security_tx "
+    /** Beträge je Bewegungsart eines einzelnen Wertpapiers (Brutto + Netto). */
+    @Query("SELECT action, SUM(amount_cents) AS amount, SUM(net_cents) AS net FROM security_tx "
             + "WHERE depot = :depot AND security_kmy_id = :kmyId GROUP BY action")
     List<ActionSum> getActionSumsBySecurity(String depot, String kmyId);
 
@@ -54,9 +54,10 @@ public interface SecurityDao {
         public double shares;
     }
 
-    /** Projektion für die Betragssummen je Bewegungsart. */
+    /** Projektion für die Betragssummen je Bewegungsart (Brutto {@code amount} + Netto {@code net}). */
     class ActionSum {
         public String action;
         public long amount;
+        public long net;
     }
 }

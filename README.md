@@ -150,9 +150,15 @@ permission is unaffected). F-Droid packaging notes are in [`fdroid/`](fdroid/).
   → **gain/loss** (coloured, with percentage). The **portfolio filter** narrows the securities by name and
   **value (slider)**. A tap on a security opens its **movements full-screen** with the same figures for that
   security plus a **filter by buys/sells/dividends** and a **date slider** (start date = first purchase). The
-  portfolio value is kept **separate** (not mixed into account balances/analysis); the buy costs/dividends
-  still appear on the respective cash account. The main screen's balance line additionally offers **“Net
-  worth”** = all accounts + portfolio value.
+  **“Analysis”** menu opens a **pie chart** of the securities (share of the portfolio value): the slices are
+  unlabelled; a tap shows the **name + amount** of that security in the centre, and with nothing selected the
+  centre reads **“Total: <portfolio value>”**. The **Export** in the portfolio menu runs right there, without
+  switching to the cash view. The portfolio value is kept **separate** (not mixed into account
+  balances/analysis); the buy costs/dividends still appear on the respective cash account. The main screen's
+  balance line additionally offers **“Net worth”** = all accounts + portfolio value.
+- **Dividends gross/net**: a setting controls whether dividends are shown **gross** (declared dividend) or
+  **net** (cash received after tax) and used in the balance line (dividends, net invested, gain/loss). The net
+  value is captured on portfolio import; for existing data a one-time re-import is needed.
 - **Asset and liability accounts**: accounts are grouped by their KMyMoney type into **asset accounts**,
   **liability accounts** (loans, credit cards) and **portfolios** — with matching section headers both in the
   account drawer **and** in the holdings view. In holdings the portfolio counts as one line (portfolio value)

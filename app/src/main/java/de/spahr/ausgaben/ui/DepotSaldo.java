@@ -60,7 +60,9 @@ final class DepotSaldo {
                 value.setTextColor(neutral);
                 break;
             case DIVIDEND:
-                label.setText(c.getString(R.string.depot_dividends));
+                boolean gross = new de.spahr.ausgaben.settings.SettingsStore(c).isDividendGross();
+                label.setText(c.getString(gross
+                        ? R.string.depot_dividends_gross : R.string.depot_dividends_net));
                 value.setText(money(m.dividendCents));
                 value.setTextColor(neutral);
                 break;

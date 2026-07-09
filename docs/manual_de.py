@@ -347,6 +347,14 @@ p("Nach dem Import eines KMyMoney-Investmentkontos erscheint das <b>Depot</b> in
   "<b>Filter nach Käufen/Verkäufen/Dividenden</b> sowie einem Datums-Slider (Startdatum = erster Kauf). Der "
   "Depotwert wird getrennt geführt und erscheint zusätzlich als «Gesamtvermögen» in der Saldenzeile des "
   "Hauptbildschirms.")
+p("Das Menü <b>«Auswertung»</b> öffnet ein <b>Kreisdiagramm</b> der Wertpapiere (Anteil am Depotwert). Die "
+  "Segmente sind unbeschriftet; ein Tipp zeigt in der Mitte <b>Name und Betrag</b> des Papiers, ohne Auswahl "
+  "steht dort «Gesamt: &lt;Depotwert&gt;». Der <b>Export</b> im Depot-Menü läuft direkt im Depot (ohne Wechsel "
+  "zur Bargeld-Ansicht).")
+p("<b>Dividenden brutto/netto:</b> In den Einstellungen wählbar, ob Dividenden brutto (deklarierte Dividende) "
+  "oder netto (gutgeschriebenes Geld nach Steuer) angezeigt und in der Saldenzeile (Dividenden, Nettoeinsatz, "
+  "Gewinn/Verlust) verrechnet werden. Der Netto-Wert wird beim Depot-Import erfasst – für bestehende Daten ist "
+  "einmalig ein Depot-Neuimport nötig.")
 
 # ---------------------------------------------------------------- 11 Synchronisieren durchführen
 h1("11. Synchronisieren: Export und Import durchführen")

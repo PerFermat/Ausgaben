@@ -147,10 +147,17 @@ public class KmyImporter {
         String[] sec = stockAccounts.get(stock[0]);
         String action = normalizeAction(stock[2]);
         double shares = de.spahr.ausgaben.export.KmyDocument.fractionToDouble(stock[3]);
-        long amountCents;
         if ("dividend".equals(action)) {
-            amountCents = dividendAmount(splits);
-        } else if ("add".equals(action) || "remove".equals(action)) {
+            long gross = dividendGross(splits);
+            long net = dividendNet(splits);
+            if (net == 0) {
+                net = gross;
+            }
+            return new SecurityTx(depotName, sec[0], sec[1],
+                    parseDate(postdate, entrydate), action, shares, gross, net);
+        }
+        long amountCents;
+        if ("add".equals(action) || "remove".equals(action)) {
             amountCents = 0;
         } else {
             amountCents = Math.abs(valueToCents(stock[1]));
@@ -159,8 +166,8 @@ public class KmyImporter {
                 parseDate(postdate, entrydate), action, shares, amountCents);
     }
 
-    /** Dividendenbetrag: aus dem Einnahme-Kategorie-Split (Typ 12), sonst dem positiven Geld-Split. */
-    private long dividendAmount(List<String[]> splits) {
+    /** Brutto-Dividende: aus dem Einnahme-Kategorie-Split (Typ 12), sonst dem positiven Geld-Split. */
+    private long dividendGross(List<String[]> splits) {
         for (String[] s : splits) {
             if (doc.accountTypeOf(s[0]) == 12) {
                 return Math.abs(valueToCents(s[1]));
@@ -170,6 +177,21 @@ public class KmyImporter {
             int t = doc.accountTypeOf(s[0]);
             long v = valueToCents(s[1]);
             if (t != 15 && v > 0) {
+                return v;
+            }
+        }
+        return 0;
+    }
+
+    /**
+     * Netto-Dividende = tatsächlich gutgeschriebenes Geld: der positive Split auf einem Geld-/Bankkonto
+     * (kein Kategorie-Typ 12/13, keine Aktie 15, kein Eigenkapital 16). Fehlt einer, wird Brutto genutzt.
+     */
+    private long dividendNet(List<String[]> splits) {
+        for (String[] s : splits) {
+            int t = doc.accountTypeOf(s[0]);
+            long v = valueToCents(s[1]);
+            if (t != 12 && t != 13 && t != 15 && t != 16 && v > 0) {
                 return v;
             }
         }

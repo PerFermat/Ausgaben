@@ -329,6 +329,14 @@ p("After importing a KMyMoney investment account, the <b>portfolio</b> appears i
   "<b>movements full-screen</b> (buys green, sells red, dividends neutral) with the same figures for that "
   "security plus a <b>filter by buys/sells/dividends</b> and a date slider (start date = first purchase). "
   "The portfolio value is kept separate and also appears as «Net worth» in the main screen's balance line.")
+p("The <b>«Analysis»</b> menu opens a <b>pie chart</b> of the securities (share of the portfolio value). The "
+  "slices are unlabelled; a tap shows the <b>name and amount</b> of the security in the centre, and with "
+  "nothing selected the centre reads «Total: &lt;portfolio value&gt;». The <b>Export</b> in the portfolio menu "
+  "runs right in the portfolio (no switch to the cash view).")
+p("<b>Dividends gross/net:</b> the settings let you choose whether dividends are shown gross (declared "
+  "dividend) or net (cash received after tax) and used in the balance line (dividends, net invested, "
+  "gain/loss). The net value is captured on portfolio import – for existing data a one-time re-import is "
+  "needed.")
 
 # ---------------------------------------------------------------- 11
 h1("11. Synchronizing: performing export and import")

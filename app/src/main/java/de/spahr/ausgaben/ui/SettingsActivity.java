@@ -78,6 +78,7 @@ public class SettingsActivity extends LocalizedActivity {
     private TextInputEditText editCurrency;
     private MaterialAutoCompleteTextView editNumberFormat;
     private MaterialSwitch switchShowCurrency;
+    private MaterialSwitch switchDividendGross;
     /** Aktuell gewählter Zahlenformat-Wert (SettingsStore.NUMBER_FORMAT_*). */
     private String selectedNumberFormat = SettingsStore.NUMBER_FORMAT_PLAIN_COMMA;
     /** Format-Werte passend zu den angezeigten Labels in {@link #setupNumberFormat()}. */
@@ -158,6 +159,8 @@ public class SettingsActivity extends LocalizedActivity {
         editNumberFormat = findViewById(R.id.editNumberFormat);
         switchShowCurrency = findViewById(R.id.switchShowCurrency);
         switchShowCurrency.setChecked(settings.isCurrencyShown());
+        switchDividendGross = findViewById(R.id.switchDividendGross);
+        switchDividendGross.setChecked(settings.isDividendGross());
         setupNumberFormat();
         setupLanguages();
         ((MaterialButton) findViewById(R.id.btnExportTemplate)).setOnClickListener(
@@ -791,6 +794,7 @@ public class SettingsActivity extends LocalizedActivity {
         settings.setCurrency(textOf(editCurrency));
         settings.setNumberFormat(selectedNumberFormat);
         settings.setCurrencyShown(switchShowCurrency.isChecked());
+        settings.setDividendGross(switchDividendGross.isChecked());
         de.spahr.ausgaben.settings.Currencies.refresh(this);
         de.spahr.ausgaben.settings.MoneyFormat.refresh(this);
 

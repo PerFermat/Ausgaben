@@ -156,9 +156,16 @@ Mikrofon-Berechtigung ist davon unberührt). Hinweise zur F-Droid-Paketierung in
   Prozent). Der **Depot-Filter** grenzt die Wertpapiere nach Name und **Wert (Schieberegler)** ein. Ein
   Tipp auf ein Wertpapier öffnet seine **Bewegungen im Vollbild** mit denselben Kennzahlen für dieses
   Papier und einem **Filter nach Käufen/Verkäufen/Dividenden** sowie einem **Datums-Slider** (Startdatum =
-  erster Kauf). Der Depotwert wird **getrennt** geführt (nicht in Konto-Salden/Auswertung gemischt); die
-  Kaufkosten/Dividenden erscheinen wie gehabt auf dem jeweiligen Geldkonto. In der Saldenzeile der
-  Hauptansicht gibt es zusätzlich **„Gesamtvermögen"** = alle Konten + Depotwert.
+  erster Kauf). Über das Menü **„Auswertung"** öffnet sich ein **Kreisdiagramm** der Wertpapiere (Anteil am
+  Depotwert): die Segmente sind unbeschriftet; ein Tipp zeigt in der Mitte **Name + Betrag** des Papiers,
+  ohne Auswahl steht dort **„Gesamt: <Depotwert>"**. Der **Export** im Depot-Menü läuft direkt hier, ohne in
+  die Bargeld-Ansicht zu wechseln. Der Depotwert wird **getrennt** geführt (nicht in Konto-Salden/Auswertung
+  gemischt); die Kaufkosten/Dividenden erscheinen wie gehabt auf dem jeweiligen Geldkonto. In der Saldenzeile
+  der Hauptansicht gibt es zusätzlich **„Gesamtvermögen"** = alle Konten + Depotwert.
+- **Dividenden brutto/netto**: In den Einstellungen wählbar, ob Dividenden **brutto** (deklarierte Dividende)
+  oder **netto** (gutgeschriebenes Geld nach Steuer) angezeigt und in der Saldenzeile (Dividenden,
+  Nettoeinsatz, Gewinn/Verlust) verrechnet werden. Der Netto-Wert wird beim Depot-Import erfasst; für
+  bestehende Daten ist einmalig ein Depot-Neuimport nötig.
 - **Anlage- und Verbindlichkeitskonten**: Konten werden anhand ihres KMyMoney-Typs in **Anlagekonten**,
   **Verbindlichkeitskonten** (Kredite, Kreditkarten) und **Depots** gruppiert – mit gleich gestalteten
   Überschriften in der Kontenschublade **und** in den Beständen. In den Beständen zählt das Depot als eine

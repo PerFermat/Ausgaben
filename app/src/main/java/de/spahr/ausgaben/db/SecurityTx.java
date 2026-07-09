@@ -43,9 +43,16 @@ public class SecurityTx {
     @ColumnInfo(name = "shares")
     public double shares;
 
-    /** Geldbetrag in Cent (Kauf = Kosten, Verkauf = Erlös, Dividende = Betrag, Add/Remove = 0). */
+    /** Geldbetrag in Cent (Kauf = Kosten, Verkauf = Erlös, Dividende = <b>Brutto</b>, Add/Remove = 0). */
     @ColumnInfo(name = "amount_cents")
     public long amountCents;
+
+    /**
+     * Netto-Betrag in Cent: bei Dividenden das tatsächlich gutgeschriebene Geld (Brutto − Steuer); bei allen
+     * anderen Aktionen gleich {@link #amountCents}. Steuert die Brutto/Netto-Anzeige der Dividenden.
+     */
+    @ColumnInfo(name = "net_cents")
+    public long netCents;
 
     public SecurityTx() {
     }
@@ -53,6 +60,12 @@ public class SecurityTx {
     @Ignore
     public SecurityTx(@NonNull String depot, @NonNull String securityKmyId, @NonNull String securityName,
                       long date, @NonNull String action, double shares, long amountCents) {
+        this(depot, securityKmyId, securityName, date, action, shares, amountCents, amountCents);
+    }
+
+    @Ignore
+    public SecurityTx(@NonNull String depot, @NonNull String securityKmyId, @NonNull String securityName,
+                      long date, @NonNull String action, double shares, long amountCents, long netCents) {
         this.depot = depot;
         this.securityKmyId = securityKmyId;
         this.securityName = securityName;
@@ -60,5 +73,6 @@ public class SecurityTx {
         this.action = action;
         this.shares = shares;
         this.amountCents = amountCents;
+        this.netCents = netCents;
     }
 }

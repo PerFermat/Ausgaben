@@ -80,6 +80,11 @@
             android:parentActivityName=".ui.DepotActivity" />
 
         <activity
+            android:name=".ui.DepotChartActivity"
+            android:exported="false"
+            android:parentActivityName=".ui.DepotActivity" />
+
+        <activity
             android:name=".ui.PlaceHistoryActivity"
             android:exported="false"
             android:parentActivityName=".ui.BalanceActivity" />

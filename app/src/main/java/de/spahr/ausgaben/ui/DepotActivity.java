@@ -1,16 +1,22 @@
 package de.spahr.ausgaben.ui;
 
 import android.content.Intent;
+import android.net.Uri;
 import android.os.Bundle;
 import android.view.Gravity;
+import android.view.LayoutInflater;
 import android.view.Menu;
 import android.view.MenuItem;
 import android.view.View;
 import android.widget.LinearLayout;
 import android.widget.TextView;
+import android.widget.Toast;
 
+import androidx.activity.result.ActivityResultLauncher;
+import androidx.activity.result.contract.ActivityResultContracts;
 import androidx.annotation.NonNull;
 import androidx.appcompat.app.ActionBarDrawerToggle;
+import androidx.appcompat.app.AlertDialog;
 import androidx.drawerlayout.widget.DrawerLayout;
 import androidx.recyclerview.widget.LinearLayoutManager;
 import androidx.recyclerview.widget.RecyclerView;
@@ -24,7 +30,10 @@ import java.util.Locale;
 
 import de.spahr.ausgaben.R;
 import de.spahr.ausgaben.db.Repository;
+import de.spahr.ausgaben.export.ExportCoordinator;
+import de.spahr.ausgaben.export.KmyExportCoordinator;
 import de.spahr.ausgaben.settings.Currencies;
+import de.spahr.ausgaben.settings.SettingsStore;
 
 /**
  * Depot-Ansicht im Konto-Look: Schublade (Hamburger) + Depotname im Kopf, Menü (Export/Filter/Bestände/
@@ -37,12 +46,17 @@ public class DepotActivity extends LocalizedActivity {
     public static final String EXTRA_DEPOT = "depot";
 
     private Repository repository;
+    private SettingsStore settings;
     private DrawerLayout drawerLayout;
     private MaterialToolbar toolbar;
     private AccountDrawerAdapter accountAdapter;
     private LinearLayout container;
     private TextView saldoLabel;
     private TextView saldoValue;
+
+    private ActivityResultLauncher<Uri> exportTreeLauncher;
+    private AlertDialog progressDialog;
+    private TextView progressTextView;
 
     private String depot;
     private Repository.DepotMetrics metrics;
@@ -61,6 +75,18 @@ public class DepotActivity extends LocalizedActivity {
         super.onCreate(savedInstanceState);
         setContentView(R.layout.activity_depot);
         repository = new Repository(this);
+        settings = new SettingsStore(this);
+
+        exportTreeLauncher = registerForActivityResult(
+                new ActivityResultContracts.OpenDocumentTree(), uri -> {
+                    if (uri != null) {
+                        getContentResolver().takePersistableUriPermission(uri,
+                                Intent.FLAG_GRANT_READ_URI_PERMISSION
+                                        | Intent.FLAG_GRANT_WRITE_URI_PERMISSION);
+                        settings.setLocalExportTree(uri.toString());
+                        runExport();
+                    }
+                });
 
         toolbar = findViewById(R.id.toolbar);
         setSupportActionBar(toolbar);
@@ -232,6 +258,7 @@ public class DepotActivity extends LocalizedActivity {
     public boolean onCreateOptionsMenu(Menu menu) {
         getMenuInflater().inflate(R.menu.depot_menu, menu);
         setMenuTitle(menu, R.id.action_export, R.string.action_export);
+        setMenuTitle(menu, R.id.action_analysis, R.string.action_analysis);
         setMenuTitle(menu, R.id.action_filter, R.string.action_filter);
         setMenuTitle(menu, R.id.action_balance, R.string.action_balance);
         setMenuTitle(menu, R.id.action_settings, R.string.action_settings);
@@ -249,10 +276,15 @@ public class DepotActivity extends LocalizedActivity {
     public boolean onOptionsItemSelected(@NonNull MenuItem item) {
         int id = item.getItemId();
         if (id == R.id.action_export) {
-            Intent i = new Intent(this, MainActivity.class)
-                    .addFlags(Intent.FLAG_ACTIVITY_CLEAR_TOP | Intent.FLAG_ACTIVITY_SINGLE_TOP);
-            i.putExtra(MainActivity.EXTRA_RUN_EXPORT, true);
-            startActivity(i);
+            // Export direkt hier ausführen – die Depot-Ansicht bleibt geöffnet (kein Wechsel zur Liste).
+            doExport();
+            return true;
+        } else if (id == R.id.action_analysis) {
+            if (depot != null && !depot.isEmpty()) {
+                Intent i = new Intent(this, DepotChartActivity.class);
+                i.putExtra(DepotChartActivity.EXTRA_DEPOT, depot);
+                startActivity(i);
+            }
             return true;
         } else if (id == R.id.action_filter) {
             showFilterDialog();
@@ -265,6 +297,74 @@ public class DepotActivity extends LocalizedActivity {
             return true;
         }
         return super.onOptionsItemSelected(item);
+    }
+
+    // ---- Export (in der Depot-Ansicht, wie in MainActivity) ----
+
+    private void doExport() {
+        if (settings.isKmyMode()) {
+            runKmyExport();
+            return;
+        }
+        if (!settings.hasRemoteConfig() && settings.getLocalExportTree().isEmpty()) {
+            Toast.makeText(this, R.string.choose_export_folder, Toast.LENGTH_LONG).show();
+            exportTreeLauncher.launch(null);
+            return;
+        }
+        runExport();
+    }
+
+    private void runKmyExport() {
+        showProgress(getString(R.string.progress_exporting));
+        new KmyExportCoordinator(this, repository, settings).exportUnexported(
+                new KmyExportCoordinator.Listener() {
+                    @Override
+                    public void onProgress(String stage) {
+                        updateProgress(stage);
+                    }
+
+                    @Override
+                    public void onComplete(String message, boolean refreshNeeded) {
+                        dismissProgress();
+                        Toast.makeText(DepotActivity.this, message, Toast.LENGTH_LONG).show();
+                    }
+                });
+    }
+
+    private void runExport() {
+        Toast.makeText(this, R.string.export_running, Toast.LENGTH_SHORT).show();
+        String tree = settings.hasRemoteConfig() ? null : settings.getLocalExportTree();
+        new ExportCoordinator(this, repository, settings, tree).exportUnexported((message, refreshNeeded) ->
+                Toast.makeText(this, message, Toast.LENGTH_LONG).show());
+    }
+
+    private void showProgress(String text) {
+        if (progressDialog != null) {
+            updateProgress(text);
+            return;
+        }
+        View view = LayoutInflater.from(this).inflate(R.layout.dialog_progress, null, false);
+        progressTextView = view.findViewById(R.id.progressText);
+        progressTextView.setText(text);
+        progressDialog = new MaterialAlertDialogBuilder(this, R.style.ThemeOverlay_Ausgaben_Dialog)
+                .setView(view)
+                .setCancelable(false)
+                .create();
+        progressDialog.show();
+    }
+
+    private void updateProgress(String text) {
+        if (progressTextView != null) {
+            progressTextView.setText(text);
+        }
+    }
+
+    private void dismissProgress() {
+        if (progressDialog != null) {
+            progressDialog.dismiss();
+            progressDialog = null;
+            progressTextView = null;
+        }
     }
 
     private void showFilterDialog() {

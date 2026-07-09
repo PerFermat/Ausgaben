@@ -34,6 +34,7 @@ public class SettingsStore {
     private static final String KEY_CURRENCY = "currency";
     private static final String KEY_NUMBER_FORMAT = "number_format";
     private static final String KEY_SHOW_CURRENCY = "show_currency";
+    private static final String KEY_DIVIDEND_GROSS = "dividend_gross";
 
     /** Zahlenformat: Tausenderpunkt + Dezimalkomma („1.234,56"). */
     public static final String NUMBER_FORMAT_DE_GROUP = "de_group";
@@ -288,6 +289,15 @@ public class SettingsStore {
 
     public void setCurrencyShown(boolean shown) {
         prefs.edit().putBoolean(KEY_SHOW_CURRENCY, shown).apply();
+    }
+
+    /** Dividenden im Depot brutto (true, Standard) oder netto (false) anzeigen/verrechnen. */
+    public boolean isDividendGross() {
+        return prefs.getBoolean(KEY_DIVIDEND_GROSS, true);
+    }
+
+    public void setDividendGross(boolean gross) {
+        prefs.edit().putBoolean(KEY_DIVIDEND_GROSS, gross).apply();
     }
 
     /**

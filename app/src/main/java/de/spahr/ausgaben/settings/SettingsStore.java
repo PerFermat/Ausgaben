@@ -32,6 +32,17 @@ public class SettingsStore {
     private static final String KEY_ALIAS_PROMPT = "alias_prompt";
     private static final String KEY_LANGUAGE = "language";
     private static final String KEY_CURRENCY = "currency";
+    private static final String KEY_NUMBER_FORMAT = "number_format";
+    private static final String KEY_SHOW_CURRENCY = "show_currency";
+
+    /** Zahlenformat: Tausenderpunkt + Dezimalkomma („1.234,56"). */
+    public static final String NUMBER_FORMAT_DE_GROUP = "de_group";
+    /** Tausenderkomma + Dezimalpunkt („1,234.56"). */
+    public static final String NUMBER_FORMAT_EN_GROUP = "en_group";
+    /** Ohne Tausendertrennung, Dezimalkomma („1234,56"). Standard = heutiges Verhalten. */
+    public static final String NUMBER_FORMAT_PLAIN_COMMA = "plain_comma";
+    /** Ohne Tausendertrennung, Dezimalpunkt („1234.56"). */
+    public static final String NUMBER_FORMAT_PLAIN_DOT = "plain_dot";
 
     /** Server-Typ: Nextcloud (Standard, mit {@code /remote.php/dav/files/<user>/}). */
     public static final String SERVER_NEXTCLOUD = "nextcloud";
@@ -257,6 +268,26 @@ public class SettingsStore {
 
     public void setCurrency(String currency) {
         prefs.edit().putString(KEY_CURRENCY, currency == null ? "" : currency.trim()).apply();
+    }
+
+    /** Gewähltes Zahlenformat (siehe {@code NUMBER_FORMAT_*}). Standard = heutiges Verhalten (1234,56). */
+    public String getNumberFormat() {
+        String v = prefs.getString(KEY_NUMBER_FORMAT, NUMBER_FORMAT_PLAIN_COMMA);
+        return v == null || v.trim().isEmpty() ? NUMBER_FORMAT_PLAIN_COMMA : v.trim();
+    }
+
+    public void setNumberFormat(String format) {
+        prefs.edit().putString(KEY_NUMBER_FORMAT,
+                format == null ? NUMBER_FORMAT_PLAIN_COMMA : format.trim()).apply();
+    }
+
+    /** Ob das Währungskennzeichen an Beträge angehängt wird (Standard an). */
+    public boolean isCurrencyShown() {
+        return prefs.getBoolean(KEY_SHOW_CURRENCY, true);
+    }
+
+    public void setCurrencyShown(boolean shown) {
+        prefs.edit().putBoolean(KEY_SHOW_CURRENCY, shown).apply();
     }
 
     /**

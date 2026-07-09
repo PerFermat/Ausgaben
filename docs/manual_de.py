@@ -131,6 +131,11 @@ shot("Einstellungen.png", "Einstellungen: Sprache, Server-Verbindung (SMB/WebDAV
 h2("Sprache")
 p("Beim ersten Start richtet sich die Sprache nach dem Handy (Deutsch → Deutsch, sonst Englisch). "
   "Änderbar jederzeit unter <i>Einstellungen → Sprache</i> (ganz oben).")
+h2("Zahlenformat")
+p("Ebenfalls im Sprache-Bereich lässt sich das <b>Zahlenformat</b> wählen: «1.234,56» (Tausenderpunkt, "
+  "Komma), «1,234.56» (Tausenderkomma, Punkt) oder «1234,56»/«1234.56» ohne Tausendertrennung; dazu ein "
+  "Schalter <b>«Währungskennzeichen anzeigen»</b>. Die Wahl gilt für alle Beträge in der App und auf der "
+  "Uhr. Die Betragseingabe akzeptiert weiterhin Komma und Punkt; der CSV-/kMy-Export bleibt formatstabil.")
 h2("Verbindung zu Ihrem Server einrichten (SMB oder WebDAV/Nextcloud)")
 p("<b>Dies ist der wichtigste Einrichtungsschritt.</b> Damit die App mit KMyMoney Daten austauschen kann, "
   "muss sie auf den Ordner zugreifen, in dem Ihre gemeinsame <b>.kmy</b>-Datei (oder der Export-Ordner) "

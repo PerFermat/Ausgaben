@@ -5,10 +5,9 @@ import android.content.Context;
 import com.google.android.gms.wearable.PutDataMapRequest;
 import com.google.android.gms.wearable.Wearable;
 
-import java.util.Locale;
-
 import de.spahr.ausgaben.db.AppDatabase;
 import de.spahr.ausgaben.settings.Currencies;
+import de.spahr.ausgaben.settings.MoneyFormat;
 import de.spahr.ausgaben.settings.PlacesStore;
 import de.spahr.ausgaben.settings.SettingsStore;
 
@@ -49,13 +48,6 @@ public final class BalanceSync {
         }
         place = place.trim();
         long cents = AppDatabase.getInstance(app).placeEntryDao().getBalance(account, place);
-        return place + ": " + formatEuro(cents, Currencies.forAccount(account));
-    }
-
-    private static String formatEuro(long signedCents, String currency) {
-        long euros = signedCents / 100;
-        long cents = Math.abs(signedCents % 100);
-        String sign = (signedCents < 0 && euros == 0) ? "-" : "";
-        return sign + euros + "," + String.format(Locale.GERMANY, "%02d", cents) + " " + currency;
+        return place + ": " + MoneyFormat.display(cents, Currencies.forAccount(account));
     }
 }

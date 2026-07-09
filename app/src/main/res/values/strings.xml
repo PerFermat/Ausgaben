@@ -244,6 +244,12 @@
     <string name="language_upload_done">Language “%1$s” loaded</string>
     <string name="language_upload_failed">Invalid language file: %1$s</string>
     <string name="currency_hint">Currency indicator (default)</string>
+    <string name="number_format_hint">Number format</string>
+    <string name="show_currency_symbol">Show currency symbol</string>
+    <string name="number_format_de_group">1.234,56 (grouping dot, comma)</string>
+    <string name="number_format_en_group">1,234.56 (grouping comma, point)</string>
+    <string name="number_format_plain_comma">1234,56 (no grouping, comma)</string>
+    <string name="number_format_plain_dot">1234.56 (no grouping, point)</string>
     <string name="nextcloud_section">Sync (Nextcloud / WebDAV / SMB)</string>
     <string name="server_type_hint">Server type</string>
     <string name="server_type_nextcloud">Nextcloud</string>

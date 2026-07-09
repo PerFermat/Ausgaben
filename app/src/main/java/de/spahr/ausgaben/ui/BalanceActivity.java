@@ -412,9 +412,6 @@ public class BalanceActivity extends LocalizedActivity {
     }
 
     private String formatEuro(long signedCents, String currency) {
-        long euros = signedCents / 100;
-        long cents = Math.abs(signedCents % 100);
-        String sign = (signedCents < 0 && euros == 0) ? "-" : "";
-        return sign + euros + "," + String.format(Locale.GERMANY, "%02d", cents) + " " + currency;
+        return de.spahr.ausgaben.settings.MoneyFormat.display(signedCents, currency);
     }
 }

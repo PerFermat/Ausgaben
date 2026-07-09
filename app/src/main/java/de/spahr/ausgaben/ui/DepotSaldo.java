@@ -86,10 +86,7 @@ final class DepotSaldo {
     }
 
     static String money(long cents) {
-        long euros = cents / 100;
-        long c = Math.abs(cents % 100);
-        String sign = (cents < 0 && euros == 0) ? "-" : "";
-        return sign + euros + "," + String.format(Locale.GERMANY, "%02d", c) + " " + Currencies.getDefault();
+        return de.spahr.ausgaben.settings.MoneyFormat.display(cents, Currencies.getDefault());
     }
 
     private static int primaryText(Context c) {

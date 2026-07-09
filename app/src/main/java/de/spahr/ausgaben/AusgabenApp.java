@@ -42,6 +42,7 @@ public class AusgabenApp extends Application implements Application.ActivityLife
                 androidx.core.os.LocaleListCompat.forLanguageTags(settings.getLanguage()));
         AppCompatDelegate.setDefaultNightMode(settings.getNightMode());
         de.spahr.ausgaben.settings.Currencies.refresh(this);
+        de.spahr.ausgaben.settings.MoneyFormat.refresh(this);
         registerActivityLifecycleCallbacks(this);
     }
 

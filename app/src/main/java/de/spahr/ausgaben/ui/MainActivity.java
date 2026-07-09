@@ -312,6 +312,7 @@ public class MainActivity extends LocalizedActivity {
                         de.spahr.ausgaben.wear.WearBridge.ACTION_BOOKINGS_CHANGED),
                 androidx.core.content.ContextCompat.RECEIVER_NOT_EXPORTED);
         de.spahr.ausgaben.settings.Currencies.refresh(this);
+        de.spahr.ausgaben.settings.MoneyFormat.refresh(this);
         boolean gps = settings.isGpsEnabled();
         // Ziffern-Button (stille Betrag-only-Erfassung) nur bei aktivem Standort anbieten.
         findViewById(R.id.fabNumber).setVisibility(gps ? View.VISIBLE : View.GONE);
@@ -819,11 +820,8 @@ public class MainActivity extends LocalizedActivity {
     }
 
     private String formatEuro(long signedCents) {
-        long euros = signedCents / 100;
-        long cents = Math.abs(signedCents % 100);
-        String sign = (signedCents < 0 && euros == 0) ? "-" : "";
-        return sign + euros + "," + String.format(Locale.GERMANY, "%02d", cents) + " "
-                + de.spahr.ausgaben.settings.Currencies.forAccount(selectedAccount);
+        return de.spahr.ausgaben.settings.MoneyFormat.display(signedCents,
+                de.spahr.ausgaben.settings.Currencies.forAccount(selectedAccount));
     }
 
     private void showFilterDialog() {
@@ -1013,9 +1011,7 @@ public class MainActivity extends LocalizedActivity {
     }
 
     private String formatCents(long cents) {
-        long euros = cents / 100;
-        long rest = Math.abs(cents % 100);
-        return euros + "," + String.format(Locale.GERMANY, "%02d", rest);
+        return de.spahr.ausgaben.settings.MoneyFormat.plain(cents);
     }
 
     private Long parseAmountToCents(String raw) {

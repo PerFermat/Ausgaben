@@ -1186,10 +1186,7 @@ public class BookingEditActivity extends LocalizedActivity {
     }
 
     private String formatCents(long cents) {
-        long euros = cents / 100;
-        long rest = Math.abs(cents % 100);
-        String sign = (cents < 0 && euros == 0) ? "-" : "";
-        return sign + euros + "," + String.format(Locale.GERMANY, "%02d", rest);
+        return de.spahr.ausgaben.settings.MoneyFormat.plain(cents);
     }
 
     private Long parseAmountToCents(String raw) {

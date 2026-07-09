@@ -76,6 +76,14 @@ public class SettingsActivity extends LocalizedActivity {
 
     private MaterialAutoCompleteTextView editLanguage;
     private TextInputEditText editCurrency;
+    private MaterialAutoCompleteTextView editNumberFormat;
+    private MaterialSwitch switchShowCurrency;
+    /** Aktuell gewählter Zahlenformat-Wert (SettingsStore.NUMBER_FORMAT_*). */
+    private String selectedNumberFormat = SettingsStore.NUMBER_FORMAT_PLAIN_COMMA;
+    /** Format-Werte passend zu den angezeigten Labels in {@link #setupNumberFormat()}. */
+    private static final String[] NUMBER_FORMAT_VALUES = {
+            SettingsStore.NUMBER_FORMAT_DE_GROUP, SettingsStore.NUMBER_FORMAT_EN_GROUP,
+            SettingsStore.NUMBER_FORMAT_PLAIN_COMMA, SettingsStore.NUMBER_FORMAT_PLAIN_DOT};
     private java.util.List<de.spahr.ausgaben.db.Language> languages = new java.util.ArrayList<>();
 
     private ActivityResultLauncher<String> backupLauncher;
@@ -147,6 +155,10 @@ public class SettingsActivity extends LocalizedActivity {
         editLanguage = findViewById(R.id.editLanguage);
         editCurrency = findViewById(R.id.editCurrency);
         editCurrency.setText(settings.getCurrency());
+        editNumberFormat = findViewById(R.id.editNumberFormat);
+        switchShowCurrency = findViewById(R.id.switchShowCurrency);
+        switchShowCurrency.setChecked(settings.isCurrencyShown());
+        setupNumberFormat();
         setupLanguages();
         ((MaterialButton) findViewById(R.id.btnExportTemplate)).setOnClickListener(
                 v -> templateExportLauncher.launch("ausgaben-language-template.json"));
@@ -512,6 +524,27 @@ public class SettingsActivity extends LocalizedActivity {
                 });
     }
 
+    // ---- Zahlenformat ----
+
+    /** Dropdown mit den vier Zahlenformat-Optionen (Beispiel-Labels); Vorauswahl aus den Einstellungen. */
+    private void setupNumberFormat() {
+        selectedNumberFormat = settings.getNumberFormat();
+        String[] labels = {
+                getString(R.string.number_format_de_group),
+                getString(R.string.number_format_en_group),
+                getString(R.string.number_format_plain_comma),
+                getString(R.string.number_format_plain_dot)};
+        editNumberFormat.setAdapter(new ArrayAdapter<>(this, android.R.layout.simple_list_item_1, labels));
+        for (int i = 0; i < NUMBER_FORMAT_VALUES.length; i++) {
+            if (NUMBER_FORMAT_VALUES[i].equals(selectedNumberFormat)) {
+                editNumberFormat.setText(labels[i], false);
+                break;
+            }
+        }
+        editNumberFormat.setOnItemClickListener((parent, view, position, id) ->
+                selectedNumberFormat = NUMBER_FORMAT_VALUES[position]);
+    }
+
     // ---- Sprache ----
 
     private void setupLanguages() {
@@ -633,11 +666,8 @@ public class SettingsActivity extends LocalizedActivity {
     }
 
     private String formatCents(long cents, String account) {
-        long euros = cents / 100;
-        long c = Math.abs(cents % 100);
-        String sign = (cents < 0 && euros == 0) ? "-" : "";
-        return sign + euros + "," + String.format(Locale.GERMANY, "%02d", c) + " "
-                + de.spahr.ausgaben.settings.Currencies.forAccount(account);
+        return de.spahr.ausgaben.settings.MoneyFormat.display(cents,
+                de.spahr.ausgaben.settings.Currencies.forAccount(account));
     }
 
     private void confirmDeleteAccount(String account) {
@@ -759,7 +789,10 @@ public class SettingsActivity extends LocalizedActivity {
 
         repository.ensureAccount(defaultAccount);
         settings.setCurrency(textOf(editCurrency));
+        settings.setNumberFormat(selectedNumberFormat);
+        settings.setCurrencyShown(switchShowCurrency.isChecked());
         de.spahr.ausgaben.settings.Currencies.refresh(this);
+        de.spahr.ausgaben.settings.MoneyFormat.refresh(this);
 
         Toast.makeText(this, R.string.settings_saved, Toast.LENGTH_SHORT).show();
         finish();

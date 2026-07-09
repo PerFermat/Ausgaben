@@ -122,11 +122,8 @@ public class BookingAdapter extends RecyclerView.Adapter<BookingAdapter.VH> {
     }
 
     private String formatEuro(long signedCents, String account) {
-        long euros = signedCents / 100;
-        long cents = Math.abs(signedCents % 100);
-        String sign = (signedCents < 0 && euros == 0) ? "-" : "";
-        return sign + euros + "," + String.format(Locale.GERMANY, "%02d", cents) + " "
-                + de.spahr.ausgaben.settings.Currencies.forAccount(account);
+        return de.spahr.ausgaben.settings.MoneyFormat.display(signedCents,
+                de.spahr.ausgaben.settings.Currencies.forAccount(account));
     }
 
     @Override

@@ -244,6 +244,12 @@
     <string name="language_upload_done">Sprache „%1$s" geladen</string>
     <string name="language_upload_failed">Sprachdatei ungültig: %1$s</string>
     <string name="currency_hint">Währungskennzeichen (Standard)</string>
+    <string name="number_format_hint">Zahlenformat</string>
+    <string name="show_currency_symbol">Währungskennzeichen anzeigen</string>
+    <string name="number_format_de_group">1.234,56 (Tausenderpunkt, Komma)</string>
+    <string name="number_format_en_group">1,234.56 (Tausenderkomma, Punkt)</string>
+    <string name="number_format_plain_comma">1234,56 (ohne Tausender, Komma)</string>
+    <string name="number_format_plain_dot">1234.56 (ohne Tausender, Punkt)</string>
     <string name="nextcloud_section">Synchronisation (Nextcloud / WebDAV / SMB)</string>
     <string name="server_type_hint">Server-Typ</string>
     <string name="server_type_nextcloud">Nextcloud</string>

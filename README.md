@@ -169,6 +169,10 @@ permission is unaffected). F-Droid packaging notes are in [`fdroid/`](fdroid/).
   JSON structure with all keys (including the watch texts) as a local file; you can fill it in another
   language by hand and read it back via **“Upload language”**. The new language is then selectable and also
   applies to the watch. **If a translation is missing, English is always used** (never another language).
+- **Number format** (in the language section): choose between `1.234,56` (grouping dot / comma), `1,234.56`
+  (grouping comma / point), `1234,56` and `1234.56` (both without grouping); plus a **“Show currency
+  symbol”** toggle. The choice applies to **all** amounts in the app **and on the watch**. Amount entry still
+  accepts `,` and `.`; the CSV/`.kmy` export keeps a stable format.
 
 ### Security & settings
 - Optional **app lock** via biometrics/device credential (fingerprint, face, PIN, pattern, password) —

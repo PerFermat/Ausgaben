@@ -128,6 +128,11 @@ shot("Einstellungen.png", "Settings: language, server connection (SMB/WebDAV) an
 h2("Language")
 p("On first launch the language follows your phone (German → German, otherwise English). It can be "
   "changed any time under <i>Settings → Language</i> (at the very top).")
+h2("Number format")
+p("Also in the language section you can pick the <b>number format</b>: «1.234,56» (grouping dot, comma), "
+  "«1,234.56» (grouping comma, point) or «1234,56»/«1234.56» without grouping; plus a <b>«Show currency "
+  "symbol»</b> toggle. The choice applies to all amounts in the app and on the watch. Amount entry still "
+  "accepts comma and point; the CSV/kMy export keeps a stable format.")
 h2("Set up the connection to your server (SMB or WebDAV/Nextcloud)")
 p("<b>This is the most important setup step.</b> For the app to exchange data with KMyMoney, it needs "
   "access to the folder that holds your shared <b>.kmy</b> file (or the export folder). Open the settings "

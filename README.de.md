@@ -176,6 +176,10 @@ Mikrofon-Berechtigung ist davon unberührt). Hinweise zur F-Droid-Paketierung in
   Datei gespeichert; diese lässt sich manuell in einer weiteren Sprache befüllen und über **„Sprache
   hochladen"** einlesen. Danach ist die neue Sprache auswählbar und gilt auch für die Uhr. **Fehlt eine
   Übersetzung, wird immer auf Englisch zurückgegriffen** (nie auf eine andere Sprache).
+- **Zahlenformat** (im Sprache-Bereich): wählbar zwischen `1.234,56` (Tausenderpunkt/Komma), `1,234.56`
+  (Tausenderkomma/Punkt), `1234,56` und `1234.56` (jeweils ohne Tausendertrennung); dazu ein Schalter
+  **„Währungskennzeichen anzeigen"**. Die Wahl gilt für **alle** Beträge in der App **und auf der Uhr**.
+  Die Betragseingabe akzeptiert weiterhin `,` und `.`; der CSV-/kMy-Export bleibt formatstabil.
 
 ### Sicherheit & Einstellungen
 - Optionale **App-Sperre** per Biometrie/Geräte-Anmeldung (Fingerabdruck, Gesicht, PIN, Muster,

@@ -285,7 +285,9 @@ eintragen, optional Ziel-/Importordner bzw. im `.kmy`-Modus den Pfad zur `.kmy`-
 **„Verbindung testen"** prüft die Zugangsdaten; im `.kmy`-Modus öffnet **„.kmy auswählen"** einen
 **Datei-Browser**, der Unterordner (📁) und `.kmy`-Dateien anzeigt – man kann in Unterordner navigieren und
 mit **„.. "** wieder eine Ebene höher. Ohne konfiguriertes Sync-Ziel wird lokal in einen per SAF gewählten
-Ordner exportiert.
+Ordner exportiert. Im **CSV-Modus mit SMB/WebDAV** zeigt der Import (Konto hinzufügen **oder** langer Druck
+auf ein Konto zum Aktualisieren) denselben **navigierbaren Ordner-Browser** – Unterordner (📁) und
+CSV-Dateien; die gewählte CSV wird aus dem aktuellen Ordner importiert.
 
 - **Nextcloud**: Basis-URL = Server (z. B. `https://cloud.example.com`) und ein **App-Passwort**
   (Nextcloud → Einstellungen → Sicherheit → App-Passwort). Die Dateien landen unter

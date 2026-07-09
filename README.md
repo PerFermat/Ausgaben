@@ -273,7 +273,9 @@ In the settings choose the **server type**, then enter base URL/share, username 
 target/import folder or — in `.kmy` mode — the path to the `.kmy` file. A **“Test connection”** button
 checks the credentials; in `.kmy` mode **“Choose .kmy”** opens a **file browser** showing subfolders (📁)
 and `.kmy` files — you can descend into subfolders and go back up one level with **“..”**. Without a
-configured sync target, export goes locally into a folder chosen via SAF.
+configured sync target, export goes locally into a folder chosen via SAF. In **CSV mode with SMB/WebDAV**,
+import (add account **or** long-press an account to refresh) shows the same **navigable folder browser** —
+subfolders (📁) and CSV files; the chosen CSV is imported from the current folder.
 
 - **Nextcloud**: base URL = server (e.g. `https://cloud.example.com`) and an **app password** (Nextcloud →
   Settings → Security → App password). Files end up under `<URL>/remote.php/dav/files/<user>/<folder>/`.

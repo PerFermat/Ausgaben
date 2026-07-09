@@ -374,7 +374,10 @@ bullets([
   "<b>«Konto hinzufügen»</b>: holt ein noch nicht vorhandenes Konto aus der .kmy.",
   "<b>Langer Druck auf das Depot</b>: aktualisiert Wertpapiere und Kurse.",
 ])
-p("Ein Import ersetzt je Konto die bereits exportierten Buchungen (keine Dubletten).")
+p("Ein Import ersetzt je Konto die bereits exportierten Buchungen (keine Dubletten). Im <b>CSV-Modus mit "
+  "SMB/WebDAV</b> öffnet sich beim Hinzufügen bzw. beim langen Druck ein <b>navigierbarer Ordner-Browser</b> "
+  "(Unterordner 📁 + CSV-Dateien, «..» zurück); die gewählte CSV wird aus dem aktuellen Ordner importiert. "
+  "Die Schublade bleibt beim langen Druck geöffnet.")
 h2("Sicherung vor jedem Export")
 p("Vor jedem Rückschreiben legt die App automatisch eine <b>zeitgestempelte Sicherung</b> der .kmy an "
   "(z. B. <i>datei.kmy.bak-JJJJMMTT-HHMM</i>) direkt neben dem Original. So haben Sie stets einen Fallback, "

@@ -178,7 +178,7 @@ public class MainActivity extends LocalizedActivity {
 
                     @Override
                     public void onImport(String account, boolean isAll) {
-                        drawerLayout.closeDrawers();
+                        // Schublade offen lassen; Import-Dialog/Datei-Browser erscheint darüber.
                         onImportRequested(account, isAll);
                     }
 
@@ -192,15 +192,12 @@ public class MainActivity extends LocalizedActivity {
 
                     @Override
                     public void onDepotImport(String depot) {
-                        drawerLayout.closeDrawers();
+                        // Schublade offen lassen; Bestätigungsdialog erscheint darüber.
                         reimportDepot(depot);
                     }
                 });
         accountList.setAdapter(accountAdapter);
-        findViewById(R.id.addAccount).setOnClickListener(v -> {
-            drawerLayout.closeDrawers();
-            onAddAccountClicked();
-        });
+        findViewById(R.id.addAccount).setOnClickListener(v -> onAddAccountClicked());
 
         textBalance = findViewById(R.id.textBalance);
         textSaldoLabel = findViewById(R.id.textSaldoLabel);
@@ -1359,7 +1356,7 @@ public class MainActivity extends LocalizedActivity {
 
     private void startCsvImport() {
         if (settings.hasRemoteConfig()) {
-            loadNextcloudFileList();
+            browseCsvAt(settings.getImportFolder());
         } else {
             importLauncher.launch(new String[]{
                     "text/*", "text/csv", "text/comma-separated-values", "application/octet-stream"});
@@ -1368,6 +1365,16 @@ public class MainActivity extends LocalizedActivity {
 
     private static String folderOf(String path) {
         String p = path.trim();
+        int slash = p.lastIndexOf('/');
+        return slash < 0 ? "" : p.substring(0, slash);
+    }
+
+    /** Übergeordneter Ordner („a/b/c" → „a/b", „a" → „"). */
+    private static String parentFolder(String folder) {
+        String p = folder == null ? "" : folder.trim();
+        while (p.endsWith("/")) {
+            p = p.substring(0, p.length() - 1);
+        }
         int slash = p.lastIndexOf('/');
         return slash < 0 ? "" : p.substring(0, slash);
     }
@@ -1412,17 +1419,21 @@ public class MainActivity extends LocalizedActivity {
         }
     }
 
-    private void loadNextcloudFileList() {
+    /** Navigierbarer CSV-Browser (Unterordner + CSV-Dateien) im entfernten Importordner. */
+    private void browseCsvAt(String folder) {
         Toast.makeText(this, R.string.loading_files, Toast.LENGTH_SHORT).show();
         new Thread(() -> {
             try {
-                List<String> files = RemoteStorage.from(settings).listFiles(
-                        settings.getImportFolder(), "csv");
+                RemoteStorage storage = RemoteStorage.from(settings);
+                List<String> folders = storage.listFolders(folder);
+                List<String> files = storage.listFiles(folder, "csv");
+                java.util.Collections.sort(folders, String.CASE_INSENSITIVE_ORDER);
+                java.util.Collections.sort(files, String.CASE_INSENSITIVE_ORDER);
                 runOnUiThread(() -> {
-                    if (files.isEmpty()) {
+                    if (folder.isEmpty() && folders.isEmpty() && files.isEmpty()) {
                         Toast.makeText(this, R.string.no_files, Toast.LENGTH_LONG).show();
                     } else {
-                        showFilePickDialog(files);
+                        showCsvPick(folder, folders, files);
                     }
                 });
             } catch (Exception e) {
@@ -1433,20 +1444,34 @@ public class MainActivity extends LocalizedActivity {
         }).start();
     }
 
-    private void showFilePickDialog(List<String> files) {
-        String[] items = files.toArray(new String[0]);
+    private void showCsvPick(String folder, List<String> folders, List<String> files) {
+        final List<String> labels = new java.util.ArrayList<>();
+        final List<Runnable> actions = new java.util.ArrayList<>();
+        if (!folder.isEmpty()) {
+            labels.add("↑  ..");
+            actions.add(() -> browseCsvAt(parentFolder(folder)));
+        }
+        for (String d : folders) {
+            labels.add("📁  " + d);
+            final String target = folder.isEmpty() ? d : folder + "/" + d;
+            actions.add(() -> browseCsvAt(target));
+        }
+        for (String f : files) {
+            labels.add(f);
+            actions.add(() -> downloadAndImport(folder, f));
+        }
+        String title = folder.isEmpty() ? getString(R.string.choose_import_file) : "/" + folder;
         new MaterialAlertDialogBuilder(this, R.style.ThemeOverlay_Ausgaben_Dialog)
-                .setTitle(R.string.choose_import_file)
-                .setItems(items, (d, which) -> downloadAndImport(items[which]))
+                .setTitle(title)
+                .setItems(labels.toArray(new String[0]), (d, w) -> actions.get(w).run())
                 .setNegativeButton(R.string.cancel, null)
                 .show();
     }
 
-    private void downloadAndImport(String fileName) {
+    private void downloadAndImport(String folder, String fileName) {
         new Thread(() -> {
             try {
-                String content = RemoteStorage.from(settings).downloadText(
-                        settings.getImportFolder(), fileName);
+                String content = RemoteStorage.from(settings).downloadText(folder, fileName);
                 processImport(content);
             } catch (Exception e) {
                 final String msg = e.getMessage() == null ? e.toString() : e.getMessage();

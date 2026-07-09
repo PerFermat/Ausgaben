@@ -355,7 +355,10 @@ bullets([
   "<b>«Add account»</b>: fetches an account not yet present from the .kmy.",
   "<b>Long press on the portfolio</b>: updates securities and prices.",
 ])
-p("An import replaces the already-exported bookings per account (no duplicates).")
+p("An import replaces the already-exported bookings per account (no duplicates). In <b>CSV mode with "
+  "SMB/WebDAV</b>, adding an account or long-pressing one opens a <b>navigable folder browser</b> (subfolders "
+  "📁 + CSV files, «..» to go up); the chosen CSV is imported from the current folder. The drawer stays open "
+  "on long press.")
 h2("Backup before every export")
 p("Before every write-back the app automatically creates a <b>timestamped backup</b> of the .kmy (e.g. "
   "<i>file.kmy.bak-YYYYMMDD-HHMM</i>) right next to the original. So you always have a fallback in case "

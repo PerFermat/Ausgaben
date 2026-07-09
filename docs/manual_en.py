@@ -387,6 +387,10 @@ bullets([
   "The recognized text is shown for 10 seconds with «Cancel» and otherwise processed automatically.",
   "<b>Silent digit entry</b>: enter an amount silently via the digits symbol (resolved by location on the phone).",
   "<b>Wear tile</b>: quick access as a tile.",
+  "<b>Default-place balance</b>: below the buttons, the app and tile show the balance of the default place "
+  "as «Place: balance» (e.g. «Wallet: 70.00 €»). The phone sends the value only when it changes; the watch "
+  "reads it on start and reacts via push – no polling, no noticeable battery drain. No default place set → "
+  "line hidden.",
   "<b>Offline</b>: bookings not yet transmitted are shown and delivered automatically once the phone is "
   "reachable – without loss and without duplication.",
 ])

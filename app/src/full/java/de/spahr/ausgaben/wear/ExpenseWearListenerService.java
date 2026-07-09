@@ -77,6 +77,8 @@ public class ExpenseWearListenerService extends WearableListenerService {
                     if (created) {
                         // Offene App/MainActivity sofort aktualisieren.
                         sendBroadcast(new Intent(ACTION_BOOKINGS_CHANGED).setPackage(getPackageName()));
+                        // Uhr-Buchung ändert ggf. den Standardort-Saldo → an die Uhr zurückspiegeln.
+                        BalanceSync.publish(this);
                     }
                 }
                 markProcessed(id);
@@ -93,8 +95,9 @@ public class ExpenseWearListenerService extends WearableListenerService {
 
     @Override
     public void onPeerConnected(@NonNull Node peer) {
-        // Bei Verbindung mit der Uhr die aktuelle Sprache + Wear-Texte veröffentlichen.
+        // Bei Verbindung mit der Uhr die aktuelle Sprache + Wear-Texte sowie den Standardort-Saldo senden.
         LanguageSync.publish(this);
+        BalanceSync.publish(this);
     }
 
     private SharedPreferences prefs() {

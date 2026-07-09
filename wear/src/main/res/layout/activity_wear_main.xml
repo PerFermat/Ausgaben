@@ -115,11 +115,22 @@
                 </LinearLayout>
             </LinearLayout>
 
+            <!-- Standardort-Saldo vom Phone (z. B. „Geldbeutel: 70,00 €"); leer → ausgeblendet. -->
+            <TextView
+                android:id="@+id/balanceView"
+                android:layout_width="match_parent"
+                android:layout_height="wrap_content"
+                android:layout_marginTop="10dp"
+                android:gravity="center"
+                android:textColor="@android:color/white"
+                android:textSize="13sp"
+                android:visibility="gone" />
+
             <TextView
                 android:id="@+id/status"
                 android:layout_width="match_parent"
                 android:layout_height="wrap_content"
-                android:layout_marginTop="10dp"
+                android:layout_marginTop="6dp"
                 android:gravity="center"
                 android:textColor="@android:color/white"
                 android:textSize="12sp"

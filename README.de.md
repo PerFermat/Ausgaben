@@ -203,6 +203,11 @@ Parser wie am Phone) und die Buchungsanlage passieren auf dem Smartphone.
   mit „Abbrechen" angezeigt und – falls nicht abgebrochen – ohne weitere Aktion verarbeitet. Der Typ
   wird mitübertragen und auf dem Phone erzwungen. Ist das Phone offline, steht unter den Knöpfen
   „x Buchungen noch nicht übertragen".
+- **Standardort-Saldo auf der Uhr**: Unter den Knöpfen zeigen App **und** Tile den Saldo des
+  Standardorts (Standardkonto → Standardort) im Format „Ort: Saldo", z. B. „Geldbeutel: 70,00 €". Das
+  Phone sendet den fertigen Text nur bei **Änderung** als DataItem (`/balance`), die Uhr liest ihn beim
+  Start aus dem lokalen Data-Layer-Cache und reagiert per Push auf Änderungen – **ohne Polling, ohne
+  merklichen Akku-Mehrverbrauch**. Ist kein Standardort gesetzt, bleibt die Zeile ausgeblendet.
 - **Stille Zifferneingabe**: auf dem „Sprich jetzt"-Schirm gibt es unten ein **Ziffern-Symbol** →
   Zahlenblock (0–9 + Komma, Rücktaste, Enter, oben die eingegebene Zahl). So lässt sich eine Buchung
   **lautlos** erfassen; der Betrag wird am Phone über den aktuellen Standort aufgelöst (siehe „Nur den

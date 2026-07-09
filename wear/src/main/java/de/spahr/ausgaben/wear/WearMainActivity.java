@@ -44,6 +44,7 @@ public class WearMainActivity extends WearLocalizedActivity {
     private View typeSelection;
     private View confirmView;
     private TextView status;
+    private TextView balanceView;
     private TextView confirmType;
     private TextView confirmText;
     private Button btnCancel;
@@ -69,6 +70,13 @@ public class WearMainActivity extends WearLocalizedActivity {
         }
     };
 
+    private final BroadcastReceiver balanceReceiver = new BroadcastReceiver() {
+        @Override
+        public void onReceive(Context context, Intent intent) {
+            updateBalance();
+        }
+    };
+
     @Override
     protected void onCreate(Bundle savedInstanceState) {
         super.onCreate(savedInstanceState);
@@ -77,6 +85,7 @@ public class WearMainActivity extends WearLocalizedActivity {
         typeSelection = findViewById(R.id.typeSelection);
         confirmView = findViewById(R.id.confirmView);
         status = findViewById(R.id.status);
+        balanceView = findViewById(R.id.balanceView);
         confirmType = findViewById(R.id.confirmType);
         confirmText = findViewById(R.id.confirmText);
         btnCancel = findViewById(R.id.btnCancel);
@@ -403,6 +412,10 @@ public class WearMainActivity extends WearLocalizedActivity {
         super.onResume();
         ContextCompat.registerReceiver(this, pendingReceiver,
                 new IntentFilter(WearPaths.ACTION_PENDING_CHANGED), ContextCompat.RECEIVER_NOT_EXPORTED);
+        ContextCompat.registerReceiver(this, balanceReceiver,
+                new IntentFilter(WearPaths.ACTION_BALANCE_CHANGED), ContextCompat.RECEIVER_NOT_EXPORTED);
+        updateBalance();
+        refreshBalanceFromDataLayer();
         if (location != null && hasLocationPermission()) {
             location.start();
         }
@@ -417,6 +430,7 @@ public class WearMainActivity extends WearLocalizedActivity {
     protected void onPause() {
         super.onPause();
         unregisterReceiver(pendingReceiver);
+        unregisterReceiver(balanceReceiver);
         if (location != null) {
             location.stop();
         }
@@ -445,6 +459,42 @@ public class WearMainActivity extends WearLocalizedActivity {
             status.setVisibility(View.VISIBLE);
         } else {
             status.setVisibility(View.GONE);
+        }
+    }
+
+    /** Standardort-Saldo („Geldbeutel: 70,00 €") vom Phone anzeigen; leer → ausblenden. */
+    private void updateBalance() {
+        String text = BalanceStore.get(this);
+        if (text != null && !text.isEmpty()) {
+            balanceView.setText(text);
+            balanceView.setVisibility(View.VISIBLE);
+        } else {
+            balanceView.setVisibility(View.GONE);
+        }
+    }
+
+    /**
+     * Liest den aktuellen Saldo einmalig aus dem lokalen Data-Layer-Cache (billig, kein Netz) und zeigt ihn
+     * an. Nötig, weil der reine Change-Listener einen bereits (unverändert) vorliegenden Saldo nicht liefert.
+     */
+    private void refreshBalanceFromDataLayer() {
+        try {
+            com.google.android.gms.wearable.Wearable.getDataClient(this).getDataItems()
+                    .addOnSuccessListener(items -> {
+                        try {
+                            for (com.google.android.gms.wearable.DataItem item : items) {
+                                if (WearPaths.PATH_BALANCE.equals(item.getUri().getPath())) {
+                                    BalanceStore.save(this,
+                                            com.google.android.gms.wearable.DataMapItem.fromDataItem(item)
+                                                    .getDataMap().getString("text", ""));
+                                }
+                            }
+                        } finally {
+                            items.release();
+                        }
+                        updateBalance();
+                    });
+        } catch (Exception ignored) {
         }
     }
 

@@ -195,6 +195,11 @@ booking creation happen on the phone.
   seconds with “Cancel” and — unless cancelled — processed without further action. The type is transmitted
   along and enforced on the phone. If the phone is offline, “x bookings not yet transmitted” is shown under
   the buttons.
+- **Default-place balance on the watch**: below the buttons, the app **and** the tile show the balance of
+  the default place (default account → default place) as “Place: balance”, e.g. “Wallet: 70.00 €”. The phone
+  sends the ready-made text as a `/balance` DataItem only when it **changes**; the watch reads it from the
+  local Data Layer cache on start and reacts to changes via push — **no polling, no noticeable battery
+  drain**. If no default place is set, the line stays hidden.
 - **Silent digit entry**: on the “speak now” screen there is a **digits icon** at the bottom → a keypad (0–9
   + comma, backspace, enter, the entered number on top). This lets you record a booking **silently**; the
   amount is resolved on the phone via the current location (see “Amount-only entry”).

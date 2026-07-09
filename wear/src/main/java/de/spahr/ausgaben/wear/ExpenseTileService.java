@@ -12,6 +12,10 @@ import androidx.wear.tiles.TileBuilders;
 import androidx.wear.tiles.TileService;
 import androidx.wear.tiles.TimelineBuilders;
 
+import com.google.android.gms.wearable.DataItem;
+import com.google.android.gms.wearable.DataItemBuffer;
+import com.google.android.gms.wearable.DataMapItem;
+import com.google.android.gms.wearable.Wearable;
 import com.google.common.util.concurrent.ListenableFuture;
 
 /**
@@ -31,6 +35,31 @@ public class ExpenseTileService extends TileService {
     @Override
     protected ListenableFuture<TileBuilders.Tile> onTileRequest(
             RequestBuilders.TileRequest requestParams) {
+        // Aktuellen Standardort-Saldo aus dem lokalen Data-Layer-Cache lesen (billig, kein Netz), dann bauen.
+        // So erscheint der Saldo auch, wenn er sich seit dem letzten Change-Event nicht geändert hat.
+        ResolvableFuture<TileBuilders.Tile> future = ResolvableFuture.create();
+        Wearable.getDataClient(this).getDataItems().addOnCompleteListener(task -> {
+            String balance = BalanceStore.get(this);
+            if (task.isSuccessful() && task.getResult() != null) {
+                DataItemBuffer items = task.getResult();
+                try {
+                    for (DataItem item : items) {
+                        if (WearPaths.PATH_BALANCE.equals(item.getUri().getPath())) {
+                            balance = DataMapItem.fromDataItem(item).getDataMap().getString("text", "");
+                            BalanceStore.save(this, balance);
+                        }
+                    }
+                } catch (Exception ignored) {
+                } finally {
+                    items.release();
+                }
+            }
+            future.set(buildTile(balance));
+        });
+        return future;
+    }
+
+    private TileBuilders.Tile buildTile(String balance) {
 
         LayoutElementBuilders.Row buttons = new LayoutElementBuilders.Row.Builder()
                 .setVerticalAlignment(LayoutElementBuilders.VERTICAL_ALIGN_CENTER)
@@ -41,7 +70,7 @@ public class ExpenseTileService extends TileService {
                 .addContent(typeButton(WearPaths.TYPE_EXPENSE, RED, "−"))
                 .build();
 
-        LayoutElementBuilders.Column content = new LayoutElementBuilders.Column.Builder()
+        LayoutElementBuilders.Column.Builder contentBuilder = new LayoutElementBuilders.Column.Builder()
                 .setHorizontalAlignment(LayoutElementBuilders.HORIZONTAL_ALIGN_CENTER)
                 .addContent(new LayoutElementBuilders.Text.Builder()
                         .setText(tr("wear_title", R.string.wear_title))
@@ -53,8 +82,23 @@ public class ExpenseTileService extends TileService {
                 .addContent(new LayoutElementBuilders.Spacer.Builder()
                         .setHeight(DimensionBuilders.dp(10))
                         .build())
-                .addContent(buttons)
-                .build();
+                .addContent(buttons);
+
+        // Standardort-Saldo vom Phone unter den Knöpfen (z. B. „Geldbeutel: 70,00 €"); leer → weglassen.
+        if (balance != null && !balance.isEmpty()) {
+            contentBuilder
+                    .addContent(new LayoutElementBuilders.Spacer.Builder()
+                            .setHeight(DimensionBuilders.dp(8))
+                            .build())
+                    .addContent(new LayoutElementBuilders.Text.Builder()
+                            .setText(balance)
+                            .setFontStyle(new LayoutElementBuilders.FontStyle.Builder()
+                                    .setColor(ColorBuilders.argb(WHITE))
+                                    .setSize(DimensionBuilders.sp(12))
+                                    .build())
+                            .build());
+        }
+        LayoutElementBuilders.Column content = contentBuilder.build();
 
         // Auf dem Rundschirm den Inhalt vertikal + horizontal zentrieren (sonst wird der Titel oben
         // vom runden Rand beschnitten).
@@ -77,7 +121,7 @@ public class ExpenseTileService extends TileService {
                         .build())
                 .build();
 
-        return immediate(tile);
+        return tile;
     }
 
     /** Ein farbiger, runder Knopf mit Symbol, der die App für {@code type} startet. */

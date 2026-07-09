@@ -45,6 +45,15 @@ public class WearMessageListenerService extends WearableListenerService {
                         androidx.core.os.LocaleListCompat.forLanguageTags(code));
                 Log.d(TAG, "Sprache empfangen: " + code);
                 sendBroadcast(new Intent(WearPaths.ACTION_LANGUAGE_CHANGED).setPackage(getPackageName()));
+            } else if (event.getType() == DataEvent.TYPE_CHANGED
+                    && WearPaths.PATH_BALANCE.equals(path)) {
+                DataMap map = DataMapItem.fromDataItem(event.getDataItem()).getDataMap();
+                BalanceStore.save(this, map.getString("text", ""));
+                Log.d(TAG, "Saldo empfangen");
+                sendBroadcast(new Intent(WearPaths.ACTION_BALANCE_CHANGED).setPackage(getPackageName()));
+                // Tile ereignisgesteuert aktualisieren (kein Polling).
+                androidx.wear.tiles.TileService.getUpdater(this)
+                        .requestUpdate(ExpenseTileService.class);
             }
         }
     }

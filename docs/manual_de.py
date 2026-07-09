@@ -407,6 +407,10 @@ bullets([
   "Der erkannte Text wird 10 Sekunden mit «Abbrechen» angezeigt und sonst automatisch verarbeitet.",
   "<b>Stille Zifferneingabe</b>: über das Ziffern-Symbol einen Betrag lautlos eingeben (Standort-Auflösung am Handy).",
   "<b>Wear-Tile</b>: Schnellzugriff als Kachel.",
+  "<b>Standardort-Saldo</b>: Unter den Knöpfen zeigen App und Tile den Saldo des Standardorts als "
+  "«Ort: Saldo» (z. B. «Geldbeutel: 70,00 €»). Das Handy sendet den Wert nur bei Änderung; die Uhr liest "
+  "ihn beim Start und reagiert per Push – ohne Polling und ohne merklichen Akku-Mehrverbrauch. Kein "
+  "Standardort gesetzt → Zeile ausgeblendet.",
   "<b>Offline</b>: nicht übertragene Buchungen werden angezeigt und automatisch nachgereicht, sobald das "
   "Handy erreichbar ist – ohne Verlust und ohne Dopplung.",
 ])

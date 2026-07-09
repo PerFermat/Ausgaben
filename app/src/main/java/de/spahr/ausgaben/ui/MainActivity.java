@@ -325,6 +325,8 @@ public class MainActivity extends LocalizedActivity {
             loadDepotTotal(depots);
         });
         refreshBookings();
+        // Standardort-Saldo an die Uhr spiegeln (No-op im foss-Flavor; nur bei Änderung übertragen).
+        de.spahr.ausgaben.wear.BalanceSync.publish(this);
         // Export/Sync aus dem Depot-Menü nachholen.
         if (getIntent().getBooleanExtra(EXTRA_RUN_EXPORT, false)) {
             getIntent().removeExtra(EXTRA_RUN_EXPORT);

@@ -167,9 +167,11 @@ Mikrofon-Berechtigung ist davon unberührt). Hinweise zur F-Droid-Paketierung in
   Nettoeinsatz, Gewinn/Verlust) verrechnet werden. Der Netto-Wert wird beim Depot-Import erfasst; für
   bestehende Daten ist einmalig ein Depot-Neuimport nötig.
 - **Anlage- und Verbindlichkeitskonten**: Konten werden anhand ihres KMyMoney-Typs in **Anlagekonten**,
-  **Verbindlichkeitskonten** (Kredite, Kreditkarten) und **Depots** gruppiert – mit gleich gestalteten
-  Überschriften in der Kontenschublade **und** in den Beständen. In den Beständen zählt das Depot als eine
-  Zeile (Depotwert) zum **Gesamt** mit.
+  **Verbindlichkeitskonten** (Kredite, Kreditkarten) und **Depots** gruppiert – mit farbcodierten
+  Überschriften (Anlage = grün, Verbindlichkeit = rot, Depot = blau; hell → hellere Farbe/schwarze Schrift,
+  dunkel → dunklere Farbe/weiße Schrift) in der Kontenschublade **und** in den Beständen. In den Beständen
+  zeigt jede Kategorie-Überschrift rechtsbündig ihre **Kategoriesumme**; das Depot zählt als eine Zeile
+  (Depotwert) zum **Gesamt** mit (weiterhin in der neutralen Grau/Schwarz-Farbe).
 - **CSV-Import** von kMyMoney-Ledger-CSV (Konto aus `Kontentyp:`-Zeile, ISO-Datum, Vorzeichen → Typ).
 
 ### Sprachen

@@ -331,10 +331,12 @@ p("Ein besonderer Vorteil: Der <b>Kassensturz</b> (Soll-Ist-Abgleich) lässt sic
   "Importierte Buchungen tragen keine Ort-Verknüpfung.")
 h2("Anlage- und Verbindlichkeitskonten")
 p("Konten werden anhand ihres KMyMoney-Typs in <b>Anlagekonten</b>, <b>Verbindlichkeitskonten</b> "
-  "(Kredite, Kreditkarten) und <b>Depots</b> gruppiert – mit gleich gestalteten Überschriften sowohl in der "
-  "Kontenschublade als auch in den Beständen. In den Beständen zählt das Depot als eine Zeile (Depotwert) "
-  "zum <b>Gesamt</b> mit. Die Einteilung wird beim Import aus der .kmy übernommen (nach einem erneuten "
-  "Import sichtbar).")
+  "(Kredite, Kreditkarten) und <b>Depots</b> gruppiert – mit farbcodierten Überschriften (Anlage = grün, "
+  "Verbindlichkeit = rot, Depot = blau; helle Darstellung → hellere Farbe/schwarze Schrift, dunkle "
+  "Darstellung → dunklere Farbe/weiße Schrift) sowohl in der Kontenschublade als auch in den Beständen. "
+  "In den Beständen zeigt jede Kategorie-Überschrift rechtsbündig ihre <b>Kategoriesumme</b>; das Depot "
+  "zählt als eine Zeile (Depotwert) zum <b>Gesamt</b> mit (in neutralem Grau/Schwarz). Die Einteilung wird "
+  "beim Import aus der .kmy übernommen (nach einem erneuten Import sichtbar).")
 h2("Depot (Wertpapiere)")
 p("Nach dem Import eines KMyMoney-Investmentkontos erscheint das <b>Depot</b> in der Kontenschublade. Die "
   "Depot-Ansicht ist wie eine Konto-Ansicht aufgebaut (Schublade, Kopf mit Depotname, eigenes Menü, Filter) "

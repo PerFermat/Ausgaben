@@ -316,9 +316,12 @@ p("A particular advantage: the <b>cash count</b> (reconciliation) can be done <b
   "this <b>simplifies reconciliation considerably</b>. Imported bookings carry no place link.")
 h2("Asset and liability accounts")
 p("Accounts are grouped by their KMyMoney type into <b>asset accounts</b>, <b>liability accounts</b> "
-  "(loans, credit cards) and <b>portfolios</b> – with matching section headers both in the account drawer "
-  "and in the holdings view. In holdings the portfolio counts as one line (portfolio value) towards the "
-  "<b>total</b>. The split is taken from the .kmy on import (visible after a re-import).")
+  "(loans, credit cards) and <b>portfolios</b> – with colour-coded section headers (assets green, "
+  "liabilities red, portfolios blue; light theme → lighter colour/black text, dark theme → darker "
+  "colour/white text) both in the account drawer and in the holdings view. In holdings each category header "
+  "shows its <b>category total</b> right-aligned; the portfolio counts as one line (portfolio value) towards "
+  "the <b>total</b> (in a neutral grey/black). The split is taken from the .kmy on import (visible after a "
+  "re-import).")
 h2("Portfolio (securities)")
 p("After importing a KMyMoney investment account, the <b>portfolio</b> appears in the account drawer. The "
   "portfolio view is laid out like an account view (drawer, header with the portfolio name, its own menu, "

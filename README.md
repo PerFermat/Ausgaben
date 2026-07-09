@@ -160,9 +160,11 @@ permission is unaffected). F-Droid packaging notes are in [`fdroid/`](fdroid/).
   **net** (cash received after tax) and used in the balance line (dividends, net invested, gain/loss). The net
   value is captured on portfolio import; for existing data a one-time re-import is needed.
 - **Asset and liability accounts**: accounts are grouped by their KMyMoney type into **asset accounts**,
-  **liability accounts** (loans, credit cards) and **portfolios** — with matching section headers both in the
-  account drawer **and** in the holdings view. In holdings the portfolio counts as one line (portfolio value)
-  towards the **total**.
+  **liability accounts** (loans, credit cards) and **portfolios** — with colour-coded section headers (assets
+  green, liabilities red, portfolios blue; light → lighter colour/black text, dark → darker colour/white text)
+  both in the account drawer **and** in the holdings view. In holdings each category header shows its **category
+  total** right-aligned; the portfolio counts as one line (portfolio value) towards the **total** (still shown
+  in the neutral grey/black colour).
 - **CSV import** of KMyMoney ledger CSV (account from the `Kontentyp:` line, ISO date, sign → type).
 
 ### Languages

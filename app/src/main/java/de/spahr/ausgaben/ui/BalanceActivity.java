@@ -133,28 +133,65 @@ public class BalanceActivity extends LocalizedActivity {
     /** Gruppenliste: Anlage-/Verbindlichkeitskonten (mit Überschrift) → Orte → Depots → Gesamt. */
     private void render() {
         container.removeAllViews();
+        boolean night = isNight();
+        String defCur = de.spahr.ausgaben.settings.Currencies.getDefault();
         if (!assetAccounts.isEmpty()) {
-            addSectionHeader(getString(R.string.accounts_asset));
+            addCategoryHeader(getString(R.string.accounts_asset), sumOf(assetAccounts),
+                    night ? CategoryColors.DARK_ASSET : CategoryColors.LIGHT_ASSET, night, defCur);
             for (String account : assetAccounts) {
                 renderAccount(account);
             }
         }
         if (!liabilityAccounts.isEmpty()) {
-            addSectionHeader(getString(R.string.accounts_liability));
+            addCategoryHeader(getString(R.string.accounts_liability), sumOf(liabilityAccounts),
+                    night ? CategoryColors.DARK_LIABILITY : CategoryColors.LIGHT_LIABILITY, night, defCur);
             for (String account : liabilityAccounts) {
                 renderAccount(account);
             }
         }
         long depotTotal = 0;
-        if (!depotOrder.isEmpty()) {
-            addSectionHeader(getString(R.string.accounts_depot));
-        }
         for (String depot : depotOrder) {
-            depotTotal += renderDepotSection(depot);
+            depotTotal += depotValue(depot);
         }
-        // Gesamt = Konten-Gesamt + Depotwert.
-        addRow(getString(R.string.saldo_total), total + depotTotal, true, false, false, null,
-                de.spahr.ausgaben.settings.Currencies.getDefault());
+        if (!depotOrder.isEmpty()) {
+            addCategoryHeader(getString(R.string.accounts_depot), depotTotal,
+                    night ? CategoryColors.DARK_DEPOT : CategoryColors.LIGHT_DEPOT, night, defCur);
+            for (String depot : depotOrder) {
+                renderDepotSection(depot);
+            }
+        }
+        // Gesamt = Konten-Gesamt + Depotwert; alte Invers-Farbe (grau/schwarz).
+        addCategoryHeader(getString(R.string.saldo_total), total + depotTotal,
+                night ? CategoryColors.DARK_TOTAL : CategoryColors.LIGHT_TOTAL,
+                !night, defCur);
+    }
+
+    private boolean isNight() {
+        return (getResources().getConfiguration().uiMode
+                & android.content.res.Configuration.UI_MODE_NIGHT_MASK)
+                == android.content.res.Configuration.UI_MODE_NIGHT_YES;
+    }
+
+    private long sumOf(List<String> accounts) {
+        long sum = 0;
+        for (String a : accounts) {
+            Long b = accountBalances.get(a);
+            if (b != null) {
+                sum += b;
+            }
+        }
+        return sum;
+    }
+
+    private long depotValue(String depot) {
+        List<Repository.DepotHolding> holdings = depotHoldings.get(depot);
+        long sub = 0;
+        if (holdings != null) {
+            for (Repository.DepotHolding h : holdings) {
+                sub += h.valueCents;
+            }
+        }
+        return sub;
     }
 
     /** Ein Konto (fett + Saldo) mit seinen Orten (eingerückt) und Trennstrich. */
@@ -194,25 +231,42 @@ public class BalanceActivity extends LocalizedActivity {
         return sub;
     }
 
-    /** Abschnittsüberschrift im Invers-Schema der Kontenschublade (siehe AccountDrawerAdapter). */
-    private void addSectionHeader(String title) {
-        boolean night = (getResources().getConfiguration().uiMode
-                & android.content.res.Configuration.UI_MODE_NIGHT_MASK)
-                == android.content.res.Configuration.UI_MODE_NIGHT_YES;
-        TextView header = new TextView(this);
-        header.setText(title);
-        header.setTypeface(android.graphics.Typeface.DEFAULT, android.graphics.Typeface.BOLD);
-        header.setTextSize(15f);
-        header.setBackgroundColor(night ? 0xFF808080 : 0xFF303030);
-        header.setTextColor(night ? android.graphics.Color.BLACK : android.graphics.Color.WHITE);
-        int padH = Math.round(16 * getResources().getDisplayMetrics().density);
-        header.setPadding(padH, Math.round(10 * getResources().getDisplayMetrics().density),
-                padH, Math.round(8 * getResources().getDisplayMetrics().density));
+    /**
+     * Kategorie-Überschrift mit Kategoriesumme rechtsbündig. Farbcode je Kontokategorie
+     * (siehe {@link CategoryColors}); {@code whiteText} steuert die Schriftfarbe.
+     */
+    private void addCategoryHeader(String title, long sum, int bg, boolean whiteText, String currency) {
+        int textColor = whiteText ? android.graphics.Color.WHITE : android.graphics.Color.BLACK;
+        float d = getResources().getDisplayMetrics().density;
+        LinearLayout row = new LinearLayout(this);
+        row.setOrientation(LinearLayout.HORIZONTAL);
+        row.setGravity(Gravity.CENTER_VERTICAL);
+        row.setBackgroundColor(bg);
+        int padH = Math.round(16 * d);
+        row.setPadding(padH, Math.round(10 * d), padH, Math.round(8 * d));
         LinearLayout.LayoutParams lp = new LinearLayout.LayoutParams(
                 LinearLayout.LayoutParams.MATCH_PARENT, LinearLayout.LayoutParams.WRAP_CONTENT);
-        lp.topMargin = Math.round(12 * getResources().getDisplayMetrics().density);
-        header.setLayoutParams(lp);
-        container.addView(header);
+        lp.topMargin = Math.round(12 * d);
+        row.setLayoutParams(lp);
+
+        TextView name = new TextView(this);
+        name.setText(title);
+        name.setTypeface(android.graphics.Typeface.DEFAULT, android.graphics.Typeface.BOLD);
+        name.setTextSize(15f);
+        name.setTextColor(textColor);
+        name.setLayoutParams(new LinearLayout.LayoutParams(0,
+                LinearLayout.LayoutParams.WRAP_CONTENT, 1f));
+
+        TextView value = new TextView(this);
+        value.setText(formatEuro(sum, currency));
+        value.setTypeface(android.graphics.Typeface.MONOSPACE, android.graphics.Typeface.BOLD);
+        value.setTextSize(15f);
+        value.setTextColor(textColor);
+        value.setGravity(Gravity.END);
+
+        row.addView(name);
+        row.addView(value);
+        container.addView(row);
     }
 
     private long placeBal(Map<String, Long> map, String place) {

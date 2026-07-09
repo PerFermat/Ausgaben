@@ -121,21 +121,28 @@ public class AccountDrawerAdapter extends RecyclerView.Adapter<AccountDrawerAdap
 
     private void bindHeader(VH h, String key) {
         int resId;
+        int lightBg, darkBg;
         if ("accounts_liability".equals(key)) {
             resId = R.string.accounts_liability;
+            lightBg = CategoryColors.LIGHT_LIABILITY;
+            darkBg = CategoryColors.DARK_LIABILITY;
         } else if ("accounts_depot".equals(key)) {
             resId = R.string.accounts_depot;
+            lightBg = CategoryColors.LIGHT_DEPOT;
+            darkBg = CategoryColors.DARK_DEPOT;
         } else {
             resId = R.string.accounts_asset;
+            lightBg = CategoryColors.LIGHT_ASSET;
+            darkBg = CategoryColors.DARK_ASSET;
         }
         h.text.setText(h.text.getResources().getString(resId));
         h.text.setTypeface(Typeface.DEFAULT, Typeface.BOLD);
-        // Invers-Darstellung: hell = dunkler Grund/weiße Schrift, dunkel = 50 % Grau/schwarze Schrift.
+        // Farbcode je Kontokategorie: hell = hellere Farbe/schwarze Schrift, dunkel = dunklere Farbe/weiße Schrift.
         boolean night = (h.text.getResources().getConfiguration().uiMode
                 & android.content.res.Configuration.UI_MODE_NIGHT_MASK)
                 == android.content.res.Configuration.UI_MODE_NIGHT_YES;
-        h.text.setBackgroundColor(night ? 0xFF808080 : 0xFF303030);
-        h.text.setTextColor(night ? android.graphics.Color.BLACK : android.graphics.Color.WHITE);
+        h.text.setBackgroundColor(night ? darkBg : lightBg);
+        h.text.setTextColor(night ? android.graphics.Color.WHITE : android.graphics.Color.BLACK);
         // Kompakter als Konto-Zeilen und bündig an die folgende Konto-Zeile (kein sichtbarer Abstand).
         applyRowMetrics(h, true);
         h.text.setOnClickListener(null);

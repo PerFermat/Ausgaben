@@ -236,11 +236,17 @@ public class MainActivity extends LocalizedActivity {
         });
         recycler.setAdapter(adapter);
 
-        // Wischgeste nach unten → DB neu lesen.
+        // Wischgeste nach unten: in der kmy-Variante das aktuelle Konto neu aus der .kmy einlesen,
+        // sonst nur die DB neu anzeigen (in der CSV-Variante nur übers Kontenmenü aktualisierbar).
         swipeRefresh = findViewById(R.id.swipeRefresh);
         swipeRefresh.setOnRefreshListener(() -> {
-            refreshBookings();
             swipeRefresh.setRefreshing(false);
+            if (settings.isKmyMode() && !selectedAccount.isEmpty()
+                    && settings.hasRemoteConfig() && !settings.getKmyPath().isEmpty()) {
+                runKmyImport(selectedAccount);
+            } else {
+                refreshBookings();
+            }
         });
 
         ExtendedFloatingActionButton fab = findViewById(R.id.fabNew);

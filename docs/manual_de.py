@@ -294,7 +294,9 @@ bullets([
   "gelb, Ausgabe = rot), unten stehen der Kontostand vor und nach der Buchung. <b>Langer Druck</b> öffnet "
   "sie zum Bearbeiten.",
   "In der Liste wird die Notiz auf maximal zwei Zeilen gekürzt; im Editor umfasst das Notizfeld vier Zeilen.",
-  "<b>Herunterziehen</b> aktualisiert die Liste (Sync).",
+  "<b>Herunterziehen</b> (in einer Konto-Ansicht): in der <b>kmy-Variante</b> wird die .kmy-Datei neu "
+  "eingelesen und genau dieses Konto aktualisiert. In der <b>CSV-Variante</b> ist das nicht verfügbar – dort "
+  "aktualisiert man ein Konto über das Kontenmenü (langer Druck auf das Konto in der Schublade).",
   "Markierungen: «Split», → / ← (Umbuchung), «exportiert»; Farben rot/grün.",
   "<b>Filter</b> (Trichter ▽): nach Empfänger, Kategorie (als Baum), Betrag (Schieberegler) und "
   "<b>Datum von–bis</b> (Schieberegler in Monatsschritten; ein taggenaues Datum geben Sie direkt im Feld "

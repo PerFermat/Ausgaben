@@ -309,8 +309,9 @@ Ordner exportiert. Im **CSV-Modus mit SMB/WebDAV** zeigt der Import (Konto hinzu
 auf ein Konto zum Aktualisieren) denselben **navigierbaren Ordner-Browser** – Unterordner (📁) und
 CSV-Dateien; die gewählte CSV wird aus dem aktuellen Ordner importiert.
 
-Im **`.kmy`-Modus** wird ein Konto zusätzlich durch **Herunterziehen der Buchungsliste** (in dessen
-Konto-Ansicht) direkt aus der `.kmy` neu eingelesen. Im **CSV-Modus** ist das nicht verfügbar – dort
+Im **`.kmy`-Modus** wird ein Konto (bzw. ein **Depot**) zusätzlich durch **Herunterziehen der Liste** (in
+dessen Konto- bzw. Depot-Ansicht) direkt aus der `.kmy` neu eingelesen; im Depot aktualisiert auch der lange
+Druck auf das Depot in der Schublade es an Ort und Stelle. Im **CSV-Modus** ist das nicht verfügbar – dort
 aktualisiert man ein Konto nur über das Kontenmenü (langer Druck auf das Konto).
 
 - **Nextcloud**: Basis-URL = Server (z. B. `https://cloud.example.com`) und ein **App-Passwort**

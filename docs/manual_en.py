@@ -288,9 +288,9 @@ bullets([
   "editing): a large coloured heading shows the type (income = green, transfer = yellow, expense = red), and "
   "the balance before and after the booking is shown at the bottom. <b>Long press</b> opens it for editing.",
   "In the list the note is truncated to at most two lines; in the editor the note field spans four lines.",
-  "<b>Pull down</b> (in an account view): in the <b>kmy variant</b> the .kmy file is re-read and that "
-  "account is refreshed. In the <b>CSV variant</b> this is not available – there you refresh an account via "
-  "the account menu (long-press the account in the drawer).",
+  "<b>Pull down</b> (in an account or portfolio view): in the <b>kmy variant</b> the .kmy file is re-read "
+  "and that account or portfolio is refreshed. In the <b>CSV variant</b> this is not available – there you "
+  "refresh an account via the account menu (long-press the account in the drawer).",
   "Markers: «Split», → / ← (transfer), «exported»; colours red/green.",
   "<b>Filter</b> (funnel ▽): by payee, category (as a tree), amount (slider) and <b>date from–to</b> "
   "(slider in whole-month steps; type an exact day into the field). The filter applies to the list and the "

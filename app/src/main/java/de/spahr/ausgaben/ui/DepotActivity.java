@@ -31,7 +31,10 @@ import java.util.Locale;
 import de.spahr.ausgaben.R;
 import de.spahr.ausgaben.db.Repository;
 import de.spahr.ausgaben.export.ExportCoordinator;
+import de.spahr.ausgaben.export.KmyDocument;
 import de.spahr.ausgaben.export.KmyExportCoordinator;
+import de.spahr.ausgaben.export.KmyImporter;
+import de.spahr.ausgaben.net.RemoteStorage;
 import de.spahr.ausgaben.settings.Currencies;
 import de.spahr.ausgaben.settings.SettingsStore;
 
@@ -53,6 +56,7 @@ public class DepotActivity extends LocalizedActivity {
     private LinearLayout container;
     private TextView saldoLabel;
     private TextView saldoValue;
+    private androidx.swiperefreshlayout.widget.SwipeRefreshLayout swipeRefresh;
 
     private ActivityResultLauncher<Uri> exportTreeLauncher;
     private AlertDialog progressDialog;
@@ -109,6 +113,15 @@ public class DepotActivity extends LocalizedActivity {
 
         setupDrawer();
         depot = getIntent().getStringExtra(EXTRA_DEPOT);
+
+        // Herunterziehen: das angezeigte Depot neu aus der .kmy einlesen (nur kmy-Modus).
+        swipeRefresh = findViewById(R.id.swipeRefresh);
+        swipeRefresh.setOnRefreshListener(() -> {
+            swipeRefresh.setRefreshing(false);
+            if (depot != null && !depot.isEmpty()) {
+                reimportDepot(depot);
+            }
+        });
     }
 
     private void setupDrawer() {
@@ -141,8 +154,8 @@ public class DepotActivity extends LocalizedActivity {
 
                     @Override
                     public void onDepotImport(String d) {
-                        drawerLayout.closeDrawers();
-                        openMainAccount(""); // Aktualisieren des Depots über den Hauptbildschirm
+                        // Langer Druck auf das Depot: dieses Depot neu einlesen (Schublade bleibt offen).
+                        reimportDepot(d);
                     }
                 });
         list.setAdapter(accountAdapter);
@@ -365,6 +378,55 @@ public class DepotActivity extends LocalizedActivity {
             progressDialog = null;
             progressTextView = null;
         }
+    }
+
+    // ---- Depot neu einlesen (Herunterziehen / langer Druck auf das Depot) ----
+
+    /** Lädt die .kmy und aktualisiert genau dieses Depot; danach neu zeichnen. Nur im kmy-Modus. */
+    private void reimportDepot(String depotName) {
+        if (!settings.isKmyMode() || !settings.hasRemoteConfig()) {
+            Toast.makeText(this, R.string.export_no_config, Toast.LENGTH_LONG).show();
+            return;
+        }
+        final String path = settings.getKmyPath();
+        if (path.isEmpty()) {
+            Toast.makeText(this, R.string.kmy_path_missing, Toast.LENGTH_LONG).show();
+            return;
+        }
+        showProgress(getString(R.string.progress_download));
+        new Thread(() -> {
+            try {
+                byte[] raw = RemoteStorage.from(settings).downloadBytes(folderOf(path), fileOf(path));
+                KmyImporter importer = new KmyImporter(
+                        new KmyDocument(raw, getApplicationContext()), getApplicationContext());
+                runOnUiThread(() -> updateProgress(getString(R.string.progress_importing)));
+                KmyImporter.DepotData data = importer.importDepot(depotName);
+                repository.replaceDepotImport(depotName, data.securities, data.transactions,
+                        () -> runOnUiThread(() -> {
+                            dismissProgress();
+                            Toast.makeText(this, getString(R.string.depot_import_done, depotName),
+                                    Toast.LENGTH_LONG).show();
+                            render();
+                        }));
+            } catch (Exception e) {
+                runOnUiThread(() -> {
+                    dismissProgress();
+                    Toast.makeText(this, R.string.import_failed, Toast.LENGTH_LONG).show();
+                });
+            }
+        }).start();
+    }
+
+    private static String folderOf(String path) {
+        String p = path.trim();
+        int slash = p.lastIndexOf('/');
+        return slash < 0 ? "" : p.substring(0, slash);
+    }
+
+    private static String fileOf(String path) {
+        String p = path.trim();
+        int slash = p.lastIndexOf('/');
+        return slash < 0 ? p : p.substring(slash + 1);
     }
 
     private void showFilterDialog() {

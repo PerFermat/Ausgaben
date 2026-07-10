@@ -294,9 +294,10 @@ configured sync target, export goes locally into a folder chosen via SAF. In **C
 import (add account **or** long-press an account to refresh) shows the same **navigable folder browser** —
 subfolders (📁) and CSV files; the chosen CSV is imported from the current folder.
 
-In **`.kmy` mode**, an account is additionally re-read straight from the `.kmy` by **pulling the booking list
-down** (in that account's view). In **CSV mode** this is not available — there you refresh an account only via
-the account menu (long-press the account).
+In **`.kmy` mode**, an account (or a **portfolio**) is additionally re-read straight from the `.kmy` by
+**pulling the list down** (in that account's or portfolio's view); in the portfolio, long-pressing the
+portfolio in the drawer also refreshes it in place. In **CSV mode** this is not available — there you refresh
+an account only via the account menu (long-press the account).
 
 - **Nextcloud**: base URL = server (e.g. `https://cloud.example.com`) and an **app password** (Nextcloud →
   Settings → Security → App password). Files end up under `<URL>/remote.php/dav/files/<user>/<folder>/`.

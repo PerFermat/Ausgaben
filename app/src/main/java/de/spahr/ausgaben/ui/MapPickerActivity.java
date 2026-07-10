@@ -28,6 +28,8 @@ public class MapPickerActivity extends LocalizedActivity {
 
     public static final String EXTRA_LAT = "lat";
     public static final String EXTRA_LON = "lon";
+    /** Nur-Ansicht: feste Markierung an den übergebenen Koordinaten, keine Auswahl. */
+    public static final String EXTRA_VIEW_ONLY = "view_only";
 
     private MapView map;
 
@@ -52,14 +54,28 @@ public class MapPickerActivity extends LocalizedActivity {
         map.getController().setZoom(start == DEFAULT ? 5.0 : 16.0);
         map.getController().setCenter(start);
 
-        ((MaterialButton) findViewById(R.id.btnPickHere)).setOnClickListener(v -> {
-            IGeoPoint c = map.getMapCenter();
-            Intent data = new Intent();
-            data.putExtra(EXTRA_LAT, c.getLatitude());
-            data.putExtra(EXTRA_LON, c.getLongitude());
-            setResult(RESULT_OK, data);
-            finish();
-        });
+        boolean viewOnly = getIntent().getBooleanExtra(EXTRA_VIEW_ONLY, false);
+        MaterialButton btnPick = findViewById(R.id.btnPickHere);
+        if (viewOnly) {
+            // Nur-Ansicht: feste Markierung am Ort, kein Fadenkreuz/„Übernehmen" (keine Auswahl).
+            findViewById(R.id.crosshair).setVisibility(android.view.View.GONE);
+            btnPick.setVisibility(android.view.View.GONE);
+            org.osmdroid.views.overlay.Marker marker = new org.osmdroid.views.overlay.Marker(map);
+            marker.setPosition(start);
+            marker.setAnchor(org.osmdroid.views.overlay.Marker.ANCHOR_CENTER,
+                    org.osmdroid.views.overlay.Marker.ANCHOR_BOTTOM);
+            marker.setDraggable(false);
+            map.getOverlays().add(marker);
+        } else {
+            btnPick.setOnClickListener(v -> {
+                IGeoPoint c = map.getMapCenter();
+                Intent data = new Intent();
+                data.putExtra(EXTRA_LAT, c.getLatitude());
+                data.putExtra(EXTRA_LON, c.getLongitude());
+                setResult(RESULT_OK, data);
+                finish();
+            });
+        }
     }
 
     /** Etwa Deutschland-Mitte als neutraler Startpunkt, wenn nichts anderes bekannt ist. */

@@ -60,11 +60,15 @@ public class BookingEditActivity extends LocalizedActivity {
     public static final String EXTRA_PRESET_ACCOUNT = "preset_account";
     /** Neue Buchung mit vorbelegtem Ort (aus der Ort-Ansicht der Bestände; leer = „ohne Ort"). */
     public static final String EXTRA_PRESET_PLACE = "preset_place";
+    /** Öffnet eine bestehende Buchung nur zur Ansicht (keine Änderung möglich). */
+    public static final String EXTRA_READ_ONLY = "read_only";
 
     private Repository repository;
     private SettingsStore settings;
     private PlacesStore placesStore;
     private Booking booking; // null = Neu-Modus
+    /** true = reine Ansicht (kurzer Druck): alle Felder gesperrt, keine Aktionsknöpfe. */
+    private boolean readOnly;
 
     // Ursprünglicher Typ beim Bearbeiten (für Umbuchung ↔ normale Buchung Umwandlungen).
     private boolean origIsTransfer;
@@ -78,6 +82,10 @@ public class BookingEditActivity extends LocalizedActivity {
 
     private MaterialToolbar toolbar;
     private MaterialButtonToggleGroup toggleType;
+    private android.widget.TextView typeHeading;
+    private android.widget.TextView textBalanceBefore;
+    private android.widget.TextView textBalanceAfter;
+    private android.widget.ImageButton btnNoteMap;
     private TextInputEditText editAmount;
     private TextInputLayout payeeLayout;
     private MaterialAutoCompleteTextView editPayee;
@@ -134,6 +142,10 @@ public class BookingEditActivity extends LocalizedActivity {
         placesStore = new PlacesStore(this);
 
         toggleType = findViewById(R.id.toggleType);
+        typeHeading = findViewById(R.id.typeHeading);
+        textBalanceBefore = findViewById(R.id.textBalanceBefore);
+        textBalanceAfter = findViewById(R.id.textBalanceAfter);
+        btnNoteMap = findViewById(R.id.btnNoteMap);
         editAmount = findViewById(R.id.editAmount);
         editAmount.setKeyListener(android.text.method.DigitsKeyListener.getInstance("0123456789.,"));
         payeeLayout = findViewById(R.id.payeeLayout);
@@ -214,6 +226,7 @@ public class BookingEditActivity extends LocalizedActivity {
 
         long templateId = getIntent().getLongExtra(EXTRA_TEMPLATE_BOOKING_ID, -1);
         long id = getIntent().getLongExtra(EXTRA_BOOKING_ID, -1);
+        readOnly = getIntent().getBooleanExtra(EXTRA_READ_ONLY, false);
         long voiceAmount = getIntent().getLongExtra(EXTRA_VOICE_AMOUNT_CENTS, -1);
         voiceSpokenPayee = getIntent().getStringExtra(EXTRA_VOICE_SPOKEN_PAYEE);
 
@@ -497,6 +510,96 @@ public class BookingEditActivity extends LocalizedActivity {
         btnUpdate.setVisibility(View.VISIBLE);
         btnDelete.setVisibility(View.VISIBLE);
         populateFrom(b, null);
+        if (readOnly) {
+            applyReadOnly();
+        }
+    }
+
+    /** Reine Ansicht: Titel setzen, alle Felder sperren, Aktionsknöpfe ausblenden. */
+    private void applyReadOnly() {
+        toolbar.setTitle(R.string.booking_view_title);
+        lockField(editAmount);
+        lockField(editPayee);
+        lockField(editAccount);
+        lockField(editAccountTo);
+        lockField(editPlace);
+        lockField(editPlaceTo);
+        lockField(editNote);
+        lockField(editDate);
+        // Dropdown-Pfeile (Exposed-Menü) entfernen, damit sich keine Auswahl öffnen lässt.
+        accountLayout.setEndIconMode(TextInputLayout.END_ICON_NONE);
+        accountToLayout.setEndIconMode(TextInputLayout.END_ICON_NONE);
+        placeLayout.setEndIconMode(TextInputLayout.END_ICON_NONE);
+        placeToLayout.setEndIconMode(TextInputLayout.END_ICON_NONE);
+        // Ansicht: „Als exportiert markiert" ausblenden (im Bearbeiten-Modus bleibt der Schalter).
+        switchExported.setVisibility(View.GONE);
+        btnToday.setVisibility(View.GONE);
+        btnSaveNew.setVisibility(View.GONE);
+        btnUpdate.setVisibility(View.GONE);
+        btnDelete.setVisibility(View.GONE);
+
+        // Umschaltknöpfe durch eine große farbige Typ-Überschrift ersetzen
+        // (Einnahme = grün, Umbuchung = gelb, Ausgabe = rot).
+        toggleType.setVisibility(View.GONE);
+        int typeRes;
+        int typeColor;
+        if (booking.isTransfer) {
+            typeRes = R.string.type_transfer;
+            typeColor = R.color.transfer_yellow;
+        } else if (booking.isIncome) {
+            typeRes = R.string.type_income;
+            typeColor = R.color.income_green;
+        } else {
+            typeRes = R.string.type_expense;
+            typeColor = R.color.expense_red;
+        }
+        typeHeading.setText(typeRes);
+        typeHeading.setTextColor(getColor(typeColor));
+        typeHeading.setVisibility(View.VISIBLE);
+
+        // Kontostand vor/nach dieser Buchung auf dem Konto der Buchung.
+        showBalances();
+
+        // Ortssymbol, wenn die Notiz GPS-Koordinaten enthält → Karte mit der Position öffnen.
+        final double[] coords = de.spahr.ausgaben.location.Geo.parse(booking.note);
+        if (coords != null) {
+            btnNoteMap.setVisibility(View.VISIBLE);
+            btnNoteMap.setOnClickListener(v -> {
+                android.content.Intent i = new android.content.Intent(this, MapPickerActivity.class);
+                i.putExtra(MapPickerActivity.EXTRA_LAT, coords[0]);
+                i.putExtra(MapPickerActivity.EXTRA_LON, coords[1]);
+                i.putExtra(MapPickerActivity.EXTRA_VIEW_ONLY, true);
+                startActivity(i);
+            });
+        } else {
+            btnNoteMap.setVisibility(View.GONE);
+        }
+    }
+
+    /** Zeigt „Kontostand vor/nach der Buchung" für das Konto dieser Buchung. */
+    private void showBalances() {
+        final long signed = booking.isIncome ? booking.amountCents : -booking.amountCents;
+        final String currency = de.spahr.ausgaben.settings.Currencies.forAccount(booking.account);
+        repository.getAccountBalanceUpTo(booking.account, booking.createdAt, booking.id, after -> {
+            long before = after - signed;
+            textBalanceBefore.setText(getString(R.string.balance_before,
+                    de.spahr.ausgaben.settings.MoneyFormat.display(before, currency)));
+            textBalanceAfter.setText(getString(R.string.balance_after,
+                    de.spahr.ausgaben.settings.MoneyFormat.display(after, currency)));
+            textBalanceBefore.setVisibility(View.VISIBLE);
+            textBalanceAfter.setVisibility(View.VISIBLE);
+        });
+    }
+
+    /** Macht ein Eingabefeld nicht editierbar, aber lesbar (kein Fokus/Cursor/Dropdown/Tastatur). */
+    private void lockField(android.widget.EditText e) {
+        e.setFocusable(false);
+        e.setFocusableInTouchMode(false);
+        e.setClickable(false);
+        e.setLongClickable(false);
+        e.setCursorVisible(false);
+        e.setKeyListener(null);
+        e.setOnClickListener(null);
     }
 
     /**
@@ -648,6 +751,14 @@ public class BookingEditActivity extends LocalizedActivity {
         if (amountText != null) {
             amt.setText(amountText);
         }
+        if (readOnly) {
+            // Ansicht: Kategorie/Betrag gesperrt, kein Entfernen-Knopf.
+            lockField(cat);
+            lockField(amt);
+            remove.setVisibility(View.GONE);
+            splitContainer.addView(row);
+            return;
+        }
         cat.addTextChangedListener(new SimpleWatcher(() -> onSplitCategoryChanged(row)));
         amt.addTextChangedListener(new SimpleWatcher(() -> onPartialChanged(row)));
         remove.setOnClickListener(v -> {
@@ -742,6 +853,9 @@ public class BookingEditActivity extends LocalizedActivity {
 
     /** Sorgt für genau eine leere Abschluss-Zeile am Ende. */
     private void ensureTrailingRow() {
+        if (readOnly) {
+            return; // Ansicht: keine leere Zusatzzeile.
+        }
         int n = splitContainer.getChildCount();
         if (n == 0) {
             addSplitRow(null, null);

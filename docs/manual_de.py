@@ -289,7 +289,11 @@ p("Ein Alias kann <b>beliebig viele Standorte</b> führen (z. B. mehrere Filiale
 # ---------------------------------------------------------------- 8 Liste & Filter
 h1("8. Buchungsliste und Filter")
 bullets([
-  "<b>Langer Druck</b> auf eine Buchung öffnet sie zum Bearbeiten.",
+  "<b>Kurzer Druck</b> auf eine Buchung öffnet sie als reine Ansicht (gleicher Aufbau wie der Editor, aber "
+  "ohne Änderungsmöglichkeit): eine große farbige Überschrift zeigt die Art (Einnahme = grün, Umbuchung = "
+  "gelb, Ausgabe = rot), unten stehen der Kontostand vor und nach der Buchung. <b>Langer Druck</b> öffnet "
+  "sie zum Bearbeiten.",
+  "In der Liste wird die Notiz auf maximal zwei Zeilen gekürzt; im Editor umfasst das Notizfeld vier Zeilen.",
   "<b>Herunterziehen</b> aktualisiert die Liste (Sync).",
   "Markierungen: «Split», → / ← (Umbuchung), «exportiert»; Farben rot/grün.",
   "<b>Filter</b> (Trichter ▽): nach Empfänger, Kategorie (als Baum), Betrag (Schieberegler) und "

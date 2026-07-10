@@ -57,6 +57,16 @@
                     android:text="@string/type_income" />
             </com.google.android.material.button.MaterialButtonToggleGroup>
 
+            <!-- Nur in der reinen Ansicht: große farbige Typ-Überschrift statt der Umschaltknöpfe. -->
+            <TextView
+                android:id="@+id/typeHeading"
+                android:layout_width="match_parent"
+                android:layout_height="wrap_content"
+                android:gravity="center"
+                android:textSize="26sp"
+                android:textStyle="bold"
+                android:visibility="gone" />
+
             <LinearLayout
                 android:layout_width="match_parent"
                 android:layout_height="wrap_content"
@@ -238,8 +248,21 @@
                     android:id="@+id/editNote"
                     android:layout_width="match_parent"
                     android:layout_height="wrap_content"
-                    android:inputType="textCapSentences" />
+                    android:gravity="top|start"
+                    android:minLines="4"
+                    android:inputType="textCapSentences|textMultiLine" />
             </com.google.android.material.textfield.TextInputLayout>
+
+            <!-- Nur in der reinen Ansicht: Ortssymbol, wenn die Notiz GPS-Koordinaten enthält. -->
+            <ImageButton
+                android:id="@+id/btnNoteMap"
+                android:layout_width="48dp"
+                android:layout_height="48dp"
+                android:layout_marginTop="4dp"
+                android:background="?attr/selectableItemBackgroundBorderless"
+                android:src="@android:drawable/ic_menu_mylocation"
+                android:contentDescription="@string/alias_map"
+                android:visibility="gone" />
 
             <com.google.android.material.materialswitch.MaterialSwitch
                 android:id="@+id/switchExported"
@@ -276,6 +299,23 @@
                 android:text="@string/delete_booking"
                 app:strokeColor="@color/expense_red"
                 android:textColor="@color/expense_red"
+                android:visibility="gone" />
+
+            <!-- Nur in der reinen Ansicht: Kontostand vor/nach dieser Buchung. -->
+            <TextView
+                android:id="@+id/textBalanceBefore"
+                android:layout_width="match_parent"
+                android:layout_height="wrap_content"
+                android:layout_marginTop="16dp"
+                android:textSize="16sp"
+                android:visibility="gone" />
+
+            <TextView
+                android:id="@+id/textBalanceAfter"
+                android:layout_width="match_parent"
+                android:layout_height="wrap_content"
+                android:layout_marginTop="4dp"
+                android:textSize="16sp"
                 android:visibility="gone" />
 
         </LinearLayout>

@@ -120,7 +120,9 @@ permission is unaffected). F-Droid packaging notes are in [`fdroid/`](fdroid/).
 ### Overview & analysis
 - Multiple **accounts** via a navigation drawer; list and balance per account or “All accounts”.
 - Booking list with colour coding (negative red / positive green), an “exported” marker, and markers for
-  splits (`Split`) and transfers (`→`/`←` counter-account/payee).
+  splits (`Split`) and transfers (`→`/`←` counter-account/payee). A **short tap** opens a booking as a
+  read-only **view** (same layout as the editor, no editing); a **long press** opens it for editing. In the
+  list the note is truncated to two lines; in the editor the note field spans four lines.
 - **Places/Holdings** per account (where the cash physically is): each place keeps its own movement journal;
   its balance is the sum of its movements. A booking created in the app automatically produces a place
   movement on the account's **default place** (later amount/deletion changes append dated balancing

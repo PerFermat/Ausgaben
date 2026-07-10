@@ -147,6 +147,9 @@
     <string name="update_booking">Update booking</string>
     <string name="delete_booking">Delete booking</string>
     <string name="edit_title">Edit booking</string>
+    <string name="booking_view_title">Booking</string>
+    <string name="balance_before">Balance before this booking: %1$s</string>
+    <string name="balance_after">Balance after this booking: %1$s</string>
     <string name="delete">Delete</string>
     <string name="delete_confirm_title">Delete booking?</string>
     <string name="delete_confirm_message">This booking will be permanently removed.</string>

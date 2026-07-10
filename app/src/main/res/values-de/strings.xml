@@ -147,6 +147,9 @@
     <string name="update_booking">Buchung ändern</string>
     <string name="delete_booking">Buchung löschen</string>
     <string name="edit_title">Buchung bearbeiten</string>
+    <string name="booking_view_title">Buchung</string>
+    <string name="balance_before">Kontostand vor der Buchung: %1$s</string>
+    <string name="balance_after">Kontostand nach der Buchung: %1$s</string>
     <string name="delete">Löschen</string>
     <string name="delete_confirm_title">Buchung löschen?</string>
     <string name="delete_confirm_message">Diese Buchung wird dauerhaft entfernt.</string>

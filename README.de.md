@@ -123,7 +123,10 @@ Mikrofon-Berechtigung ist davon unberührt). Hinweise zur F-Droid-Paketierung in
 ### Übersicht & Auswertung
 - Mehrere **Konten** über eine Navigationsschublade; Liste und Saldo je Konto oder „Alle Konten".
 - Buchungsliste mit Farbkennzeichnung (negativ rot / positiv grün), „exportiert"-Markierung sowie
-  Kennzeichnung von Split- (`Split`) und Umbuchungen (`→`/`←` Gegenkonto/Empfänger).
+  Kennzeichnung von Split- (`Split`) und Umbuchungen (`→`/`←` Gegenkonto/Empfänger). **Kurzer Druck** öffnet
+  eine Buchung als reine **Ansicht** (gleicher Aufbau wie der Editor, ohne Änderungsmöglichkeit), **langer
+  Druck** zum Bearbeiten. In der Liste wird die Notiz auf zwei Zeilen gekürzt; im Editor umfasst das
+  Notizfeld vier Zeilen.
 - **Orte/Bestände** pro Konto (wo liegt das Bargeld physisch): jeder Ort führt ein eigenes
   Bewegungs-Journal; sein Saldo ist die Summe seiner Bewegungen. Eine in der App angelegte Buchung
   erzeugt automatisch eine Ort-Bewegung auf dem **Standardort** des Kontos (spätere Betrags-/Lösch-

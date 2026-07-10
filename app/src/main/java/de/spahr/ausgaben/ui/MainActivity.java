@@ -216,10 +216,23 @@ public class MainActivity extends LocalizedActivity {
         divider.setLastItemDecorated(false);
         recycler.addItemDecoration(divider);
         adapter = new BookingAdapter();
-        adapter.setListener(b -> {
-            Intent i = new Intent(MainActivity.this, BookingEditActivity.class);
-            i.putExtra(BookingEditActivity.EXTRA_BOOKING_ID, b.id);
-            startActivity(i);
+        adapter.setListener(new BookingAdapter.Listener() {
+            @Override
+            public void onClick(Booking b) {
+                // Kurzer Druck: Buchung nur ansehen (ohne Änderungsmöglichkeit).
+                Intent i = new Intent(MainActivity.this, BookingEditActivity.class);
+                i.putExtra(BookingEditActivity.EXTRA_BOOKING_ID, b.id);
+                i.putExtra(BookingEditActivity.EXTRA_READ_ONLY, true);
+                startActivity(i);
+            }
+
+            @Override
+            public void onLongClick(Booking b) {
+                // Langer Druck: Buchung bearbeiten.
+                Intent i = new Intent(MainActivity.this, BookingEditActivity.class);
+                i.putExtra(BookingEditActivity.EXTRA_BOOKING_ID, b.id);
+                startActivity(i);
+            }
         });
         recycler.setAdapter(adapter);
 

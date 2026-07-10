@@ -37,6 +37,8 @@
             android:id="@+id/textNote"
             android:layout_width="wrap_content"
             android:layout_height="wrap_content"
+            android:maxLines="2"
+            android:ellipsize="end"
             android:textColor="@color/grey_text"
             android:textSize="13sp"
             android:textStyle="italic"

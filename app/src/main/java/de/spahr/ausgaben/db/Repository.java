@@ -1383,6 +1383,15 @@ public class Repository {
         });
     }
 
+    /** Kontosaldo bis einschließlich der angegebenen Buchung (für die „vorher/nachher"-Anzeige). */
+    public void getAccountBalanceUpTo(final String account, final long createdAt, final long id,
+                                      final Callback<Long> callback) {
+        executor.execute(() -> {
+            final long result = bookingDao.getBalanceUpTo(account == null ? "" : account, createdAt, id);
+            mainHandler.post(() -> callback.onResult(result));
+        });
+    }
+
     /** Ort-Salden eines Kontos aus dem Journal (Σ Bewegungen je Ort). „ohne Ort" ist der berechnete Rest. */
     public void getPlaceBalances(final String account, final Callback<List<PlaceBalance>> callback) {
         executor.execute(() -> {

@@ -65,6 +65,12 @@ public interface BookingDao {
             + "FROM booking WHERE account = :account")
     long getBalanceByAccount(String account);
 
+    /** Kontosaldo bis einschließlich dieser Buchung (nach created_at, bei Gleichstand nach id). */
+    @Query("SELECT COALESCE(SUM(CASE WHEN is_income THEN amount_cents ELSE -amount_cents END), 0) "
+            + "FROM booking WHERE account = :account "
+            + "AND (created_at < :createdAt OR (created_at = :createdAt AND id <= :id))")
+    long getBalanceUpTo(String account, long createdAt, long id);
+
     @Query("DELETE FROM booking WHERE account = :account AND exported = 1")
     void deleteExportedByAccount(String account);
 

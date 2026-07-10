@@ -277,7 +277,10 @@ p("An alias can hold <b>any number of locations</b> (e.g. several branches). In 
 # ---------------------------------------------------------------- 8
 h1("8. Booking list and filter")
 bullets([
-  "<b>Long press</b> on a booking opens it for editing.",
+  "<b>Short tap</b> on a booking opens it as a read-only view (same layout as the editor, but without any "
+  "editing): a large coloured heading shows the type (income = green, transfer = yellow, expense = red), and "
+  "the balance before and after the booking is shown at the bottom. <b>Long press</b> opens it for editing.",
+  "In the list the note is truncated to at most two lines; in the editor the note field spans four lines.",
   "<b>Pull down</b> to refresh the list (sync).",
   "Markers: «Split», → / ← (transfer), «exported»; colours red/green.",
   "<b>Filter</b> (funnel ▽): by payee, category (as a tree), amount (slider) and <b>date from–to</b> "

@@ -93,8 +93,12 @@ Mikrofon-Berechtigung ist davon unberührt). Hinweise zur F-Droid-Paketierung in
   Standort (100 m) eine passende Vorlage – in den bestehenden Buchungen und im Alias-Verzeichnis
   (Reihenfolge: bevorzugte Aliase → Buchungen → übrige Aliase) – und übernimmt deren Daten. Im
   Ziffern-Dialog wird der so gefundene **Geldempfänger schon vor dem Speichern** unter dem Betrag angezeigt
-  (aktualisiert sich mit dem Standort-Fix). Aliase erhalten ihren Standort automatisch, wenn sie aus einer
-  Buchung gelernt werden, oder man setzt ihn im Alias per **„Karte öffnen"** (OpenStreetMap). Ohne Treffer
+  (aktualisiert sich mit dem Standort-Fix). Ein Alias kann **beliebig viele Standorte** führen (z. B. mehrere
+  Filialen): im Alias fügt **„Koordinate hinzufügen"** eine Zeile mit Breite/Länge + **„Karte öffnen"**
+  (OpenStreetMap) hinzu, der Minus-Knopf entfernt sie wieder; der Alias passt, wenn der aktuelle Standort
+  **einer** dieser Koordinaten nahe ist. Aliase erhalten ihren Standort automatisch, wenn sie aus einer Buchung
+  gelernt werden – erneutes Lernen an einem anderen Ort **ergänzt** die Koordinate (überschreibt sie nicht).
+  Ohne Treffer
   wird nur der Betrag übernommen. Ist der Standort-Schalter **aus**, entfällt die Betrag-only-Erfassung am
   Handy (Ziffern-Symbol ausgeblendet); auf der Uhr bleibt sie möglich – die Buchung entsteht dann mit leerem
   Empfänger.

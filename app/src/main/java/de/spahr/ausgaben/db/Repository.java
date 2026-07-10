@@ -640,15 +640,24 @@ public class Repository {
         return open.get(0);
     }
 
+    /** Kleinste Entfernung des aktuellen Standorts zu einer der hinterlegten Alias-Koordinaten. */
+    private double nearestPointMeters(double lat, double lon, PayeeCorrection a) {
+        double best = Double.MAX_VALUE;
+        for (double[] p : a.gpsPoints()) {
+            double d = de.spahr.ausgaben.location.Geo.distanceMeters(lat, lon, p[0], p[1]);
+            if (d < best) {
+                best = d;
+            }
+        }
+        return best;
+    }
+
     /** Nächstgelegener Alias mit Standort, ohne Radius-Deckel (für explizit genannte Empfänger). */
     private PayeeCorrection nearestAliasUncapped(double lat, double lon, List<PayeeCorrection> list) {
         PayeeCorrection best = null;
         double bestD = Double.MAX_VALUE;
         for (PayeeCorrection a : list) {
-            if (a.lat == 0 && a.lon == 0) {
-                continue;
-            }
-            double d = de.spahr.ausgaben.location.Geo.distanceMeters(lat, lon, a.lat, a.lon);
+            double d = nearestPointMeters(lat, lon, a);
             if (d < bestD) {
                 bestD = d;
                 best = a;
@@ -739,10 +748,7 @@ public class Repository {
         PayeeCorrection best = null;
         double bestD = de.spahr.ausgaben.location.Geo.RADIUS_M;
         for (PayeeCorrection a : list) {
-            if (a.lat == 0 && a.lon == 0) {
-                continue;
-            }
-            double d = de.spahr.ausgaben.location.Geo.distanceMeters(lat, lon, a.lat, a.lon);
+            double d = nearestPointMeters(lat, lon, a);
             if (d <= bestD) {
                 bestD = d;
                 best = a;
@@ -768,8 +774,17 @@ public class Repository {
         return best;
     }
 
-    /** Speichert einen Alias bzw. ersetzt einen bestehenden mit gleichem {@code spoken}+{@code corrected}. */
+    /** Speichert einen Alias autoritativ (Editor): ersetzt einen bestehenden mit gleichem
+     * {@code spoken}+{@code corrected}; die im UI zusammengestellte Standortliste gilt (inkl. Löschungen). */
     public void saveAlias(final PayeeCorrection alias) {
+        saveAlias(alias, false);
+    }
+
+    /**
+     * @param mergeGps beim Lernen ({@code true}): die Standorte des übergebenen Alias werden an die des
+     *                 bestehenden Alias <b>angehängt</b> (Duplikate übersprungen), statt sie zu ersetzen.
+     */
+    public void saveAlias(final PayeeCorrection alias, final boolean mergeGps) {
         if (alias == null) {
             return;
         }
@@ -782,8 +797,31 @@ public class Repository {
             if (alias.createdAt == 0) {
                 alias.createdAt = System.currentTimeMillis();
             }
+            java.util.List<double[]> points = alias.gpsPoints();
+            if (mergeGps) {
+                PayeeCorrection existing = correctionDao.findBySpokenCorrected(alias.spoken, alias.corrected);
+                java.util.List<double[]> merged = existing != null ? existing.gpsPoints()
+                        : new java.util.ArrayList<>();
+                for (double[] p : points) {
+                    if (!containsPoint(merged, p)) {
+                        merged.add(p);
+                    }
+                }
+                points = merged;
+            }
+            alias.setGpsPoints(points);
             correctionDao.upsert(alias);
         });
+    }
+
+    /** Ob {@code p} (auf ~5 Nachkommastellen) bereits in der Liste steht. */
+    private static boolean containsPoint(java.util.List<double[]> list, double[] p) {
+        for (double[] q : list) {
+            if (Math.abs(q[0] - p[0]) < 1e-5 && Math.abs(q[1] - p[1]) < 1e-5) {
+                return true;
+            }
+        }
+        return false;
     }
 
     public void getAllAliases(final Callback<List<PayeeCorrection>> callback) {

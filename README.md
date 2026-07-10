@@ -91,9 +91,12 @@ permission is unaffected). F-Droid packaging notes are in [`fdroid/`](fdroid/).
   (or type it silently via the **digits icon** at the bottom), the app looks for a matching template at your
   current location (100 m) — in existing bookings and in the alias directory (order: preferred aliases →
   bookings → remaining aliases) — and adopts its data. In the digits dialog the resolved **payee is shown
-  under the amount before saving** (updating as the location fix arrives). Aliases get their location
-  automatically when learned from a booking, or you set it in the alias via **“Open map”** (OpenStreetMap).
-  With no match, only the amount is used. If the location switch is **off**, amount-only entry on the phone is
+  under the amount before saving** (updating as the location fix arrives). An alias can hold **any number of
+  locations** (e.g. several branches): in the alias, **“Add coordinate”** adds a row with latitude/longitude +
+  **“Open map”** (OpenStreetMap), and the minus button removes it; the alias matches when the current location
+  is near **any** of these coordinates. Aliases get their location automatically when learned from a booking —
+  re-learning at another place **appends** the coordinate (it does not overwrite). With no match, only the
+  amount is used. If the location switch is **off**, amount-only entry on the phone is
   disabled (digits icon hidden); on the watch it stays available — the booking is then created with an empty
   payee.
 - **Alias names (learned mappings)**: if you change the voice-recognized payee (or, when editing, the

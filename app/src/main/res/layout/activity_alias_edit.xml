@@ -227,39 +227,20 @@
                     android:textSize="16sp"
                     android:textStyle="bold" />
 
-                <com.google.android.material.textfield.TextInputLayout
+                <!-- Beliebig viele Koordinaten-Zeilen (dynamisch aus item_alias_gps_row). -->
+                <LinearLayout
+                    android:id="@+id/aliasGpsContainer"
                     android:layout_width="match_parent"
                     android:layout_height="wrap_content"
-                    android:layout_marginTop="8dp"
-                    android:hint="@string/alias_lat">
-
-                    <com.google.android.material.textfield.TextInputEditText
-                        android:id="@+id/editAliasLat"
-                        android:layout_width="match_parent"
-                        android:layout_height="wrap_content"
-                        android:inputType="numberDecimal|numberSigned" />
-                </com.google.android.material.textfield.TextInputLayout>
-
-                <com.google.android.material.textfield.TextInputLayout
-                    android:layout_width="match_parent"
-                    android:layout_height="wrap_content"
-                    android:layout_marginTop="8dp"
-                    android:hint="@string/alias_lon">
-
-                    <com.google.android.material.textfield.TextInputEditText
-                        android:id="@+id/editAliasLon"
-                        android:layout_width="match_parent"
-                        android:layout_height="wrap_content"
-                        android:inputType="numberDecimal|numberSigned" />
-                </com.google.android.material.textfield.TextInputLayout>
+                    android:orientation="vertical" />
 
                 <com.google.android.material.button.MaterialButton
-                    android:id="@+id/btnAliasMap"
+                    android:id="@+id/btnAliasGpsAdd"
                     style="?attr/materialButtonOutlinedStyle"
                     android:layout_width="wrap_content"
                     android:layout_height="wrap_content"
-                    android:layout_marginTop="4dp"
-                    android:text="@string/alias_map" />
+                    android:layout_marginTop="8dp"
+                    android:text="@string/alias_gps_add" />
             </LinearLayout>
 
             <com.google.android.material.materialswitch.MaterialSwitch

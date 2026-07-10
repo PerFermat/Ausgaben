@@ -280,6 +280,11 @@ p("Ändern Sie beim Speichern den erkannten Empfänger, fragt die App, ob sie si
   "Kategorie- und Ort-Felder im Alias-Formular verhalten sich wie im Buchungseditor (gruppierte Kategorie-"
   "Auswahl; ein Ortsfeld nur bei Konten mit Orten). Reihenfolge der Auflösung: <b>bevorzugte Aliase (★) → "
   "Buchungen → übrige Aliase</b>.")
+p("Ein Alias kann <b>beliebig viele Standorte</b> führen (z. B. mehrere Filialen). Im Alias-Formular fügt "
+  "«Koordinate hinzufügen» eine Zeile mit Breite/Länge und «Karte öffnen» hinzu; der Minus-Knopf entfernt eine "
+  "Koordinate wieder. Beim Auffinden (Betrag-only/Sprache) passt der Alias, wenn der aktuelle Standort "
+  "<b>einer beliebigen</b> seiner Koordinaten nahe ist. Wird ein Alias erneut aus einer Buchung an einem "
+  "anderen Ort gelernt, wird die Koordinate <b>ergänzt</b> (nicht überschrieben).")
 
 # ---------------------------------------------------------------- 8 Liste & Filter
 h1("8. Buchungsliste und Filter")

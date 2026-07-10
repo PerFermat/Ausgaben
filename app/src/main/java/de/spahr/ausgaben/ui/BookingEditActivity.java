@@ -344,7 +344,8 @@ public class BookingEditActivity extends LocalizedActivity {
                 .setMessage(getString(R.string.correction_message, spoken, corrected))
                 .setCancelable(false)
                 .setPositiveButton(R.string.correction_save, (d, w) -> {
-                    repository.saveAlias(buildAliasFromForm(spoken, corrected));
+                    // Lernen: die Buchungsposition an die GPS-Liste des Alias anhängen (nicht ersetzen).
+                    repository.saveAlias(buildAliasFromForm(spoken, corrected), true);
                     proceed.run();
                 })
                 .setNegativeButton(R.string.correction_discard, (d, w) -> proceed.run())

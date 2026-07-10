@@ -54,9 +54,11 @@ public class AliasEditActivity extends LocalizedActivity {
     private com.google.android.material.materialswitch.MaterialSwitch switchPreferred;
     private MaterialButton btnDelete;
     private View gpsSection;
-    private TextInputEditText editLat;
-    private TextInputEditText editLon;
+    private android.widget.LinearLayout gpsContainer;
     private ActivityResultLauncher<Intent> mapLauncher;
+    /** Die auf das Karten-Ergebnis wartenden Felder (Zeile, deren Karten-Knopf gedrückt wurde). */
+    private TextInputEditText pendingMapLat;
+    private TextInputEditText pendingMapLon;
 
     /** Beim Bearbeiten geladener Alias (behält id/createdAt); null = neu. */
     private PayeeCorrection loaded;
@@ -104,21 +106,23 @@ public class AliasEditActivity extends LocalizedActivity {
 
         // Standort-Bereich nur bei aktiviertem GPS zeigen.
         gpsSection = findViewById(R.id.aliasGpsSection);
-        editLat = findViewById(R.id.editAliasLat);
-        editLon = findViewById(R.id.editAliasLon);
+        gpsContainer = findViewById(R.id.aliasGpsContainer);
         boolean gps = new SettingsStore(this).isGpsEnabled();
         gpsSection.setVisibility(gps ? View.VISIBLE : View.GONE);
 
         mapLauncher = registerForActivityResult(
                 new ActivityResultContracts.StartActivityForResult(), result -> {
-                    if (result.getResultCode() == RESULT_OK && result.getData() != null) {
+                    if (result.getResultCode() == RESULT_OK && result.getData() != null
+                            && pendingMapLat != null && pendingMapLon != null) {
                         double lat = result.getData().getDoubleExtra(MapPickerActivity.EXTRA_LAT, 0);
                         double lon = result.getData().getDoubleExtra(MapPickerActivity.EXTRA_LON, 0);
-                        editLat.setText(formatCoord(lat));
-                        editLon.setText(formatCoord(lon));
+                        pendingMapLat.setText(formatCoord(lat));
+                        pendingMapLon.setText(formatCoord(lon));
                     }
+                    pendingMapLat = null;
+                    pendingMapLon = null;
                 });
-        ((MaterialButton) findViewById(R.id.btnAliasMap)).setOnClickListener(v -> openMap());
+        ((MaterialButton) findViewById(R.id.btnAliasGpsAdd)).setOnClickListener(v -> addGpsRow(null, null));
 
         ((MaterialButton) findViewById(R.id.btnSaveAlias)).setOnClickListener(v -> save());
         btnDelete.setOnClickListener(v -> confirmDelete());
@@ -185,8 +189,10 @@ public class AliasEditActivity extends LocalizedActivity {
         editFromPlace.setText(a.fromPlace, false);
         editToPlace.setText(a.toPlace, false);
         switchPreferred.setChecked(a.preferred);
-        editLat.setText(a.lat == 0 && a.lon == 0 ? "" : formatCoord(a.lat));
-        editLon.setText(a.lat == 0 && a.lon == 0 ? "" : formatCoord(a.lon));
+        gpsContainer.removeAllViews();
+        for (double[] p : a.gpsPoints()) {
+            addGpsRow(p[0], p[1]);
+        }
     }
 
     private void save() {
@@ -211,11 +217,17 @@ public class AliasEditActivity extends LocalizedActivity {
         a.fromPlace = text(editFromPlace);
         a.toPlace = text(editToPlace);
         a.preferred = switchPreferred.isChecked();
-        // Standort aus den Feldern übernehmen (beide leer/ungültig → 0/0 = keiner).
-        Double lat = parseCoord(text(editLat));
-        Double lon = parseCoord(text(editLon));
-        a.lat = lat != null && lon != null ? lat : 0;
-        a.lon = lat != null && lon != null ? lon : 0;
+        // Standorte aus den Zeilen übernehmen (nur Zeilen mit gültiger Breite UND Länge).
+        List<double[]> points = new ArrayList<>();
+        for (int i = 0; i < gpsContainer.getChildCount(); i++) {
+            View row = gpsContainer.getChildAt(i);
+            Double lat = parseCoord(text((TextInputEditText) row.findViewById(R.id.gpsRowLat)));
+            Double lon = parseCoord(text((TextInputEditText) row.findViewById(R.id.gpsRowLon)));
+            if (lat != null && lon != null) {
+                points.add(new double[]{lat, lon});
+            }
+        }
+        a.setGpsPoints(points);
         repository.saveAlias(a);
         Toast.makeText(this, R.string.alias_saved, Toast.LENGTH_SHORT).show();
         finish();
@@ -235,11 +247,27 @@ public class AliasEditActivity extends LocalizedActivity {
                 .show();
     }
 
-    /** Öffnet die Karten-Auswahl, zentriert auf die aktuell eingetragenen Koordinaten (falls vorhanden). */
-    private void openMap() {
+    /** Fügt eine Koordinaten-Zeile (Breite/Länge + Karte + Minus) hinzu; Werte optional vorbelegt. */
+    private void addGpsRow(Double lat, Double lon) {
+        View row = getLayoutInflater().inflate(R.layout.item_alias_gps_row, gpsContainer, false);
+        TextInputEditText latField = row.findViewById(R.id.gpsRowLat);
+        TextInputEditText lonField = row.findViewById(R.id.gpsRowLon);
+        if (lat != null && lon != null) {
+            latField.setText(formatCoord(lat));
+            lonField.setText(formatCoord(lon));
+        }
+        row.findViewById(R.id.btnGpsRowMap).setOnClickListener(v -> openMap(latField, lonField));
+        row.findViewById(R.id.btnGpsRowRemove).setOnClickListener(v -> gpsContainer.removeView(row));
+        gpsContainer.addView(row);
+    }
+
+    /** Öffnet die Karten-Auswahl für eine Zeile, zentriert auf deren aktuelle Koordinaten (falls vorhanden). */
+    private void openMap(TextInputEditText latField, TextInputEditText lonField) {
+        pendingMapLat = latField;
+        pendingMapLon = lonField;
         Intent i = new Intent(this, MapPickerActivity.class);
-        Double lat = parseCoord(text(editLat));
-        Double lon = parseCoord(text(editLon));
+        Double lat = parseCoord(text(latField));
+        Double lon = parseCoord(text(lonField));
         if (lat != null && lon != null) {
             i.putExtra(MapPickerActivity.EXTRA_LAT, (double) lat);
             i.putExtra(MapPickerActivity.EXTRA_LON, (double) lon);

@@ -268,6 +268,11 @@ p("If you change the recognized payee while saving, the app asks whether to reme
   "account/place. The category and place fields in the alias form behave like the booking editor (grouped "
   "category picker; a place field only for accounts that have places). Resolution order: <b>preferred "
   "aliases (★) → bookings → remaining aliases</b>.")
+p("An alias can hold <b>any number of locations</b> (e.g. several branches). In the alias form, "
+  "«Add coordinate» adds a row with latitude/longitude and «Open map»; the minus button removes a coordinate. "
+  "When resolving (amount-only/voice) the alias matches if the current location is near <b>any</b> of its "
+  "coordinates. Re-learning an alias from a booking at another place <b>appends</b> the coordinate (it does "
+  "not overwrite).")
 
 # ---------------------------------------------------------------- 8
 h1("8. Booking list and filter")

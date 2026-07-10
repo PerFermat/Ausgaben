@@ -52,6 +52,7 @@
     <string name="alias_lat">Latitude</string>
     <string name="alias_lon">Longitude</string>
     <string name="alias_map">Open map</string>
+    <string name="alias_gps_add">Add coordinate</string>
     <string name="map_pick_title">Pick location</string>
     <string name="map_pick_confirm">Use this location</string>
     <string name="alias_delete_confirm_title">Delete alias?</string>

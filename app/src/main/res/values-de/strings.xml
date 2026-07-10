@@ -52,6 +52,7 @@
     <string name="alias_lat">Breitengrad</string>
     <string name="alias_lon">Längengrad</string>
     <string name="alias_map">Karte öffnen</string>
+    <string name="alias_gps_add">Koordinate hinzufügen</string>
     <string name="map_pick_title">Position wählen</string>
     <string name="map_pick_confirm">Diese Position übernehmen</string>
     <string name="alias_delete_confirm_title">Alias löschen?</string>

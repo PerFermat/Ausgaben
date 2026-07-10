@@ -97,7 +97,53 @@ public class PayeeCorrection {
     @ColumnInfo(name = "lon")
     public double lon;
 
+    /** Beliebig viele Standorte im Format {@code "lat,lon;lat,lon;…"} (US-Dezimalpunkt). {@link #lat}/{@link #lon}
+     * spiegeln die erste Koordinate (Rückwärtskompatibilität). Leer = kein Standort. */
+    @NonNull
+    @ColumnInfo(name = "gps_list")
+    public String gpsList = "";
+
     public PayeeCorrection() {
+    }
+
+    /** Alle hinterlegten Standorte; fällt bei leerer {@link #gpsList} auf {@link #lat}/{@link #lon} zurück. */
+    public java.util.List<double[]> gpsPoints() {
+        java.util.List<double[]> out = new java.util.ArrayList<>();
+        if (gpsList != null && !gpsList.trim().isEmpty()) {
+            for (String pair : gpsList.split(";")) {
+                String[] xy = pair.split(",");
+                if (xy.length == 2) {
+                    try {
+                        out.add(new double[]{Double.parseDouble(xy[0].trim()),
+                                Double.parseDouble(xy[1].trim())});
+                    } catch (NumberFormatException ignore) {
+                        // fehlerhafte Koordinate überspringen
+                    }
+                }
+            }
+        } else if (lat != 0 || lon != 0) {
+            out.add(new double[]{lat, lon});
+        }
+        return out;
+    }
+
+    /** Setzt {@link #gpsList} (6 Nachkommastellen) und spiegelt die erste Koordinate nach {@link #lat}/{@link #lon}. */
+    public void setGpsPoints(java.util.List<double[]> points) {
+        StringBuilder sb = new StringBuilder();
+        for (double[] p : points) {
+            if (sb.length() > 0) {
+                sb.append(';');
+            }
+            sb.append(String.format(java.util.Locale.US, "%.6f,%.6f", p[0], p[1]));
+        }
+        gpsList = sb.toString();
+        if (!points.isEmpty()) {
+            lat = points.get(0)[0];
+            lon = points.get(0)[1];
+        } else {
+            lat = 0;
+            lon = 0;
+        }
     }
 
     @Ignore

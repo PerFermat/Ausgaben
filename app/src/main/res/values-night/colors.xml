@@ -11,4 +11,8 @@
     <color name="saldo_bar_bg">#3A3A3A</color>
     <color name="saldo_bar_flash">#565656</color>
     <color name="list_divider">#333333</color>
+    <!-- Homescreen-Widget (Nacht) -->
+    <color name="widget_bg">#1E1E1E</color>
+    <color name="widget_text">#FFFFFF</color>
+    <color name="widget_text_secondary">#B0B0B0</color>
 </resources>

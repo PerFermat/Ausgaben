@@ -150,6 +150,15 @@
     <string name="booking_view_title">Buchung</string>
     <string name="balance_before">Kontostand vor der Buchung: %1$s</string>
     <string name="balance_after">Kontostand nach der Buchung: %1$s</string>
+    <string name="widget_small_desc">Saldo des Standardorts</string>
+    <string name="widget_medium_desc">Saldo und Schnellaktionen</string>
+    <string name="widget_large_desc">Saldo, letzte Buchungen, Aktionen</string>
+    <string name="widget_action_book">Buchung</string>
+    <string name="widget_action_voice">Sprache</string>
+    <string name="widget_action_amount">Betrag</string>
+    <string name="widget_action_balances">Bestände</string>
+    <string name="widget_balance_empty">—</string>
+    <string name="widget_refresh">Aktualisieren</string>
     <string name="delete">Löschen</string>
     <string name="delete_confirm_title">Buchung löschen?</string>
     <string name="delete_confirm_message">Diese Buchung wird dauerhaft entfernt.</string>

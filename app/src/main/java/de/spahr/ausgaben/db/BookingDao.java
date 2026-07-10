@@ -39,6 +39,10 @@ public interface BookingDao {
     @Query("SELECT * FROM booking ORDER BY created_at DESC, id DESC")
     List<Booking> getAllBookings();
 
+    /** Die letzten Buchungen (für das Homescreen-Widget). */
+    @Query("SELECT * FROM booking ORDER BY created_at DESC, id DESC LIMIT :limit")
+    List<Booking> getRecent(int limit);
+
     /** Buchungen mit Standort in der Notiz (neueste zuerst) – Vorlagen für die Betrag-only-Erfassung. */
     @Query("SELECT * FROM booking WHERE note LIKE '%GPS:%' ORDER BY created_at DESC, id DESC LIMIT 500")
     List<Booking> getWithGpsNote();

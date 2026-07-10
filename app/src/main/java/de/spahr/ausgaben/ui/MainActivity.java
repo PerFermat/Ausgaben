@@ -117,6 +117,12 @@ public class MainActivity extends LocalizedActivity {
     public static final String EXTRA_SELECT_ACCOUNT = "select_account";
     /** Extra: nach dem Start sofort den Export/Sync ausführen (z. B. aus dem Depot-Menü). */
     public static final String EXTRA_RUN_EXPORT = "run_export";
+    /** Extra: aus dem Homescreen-Widget angeforderte Aktion (Werte {@code WIDGET_ACTION_*}). */
+    public static final String EXTRA_WIDGET_ACTION = "widget_action";
+    public static final String WIDGET_ACTION_NEW = "new";
+    public static final String WIDGET_ACTION_VOICE = "voice";
+    public static final String WIDGET_ACTION_DIGITS = "digits";
+    public static final String WIDGET_ACTION_BALANCES = "balances";
 
     public static final String VIEW_TOTAL = "TOTAL";
     public static final String VIEW_NETWORTH = "NETWORTH";
@@ -344,10 +350,42 @@ public class MainActivity extends LocalizedActivity {
         refreshBookings();
         // Standardort-Saldo an die Uhr spiegeln (No-op im foss-Flavor; nur bei Änderung übertragen).
         de.spahr.ausgaben.wear.BalanceSync.publish(this);
+        // Homescreen-Widgets mit dem aktuellen Saldo/den letzten Buchungen versorgen.
+        de.spahr.ausgaben.widget.AusgabenWidget.refreshAll(this);
         // Export/Sync aus dem Depot-Menü nachholen.
         if (getIntent().getBooleanExtra(EXTRA_RUN_EXPORT, false)) {
             getIntent().removeExtra(EXTRA_RUN_EXPORT);
             doExport();
+        }
+        // Aus dem Homescreen-Widget angeforderte Aktion ausführen (nach dem Entsperren).
+        String widgetAction = getIntent().getStringExtra(EXTRA_WIDGET_ACTION);
+        if (widgetAction != null) {
+            getIntent().removeExtra(EXTRA_WIDGET_ACTION);
+            handleWidgetAction(widgetAction);
+        }
+    }
+
+    /** Führt die vom Homescreen-Widget angeforderte Schnellaktion aus. */
+    private void handleWidgetAction(String action) {
+        switch (action) {
+            case WIDGET_ACTION_VOICE:
+                startVoiceEntry();
+                break;
+            case WIDGET_ACTION_DIGITS:
+                showNumberEntry();
+                break;
+            case WIDGET_ACTION_BALANCES:
+                startActivity(new Intent(this, BalanceActivity.class));
+                break;
+            case WIDGET_ACTION_NEW:
+            default: {
+                Intent i = new Intent(this, BookingEditActivity.class);
+                if (!selectedAccount.isEmpty()) {
+                    i.putExtra(BookingEditActivity.EXTRA_PRESET_ACCOUNT, selectedAccount);
+                }
+                startActivity(i);
+                break;
+            }
         }
     }
 

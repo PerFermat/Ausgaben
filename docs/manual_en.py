@@ -167,6 +167,13 @@ bullets([
   "<b>Filtered</b>: sum of the currently filtered bookings (only when a filter is active).",
 ])
 p("A green amount = positive/credit, a red amount = negative.")
+h2("Home-screen widget")
+p("For the launcher there are three selectable widget sizes showing the <b>default-place</b> balance "
+  "(default account → default place): <b>small</b> (2×1, balance only), <b>medium</b> (4×2, balance + three "
+  "quick actions: booking, voice, amount) and <b>large</b> (4×4, a balance header with refresh, the most "
+  "recent bookings and the action bar). Tapping the balance opens the app; the buttons launch «New booking», "
+  "voice entry, amount-only entry or Holdings directly. The widget refreshes when the app is opened and at "
+  "regular intervals.")
 
 # ---------------------------------------------------------------- 4
 h1("4. Symbol and control reference")

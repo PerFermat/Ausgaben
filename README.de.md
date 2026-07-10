@@ -142,6 +142,17 @@ Mikrofon-Berechtigung ist davon unberührt). Hinweise zur F-Droid-Paketierung in
 - **Auswertung** (Tag/Woche/Monat/Jahr) als Balken- + Linien-Diagramm mit Konto-, Orts- und
   Gesamt-Sichten; per Fingergeste zoombar (horizontal = Balkenanzahl, vertikal = Y-Achse).
 
+### Homescreen-Widget (Handy)
+Drei wählbare Widget-Größen zeigen den Saldo des **Standardorts** (Standardkonto → Standardort, wie auf der
+Uhr):
+- **klein (2×1)** – nur der Saldo;
+- **mittel (4×2)** – Saldo + drei Schnellaktionen (Buchung, Sprache, Betrag);
+- **groß (4×4)** – Saldo-Kopf mit Aktualisieren, die letzten Buchungen (rot/grün) und die Aktionsleiste.
+
+Ein Tippen auf den Saldo öffnet die App; die Aktionsknöpfe starten direkt „Neue Buchung", die Spracheingabe,
+die Betrag-only-Erfassung bzw. die Bestände. Das Widget aktualisiert sich beim Öffnen der App und in
+regelmäßigen Abständen.
+
 ### Synchronisierung
 - **Server-Typ** wählbar: **Nextcloud** (Pfadschema `…/remote.php/dav/files/<user>/`) oder ein
   **generischer WebDAV-Server** (dann ist die eingetragene Basis-URL bereits die DAV-Wurzel). Protokoll

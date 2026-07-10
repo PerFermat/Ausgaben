@@ -9,6 +9,10 @@
     <color name="income_green">#2E7D32</color>
     <!-- Umbuchung: kräftiges Gelb/Amber (auf hell und dunkel lesbar) -->
     <color name="transfer_yellow">#F9A825</color>
+    <!-- Homescreen-Widget (Tag) -->
+    <color name="widget_bg">#FFFFFF</color>
+    <color name="widget_text">#1B1B1B</color>
+    <color name="widget_text_secondary">#6B6B6B</color>
     <color name="grey_text">#757575</color>
     <!-- Akzent-Textfarbe für Outlined-/Dialog-Buttons: grün im Hell-Modus -->
     <color name="button_accent">#1B5E20</color>

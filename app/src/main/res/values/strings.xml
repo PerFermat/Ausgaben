@@ -150,6 +150,15 @@
     <string name="booking_view_title">Booking</string>
     <string name="balance_before">Balance before this booking: %1$s</string>
     <string name="balance_after">Balance after this booking: %1$s</string>
+    <string name="widget_small_desc">Default-place balance</string>
+    <string name="widget_medium_desc">Balance and quick actions</string>
+    <string name="widget_large_desc">Balance, recent bookings, actions</string>
+    <string name="widget_action_book">Booking</string>
+    <string name="widget_action_voice">Voice</string>
+    <string name="widget_action_amount">Amount</string>
+    <string name="widget_action_balances">Holdings</string>
+    <string name="widget_balance_empty">—</string>
+    <string name="widget_refresh">Refresh</string>
     <string name="delete">Delete</string>
     <string name="delete_confirm_title">Delete booking?</string>
     <string name="delete_confirm_message">This booking will be permanently removed.</string>

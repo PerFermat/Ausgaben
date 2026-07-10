@@ -1,0 +1,190 @@
+<?xml version="1.0" encoding="utf-8"?>
+<LinearLayout xmlns:android="http://schemas.android.com/apk/res/android"
+    android:id="@+id/widgetRoot"
+    android:layout_width="match_parent"
+    android:layout_height="match_parent"
+    android:background="@drawable/widget_bg"
+    android:orientation="vertical"
+    android:padding="14dp">
+
+    <LinearLayout
+        android:layout_width="match_parent"
+        android:layout_height="wrap_content"
+        android:orientation="horizontal"
+        android:gravity="center_vertical"
+        android:paddingBottom="10dp">
+
+        <ImageView
+            android:layout_width="30dp"
+            android:layout_height="30dp"
+            android:layout_marginEnd="10dp"
+            android:src="@drawable/ic_wallet"
+            android:tint="#2E7D32"
+            android:contentDescription="@null" />
+
+        <LinearLayout
+            android:layout_width="0dp"
+            android:layout_height="wrap_content"
+            android:layout_weight="1"
+            android:orientation="vertical">
+
+            <TextView
+                android:id="@+id/widgetPlace"
+                android:layout_width="wrap_content"
+                android:layout_height="wrap_content"
+                android:maxLines="1"
+                android:ellipsize="end"
+                android:textSize="12sp"
+                android:textColor="@color/widget_text_secondary" />
+
+            <TextView
+                android:id="@+id/widgetBalance"
+                android:layout_width="wrap_content"
+                android:layout_height="wrap_content"
+                android:maxLines="1"
+                android:textSize="20sp"
+                android:textStyle="bold"
+                android:textColor="@color/widget_text" />
+        </LinearLayout>
+
+        <ImageView
+            android:id="@+id/widgetRefresh"
+            android:layout_width="22dp"
+            android:layout_height="22dp"
+            android:src="@drawable/ic_refresh"
+            android:tint="@color/widget_text_secondary"
+            android:contentDescription="@string/widget_refresh" />
+    </LinearLayout>
+
+    <View
+        android:layout_width="match_parent"
+        android:layout_height="1dp"
+        android:background="@color/widget_text_secondary"
+        android:alpha="0.25" />
+
+    <LinearLayout
+        android:layout_width="match_parent"
+        android:layout_height="0dp"
+        android:layout_weight="1"
+        android:orientation="vertical"
+        android:paddingTop="4dp"
+        android:paddingBottom="4dp">
+
+        <LinearLayout
+            android:id="@+id/widgetRow0"
+            android:layout_width="match_parent"
+            android:layout_height="wrap_content"
+            android:orientation="horizontal"
+            android:gravity="center_vertical"
+            android:paddingTop="6dp"
+            android:paddingBottom="6dp">
+
+            <LinearLayout
+                android:layout_width="0dp"
+                android:layout_height="wrap_content"
+                android:layout_weight="1"
+                android:orientation="vertical">
+
+                <TextView android:id="@+id/widgetRow0Payee" android:layout_width="wrap_content" android:layout_height="wrap_content" android:maxLines="1" android:ellipsize="end" android:textSize="14sp" android:textColor="@color/widget_text" />
+                <TextView android:id="@+id/widgetRow0Sub" android:layout_width="wrap_content" android:layout_height="wrap_content" android:maxLines="1" android:ellipsize="end" android:textSize="12sp" android:textColor="@color/widget_text_secondary" />
+            </LinearLayout>
+
+            <TextView android:id="@+id/widgetRow0Amount" android:layout_width="wrap_content" android:layout_height="wrap_content" android:maxLines="1" android:textSize="14sp" android:textColor="@color/widget_text" />
+        </LinearLayout>
+
+        <LinearLayout
+            android:id="@+id/widgetRow1"
+            android:layout_width="match_parent"
+            android:layout_height="wrap_content"
+            android:orientation="horizontal"
+            android:gravity="center_vertical"
+            android:paddingTop="6dp"
+            android:paddingBottom="6dp">
+
+            <LinearLayout
+                android:layout_width="0dp"
+                android:layout_height="wrap_content"
+                android:layout_weight="1"
+                android:orientation="vertical">
+
+                <TextView android:id="@+id/widgetRow1Payee" android:layout_width="wrap_content" android:layout_height="wrap_content" android:maxLines="1" android:ellipsize="end" android:textSize="14sp" android:textColor="@color/widget_text" />
+                <TextView android:id="@+id/widgetRow1Sub" android:layout_width="wrap_content" android:layout_height="wrap_content" android:maxLines="1" android:ellipsize="end" android:textSize="12sp" android:textColor="@color/widget_text_secondary" />
+            </LinearLayout>
+
+            <TextView android:id="@+id/widgetRow1Amount" android:layout_width="wrap_content" android:layout_height="wrap_content" android:maxLines="1" android:textSize="14sp" android:textColor="@color/widget_text" />
+        </LinearLayout>
+
+        <LinearLayout
+            android:id="@+id/widgetRow2"
+            android:layout_width="match_parent"
+            android:layout_height="wrap_content"
+            android:orientation="horizontal"
+            android:gravity="center_vertical"
+            android:paddingTop="6dp"
+            android:paddingBottom="6dp">
+
+            <LinearLayout
+                android:layout_width="0dp"
+                android:layout_height="wrap_content"
+                android:layout_weight="1"
+                android:orientation="vertical">
+
+                <TextView android:id="@+id/widgetRow2Payee" android:layout_width="wrap_content" android:layout_height="wrap_content" android:maxLines="1" android:ellipsize="end" android:textSize="14sp" android:textColor="@color/widget_text" />
+                <TextView android:id="@+id/widgetRow2Sub" android:layout_width="wrap_content" android:layout_height="wrap_content" android:maxLines="1" android:ellipsize="end" android:textSize="12sp" android:textColor="@color/widget_text_secondary" />
+            </LinearLayout>
+
+            <TextView android:id="@+id/widgetRow2Amount" android:layout_width="wrap_content" android:layout_height="wrap_content" android:maxLines="1" android:textSize="14sp" android:textColor="@color/widget_text" />
+        </LinearLayout>
+    </LinearLayout>
+
+    <LinearLayout
+        android:layout_width="match_parent"
+        android:layout_height="wrap_content"
+        android:orientation="horizontal"
+        android:paddingTop="8dp">
+
+        <LinearLayout
+            android:id="@+id/widgetActionBook"
+            android:layout_width="0dp"
+            android:layout_height="wrap_content"
+            android:layout_weight="1"
+            android:layout_marginEnd="6dp"
+            android:background="@drawable/widget_action_primary"
+            android:orientation="vertical"
+            android:gravity="center"
+            android:padding="8dp">
+
+            <ImageView android:layout_width="19dp" android:layout_height="19dp" android:src="@drawable/ic_add" android:tint="#FFFFFF" android:contentDescription="@null" />
+            <TextView android:layout_width="wrap_content" android:layout_height="wrap_content" android:layout_marginTop="2dp" android:text="@string/widget_action_book" android:textSize="12sp" android:textColor="#FFFFFF" />
+        </LinearLayout>
+
+        <LinearLayout
+            android:id="@+id/widgetActionVoice"
+            android:layout_width="0dp"
+            android:layout_height="wrap_content"
+            android:layout_weight="1"
+            android:layout_marginEnd="6dp"
+            android:background="@drawable/widget_action_secondary"
+            android:orientation="vertical"
+            android:gravity="center"
+            android:padding="8dp">
+
+            <ImageView android:layout_width="19dp" android:layout_height="19dp" android:src="@drawable/ic_mic" android:tint="#27500A" android:contentDescription="@null" />
+            <TextView android:layout_width="wrap_content" android:layout_height="wrap_content" android:layout_marginTop="2dp" android:text="@string/widget_action_voice" android:textSize="12sp" android:textColor="#27500A" />
+        </LinearLayout>
+
+        <LinearLayout
+            android:id="@+id/widgetActionBalances"
+            android:layout_width="0dp"
+            android:layout_height="wrap_content"
+            android:layout_weight="1"
+            android:background="@drawable/widget_action_secondary"
+            android:orientation="vertical"
+            android:gravity="center"
+            android:padding="8dp">
+
+            <ImageView android:layout_width="19dp" android:layout_height="19dp" android:src="@drawable/ic_chart" android:tint="#27500A" android:contentDescription="@null" />
+            <TextView android:layout_width="wrap_content" android:layout_height="wrap_content" android:layout_marginTop="2dp" android:text="@string/widget_action_balances" android:textSize="12sp" android:textColor="#27500A" />
+        </LinearLayout>
+    </LinearLayout>
+</LinearLayout>

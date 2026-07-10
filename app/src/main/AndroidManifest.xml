@@ -94,6 +94,43 @@
             android:exported="false"
             android:theme="@style/Theme.Ausgaben" />
 
+        <!-- Homescreen-Widgets (drei Größen: klein/mittel/groß). -->
+        <receiver
+            android:name=".widget.WidgetSmall"
+            android:exported="true"
+            android:label="@string/widget_small_desc">
+            <intent-filter>
+                <action android:name="android.appwidget.action.APPWIDGET_UPDATE" />
+            </intent-filter>
+            <meta-data
+                android:name="android.appwidget.provider"
+                android:resource="@xml/widget_small_info" />
+        </receiver>
+
+        <receiver
+            android:name=".widget.WidgetMedium"
+            android:exported="true"
+            android:label="@string/widget_medium_desc">
+            <intent-filter>
+                <action android:name="android.appwidget.action.APPWIDGET_UPDATE" />
+            </intent-filter>
+            <meta-data
+                android:name="android.appwidget.provider"
+                android:resource="@xml/widget_medium_info" />
+        </receiver>
+
+        <receiver
+            android:name=".widget.WidgetLarge"
+            android:exported="true"
+            android:label="@string/widget_large_desc">
+            <intent-filter>
+                <action android:name="android.appwidget.action.APPWIDGET_UPDATE" />
+            </intent-filter>
+            <meta-data
+                android:name="android.appwidget.provider"
+                android:resource="@xml/widget_large_info" />
+        </receiver>
+
         <!-- Der Wear-Data-Layer-Listener (Google Play Services) wird nur im „full"-Flavor registriert:
              siehe app/src/full/AndroidManifest.xml. Der „foss"-Flavor (F-Droid) enthält kein GMS. -->
 

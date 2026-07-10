@@ -171,6 +171,13 @@ bullets([
   "<b>Gefiltert</b>: Summe der aktuell gefilterten Buchungen (nur bei aktivem Filter).",
 ])
 p("Grüner Betrag = positiv/Guthaben, roter Betrag = negativ.")
+h2("Homescreen-Widget")
+p("Für den Startbildschirm gibt es drei wählbare Widget-Größen, die den Saldo des <b>Standardorts</b> "
+  "(Standardkonto → Standardort) zeigen: <b>klein</b> (2×1, nur Saldo), <b>mittel</b> (4×2, Saldo + drei "
+  "Schnellaktionen: Buchung, Sprache, Betrag) und <b>groß</b> (4×4, Saldo-Kopf mit Aktualisieren, die letzten "
+  "Buchungen und die Aktionsleiste). Ein Tippen auf den Saldo öffnet die App; die Knöpfe starten direkt "
+  "«Neue Buchung», die Spracheingabe, die Betrag-only-Erfassung bzw. die Bestände. Das Widget aktualisiert "
+  "sich beim Öffnen der App und in regelmäßigen Abständen.")
 
 # ---------------------------------------------------------------- 4 Symbol-Referenz
 h1("4. Symbol- und Bedienelement-Referenz")

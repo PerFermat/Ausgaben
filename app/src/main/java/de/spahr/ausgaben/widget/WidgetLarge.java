@@ -1,0 +1,86 @@
+package de.spahr.ausgaben.widget;
+
+import android.app.PendingIntent;
+import android.appwidget.AppWidgetManager;
+import android.content.ComponentName;
+import android.content.Context;
+import android.content.Intent;
+import android.view.View;
+import android.widget.RemoteViews;
+
+import androidx.core.content.ContextCompat;
+
+import java.text.SimpleDateFormat;
+import java.util.Date;
+import java.util.Locale;
+
+import de.spahr.ausgaben.R;
+import de.spahr.ausgaben.db.Booking;
+import de.spahr.ausgaben.settings.Currencies;
+import de.spahr.ausgaben.settings.MoneyFormat;
+import de.spahr.ausgaben.ui.MainActivity;
+
+/** Großes Widget (4×4): Saldo-Kopf mit Aktualisieren, die letzten Buchungen und eine Aktionsleiste. */
+public class WidgetLarge extends AusgabenWidget {
+
+    private static final SimpleDateFormat DATE = new SimpleDateFormat("dd.MM.", Locale.GERMANY);
+
+    @Override
+    protected int layoutId() {
+        return R.layout.widget_large;
+    }
+
+    @Override
+    protected void bindExtra(Context ctx, RemoteViews v, WidgetData d) {
+        v.setOnClickPendingIntent(R.id.widgetActionBook, openMain(ctx, MainActivity.WIDGET_ACTION_NEW, 11));
+        v.setOnClickPendingIntent(R.id.widgetActionVoice, openMain(ctx, MainActivity.WIDGET_ACTION_VOICE, 12));
+        v.setOnClickPendingIntent(R.id.widgetActionBalances, openMain(ctx, MainActivity.WIDGET_ACTION_BALANCES, 14));
+        v.setOnClickPendingIntent(R.id.widgetRefresh, refreshIntent(ctx));
+
+        int[] rows = {R.id.widgetRow0, R.id.widgetRow1, R.id.widgetRow2};
+        int[] payees = {R.id.widgetRow0Payee, R.id.widgetRow1Payee, R.id.widgetRow2Payee};
+        int[] subs = {R.id.widgetRow0Sub, R.id.widgetRow1Sub, R.id.widgetRow2Sub};
+        int[] amounts = {R.id.widgetRow0Amount, R.id.widgetRow1Amount, R.id.widgetRow2Amount};
+        for (int idx = 0; idx < 3; idx++) {
+            if (d.recent != null && idx < d.recent.size()) {
+                Booking b = d.recent.get(idx);
+                v.setViewVisibility(rows[idx], View.VISIBLE);
+                v.setTextViewText(payees[idx], label(ctx, b));
+                v.setTextViewText(subs[idx], sub(b));
+                long signed = b.isIncome ? b.amountCents : -b.amountCents;
+                v.setTextViewText(amounts[idx], MoneyFormat.display(signed, Currencies.forAccount(b.account)));
+                v.setTextColor(amounts[idx], ContextCompat.getColor(ctx,
+                        signed < 0 ? R.color.expense_red : R.color.income_green));
+            } else {
+                v.setViewVisibility(rows[idx], View.GONE);
+            }
+        }
+    }
+
+    /** Der Aktualisieren-Knopf fordert ein erneutes onUpdate für alle großen Widgets an. */
+    private PendingIntent refreshIntent(Context ctx) {
+        Intent i = new Intent(ctx, WidgetLarge.class);
+        i.setAction(AppWidgetManager.ACTION_APPWIDGET_UPDATE);
+        int[] ids = AppWidgetManager.getInstance(ctx)
+                .getAppWidgetIds(new ComponentName(ctx, WidgetLarge.class));
+        i.putExtra(AppWidgetManager.EXTRA_APPWIDGET_IDS, ids);
+        return PendingIntent.getBroadcast(ctx, 20, i,
+                PendingIntent.FLAG_UPDATE_CURRENT | PendingIntent.FLAG_IMMUTABLE);
+    }
+
+    private static String label(Context ctx, Booking b) {
+        if (b.isTransfer) {
+            String name = !b.payee.isEmpty() ? b.payee
+                    : (b.transferAccount == null || b.transferAccount.isEmpty()
+                        ? ctx.getString(R.string.type_transfer) : b.transferAccount);
+            return (b.isIncome ? "← " : "→ ") + name;
+        }
+        return b.payee.isEmpty() ? "—" : b.payee;
+    }
+
+    private static String sub(Booking b) {
+        String cat = b.category == null ? "" : b.category;
+        String date = DATE.format(new Date(b.createdAt));
+        return cat.isEmpty() ? date : cat + " · " + date;
+    }
+}

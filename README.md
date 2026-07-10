@@ -136,6 +136,16 @@ permission is unaffected). F-Droid packaging notes are in [`fdroid/`](fdroid/).
 - **Analysis** (day/week/month/year) as a bar + line chart with account, place and total views; zoomable by
   gesture (horizontal = number of bars, vertical = Y axis).
 
+### Home-screen widget (phone)
+Three selectable widget sizes show the **default-place** balance (default account → default place, like on the
+watch):
+- **small (2×1)** – balance only;
+- **medium (4×2)** – balance + three quick actions (booking, voice, amount);
+- **large (4×4)** – balance header with refresh, the most recent bookings (red/green) and the action bar.
+
+Tapping the balance opens the app; the action buttons launch “New booking”, voice entry, amount-only entry, or
+Holdings directly. The widget refreshes when the app is opened and at regular intervals.
+
 ### Synchronization
 - **Server type** selectable: **Nextcloud** (path scheme `…/remote.php/dav/files/<user>/`) or a **generic
   WebDAV server** (then the base URL you enter is already the DAV root). Either way the protocol is WebDAV

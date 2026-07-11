@@ -60,6 +60,11 @@ android {
     buildFeatures {
         viewBinding false
     }
+
+    testOptions {
+        // JVM-Unit-Tests reiner Logik (kein Android-Runtime); Android-Stubs liefern Defaults statt Fehler.
+        unitTests.returnDefaultValues = true
+    }
 }
 
 dependencies {
@@ -91,4 +96,6 @@ dependencies {
     // Nur im „full"-Flavor: Wear Data Layer (Google Play Services, proprietär). Der „foss"-Flavor (F-Droid)
     // enthält kein GMS – siehe src/foss/.../wear/LanguageSync.java (No-op) und das fehlende full-Manifest.
     fullImplementation 'com.google.android.gms:play-services-wearable:18.2.0'
+
+    testImplementation 'junit:junit:4.13.2'
 }

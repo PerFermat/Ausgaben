@@ -120,11 +120,8 @@ public class BookingEditActivity extends LocalizedActivity {
     /** Passender Alias für die Vorbelegung einer neuen Sprachbuchung (null = keiner). */
     private PayeeCorrection activeAlias;
 
-    private CategoryFilterAdapter categoryAdapter;
-    /** Unterdrückt die dynamische Split-Logik während des programmatischen Befüllens. */
-    private boolean suppressSplitEvents;
-    /** Verhindert Rückkopplung beim gegenseitigen Abgleich von Gesamtbetrag und Teilbeträgen. */
-    private boolean syncingAmounts;
+    /** Verwaltet die dynamische Kategorie-/Teilbetrag-Liste (Splitbuchung). */
+    private SplitRowController splitCtl;
 
     private final SimpleDateFormat dateDisplay = new SimpleDateFormat("dd.MM.yyyy", Locale.GERMANY);
     private final Calendar selectedDate = Calendar.getInstance();
@@ -160,6 +157,9 @@ public class BookingEditActivity extends LocalizedActivity {
         editPlaceTo = findViewById(R.id.editPlaceTo);
         splitSection = findViewById(R.id.splitSection);
         splitContainer = findViewById(R.id.splitContainer);
+        readOnly = getIntent().getBooleanExtra(EXTRA_READ_ONLY, false);
+        splitCtl = new SplitRowController(splitContainer, editAmount, getLayoutInflater(),
+                readOnly, this::updateSaveEnabled);
         editNote = findViewById(R.id.editNote);
         editDate = findViewById(R.id.editDate);
         switchExported = findViewById(R.id.switchExported);
@@ -184,10 +184,9 @@ public class BookingEditActivity extends LocalizedActivity {
         });
         repository.getCategoriesGrouped(g -> {
             // Kategoriefeld nach Ausgabe/Einnahme gruppiert (Überschriften), ohne „alle"-Eintrag.
-            categoryAdapter = new CategoryFilterAdapter(this, null,
+            splitCtl.setAdapter(new CategoryFilterAdapter(this, null,
                     getString(R.string.category_group_expense), g.expense,
-                    getString(R.string.category_group_income), g.income);
-            applyCategoryAdapterToRows();
+                    getString(R.string.category_group_income), g.income));
         });
 
         // Ort-Dropdown folgt dem gewählten Konto: bei Ausgabe/Einnahme der Ort, bei Umbuchung der Von-Ort.
@@ -209,7 +208,7 @@ public class BookingEditActivity extends LocalizedActivity {
         });
 
         // Gesamtbetrag ↔ Teilbeträge koppeln; Konto wirkt auf die Freischaltung der Buttons.
-        editAmount.addTextChangedListener(new SimpleWatcher(this::onTotalChanged));
+        editAmount.addTextChangedListener(new SimpleWatcher(splitCtl::onTotalChanged));
         editAccount.addTextChangedListener(new SimpleWatcher(this::updateSaveEnabled));
         editAccountTo.addTextChangedListener(new SimpleWatcher(this::updateSaveEnabled));
 
@@ -226,7 +225,6 @@ public class BookingEditActivity extends LocalizedActivity {
 
         long templateId = getIntent().getLongExtra(EXTRA_TEMPLATE_BOOKING_ID, -1);
         long id = getIntent().getLongExtra(EXTRA_BOOKING_ID, -1);
-        readOnly = getIntent().getBooleanExtra(EXTRA_READ_ONLY, false);
         long voiceAmount = getIntent().getLongExtra(EXTRA_VOICE_AMOUNT_CENTS, -1);
         voiceSpokenPayee = getIntent().getStringExtra(EXTRA_VOICE_SPOKEN_PAYEE);
 
@@ -398,7 +396,7 @@ public class BookingEditActivity extends LocalizedActivity {
         } else {
             a.account = textOf(editAccount).trim();
             a.place = selectedPlace();
-            List<Part> parts = collectParts();
+            List<SplitRowController.Part> parts = splitCtl.collectParts();
             String c1 = parts.size() > 0 ? parts.get(0).category : "";
             String c2 = parts.size() > 1 ? parts.get(1).category : "";
             if (toggleType.getCheckedButtonId() == R.id.btnIncome) {
@@ -450,16 +448,16 @@ public class BookingEditActivity extends LocalizedActivity {
         boolean income = toggleType.getCheckedButtonId() == R.id.btnIncome;
         String c1 = income ? activeAlias.catIncome1 : activeAlias.catExpense1;
         String c2 = income ? activeAlias.catIncome2 : activeAlias.catExpense2;
-        suppressSplitEvents = true;
-        splitContainer.removeAllViews();
+        splitCtl.setSuppressEvents(true);
+        splitCtl.clear();
         if (c1 != null && !c1.trim().isEmpty()) {
-            addSplitRow(c1, null);
+            splitCtl.addRow(c1, null);
         }
         if (c2 != null && !c2.trim().isEmpty()) {
-            addSplitRow(c2, null);
+            splitCtl.addRow(c2, null);
         }
-        suppressSplitEvents = false;
-        ensureTrailingRow();
+        splitCtl.setSuppressEvents(false);
+        splitCtl.ensureTrailingRow();
         // Ortsfeld-Sichtbarkeit an das vom Alias gesetzte Konto anpassen.
         applyTypeVisibility();
         updateSaveEnabled();
@@ -480,8 +478,8 @@ public class BookingEditActivity extends LocalizedActivity {
             editAccount.setText(def, false);
         }
         setupPlaceDropdown(def);
-        splitContainer.removeAllViews();
-        ensureTrailingRow();
+        splitCtl.clear();
+        splitCtl.ensureTrailingRow();
         switchExported.setVisibility(View.GONE);
         btnUpdate.setVisibility(View.GONE);
         btnDelete.setVisibility(View.GONE);
@@ -679,8 +677,8 @@ public class BookingEditActivity extends LocalizedActivity {
         final String singleCategory = b.category;
         // Kategorie-Teile laden (oder Einzelkategorie als eine Zeile); Betrag ggf. skaliert übernehmen.
         repository.getSplits(b.id, splits -> {
-            suppressSplitEvents = true;
-            splitContainer.removeAllViews();
+            splitCtl.setSuppressEvents(true);
+            splitCtl.clear();
             if (splits != null && !splits.isEmpty()) {
                 long assigned = 0;
                 for (int idx = 0; idx < splits.size(); idx++) {
@@ -692,13 +690,13 @@ public class BookingEditActivity extends LocalizedActivity {
                     } else {
                         part = total - assigned; // letzte Zeile → exakte Summe = Gesamtbetrag
                     }
-                    addSplitRow(s.category, formatCents(part));
+                    splitCtl.addRow(s.category, formatCents(part));
                 }
             } else if (!singleCategory.isEmpty()) {
-                addSplitRow(singleCategory, formatCents(total));
+                splitCtl.addRow(singleCategory, formatCents(total));
             }
-            suppressSplitEvents = false;
-            ensureTrailingRow();
+            splitCtl.setSuppressEvents(false);
+            splitCtl.ensureTrailingRow();
             editAmount.setText(formatCents(total));
             updateSaveEnabled();
         });
@@ -736,190 +734,6 @@ public class BookingEditActivity extends LocalizedActivity {
 
     // ---- Dynamische Split-Liste ----
 
-    private void addSplitRow(String category, String amountText) {
-        View row = getLayoutInflater().inflate(R.layout.item_split_row, splitContainer, false);
-        MaterialAutoCompleteTextView cat = row.findViewById(R.id.splitCategory);
-        TextInputEditText amt = row.findViewById(R.id.splitAmount);
-        View remove = row.findViewById(R.id.btnRemoveSplit);
-        if (categoryAdapter != null) {
-            cat.setAdapter(categoryAdapter);
-        }
-        // Vorbelegung vor dem Anhängen der Listener, damit sie keine dynamische Logik auslösen.
-        if (category != null) {
-            cat.setText(category, false);
-        }
-        if (amountText != null) {
-            amt.setText(amountText);
-        }
-        if (readOnly) {
-            // Ansicht: Kategorie/Betrag gesperrt, kein Entfernen-Knopf.
-            lockField(cat);
-            lockField(amt);
-            remove.setVisibility(View.GONE);
-            splitContainer.addView(row);
-            return;
-        }
-        cat.addTextChangedListener(new SimpleWatcher(() -> onSplitCategoryChanged(row)));
-        amt.addTextChangedListener(new SimpleWatcher(() -> onPartialChanged(row)));
-        remove.setOnClickListener(v -> {
-            splitContainer.removeView(row);
-            ensureTrailingRow();
-            recomputeTotalFromParts();
-            updateSaveEnabled();
-        });
-        splitContainer.addView(row);
-    }
-
-    private void onSplitCategoryChanged(View row) {
-        if (suppressSplitEvents) {
-            return;
-        }
-        int idx = splitContainer.indexOfChild(row);
-        String cat = catText(row);
-        // Erste Kategorie → Teilbetrag automatisch mit dem (vorhandenen) Gesamtbetrag vorbelegen.
-        if (idx == 0 && !cat.isEmpty() && amtText(row).isEmpty() && currentTotalCents() > 0) {
-            setAmtText(row, formatCents(currentTotalCents()));
-        }
-        // Kategorie in der letzten Zeile → neue leere Zeile anhängen.
-        if (!cat.isEmpty() && idx == splitContainer.getChildCount() - 1) {
-            addSplitRow(null, null);
-        }
-        recomputeTotalFromParts();
-        updateSaveEnabled();
-    }
-
-    /** Teilbetrag geändert → Gesamtbetrag = Summe der Teilbeträge. */
-    private void onPartialChanged(View row) {
-        if (suppressSplitEvents || syncingAmounts) {
-            updateSaveEnabled();
-            return;
-        }
-        recomputeTotalFromParts();
-        updateSaveEnabled();
-    }
-
-    /** Gesamtbetrag geändert → bei genau einer Kategorie deren Teilbetrag gleich dem Gesamtbetrag setzen. */
-    private void onTotalChanged() {
-        if (suppressSplitEvents || syncingAmounts) {
-            updateSaveEnabled();
-            return;
-        }
-        View single = singleCategoryRow();
-        if (single != null) {
-            syncingAmounts = true;
-            setAmtText(single, formatCents(currentTotalCents()));
-            syncingAmounts = false;
-        }
-        updateSaveEnabled();
-    }
-
-    /** Setzt den Gesamtbetrag auf die Summe aller Teilbeträge (Zeilen mit Kategorie). */
-    private void recomputeTotalFromParts() {
-        long sum = 0;
-        boolean any = false;
-        for (int i = 0; i < splitContainer.getChildCount(); i++) {
-            View r = splitContainer.getChildAt(i);
-            if (catText(r).isEmpty()) {
-                continue;
-            }
-            Long c = parseAmountToCents(amtText(r));
-            if (c != null) {
-                sum += c;
-                any = true;
-            }
-        }
-        if (!any) {
-            return; // keine Kategorie mit Betrag → Gesamtbetrag unverändert lassen
-        }
-        syncingAmounts = true;
-        editAmount.setText(formatCents(sum));
-        syncingAmounts = false;
-    }
-
-    /** Liefert die einzige Zeile mit gesetzter Kategorie oder {@code null}, wenn es 0 oder mehrere sind. */
-    private View singleCategoryRow() {
-        View found = null;
-        for (int i = 0; i < splitContainer.getChildCount(); i++) {
-            View r = splitContainer.getChildAt(i);
-            if (!catText(r).isEmpty()) {
-                if (found != null) {
-                    return null;
-                }
-                found = r;
-            }
-        }
-        return found;
-    }
-
-    /** Sorgt für genau eine leere Abschluss-Zeile am Ende. */
-    private void ensureTrailingRow() {
-        if (readOnly) {
-            return; // Ansicht: keine leere Zusatzzeile.
-        }
-        int n = splitContainer.getChildCount();
-        if (n == 0) {
-            addSplitRow(null, null);
-            return;
-        }
-        if (!catText(splitContainer.getChildAt(n - 1)).isEmpty()) {
-            addSplitRow(null, null);
-        }
-    }
-
-    private void applyCategoryAdapterToRows() {
-        for (int i = 0; i < splitContainer.getChildCount(); i++) {
-            MaterialAutoCompleteTextView cat = splitContainer.getChildAt(i).findViewById(R.id.splitCategory);
-            if (cat != null) {
-                cat.setAdapter(categoryAdapter);
-            }
-        }
-    }
-
-    /** Kategorie-Teile mit gültiger Kategorie und Betrag (leere Abschlusszeile wird ignoriert). */
-    private List<Part> collectParts() {
-        List<Part> parts = new ArrayList<>();
-        for (int i = 0; i < splitContainer.getChildCount(); i++) {
-            View r = splitContainer.getChildAt(i);
-            String c = catText(r);
-            if (c.isEmpty()) {
-                continue;
-            }
-            Long cents = parseAmountToCents(amtText(r));
-            if (cents != null) {
-                parts.add(new Part(c, cents));
-            }
-        }
-        return parts;
-    }
-
-    /** true, wenn das Ausgabe/Einnahme-Formular gespeichert werden darf (Summe der Teile = Gesamt). */
-    private boolean computeSplitValid() {
-        Long total = parseAmountToCents(textOf(editAmount));
-        if (total == null || total <= 0) {
-            return false;
-        }
-        long sum = 0;
-        int count = 0;
-        for (int i = 0; i < splitContainer.getChildCount(); i++) {
-            View r = splitContainer.getChildAt(i);
-            String c = catText(r);
-            String a = amtText(r);
-            if (c.isEmpty()) {
-                continue; // leere / betragslose Kategoriezeile ignorieren
-            }
-            Long cents = parseAmountToCents(a);
-            if (cents == null) {
-                return false; // Kategorie ohne gültigen Teilbetrag
-            }
-            sum += cents;
-            count++;
-        }
-        if (count == 0) {
-            return true; // keine Kategorie → einfache (nicht zugeordnete) Buchung
-        }
-        return sum == total;
-    }
-
     private void updateSaveEnabled() {
         boolean enabled;
         if (isTransferType()) {
@@ -929,30 +743,10 @@ public class BookingEditActivity extends LocalizedActivity {
             enabled = !from.isEmpty() && !to.isEmpty() && !from.equalsIgnoreCase(to)
                     && cents != null && cents > 0;
         } else {
-            enabled = computeSplitValid();
+            enabled = splitCtl.isValid();
         }
         btnSaveNew.setEnabled(enabled);
         btnUpdate.setEnabled(enabled);
-    }
-
-    private String catText(View row) {
-        MaterialAutoCompleteTextView cat = row.findViewById(R.id.splitCategory);
-        return cat.getText() == null ? "" : cat.getText().toString().trim();
-    }
-
-    private String amtText(View row) {
-        TextInputEditText amt = row.findViewById(R.id.splitAmount);
-        return amt.getText() == null ? "" : amt.getText().toString().trim();
-    }
-
-    private void setAmtText(View row, String text) {
-        TextInputEditText amt = row.findViewById(R.id.splitAmount);
-        amt.setText(text);
-    }
-
-    private long currentTotalCents() {
-        Long t = parseAmountToCents(textOf(editAmount));
-        return t == null ? 0 : t;
     }
 
     // ---- Datum ----
@@ -1051,7 +845,7 @@ public class BookingEditActivity extends LocalizedActivity {
             return;
         }
         b.exported = false;
-        final List<Part> parts = collectParts();
+        final List<SplitRowController.Part> parts = splitCtl.collectParts();
         b.category = parts.isEmpty() ? "" : parts.get(0).category;
         final String place = textOf(editPlace);
         maybeAskCorrection(b.payee, () -> maybeDateConfirm(() -> {
@@ -1084,7 +878,7 @@ public class BookingEditActivity extends LocalizedActivity {
                 })));
     }
 
-    private void persistNew(Booking b, String place, List<Part> parts) {
+    private void persistNew(Booking b, String place, List<SplitRowController.Part> parts) {
         // Ort wird an der Buchung gespeichert (Standardort ist ein echter Ort; „ohne Ort" → leer).
         final String fp = place;
         Runnable done = () -> {
@@ -1127,7 +921,7 @@ public class BookingEditActivity extends LocalizedActivity {
         if (readValidFields(booking) == null) {
             return;
         }
-        final List<Part> parts = collectParts();
+        final List<SplitRowController.Part> parts = splitCtl.collectParts();
         booking.category = parts.isEmpty() ? "" : parts.get(0).category;
         booking.isTransfer = false;
         booking.transferAccount = "";
@@ -1209,7 +1003,7 @@ public class BookingEditActivity extends LocalizedActivity {
             return;
         }
         nb.exported = false;
-        final List<Part> parts = collectParts();
+        final List<SplitRowController.Part> parts = splitCtl.collectParts();
         nb.category = parts.isEmpty() ? "" : parts.get(0).category;
         final String place = textOf(editPlace);
         final String group = origTransferGroup;
@@ -1279,9 +1073,9 @@ public class BookingEditActivity extends LocalizedActivity {
         return target;
     }
 
-    private List<BookingSplit> toSplits(List<Part> parts) {
+    private List<BookingSplit> toSplits(List<SplitRowController.Part> parts) {
         List<BookingSplit> out = new ArrayList<>();
-        for (Part p : parts) {
+        for (SplitRowController.Part p : parts) {
             out.add(new BookingSplit(0, p.category, p.cents));
         }
         return out;
@@ -1322,38 +1116,5 @@ public class BookingEditActivity extends LocalizedActivity {
 
     private String textOf(android.widget.EditText e) {
         return e.getText() == null ? "" : e.getText().toString();
-    }
-
-    /** Einfacher Kategorie/Teilbetrag-Datensatz während der Editor-Eingabe. */
-    private static final class Part {
-        final String category;
-        final long cents;
-
-        Part(String category, long cents) {
-            this.category = category;
-            this.cents = cents;
-        }
-    }
-
-    /** TextWatcher, der bei jeder Änderung eine Aktion ausführt. */
-    private static final class SimpleWatcher implements android.text.TextWatcher {
-        private final Runnable action;
-
-        SimpleWatcher(Runnable action) {
-            this.action = action;
-        }
-
-        @Override
-        public void beforeTextChanged(CharSequence s, int start, int count, int after) {
-        }
-
-        @Override
-        public void onTextChanged(CharSequence s, int start, int before, int count) {
-        }
-
-        @Override
-        public void afterTextChanged(android.text.Editable s) {
-            action.run();
-        }
     }
 }

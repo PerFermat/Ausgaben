@@ -35,6 +35,11 @@ public class Repository {
     private final ExecutorService executor = Executors.newSingleThreadExecutor();
     private final Handler mainHandler = new Handler(Looper.getMainLooper());
 
+    /** Fokussierte Kollaboratoren; teilen sich Executor + Main-Handler dieser Fassade (Reihenfolge bleibt). */
+    private final BudgetRepository budgetRepo;
+    private final DepotRepository depotRepo;
+    private final AliasResolver aliasResolver;
+
     public Repository(Context context) {
         this.appContext = context.getApplicationContext();
         AppDatabase db = AppDatabase.getInstance(context);
@@ -46,6 +51,9 @@ public class Repository {
         this.translationDao = db.translationDao();
         this.securityDao = db.securityDao();
         this.budgetDao = db.budgetDao();
+        this.budgetRepo = new BudgetRepository(bookingDao, budgetDao, executor, mainHandler);
+        this.depotRepo = new DepotRepository(securityDao, appContext, executor, mainHandler);
+        this.aliasResolver = new AliasResolver(bookingDao, correctionDao, accountDao, executor, mainHandler);
     }
 
     // ---- Mehrsprachigkeit ----
@@ -501,15 +509,16 @@ public class Repository {
         // Auflösung: mit Empfänger normal; bei reinem Betrag über den aktuellen Standort (100 m).
         Booking[] resolvedBooking = new Booking[1];
         PayeeCorrection[] resolvedAlias = new PayeeCorrection[1];
-        java.util.Set<String> closed = closedAccounts();
+        java.util.Set<String> closed = aliasResolver.closedAccounts();
         if (term.isEmpty()) {
             double[] ll = de.spahr.ausgaben.location.Geo.parse(coords);
             if (ll != null) {
-                resolveGps(ll[0], ll[1], closed, resolvedBooking, resolvedAlias);
+                aliasResolver.resolveGps(ll[0], ll[1], closed, resolvedBooking, resolvedAlias);
             }
         } else {
             // Mit Empfänger: bei mehreren gleichnamigen Treffern den zur aktuellen Position nächsten wählen.
-            resolve(term, de.spahr.ausgaben.location.Geo.parse(coords), closed, resolvedBooking, resolvedAlias);
+            aliasResolver.resolve(term, de.spahr.ausgaben.location.Geo.parse(coords), closed,
+                    resolvedBooking, resolvedAlias);
         }
         Booking template = resolvedBooking[0];
         PayeeCorrection alias = resolvedAlias[0];
@@ -544,7 +553,7 @@ public class Repository {
                         .getDefaultAccount().trim();
                 to = from.equalsIgnoreCase(phoneDefault) ? "" : phoneDefault;
             }
-            note = appendGps(note, coords);
+            note = AliasResolver.appendGps(note, coords);
             de.spahr.ausgaben.settings.PlacesStore ps =
                     new de.spahr.ausgaben.settings.PlacesStore(appContext);
             String fromPlace = alias != null ? alias.fromPlace
@@ -567,8 +576,8 @@ public class Repository {
         if (alias != null) {
             b.payee = alias.corrected;
             b.account = alias.account.isEmpty() ? def : alias.account;
-            b.category = income ? firstNonEmpty(alias.catIncome1, alias.catIncome2)
-                    : firstNonEmpty(alias.catExpense1, alias.catExpense2);
+            b.category = income ? AliasResolver.firstNonEmpty(alias.catIncome1, alias.catIncome2)
+                    : AliasResolver.firstNonEmpty(alias.catExpense1, alias.catExpense2);
             b.note = "";
         } else if (useTemplate) {
             b.payee = template.payee;
@@ -581,7 +590,7 @@ public class Repository {
             b.category = "";
             b.note = "";
         }
-        b.note = appendGps(b.note, coords);
+        b.note = AliasResolver.appendGps(b.note, coords);
         // Sprach-/Uhr-Buchung ist in der App angelegt → Ort des Alias, sonst gewählter Ort (Widget/Uhr),
         // sonst Standardort des Kontos.
         String aliasPlace = alias != null ? alias.place : "";
@@ -625,324 +634,26 @@ public class Repository {
         return true;
     }
 
-    /**
-     * Sucht einen gelernten Alias zum Begriff – gleiche Logik wie die Buchungssuche: exakter Teilstring
-     * ({@code spoken}), sonst unscharf über alle bekannten {@code spoken}. Liefert den vollen Alias oder
-     * {@code null}.
-     */
-    private PayeeCorrection matchAlias(String term, boolean preferred, double[] coords,
-                                       java.util.Set<String> closed) {
-        String t = term == null ? "" : term.trim();
-        if (t.isEmpty()) {
-            return null;
-        }
-        int pref = preferred ? 1 : 0;
-        List<PayeeCorrection> matches = correctionDao.findAllBySpokenLike(t, pref);
-        if (matches.isEmpty()) {
-            String bestSpoken = de.spahr.ausgaben.voice.VoiceInput.bestFuzzyPayee(
-                    t, correctionDao.getSpokenByPreferred(pref));
-            if (bestSpoken != null) {
-                matches = correctionDao.findAllBySpokenExact(bestSpoken, pref);
-            }
-        }
-        // Nur offene (nicht auf geschlossene Konten zeigende) Aliase.
-        List<PayeeCorrection> open = new ArrayList<>();
-        for (PayeeCorrection a : matches) {
-            if (!aliasBlocked(a, closed)) {
-                open.add(a);
-            }
-        }
-        if (open.isEmpty()) {
-            return null;
-        }
-        // Mehrere gleichnamige Aliase + bekannter Standort → den nächstgelegenen wählen. Der Nutzer hat den
-        // Empfänger explizit genannt, daher ohne Radius-Deckel. Sonst der neueste (open ist created_at DESC).
-        if (open.size() > 1 && coords != null) {
-            PayeeCorrection near = nearestAliasUncapped(coords[0], coords[1], open);
-            if (near != null) {
-                return near;
-            }
-        }
-        return open.get(0);
+    // Aliase + Sprach-/Standort-Auflösung → AliasResolver.
+
+    public void saveAlias(PayeeCorrection alias) {
+        aliasResolver.saveAlias(alias);
     }
 
-    /** Kleinste Entfernung des aktuellen Standorts zu einer der hinterlegten Alias-Koordinaten. */
-    private double nearestPointMeters(double lat, double lon, PayeeCorrection a) {
-        double best = Double.MAX_VALUE;
-        for (double[] p : a.gpsPoints()) {
-            double d = de.spahr.ausgaben.location.Geo.distanceMeters(lat, lon, p[0], p[1]);
-            if (d < best) {
-                best = d;
-            }
-        }
-        return best;
+    public void saveAlias(PayeeCorrection alias, boolean mergeGps) {
+        aliasResolver.saveAlias(alias, mergeGps);
     }
 
-    /** Nächstgelegener Alias mit Standort, ohne Radius-Deckel (für explizit genannte Empfänger). */
-    private PayeeCorrection nearestAliasUncapped(double lat, double lon, List<PayeeCorrection> list) {
-        PayeeCorrection best = null;
-        double bestD = Double.MAX_VALUE;
-        for (PayeeCorrection a : list) {
-            double d = nearestPointMeters(lat, lon, a);
-            if (d < bestD) {
-                bestD = d;
-                best = a;
-            }
-        }
-        return best;
+    public void getAllAliases(Callback<List<PayeeCorrection>> callback) {
+        aliasResolver.getAllAliases(callback);
     }
 
-    /**
-     * Auflösung in der gewünschten Reihenfolge: zuerst die <b>bevorzugten</b> Aliase, dann die bestehenden
-     * Buchungen, erst danach die übrigen Aliase. Setzt {@code out[0]}=Vorlage-Buchung, {@code out[1]}=Alias.
-     * Geschlossene Konten ({@code closed}) werden übersprungen.
-     */
-    private void resolve(String term, double[] coords, java.util.Set<String> closed,
-                         Booking[] outBooking, PayeeCorrection[] outAlias) {
-        PayeeCorrection alias = matchAlias(term, true, coords, closed);
-        Booking booking = null;
-        if (alias == null) {
-            booking = findVoiceTemplate(term, coords, closed);
-            if (booking == null) {
-                alias = matchAlias(term, false, coords, closed);
-            }
-        }
-        outBooking[0] = booking;
-        outAlias[0] = alias;
+    public void getAlias(long id, Callback<PayeeCorrection> callback) {
+        aliasResolver.getAlias(id, callback);
     }
 
-    /**
-     * Auflösung per Standort (Betrag-only): innerhalb {@link de.spahr.ausgaben.location.Geo#RADIUS_M} in
-     * strenger Reihenfolge – bevorzugte Aliase → Buchungen → übrige Aliase; der erste Tier mit Treffer
-     * gewinnt, innerhalb eines Tiers der nächstgelegene. Geschlossene Konten werden übersprungen.
-     */
-    private void resolveGps(double lat, double lon, java.util.Set<String> closed,
-                            Booking[] outBooking, PayeeCorrection[] outAlias) {
-        PayeeCorrection a = nearestAlias(lat, lon, openAliases(correctionDao.getWithGps(1), closed));
-        if (a != null) {
-            outAlias[0] = a;
-            return;
-        }
-        Booking b = nearestBooking(lat, lon, openBookings(bookingDao.getWithGpsNote(), closed));
-        if (b != null) {
-            outBooking[0] = b;
-            return;
-        }
-        outAlias[0] = nearestAlias(lat, lon, openAliases(correctionDao.getWithGps(0), closed));
-    }
-
-    /** Namen der geschlossenen Konten (läuft bereits auf dem Executor-Thread). */
-    private java.util.Set<String> closedAccounts() {
-        return new java.util.HashSet<>(accountDao.getClosedNames());
-    }
-
-    /** True, wenn der Alias auf ein geschlossenes (Ziel-)Konto zeigt und daher nicht gewählt werden darf. */
-    private static boolean aliasBlocked(PayeeCorrection a, java.util.Set<String> closed) {
-        if (a == null || closed == null || closed.isEmpty()) {
-            return false;
-        }
-        return closed.contains(a.account) || closed.contains(a.fromAccount) || closed.contains(a.toAccount);
-    }
-
-    private static List<Booking> openBookings(List<Booking> list, java.util.Set<String> closed) {
-        if (closed == null || closed.isEmpty()) {
-            return list;
-        }
-        List<Booking> out = new ArrayList<>();
-        for (Booking b : list) {
-            if (!closed.contains(b.account)) {
-                out.add(b);
-            }
-        }
-        return out;
-    }
-
-    private static List<PayeeCorrection> openAliases(List<PayeeCorrection> list, java.util.Set<String> closed) {
-        if (closed == null || closed.isEmpty()) {
-            return list;
-        }
-        List<PayeeCorrection> out = new ArrayList<>();
-        for (PayeeCorrection a : list) {
-            if (!aliasBlocked(a, closed)) {
-                out.add(a);
-            }
-        }
-        return out;
-    }
-
-    private PayeeCorrection nearestAlias(double lat, double lon, List<PayeeCorrection> list) {
-        PayeeCorrection best = null;
-        double bestD = de.spahr.ausgaben.location.Geo.RADIUS_M;
-        for (PayeeCorrection a : list) {
-            double d = nearestPointMeters(lat, lon, a);
-            if (d <= bestD) {
-                bestD = d;
-                best = a;
-            }
-        }
-        return best;
-    }
-
-    private Booking nearestBooking(double lat, double lon, List<Booking> list) {
-        Booking best = null;
-        double bestD = de.spahr.ausgaben.location.Geo.RADIUS_M;
-        for (Booking b : list) {
-            double[] ll = de.spahr.ausgaben.location.Geo.parse(b.note);
-            if (ll == null) {
-                continue;
-            }
-            double d = de.spahr.ausgaben.location.Geo.distanceMeters(lat, lon, ll[0], ll[1]);
-            if (d <= bestD) {
-                bestD = d;
-                best = b;
-            }
-        }
-        return best;
-    }
-
-    /** Speichert einen Alias autoritativ (Editor): ersetzt einen bestehenden mit gleichem
-     * {@code spoken}+{@code corrected}; die im UI zusammengestellte Standortliste gilt (inkl. Löschungen). */
-    public void saveAlias(final PayeeCorrection alias) {
-        saveAlias(alias, false);
-    }
-
-    /**
-     * @param mergeGps beim Lernen ({@code true}): die Standorte des übergebenen Alias werden an die des
-     *                 bestehenden Alias <b>angehängt</b> (Duplikate übersprungen), statt sie zu ersetzen.
-     */
-    public void saveAlias(final PayeeCorrection alias, final boolean mergeGps) {
-        if (alias == null) {
-            return;
-        }
-        executor.execute(() -> {
-            alias.spoken = alias.spoken == null ? "" : alias.spoken.trim().toLowerCase(Locale.GERMANY);
-            alias.corrected = alias.corrected == null ? "" : alias.corrected.trim();
-            if (alias.spoken.isEmpty() || alias.corrected.isEmpty()) {
-                return;
-            }
-            if (alias.createdAt == 0) {
-                alias.createdAt = System.currentTimeMillis();
-            }
-            java.util.List<double[]> points = alias.gpsPoints();
-            if (mergeGps) {
-                PayeeCorrection existing = correctionDao.findBySpokenCorrected(alias.spoken, alias.corrected);
-                java.util.List<double[]> merged = existing != null ? existing.gpsPoints()
-                        : new java.util.ArrayList<>();
-                for (double[] p : points) {
-                    if (!containsPoint(merged, p)) {
-                        merged.add(p);
-                    }
-                }
-                points = merged;
-            }
-            alias.setGpsPoints(points);
-            correctionDao.upsert(alias);
-        });
-    }
-
-    /** Ob {@code p} (auf ~5 Nachkommastellen) bereits in der Liste steht. */
-    private static boolean containsPoint(java.util.List<double[]> list, double[] p) {
-        for (double[] q : list) {
-            if (Math.abs(q[0] - p[0]) < 1e-5 && Math.abs(q[1] - p[1]) < 1e-5) {
-                return true;
-            }
-        }
-        return false;
-    }
-
-    public void getAllAliases(final Callback<List<PayeeCorrection>> callback) {
-        executor.execute(() -> {
-            final List<PayeeCorrection> result = correctionDao.getAll();
-            mainHandler.post(() -> callback.onResult(result));
-        });
-    }
-
-    public void getAlias(final long id, final Callback<PayeeCorrection> callback) {
-        executor.execute(() -> {
-            final PayeeCorrection result = correctionDao.getById(id);
-            mainHandler.post(() -> callback.onResult(result));
-        });
-    }
-
-    public void deleteAlias(final long id, final Runnable onDone) {
-        executor.execute(() -> {
-            correctionDao.deleteById(id);
-            if (onDone != null) {
-                mainHandler.post(onDone);
-            }
-        });
-    }
-
-    private static String firstNonEmpty(String a, String b) {
-        if (a != null && !a.trim().isEmpty()) {
-            return a.trim();
-        }
-        return b == null ? "" : b.trim();
-    }
-
-    /** Hängt „GPS: lat, lon" an die Notiz an (gleiche Form wie am Phone); ersetzt einen alten GPS-Zusatz. */
-    private static String appendGps(String note, String coords) {
-        if (coords == null || coords.trim().isEmpty()) {
-            return note == null ? "" : note;
-        }
-        String base = (note == null ? "" : note).replaceAll("\\s*GPS:.*$", "").replaceAll("\\s+$", "");
-        String tag = "GPS: " + coords.trim();
-        return base.isEmpty() ? tag : base + " " + tag;
-    }
-
-    /**
-     * Vorlage-Buchung per Empfänger suchen (exakter Teilstring, sonst unscharf). Gibt es mehrere Treffer
-     * und ist die aktuelle Position {@code coords} bekannt, wird der zur Position nächstgelegene Treffer
-     * mit GPS-Notiz gewählt – sonst die neueste Buchung.
-     */
-    private Booking findVoiceTemplate(String term, double[] coords, java.util.Set<String> closed) {
-        if (term == null || term.isEmpty()) {
-            return null;
-        }
-        Booking template = pickTemplate(openBookings(bookingDao.findByPayeeLike(term), closed), coords);
-        if (template == null) {
-            String best = de.spahr.ausgaben.voice.VoiceInput.bestFuzzyPayee(
-                    term, bookingDao.getDistinctPayees());
-            if (best != null) {
-                template = pickTemplate(openBookings(bookingDao.findByPayeeLike(best), closed), coords);
-            }
-        }
-        return template;
-    }
-
-    /** Aus den Treffern die zur Position nächste Buchung mit GPS-Notiz, sonst die erste (= neueste). */
-    private Booking pickTemplate(List<Booking> matches, double[] coords) {
-        if (matches == null || matches.isEmpty()) {
-            return null;
-        }
-        if (coords != null) {
-            Booking near = nearestByNote(coords[0], coords[1], matches);
-            if (near != null) {
-                return near;
-            }
-        }
-        return matches.get(0);
-    }
-
-    /**
-     * Nächstgelegene Buchung mit GPS-Notiz aus der Liste – <b>ohne</b> 100‑m‑Deckel (der Empfänger wurde
-     * explizit genannt, es soll der geografisch nächste unter den gleichnamigen Empfängern gewinnen).
-     */
-    private Booking nearestByNote(double lat, double lon, List<Booking> list) {
-        Booking best = null;
-        double bestD = Double.MAX_VALUE;
-        for (Booking b : list) {
-            double[] ll = de.spahr.ausgaben.location.Geo.parse(b.note);
-            if (ll == null) {
-                continue;
-            }
-            double d = de.spahr.ausgaben.location.Geo.distanceMeters(lat, lon, ll[0], ll[1]);
-            if (d < bestD) {
-                bestD = d;
-                best = b;
-            }
-        }
-        return best;
+    public void deleteAlias(long id, Runnable onDone) {
+        aliasResolver.deleteAlias(id, onDone);
     }
 
     /** Ergebnis der Sprach-Empfängersuche: Vorlage-Buchung und/oder Alias + aufzulösender Empfänger. */
@@ -961,46 +672,12 @@ public class Repository {
         }
     }
 
-    /**
-     * Löst einen gesprochenen Empfänger für die Sprach-Erfassung auf: zuerst über die bevorzugten Aliase,
-     * dann über bestehende Buchungen, erst danach über die übrigen Aliase. Liefert Vorlage-Buchung und/oder
-     * Alias sowie den – ggf. ersetzten – Empfänger für die Vorbelegung.
-     */
-    public void resolveVoice(final String term, final String coords,
-                             final Callback<VoiceResolution> callback) {
-        executor.execute(() -> {
-            String t = term == null ? "" : term.trim();
-            Booking[] booking = new Booking[1];
-            PayeeCorrection[] alias = new PayeeCorrection[1];
-            resolve(t, de.spahr.ausgaben.location.Geo.parse(coords), closedAccounts(), booking, alias);
-            String payee = alias[0] != null ? alias[0].corrected : t;
-            final Booking fb = booking[0];
-            final PayeeCorrection fa = alias[0];
-            final String fp = payee;
-            mainHandler.post(() -> callback.onResult(new VoiceResolution(fb, fa, fp)));
-        });
+    public void resolveVoice(String term, String coords, Callback<VoiceResolution> callback) {
+        aliasResolver.resolveVoice(term, coords, callback);
     }
 
-    /**
-     * Auflösung für die Betrag-only-Erfassung am Phone: sucht am Standort {@code coords} („lat, lon") eine
-     * Vorlage (bevorzugte Aliase → Buchungen → übrige Aliase, 100 m). Ohne Standort/Treffer bleibt alles
-     * leer → Editor wird nur mit dem Betrag geöffnet.
-     */
-    public void resolveVoiceByGps(final String coords, final Callback<VoiceResolution> callback) {
-        executor.execute(() -> {
-            Booking[] booking = new Booking[1];
-            PayeeCorrection[] alias = new PayeeCorrection[1];
-            double[] ll = de.spahr.ausgaben.location.Geo.parse(coords);
-            if (ll != null) {
-                resolveGps(ll[0], ll[1], closedAccounts(), booking, alias);
-            }
-            String payee = alias[0] != null ? alias[0].corrected
-                    : (booking[0] != null ? booking[0].payee : "");
-            final Booking fb = booking[0];
-            final PayeeCorrection fa = alias[0];
-            final String fp = payee;
-            mainHandler.post(() -> callback.onResult(new VoiceResolution(fb, fa, fp)));
-        });
+    public void resolveVoiceByGps(String coords, Callback<VoiceResolution> callback) {
+        aliasResolver.resolveVoiceByGps(coords, callback);
     }
 
     /**
@@ -1178,15 +855,6 @@ public class Repository {
 
     // ---- Budgetplanung ----
 
-    /** Ist-Summen je Kategorie (Einnahme/Ausgabe) im Zeitraum. */
-    public void getCategoryActuals(final long fromMs, final long toMs,
-                                   final Callback<List<CategorySum>> callback) {
-        executor.execute(() -> {
-            final List<CategorySum> result = bookingDao.getCategoryActuals(fromMs, toMs);
-            mainHandler.post(() -> callback.onResult(result));
-        });
-    }
-
     /** Gespeichertes Budget eines Jahres (Soll-Werte je Kategorie + Herkunft). */
     public static final class YearBudget {
         /** {@code "kmy"}/{@code "internal"}; {@code null} = keins vorhanden. */
@@ -1198,98 +866,27 @@ public class Repository {
         }
     }
 
-    public void getBudget(final int year, final Callback<YearBudget> callback) {
-        executor.execute(() -> {
-            final List<Budget> lines = budgetDao.getForYear(year);
-            final String source = budgetDao.sourceForYear(year);
-            mainHandler.post(() -> callback.onResult(new YearBudget(source, lines)));
-        });
+    // Budgetplanung → BudgetRepository.
+
+    public void getCategoryActuals(long fromMs, long toMs, Callback<List<CategorySum>> callback) {
+        budgetRepo.getCategoryActuals(fromMs, toMs, callback);
     }
 
-    /** Setzt/ändert einen Soll-Wert manuell (Herkunft = intern). */
-    public void saveBudgetLine(final int year, final String category, final boolean isIncome,
-                               final long amountCents, final Runnable onDone) {
-        executor.execute(() -> {
-            budgetDao.upsert(new Budget(year, category, isIncome, amountCents, Budget.SOURCE_INTERNAL));
-            if (onDone != null) {
-                mainHandler.post(onDone);
-            }
-        });
+    public void getBudget(int year, Callback<YearBudget> callback) {
+        budgetRepo.getBudget(year, callback);
     }
 
-    /** Ersetzt das Budget eines Jahres komplett (Import/Berechnung). */
-    public void replaceBudget(final int year, final String source, final List<Budget> lines,
-                              final Runnable onDone) {
-        executor.execute(() -> {
-            budgetDao.deleteYear(year);
-            for (Budget b : lines) {
-                b.year = year;
-                b.source = source;
-                budgetDao.upsert(b);
-            }
-            if (onDone != null) {
-                mainHandler.post(onDone);
-            }
-        });
+    public void saveBudgetLine(int year, String category, boolean isIncome, long amountCents,
+                               Runnable onDone) {
+        budgetRepo.saveBudgetLine(year, category, isIncome, amountCents, onDone);
     }
 
-    /**
-     * Berechnet das Budget fürs {@code year} aus dem Verlauf: Ist-Summe aller Buchungen VOR dem Jahresbeginn
-     * geteilt durch die Anzahl der Jahre mit Daten. Speichert als internes Budget.
-     */
-    public void computeBudgetFromHistory(final int year, final Runnable onDone) {
-        executor.execute(() -> {
-            java.util.Calendar c = java.util.Calendar.getInstance();
-            c.clear();
-            c.set(java.util.Calendar.YEAR, year);
-            long yearStart = c.getTimeInMillis();
-            List<CategorySum> sums = bookingDao.getCategoryActuals(0L, yearStart);
-            List<Integer> years = bookingDao.getDataYearsBefore(yearStart);
-            int divisor = years == null || years.isEmpty() ? 1 : years.size();
-            // Kein Vorjahr vorhanden → Fallback: laufendes Jahr als einzige Datenbasis.
-            List<CategorySum> basis = sums;
-            if (basis.isEmpty()) {
-                long yearEnd;
-                java.util.Calendar c2 = java.util.Calendar.getInstance();
-                c2.clear();
-                c2.set(java.util.Calendar.YEAR, year + 1);
-                yearEnd = c2.getTimeInMillis();
-                basis = bookingDao.getCategoryActuals(yearStart, yearEnd);
-                divisor = 1;
-            }
-            // Je Kategorie Einnahme-/Ausgabe-Summe getrennt, dann der Typ aus dem Netto: eine Einnahme auf
-            // einer Ausgabekategorie (Erstattung) mindert deren Soll, die Kategorie bleibt Ausgabe.
-            java.util.Map<String, long[]> perCat = new java.util.HashMap<>();
-            for (CategorySum s : basis) {
-                if (s.category == null || s.category.isEmpty()) {
-                    continue;
-                }
-                long[] a = perCat.get(s.category);
-                if (a == null) {
-                    a = new long[2];
-                    perCat.put(s.category, a);
-                }
-                a[s.isIncome ? 0 : 1] += s.total;
-            }
-            budgetDao.deleteYear(year);
-            for (java.util.Map.Entry<String, long[]> e : perCat.entrySet()) {
-                long inc = e.getValue()[0];
-                long exp = e.getValue()[1];
-                boolean isIncome = inc > exp;
-                long net = isIncome ? inc - exp : exp - inc;
-                if (net <= 0) {
-                    continue;
-                }
-                long soll = Math.round((double) net / divisor);
-                if (soll <= 0) {
-                    continue;
-                }
-                budgetDao.upsert(new Budget(year, e.getKey(), isIncome, soll, Budget.SOURCE_INTERNAL));
-            }
-            if (onDone != null) {
-                mainHandler.post(onDone);
-            }
-        });
+    public void replaceBudget(int year, String source, List<Budget> lines, Runnable onDone) {
+        budgetRepo.replaceBudget(year, source, lines, onDone);
+    }
+
+    public void computeBudgetFromHistory(int year, Runnable onDone) {
+        budgetRepo.computeBudgetFromHistory(year, onDone);
     }
 
     // ---- Depot (Wertpapiere) ----
@@ -1314,58 +911,6 @@ public class Repository {
         }
     }
 
-    /** Ersetzt die Depotdaten (Wertpapiere + Bewegungen) eines Depots. */
-    public void replaceDepotImport(final String depot, final List<Security> securities,
-                                   final List<SecurityTx> transactions, final Runnable onDone) {
-        executor.execute(() -> {
-            securityDao.deleteTx(depot);
-            securityDao.deleteSecurities(depot);
-            for (Security s : securities) {
-                securityDao.insertSecurity(s);
-            }
-            for (SecurityTx t : transactions) {
-                securityDao.insertTx(t);
-            }
-            if (onDone != null) {
-                mainHandler.post(onDone);
-            }
-        });
-    }
-
-    /** Depot-Namen mit vorhandenen Wertpapieren. */
-    public void getDepots(final Callback<List<String>> callback) {
-        executor.execute(() -> {
-            final List<String> result = securityDao.distinctDepots();
-            mainHandler.post(() -> callback.onResult(result));
-        });
-    }
-
-    /** Bestände eines Depots: je Wertpapier Stückzahl × letzter Kurs = Wert. */
-    public void getDepotHoldings(final String depot, final Callback<List<DepotHolding>> callback) {
-        executor.execute(() -> {
-            Map<String, Double> shares = new HashMap<>();
-            for (SecurityDao.ShareSum ss : securityDao.getShareSums(depot)) {
-                shares.put(ss.kmyId, ss.shares);
-            }
-            List<DepotHolding> result = new ArrayList<>();
-            for (Security s : securityDao.getSecurities(depot)) {
-                double q = shares.containsKey(s.kmyId) ? shares.get(s.kmyId) : 0.0;
-                long value = Math.round(q * s.price * 100.0);
-                result.add(new DepotHolding(s.name, s.symbol, s.kmyId, q, s.price, value));
-            }
-            mainHandler.post(() -> callback.onResult(result));
-        });
-    }
-
-    /** Bewegungen eines Wertpapiers (neueste zuerst). */
-    public void getSecurityTransactions(final String depot, final String kmyId,
-                                        final Callback<List<SecurityTx>> callback) {
-        executor.execute(() -> {
-            final List<SecurityTx> result = securityDao.getTxBySecurity(depot, kmyId);
-            mainHandler.post(() -> callback.onResult(result));
-        });
-    }
-
     /** Kennzahlen: Depotwert, Käufe/Verkäufe/Dividenden, Nettoeinsatz (Käufe − Verkäufe − Dividenden),
      *  Gewinn/Verlust (Cent + Prozent). */
     public static final class DepotMetrics {
@@ -1388,65 +933,32 @@ public class Repository {
         }
     }
 
-    private static DepotMetrics metricsFrom(long valueCents, List<SecurityDao.ActionSum> sums,
-                                            boolean grossDividends) {
-        long buy = 0, sell = 0, dividend = 0;
-        for (SecurityDao.ActionSum s : sums) {
-            String a = s.action == null ? "" : s.action;
-            if ("buy".equals(a) || "reinvest".equals(a)) {
-                buy += s.amount;
-            } else if ("sell".equals(a)) {
-                sell += s.amount;
-            } else if ("dividend".equals(a)) {
-                // Brutto = amount (Einnahme-Split), Netto = net (gutgeschriebenes Geld).
-                dividend += grossDividends ? s.amount : s.net;
-            }
-        }
-        return new DepotMetrics(valueCents, buy, sell, dividend);
+    // Depot → DepotRepository.
+
+    public void replaceDepotImport(String depot, List<Security> securities,
+                                   List<SecurityTx> transactions, Runnable onDone) {
+        depotRepo.replaceDepotImport(depot, securities, transactions, onDone);
     }
 
-    /** Einstellung „Dividenden brutto anzeigen" (Standard true). Auf dem Executor-Thread gelesen. */
-    private boolean dividendsGross() {
-        return new de.spahr.ausgaben.settings.SettingsStore(appContext).isDividendGross();
+    public void getDepots(Callback<List<String>> callback) {
+        depotRepo.getDepots(callback);
     }
 
-    /** Kennzahlen für das komplette Depot. */
-    public void getDepotMetrics(final String depot, final Callback<DepotMetrics> callback) {
-        executor.execute(() -> {
-            Map<String, Double> shares = new HashMap<>();
-            for (SecurityDao.ShareSum ss : securityDao.getShareSums(depot)) {
-                shares.put(ss.kmyId, ss.shares);
-            }
-            long value = 0;
-            for (Security s : securityDao.getSecurities(depot)) {
-                double q = shares.containsKey(s.kmyId) ? shares.get(s.kmyId) : 0.0;
-                value += Math.round(q * s.price * 100.0);
-            }
-            final DepotMetrics m = metricsFrom(value, securityDao.getActionSums(depot), dividendsGross());
-            mainHandler.post(() -> callback.onResult(m));
-        });
+    public void getDepotHoldings(String depot, Callback<List<DepotHolding>> callback) {
+        depotRepo.getDepotHoldings(depot, callback);
     }
 
-    /** Kennzahlen für ein einzelnes Wertpapier. */
-    public void getSecurityMetrics(final String depot, final String kmyId,
-                                   final Callback<DepotMetrics> callback) {
-        executor.execute(() -> {
-            double q = 0.0;
-            for (SecurityDao.ShareSum ss : securityDao.getShareSums(depot)) {
-                if (kmyId != null && kmyId.equals(ss.kmyId)) {
-                    q = ss.shares;
-                }
-            }
-            long value = 0;
-            for (Security s : securityDao.getSecurities(depot)) {
-                if (kmyId != null && kmyId.equals(s.kmyId)) {
-                    value = Math.round(q * s.price * 100.0);
-                }
-            }
-            final DepotMetrics m = metricsFrom(value,
-                    securityDao.getActionSumsBySecurity(depot, kmyId), dividendsGross());
-            mainHandler.post(() -> callback.onResult(m));
-        });
+    public void getSecurityTransactions(String depot, String kmyId,
+                                        Callback<List<SecurityTx>> callback) {
+        depotRepo.getSecurityTransactions(depot, kmyId, callback);
+    }
+
+    public void getDepotMetrics(String depot, Callback<DepotMetrics> callback) {
+        depotRepo.getDepotMetrics(depot, callback);
+    }
+
+    public void getSecurityMetrics(String depot, String kmyId, Callback<DepotMetrics> callback) {
+        depotRepo.getSecurityMetrics(depot, kmyId, callback);
     }
 
     /** Stellt sicher, dass ein Kontoname als Auswahlwert existiert (z. B. Standardkonto). */

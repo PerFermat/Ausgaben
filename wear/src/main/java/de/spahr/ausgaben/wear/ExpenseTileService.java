@@ -126,7 +126,7 @@ public class ExpenseTileService extends TileService {
                 .addContent(content)
                 .build();
 
-        TileBuilders.Tile tile = new TileBuilders.Tile.Builder()
+        TileBuilders.Tile.Builder tile = new TileBuilders.Tile.Builder()
                 .setResourcesVersion(RESOURCES_VERSION)
                 .setTimeline(new TimelineBuilders.Timeline.Builder()
                         .addTimelineEntry(new TimelineBuilders.TimelineEntry.Builder()
@@ -134,10 +134,16 @@ public class ExpenseTileService extends TileService {
                                         .setRoot(root)
                                         .build())
                                 .build())
-                        .build())
-                .build();
+                        .build());
 
-        return tile;
+        // Ist eine Nicht-Standard-Position gewählt, die Kachel kurz vor dem Timeout neu anfordern, damit sie
+        // automatisch auf Standardkonto/-ort zurückspringt (der Rücklauf-Zeitpunkt greift dann).
+        long remaining = BalanceStore.remainingMs(this);
+        if (remaining > 0) {
+            tile.setFreshnessIntervalMillis(remaining + 500);
+        }
+
+        return tile.build();
     }
 
     /** Grauer, runder Wechsel-Knopf: schaltet Konto/Ort weiter (LoadAction lädt die Kachel neu). */

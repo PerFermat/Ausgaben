@@ -87,6 +87,16 @@ public final class BalanceStore {
         prefs(context).edit().putInt(KEY_INDEX, 0).apply();
     }
 
+    /** Verbleibende Zeit (ms) bis zum Auto-Rücksprung; 0, wenn bereits Standard/abgelaufen (für Tile-Freshness). */
+    public static long remainingMs(Context context) {
+        SharedPreferences p = prefs(context);
+        if (p.getInt(KEY_INDEX, 0) <= 0) {
+            return 0;
+        }
+        long rem = TIMEOUT_MS - (System.currentTimeMillis() - p.getLong(KEY_TS, 0));
+        return rem > 0 ? rem : 0;
+    }
+
     /** Anzeige der aktuell gewählten Position (z. B. „Geldbeutel: 70,00 €"); leer → keiner. */
     public static String get(Context context) {
         List<String> e = entries(context);

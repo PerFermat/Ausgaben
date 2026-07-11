@@ -242,7 +242,13 @@ Parser wie am Phone) und die Buchungsanlage passieren auf dem Smartphone.
   Standardorts (Standardkonto → Standardort) im Format „Ort: Saldo", z. B. „Geldbeutel: 70,00 €". Das
   Phone sendet den fertigen Text nur bei **Änderung** als DataItem (`/balance`), die Uhr liest ihn beim
   Start aus dem lokalen Data-Layer-Cache und reagiert per Push auf Änderungen – **ohne Polling, ohne
-  merklichen Akku-Mehrverbrauch**. Ist kein Standardort gesetzt, bleibt die Zeile ausgeblendet.
+  merklichen Akku-Mehrverbrauch**. Ist kein Standardort gesetzt, bleibt die Zeile ausgeblendet. Oberhalb von
+  „Buchung erfassen" (mittig) gibt es – in App **und** Tile – einen **grauen Wechsel-Knopf**, der das
+  angezeigte **Konto bzw. dessen Orte durchschaltet**; die nächste Buchung (Handy-Widget **und** Uhr) betrifft
+  dann das **gewählte Konto/den gewählten Ort**. Bei einer **Umbuchung** ist das gewählte Konto das
+  **Von-Konto**; das **Nach-Konto** ist das Standardkonto – außer das gewählte Konto ist selbst das
+  Standardkonto, dann bleibt das Nach-Konto leer (am Handy manuell zu ergänzen). Nach 60 s springt die Auswahl
+  automatisch auf den Standardort zurück.
 - **Stille Zifferneingabe**: auf dem „Sprich jetzt"-Schirm gibt es unten ein **Ziffern-Symbol** →
   Zahlenblock (0–9 + Komma, Rücktaste, Enter, oben die eingegebene Zahl). So lässt sich eine Buchung
   **lautlos** erfassen; der Betrag wird am Phone über den aktuellen Standort aufgelöst (siehe „Nur den

@@ -35,18 +35,24 @@ public class ExpenseTileService extends TileService {
     @Override
     protected ListenableFuture<TileBuilders.Tile> onTileRequest(
             RequestBuilders.TileRequest requestParams) {
-        // Aktuellen Standardort-Saldo aus dem lokalen Data-Layer-Cache lesen (billig, kein Netz), dann bauen.
-        // So erscheint der Saldo auch, wenn er sich seit dem letzten Change-Event nicht geändert hat.
+        // Wechsel-Knopf gedrückt? → auf die nächste Konto/Ort-Position schalten (vor dem Lesen/Bauen).
+        String clicked = requestParams.getState() != null
+                ? requestParams.getState().getLastClickableId() : "";
+        if ("cycle".equals(clicked)) {
+            BalanceStore.advance(this);
+        }
+        // Aktuellen Saldo aus dem lokalen Data-Layer-Cache lesen (billig, kein Netz), dann bauen.
         ResolvableFuture<TileBuilders.Tile> future = ResolvableFuture.create();
         Wearable.getDataClient(this).getDataItems().addOnCompleteListener(task -> {
-            String balance = BalanceStore.get(this);
             if (task.isSuccessful() && task.getResult() != null) {
                 DataItemBuffer items = task.getResult();
                 try {
                     for (DataItem item : items) {
                         if (WearPaths.PATH_BALANCE.equals(item.getUri().getPath())) {
-                            balance = DataMapItem.fromDataItem(item).getDataMap().getString("text", "");
-                            BalanceStore.save(this, balance);
+                            com.google.android.gms.wearable.DataMap m =
+                                    DataMapItem.fromDataItem(item).getDataMap();
+                            BalanceStore.save(this, m.getString("text", ""));
+                            BalanceStore.saveList(this, m.getString("list", ""));
                         }
                     }
                 } catch (Exception ignored) {
@@ -54,7 +60,7 @@ public class ExpenseTileService extends TileService {
                     items.release();
                 }
             }
-            future.set(buildTile(balance));
+            future.set(buildTile(BalanceStore.get(this)));
         });
         return future;
     }
@@ -71,7 +77,17 @@ public class ExpenseTileService extends TileService {
                 .build();
 
         LayoutElementBuilders.Column.Builder contentBuilder = new LayoutElementBuilders.Column.Builder()
-                .setHorizontalAlignment(LayoutElementBuilders.HORIZONTAL_ALIGN_CENTER)
+                .setHorizontalAlignment(LayoutElementBuilders.HORIZONTAL_ALIGN_CENTER);
+
+        // Grauer Wechsel-Knopf oberhalb des Titels (mittig), sobald mehrere Konten/Orte vorliegen.
+        if (BalanceStore.count(this) >= 2) {
+            contentBuilder
+                    .addContent(cycleButton())
+                    .addContent(new LayoutElementBuilders.Spacer.Builder()
+                            .setHeight(DimensionBuilders.dp(6)).build());
+        }
+
+        contentBuilder
                 .addContent(new LayoutElementBuilders.Text.Builder()
                         .setText(tr("wear_title", R.string.wear_title))
                         .setFontStyle(new LayoutElementBuilders.FontStyle.Builder()
@@ -122,6 +138,36 @@ public class ExpenseTileService extends TileService {
                 .build();
 
         return tile;
+    }
+
+    /** Grauer, runder Wechsel-Knopf: schaltet Konto/Ort weiter (LoadAction lädt die Kachel neu). */
+    private LayoutElementBuilders.LayoutElement cycleButton() {
+        ActionBuilders.LoadAction reload = new ActionBuilders.LoadAction.Builder().build();
+        return new LayoutElementBuilders.Box.Builder()
+                .setWidth(DimensionBuilders.dp(30))
+                .setHeight(DimensionBuilders.dp(30))
+                .setHorizontalAlignment(LayoutElementBuilders.HORIZONTAL_ALIGN_CENTER)
+                .setVerticalAlignment(LayoutElementBuilders.VERTICAL_ALIGN_CENTER)
+                .setModifiers(new ModifiersBuilders.Modifiers.Builder()
+                        .setBackground(new ModifiersBuilders.Background.Builder()
+                                .setColor(ColorBuilders.argb(0xFF757575))
+                                .setCorner(new ModifiersBuilders.Corner.Builder()
+                                        .setRadius(DimensionBuilders.dp(15))
+                                        .build())
+                                .build())
+                        .setClickable(new ModifiersBuilders.Clickable.Builder()
+                                .setId("cycle")
+                                .setOnClick(reload)
+                                .build())
+                        .build())
+                .addContent(new LayoutElementBuilders.Text.Builder()
+                        .setText("↻")
+                        .setFontStyle(new LayoutElementBuilders.FontStyle.Builder()
+                                .setColor(ColorBuilders.argb(WHITE))
+                                .setSize(DimensionBuilders.sp(16))
+                                .build())
+                        .build())
+                .build();
     }
 
     /** Ein farbiger, runder Knopf mit Symbol, der die App für {@code type} startet. */

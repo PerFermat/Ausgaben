@@ -1,6 +1,7 @@
 <resources>
     <string name="app_name">Ausgaben</string>
     <string name="wear_title">Buchung erfassen</string>
+    <string name="wear_switch">Konto/Ort wechseln</string>
     <string name="wear_type_income">Einnahme</string>
     <string name="wear_type_transfer">Umbuchung</string>
     <string name="wear_type_expense">Ausgabe</string>

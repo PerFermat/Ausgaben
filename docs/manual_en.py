@@ -431,6 +431,11 @@ bullets([
   "as «Place: balance» (e.g. «Wallet: 70.00 €»). The phone sends the value only when it changes; the watch "
   "reads it on start and reacts via push – no polling, no noticeable battery drain. No default place set → "
   "line hidden.",
+  "<b>Switch account/place</b>: above «Record booking» (centred), a grey switch button – in the app and the "
+  "tile – cycles through the shown account and its places; the next booking (phone widget and watch) then "
+  "targets the chosen account/place. For a transfer the chosen account is the from-account; the to-account is "
+  "the default account – unless the chosen account already is the default, in which case the to-account stays "
+  "empty (to fill in manually on the phone). After 60 s the selection reverts to the default place.",
   "<b>Offline</b>: bookings not yet transmitted are shown and delivered automatically once the phone is "
   "reachable – without loss and without duplication.",
 ])

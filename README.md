@@ -231,7 +231,12 @@ booking creation happen on the phone.
   the default place (default account → default place) as “Place: balance”, e.g. “Wallet: 70.00 €”. The phone
   sends the ready-made text as a `/balance` DataItem only when it **changes**; the watch reads it from the
   local Data Layer cache on start and reacts to changes via push — **no polling, no noticeable battery
-  drain**. If no default place is set, the line stays hidden.
+  drain**. If no default place is set, the line stays hidden. Above “Record booking” (centred) — in both the
+  app **and** the tile — a **grey switch button** cycles through the shown **account and its places**; the
+  next booking (phone widget **and** watch) then targets the **chosen account/place**. For a **transfer** the
+  chosen account is the **from-account**; the **to-account** is the default account — unless the chosen
+  account already is the default, in which case the to-account stays empty (to fill in manually on the phone).
+  After 60 s the selection reverts to the default place.
 - **Silent digit entry**: on the “speak now” screen there is a **digits icon** at the bottom → a keypad (0–9
   + comma, backspace, enter, the entered number on top). This lets you record a booking **silently**; the
   amount is resolved on the phone via the current location (see “Amount-only entry”).

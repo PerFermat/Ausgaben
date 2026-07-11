@@ -49,6 +49,7 @@ public class WearMessageListenerService extends WearableListenerService {
                     && WearPaths.PATH_BALANCE.equals(path)) {
                 DataMap map = DataMapItem.fromDataItem(event.getDataItem()).getDataMap();
                 BalanceStore.save(this, map.getString("text", ""));
+                BalanceStore.saveList(this, map.getString("list", ""));
                 Log.d(TAG, "Saldo empfangen");
                 sendBroadcast(new Intent(WearPaths.ACTION_BALANCE_CHANGED).setPackage(getPackageName()));
                 // Tile ereignisgesteuert aktualisieren (kein Polling).

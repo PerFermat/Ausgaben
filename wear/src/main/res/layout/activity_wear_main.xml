@@ -20,12 +20,25 @@
             android:gravity="center"
             android:padding="6dp">
 
+            <!-- Grauer Wechsel-Knopf: Konto/Ort durchschalten (oberhalb von „Buchung erfassen", mittig). -->
+            <ImageButton
+                android:id="@+id/btnCycle"
+                android:layout_width="30dp"
+                android:layout_height="30dp"
+                android:layout_marginBottom="4dp"
+                android:background="@drawable/bg_circle"
+                android:backgroundTint="#757575"
+                android:contentDescription="@string/wear_switch"
+                android:scaleType="center"
+                android:src="@drawable/ic_cycle"
+                android:visibility="gone" />
+
             <TextView
                 android:layout_width="wrap_content"
                 android:layout_height="wrap_content"
                 android:text="@string/wear_title"
                 android:textColor="@android:color/white"
-                android:textSize="15sp"
+                android:textSize="12sp"
                 android:textStyle="bold" />
 
             <LinearLayout
@@ -43,18 +56,10 @@
                     android:orientation="vertical"
                     android:gravity="center">
 
-                    <TextView
-                        android:layout_width="wrap_content"
-                        android:layout_height="wrap_content"
-                        android:text="@string/wear_type_income"
-                        android:textColor="@android:color/white"
-                        android:textSize="10sp" />
-
                     <ImageButton
                         android:id="@+id/btnIncome"
                         android:layout_width="48dp"
                         android:layout_height="48dp"
-                        android:layout_marginTop="2dp"
                         android:background="@drawable/bg_circle"
                         android:backgroundTint="@color/type_income"
                         android:contentDescription="@string/wear_type_income"
@@ -69,18 +74,10 @@
                     android:orientation="vertical"
                     android:gravity="center">
 
-                    <TextView
-                        android:layout_width="wrap_content"
-                        android:layout_height="wrap_content"
-                        android:text="@string/wear_type_transfer"
-                        android:textColor="@android:color/white"
-                        android:textSize="10sp" />
-
                     <ImageButton
                         android:id="@+id/btnTransfer"
                         android:layout_width="48dp"
                         android:layout_height="48dp"
-                        android:layout_marginTop="2dp"
                         android:background="@drawable/bg_circle"
                         android:backgroundTint="@color/type_transfer"
                         android:contentDescription="@string/wear_type_transfer"
@@ -95,18 +92,10 @@
                     android:orientation="vertical"
                     android:gravity="center">
 
-                    <TextView
-                        android:layout_width="wrap_content"
-                        android:layout_height="wrap_content"
-                        android:text="@string/wear_type_expense"
-                        android:textColor="@android:color/white"
-                        android:textSize="10sp" />
-
                     <ImageButton
                         android:id="@+id/btnExpense"
                         android:layout_width="48dp"
                         android:layout_height="48dp"
-                        android:layout_marginTop="2dp"
                         android:background="@drawable/bg_circle"
                         android:backgroundTint="@color/type_expense"
                         android:contentDescription="@string/wear_type_expense"
@@ -115,7 +104,7 @@
                 </LinearLayout>
             </LinearLayout>
 
-            <!-- Standardort-Saldo vom Phone (z. B. „Geldbeutel: 70,00 €"); leer → ausgeblendet. -->
+            <!-- Konto/Ort-Saldo vom Phone (z. B. „Geldbeutel: 70,00 €"); leer → ausgeblendet. -->
             <TextView
                 android:id="@+id/balanceView"
                 android:layout_width="match_parent"
@@ -123,7 +112,8 @@
                 android:layout_marginTop="10dp"
                 android:gravity="center"
                 android:textColor="@android:color/white"
-                android:textSize="13sp"
+                android:textSize="16sp"
+                android:textStyle="bold"
                 android:visibility="gone" />
 
             <TextView

@@ -471,6 +471,15 @@ public class Repository {
      */
     public boolean createVoiceBookingBlocking(String spokenText, String defaultAccount, String type,
                                               String coords) {
+        return createVoiceBookingBlocking(spokenText, defaultAccount, "", type, coords);
+    }
+
+    /**
+     * @param account gewähltes Konto (Widget/Uhr); bei Umbuchung das Von-Konto.
+     * @param place   gewählter Ort des Kontos (leer = Standardort des Kontos).
+     */
+    public boolean createVoiceBookingBlocking(String spokenText, String account, String place, String type,
+                                              String coords) {
         // Bei ausgeschaltetem GPS keinen Standort verwenden: reiner Betrag von der Uhr → leerer Empfänger,
         // keine GPS-Notiz. (Auf der Uhr bleibt die Betrag-only-Erfassung damit möglich.)
         if (!new de.spahr.ausgaben.settings.SettingsStore(appContext).isGpsEnabled()) {
@@ -484,7 +493,8 @@ public class Repository {
             return false;
         }
         long now = System.currentTimeMillis();
-        String def = defaultAccount == null ? "" : defaultAccount.trim();
+        String def = account == null ? "" : account.trim();
+        String selPlace = place == null ? "" : place.trim();
 
         // Auflösung: mit Empfänger normal; bei reinem Betrag über den aktuellen Standort (100 m).
         Booking[] resolvedBooking = new Booking[1];
@@ -523,15 +533,22 @@ public class Repository {
                 payee = template.payee;
                 note = template.note;
             } else {
-                // Uhr: Umbuchung mit gesprochenem Namen → der Name ist der Empfänger (nicht das Zielkonto);
-                // das Zielkonto bleibt leer und wird am Handy ergänzt.
+                // Widget/Uhr: gewähltes Konto = Von-Konto; der gesprochene Name (falls vorhanden) ist der
+                // Empfänger. Nach-Konto: ist das Von-Konto das Standardkonto → leer (am Handy ergänzen),
+                // sonst das Standardkonto.
                 from = def;
-                to = "";
                 payee = term;
+                String phoneDefault = new de.spahr.ausgaben.settings.SettingsStore(appContext)
+                        .getDefaultAccount().trim();
+                to = from.equalsIgnoreCase(phoneDefault) ? "" : phoneDefault;
             }
             note = appendGps(note, coords);
-            String fromPlace = alias != null ? alias.fromPlace : "";
-            String toPlace = alias != null ? alias.toPlace : "";
+            de.spahr.ausgaben.settings.PlacesStore ps =
+                    new de.spahr.ausgaben.settings.PlacesStore(appContext);
+            String fromPlace = alias != null ? alias.fromPlace
+                    : (isRealPlace(selPlace) ? selPlace : ps.getDefaultPlace(from));
+            String toPlace = alias != null ? alias.toPlace
+                    : (to.isEmpty() ? "" : ps.getDefaultPlace(to));
             insertTransferPair(from, to, amount, payee, note, now, false, UUID.randomUUID().toString(),
                     fromPlace, toPlace);
             return true;
@@ -563,11 +580,18 @@ public class Repository {
             b.note = "";
         }
         b.note = appendGps(b.note, coords);
-        // Sprach-/Uhr-Buchung ist in der App angelegt → Ort des Alias, sonst Standardort des Kontos.
+        // Sprach-/Uhr-Buchung ist in der App angelegt → Ort des Alias, sonst gewählter Ort (Widget/Uhr),
+        // sonst Standardort des Kontos.
         String aliasPlace = alias != null ? alias.place : "";
-        String place = isRealPlace(aliasPlace) ? aliasPlace.trim()
-                : new de.spahr.ausgaben.settings.PlacesStore(appContext).getDefaultPlace(b.account);
-        b.place = isRealPlace(place) ? place.trim() : "";
+        String resolvedPlace;
+        if (isRealPlace(aliasPlace)) {
+            resolvedPlace = aliasPlace.trim();
+        } else if (isRealPlace(selPlace)) {
+            resolvedPlace = selPlace;
+        } else {
+            resolvedPlace = new de.spahr.ausgaben.settings.PlacesStore(appContext).getDefaultPlace(b.account);
+        }
+        b.place = isRealPlace(resolvedPlace) ? resolvedPlace.trim() : "";
         b.placeManaged = true;
         if (!b.payee.trim().isEmpty()) {
             payeeDao.insertIfAbsent(new Payee(b.payee));

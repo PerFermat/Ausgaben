@@ -33,9 +33,10 @@ public class WidgetType extends AusgabenWidget {
 
     @Override
     protected void bindExtra(Context ctx, RemoteViews v, WidgetData d) {
-        v.setOnClickPendingIntent(R.id.widgetTypeIncome, voice(ctx, Repository.VOICE_TYPE_INCOME, d.account, 15));
-        v.setOnClickPendingIntent(R.id.widgetTypeTransfer, voice(ctx, Repository.VOICE_TYPE_TRANSFER, d.account, 16));
-        v.setOnClickPendingIntent(R.id.widgetTypeExpense, voice(ctx, Repository.VOICE_TYPE_EXPENSE, d.account, 17));
+        String[] sel = WidgetSelection.current(ctx); // [account, place]
+        v.setOnClickPendingIntent(R.id.widgetTypeIncome, voice(ctx, Repository.VOICE_TYPE_INCOME, sel, 15));
+        v.setOnClickPendingIntent(R.id.widgetTypeTransfer, voice(ctx, Repository.VOICE_TYPE_TRANSFER, sel, 16));
+        v.setOnClickPendingIntent(R.id.widgetTypeExpense, voice(ctx, Repository.VOICE_TYPE_EXPENSE, sel, 17));
         v.setOnClickPendingIntent(R.id.widgetTypeSwitch, cycle(ctx));
     }
 
@@ -81,13 +82,14 @@ public class WidgetType extends AusgabenWidget {
                 System.currentTimeMillis() + WidgetSelection.TIMEOUT_MS, pi);
     }
 
-    /** Startet die unsichtbare Sprach-Erfassung für den Typ auf dem gewählten Konto. */
-    private static PendingIntent voice(Context ctx, String type, String account, int requestCode) {
+    /** Startet die unsichtbare Sprach-Erfassung für den Typ auf dem gewählten Konto/Ort. */
+    private static PendingIntent voice(Context ctx, String type, String[] sel, int requestCode) {
         Intent i = new Intent(ctx, VoiceCaptureActivity.class);
         i.setFlags(Intent.FLAG_ACTIVITY_NEW_TASK | Intent.FLAG_ACTIVITY_CLEAR_TASK);
         i.putExtra(VoiceCaptureActivity.EXTRA_TYPE, type);
-        if (account != null && !account.isEmpty()) {
-            i.putExtra(VoiceCaptureActivity.EXTRA_ACCOUNT, account);
+        if (sel != null && sel[0] != null && !sel[0].isEmpty()) {
+            i.putExtra(VoiceCaptureActivity.EXTRA_ACCOUNT, sel[0]);
+            i.putExtra(VoiceCaptureActivity.EXTRA_PLACE, sel.length > 1 && sel[1] != null ? sel[1] : "");
         }
         return PendingIntent.getActivity(ctx, requestCode, i,
                 PendingIntent.FLAG_UPDATE_CURRENT | PendingIntent.FLAG_IMMUTABLE);

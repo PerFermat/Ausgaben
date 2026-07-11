@@ -63,7 +63,10 @@ public class ExpenseWearListenerService extends WearableListenerService {
             String text = json.optString("text", "");
             String type = json.optString("type", Repository.VOICE_TYPE_EXPENSE);
             String gps = json.optString("gps", "");
-            Log.d(TAG, "empfangen id=" + id + " type=" + type + " text=" + text + " gps=" + gps);
+            String account = json.optString("account", "");
+            String place = json.optString("place", "");
+            Log.d(TAG, "empfangen id=" + id + " type=" + type + " text=" + text + " gps=" + gps
+                    + " account=" + account + " place=" + place);
             if (id.isEmpty()) {
                 return;
             }
@@ -71,8 +74,11 @@ public class ExpenseWearListenerService extends WearableListenerService {
             if (!isProcessed(id)) {
                 if (!text.trim().isEmpty()) {
                     Repository repository = new Repository(this);
-                    String defaultAccount = new SettingsStore(this).getDefaultAccount();
-                    boolean created = repository.createVoiceBookingBlocking(text, defaultAccount, type, gps);
+                    // Vom Wechsel-Knopf gewähltes Konto hat Vorrang, sonst das Standardkonto.
+                    String targetAccount = account != null && !account.isEmpty()
+                            ? account : new SettingsStore(this).getDefaultAccount();
+                    boolean created = repository.createVoiceBookingBlocking(
+                            text, targetAccount, place, type, gps);
                     Log.d(TAG, "Buchung angelegt: " + created);
                     if (created) {
                         // Offene App/MainActivity sofort aktualisieren.

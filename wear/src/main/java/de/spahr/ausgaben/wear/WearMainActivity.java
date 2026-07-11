@@ -45,6 +45,13 @@ public class WearMainActivity extends WearLocalizedActivity {
     private View confirmView;
     private TextView status;
     private TextView balanceView;
+    private View btnCycle;
+    private final android.os.Handler revertHandler =
+            new android.os.Handler(android.os.Looper.getMainLooper());
+    private final Runnable revertRunnable = () -> {
+        BalanceStore.reset(this);
+        updateBalance();
+    };
     private TextView confirmType;
     private TextView confirmText;
     private Button btnCancel;
@@ -94,6 +101,10 @@ public class WearMainActivity extends WearLocalizedActivity {
         findViewById(R.id.btnTransfer).setOnClickListener(v -> chooseType(WearPaths.TYPE_TRANSFER));
         findViewById(R.id.btnExpense).setOnClickListener(v -> chooseType(WearPaths.TYPE_EXPENSE));
         btnCancel.setOnClickListener(v -> cancelConfirm());
+
+        // Grauer Wechsel-Knopf: Konto/Ort durchschalten (Auto-Rücksprung nach dem Timeout).
+        btnCycle = findViewById(R.id.btnCycle);
+        btnCycle.setOnClickListener(v -> cycleSelection());
 
         // Stille Zifferneingabe (Zahlenblock).
         btnNumberPad = findViewById(R.id.btnNumberPad);
@@ -322,7 +333,8 @@ public class WearMainActivity extends WearLocalizedActivity {
         long now = System.currentTimeMillis();
         String gps = hasLocationPermission() ? location.currentCoordinates() : null;
         // text = nur Betrag → das Phone parst leeren Empfänger + Betrag → Auflösung per Standort.
-        store.add(new PendingEntry(UUID.randomUUID().toString(), amt, pendingType, gps, now, now));
+        store.add(new PendingEntry(UUID.randomUUID().toString(), amt, pendingType, gps,
+                BalanceStore.selectedAccount(this), BalanceStore.selectedPlace(this), now, now));
         numberEntryActive = false;
         WearSync.syncPending(this);
         showTypeSelection();
@@ -334,7 +346,9 @@ public class WearMainActivity extends WearLocalizedActivity {
         confirmEntryId = UUID.randomUUID().toString();
         // Standort zum Sprechzeitpunkt bestimmen und mitgeben.
         String gps = hasLocationPermission() ? location.currentCoordinates() : null;
-        store.add(new PendingEntry(confirmEntryId, text, pendingType, gps, now, now + CANCEL_WINDOW_MS));
+        store.add(new PendingEntry(confirmEntryId, text, pendingType, gps,
+                BalanceStore.selectedAccount(this), BalanceStore.selectedPlace(this),
+                now, now + CANCEL_WINDOW_MS));
 
         confirmText.setText(text);
         btnCancel.setVisibility(View.VISIBLE);
@@ -431,6 +445,7 @@ public class WearMainActivity extends WearLocalizedActivity {
         super.onPause();
         unregisterReceiver(pendingReceiver);
         unregisterReceiver(balanceReceiver);
+        revertHandler.removeCallbacks(revertRunnable);
         if (location != null) {
             location.stop();
         }
@@ -462,7 +477,7 @@ public class WearMainActivity extends WearLocalizedActivity {
         }
     }
 
-    /** Standardort-Saldo („Geldbeutel: 70,00 €") vom Phone anzeigen; leer → ausblenden. */
+    /** Aktuellen Konto/Ort-Saldo vom Phone anzeigen; leer → ausblenden. Wechsel-Knopf nur ab 2 Positionen. */
     private void updateBalance() {
         String text = BalanceStore.get(this);
         if (text != null && !text.isEmpty()) {
@@ -471,6 +486,15 @@ public class WearMainActivity extends WearLocalizedActivity {
         } else {
             balanceView.setVisibility(View.GONE);
         }
+        btnCycle.setVisibility(BalanceStore.count(this) >= 2 ? View.VISIBLE : View.GONE);
+    }
+
+    /** Auf die nächste Konto/Ort-Position schalten und den Auto-Rücksprung (Timeout) neu planen. */
+    private void cycleSelection() {
+        BalanceStore.advance(this);
+        updateBalance();
+        revertHandler.removeCallbacks(revertRunnable);
+        revertHandler.postDelayed(revertRunnable, BalanceStore.TIMEOUT_MS);
     }
 
     /**
@@ -484,9 +508,11 @@ public class WearMainActivity extends WearLocalizedActivity {
                         try {
                             for (com.google.android.gms.wearable.DataItem item : items) {
                                 if (WearPaths.PATH_BALANCE.equals(item.getUri().getPath())) {
-                                    BalanceStore.save(this,
+                                    com.google.android.gms.wearable.DataMap m =
                                             com.google.android.gms.wearable.DataMapItem.fromDataItem(item)
-                                                    .getDataMap().getString("text", ""));
+                                                    .getDataMap();
+                                    BalanceStore.save(this, m.getString("text", ""));
+                                    BalanceStore.saveList(this, m.getString("list", ""));
                                 }
                             }
                         } finally {

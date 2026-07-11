@@ -29,6 +29,8 @@ public class VoiceCaptureActivity extends LocalizedActivity {
 
     /** Vorgegebener Buchungstyp (siehe {@code Repository.VOICE_TYPE_*}). */
     public static final String EXTRA_TYPE = "type";
+    /** Zielkonto (aus dem Typ-Widget); leer/fehlend = Standardkonto. */
+    public static final String EXTRA_ACCOUNT = "account";
 
     private String type;
     private ActivityResultLauncher<Intent> speechLauncher;
@@ -84,10 +86,13 @@ public class VoiceCaptureActivity extends LocalizedActivity {
         }
         final String spoken = text.trim();
         final String coords = lastKnownCoords();
+        String extraAccount = getIntent().getStringExtra(EXTRA_ACCOUNT);
+        final String targetAccount = extraAccount != null && !extraAccount.isEmpty()
+                ? extraAccount
+                : new SettingsStore(getApplicationContext()).getDefaultAccount();
         new Thread(() -> {
             Repository repository = new Repository(getApplicationContext());
-            String defaultAccount = new SettingsStore(getApplicationContext()).getDefaultAccount();
-            boolean created = repository.createVoiceBookingBlocking(spoken, defaultAccount, type, coords);
+            boolean created = repository.createVoiceBookingBlocking(spoken, targetAccount, type, coords);
             runOnUiThread(() -> {
                 Toast.makeText(this, created ? R.string.booking_saved : R.string.voice_not_understood,
                         Toast.LENGTH_LONG).show();

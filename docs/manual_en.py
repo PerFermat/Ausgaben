@@ -172,11 +172,12 @@ p("For the launcher there are four selectable widgets showing the <b>default-pla
   "(default account → default place): <b>small</b> (2×1, balance only), <b>medium</b> (4×2, balance + three "
   "quick actions: booking, voice, amount), <b>large</b> (4×4, a balance header with refresh, the most recent "
   "bookings and the action bar) and <b>type</b> (4×2, like on the watch: three coloured income/transfer/"
-  "expense buttons with the balance below). Tapping the balance opens the app; the medium/large widget "
-  "buttons launch «New booking», voice entry, amount-only entry or Holdings. On the <b>type widget</b> a "
-  "button <b>starts speech recognition immediately</b> for that type and creates the booking directly – the "
-  "app is not opened (only the system voice dialog appears). The widget refreshes when the app is opened and "
-  "at regular intervals.")
+  "expense icon buttons + a grey switch button, with the balance below). Tapping the balance opens the app; "
+  "the medium/large widget buttons launch «New booking», voice entry, amount-only entry or Holdings. On the "
+  "<b>type widget</b> a type button <b>starts speech recognition immediately</b> and creates the booking "
+  "directly – the app is not opened (only the system voice dialog appears); the grey <b>switch button</b> "
+  "cycles through the chosen account and its places (the balance and the target of the new booking follow the "
+  "selection). The widget refreshes when the app is opened and at regular intervals.")
 
 # ---------------------------------------------------------------- 4
 h1("4. Symbol and control reference")

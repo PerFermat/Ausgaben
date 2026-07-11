@@ -147,9 +147,11 @@ Vier wählbare Widgets zeigen den Saldo des **Standardorts** (Standardkonto → 
 - **klein (2×1)** – nur der Saldo;
 - **mittel (4×2)** – Saldo + drei Schnellaktionen (Buchung, Sprache, Betrag);
 - **groß (4×4)** – Saldo-Kopf mit Aktualisieren, die letzten Buchungen (rot/grün) und die Aktionsleiste;
-- **Typ (4×2)** – wie auf der Uhr: drei farbige Knöpfe **Einnahme** (grün) / **Umbuchung** (gelb) /
-  **Ausgabe** (rot), darunter der Saldo; ein Knopf startet **sofort die Spracherkennung** für diesen Typ
-  und legt die Buchung direkt an – **die App wird nicht geöffnet** (nur der System-Sprachdialog erscheint).
+- **Typ (4×2)** – wie auf der Uhr: drei farbige **Symbol-Knöpfe** **Einnahme** (grün) / **Umbuchung** (gelb) /
+  **Ausgabe** (rot) und ein vierter **grauer Wechsel-Knopf**, darunter der Saldo. Ein Typ-Knopf startet
+  **sofort die Spracherkennung** und legt die Buchung direkt an – **die App wird nicht geöffnet** (nur der
+  System-Sprachdialog erscheint). Der Wechsel-Knopf **schaltet das gewählte Konto bzw. dessen Orte durch**;
+  der angezeigte Saldo und das Ziel der neuen Buchung folgen der Auswahl.
 
 Ein Tippen auf den Saldo öffnet die App; die Aktionsknöpfe starten direkt „Neue Buchung", die Spracheingabe,
 die Betrag-only-Erfassung bzw. die Bestände. Das Widget aktualisiert sich beim Öffnen der App und in

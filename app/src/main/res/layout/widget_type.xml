@@ -20,17 +20,15 @@
             android:layout_weight="1"
             android:layout_marginEnd="6dp"
             android:background="@drawable/widget_type_income"
-            android:orientation="vertical"
             android:gravity="center"
             android:padding="8dp">
 
-            <TextView
-                android:layout_width="wrap_content"
-                android:layout_height="wrap_content"
-                android:text="@string/type_income"
-                android:textSize="14sp"
-                android:textStyle="bold"
-                android:textColor="#FFFFFF" />
+            <ImageView
+                android:layout_width="26dp"
+                android:layout_height="26dp"
+                android:src="@drawable/ic_income"
+                android:tint="#FFFFFF"
+                android:contentDescription="@string/type_income" />
         </LinearLayout>
 
         <LinearLayout
@@ -40,17 +38,15 @@
             android:layout_weight="1"
             android:layout_marginEnd="6dp"
             android:background="@drawable/widget_type_transfer"
-            android:orientation="vertical"
             android:gravity="center"
             android:padding="8dp">
 
-            <TextView
-                android:layout_width="wrap_content"
-                android:layout_height="wrap_content"
-                android:text="@string/type_transfer"
-                android:textSize="14sp"
-                android:textStyle="bold"
-                android:textColor="#412402" />
+            <ImageView
+                android:layout_width="26dp"
+                android:layout_height="26dp"
+                android:src="@drawable/ic_transfer"
+                android:tint="#412402"
+                android:contentDescription="@string/type_transfer" />
         </LinearLayout>
 
         <LinearLayout
@@ -58,18 +54,34 @@
             android:layout_width="0dp"
             android:layout_height="match_parent"
             android:layout_weight="1"
+            android:layout_marginEnd="6dp"
             android:background="@drawable/widget_type_expense"
-            android:orientation="vertical"
             android:gravity="center"
             android:padding="8dp">
 
-            <TextView
-                android:layout_width="wrap_content"
-                android:layout_height="wrap_content"
-                android:text="@string/type_expense"
-                android:textSize="14sp"
-                android:textStyle="bold"
-                android:textColor="#FFFFFF" />
+            <ImageView
+                android:layout_width="26dp"
+                android:layout_height="26dp"
+                android:src="@drawable/ic_expense"
+                android:tint="#FFFFFF"
+                android:contentDescription="@string/type_expense" />
+        </LinearLayout>
+
+        <LinearLayout
+            android:id="@+id/widgetTypeSwitch"
+            android:layout_width="0dp"
+            android:layout_height="match_parent"
+            android:layout_weight="1"
+            android:background="@drawable/widget_type_switch"
+            android:gravity="center"
+            android:padding="8dp">
+
+            <ImageView
+                android:layout_width="24dp"
+                android:layout_height="24dp"
+                android:src="@drawable/ic_switch"
+                android:tint="#FFFFFF"
+                android:contentDescription="@string/widget_switch_account" />
         </LinearLayout>
     </LinearLayout>
 

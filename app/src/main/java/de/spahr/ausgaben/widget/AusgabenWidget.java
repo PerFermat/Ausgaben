@@ -34,11 +34,16 @@ public abstract class AusgabenWidget extends AppWidgetProvider {
     protected void bindExtra(Context ctx, RemoteViews v, WidgetData d) {
     }
 
+    /** Gewähltes {@code [account, place]} dieses Widgets; {@code null} = Standardkonto/-ort. */
+    protected String[] selection(Context app) {
+        return null;
+    }
+
     @Override
     public void onUpdate(Context ctx, AppWidgetManager mgr, int[] ids) {
         final Context app = ctx.getApplicationContext();
         new Thread(() -> {
-            WidgetData d = WidgetData.load(app);
+            WidgetData d = WidgetData.load(app, selection(app));
             for (int id : ids) {
                 RemoteViews v = new RemoteViews(app.getPackageName(), layoutId());
                 bindCommon(app, v, d);
@@ -88,21 +93,41 @@ public abstract class AusgabenWidget extends AppWidgetProvider {
 
     /** Vom Widget angezeigte Daten (im Hintergrund geladen). */
     static class WidgetData {
+        String account = "";
         String place = "";
         String balance = "";
         boolean negative = false;
         List<Booking> recent = new ArrayList<>();
 
-        static WidgetData load(Context app) {
+        /**
+         * @param sel gewähltes {@code [account, place]} (Typ-Widget); {@code null} = Standardkonto/-ort.
+         *            {@code place == ""} zeigt den Kontosaldo, sonst den Ort-Saldo.
+         */
+        static WidgetData load(Context app, String[] sel) {
             MoneyFormat.refresh(app);
             WidgetData d = new WidgetData();
             try {
-                String account = new SettingsStore(app).getDefaultAccount();
-                String place = account.isEmpty() ? "" : new PlacesStore(app).getDefaultPlace(account);
-                if (!account.isEmpty() && place != null && !place.trim().isEmpty()) {
-                    place = place.trim();
-                    long cents = AppDatabase.getInstance(app).placeEntryDao().getBalance(account, place);
-                    d.place = place;
+                String account;
+                String place;
+                if (sel != null) {
+                    account = sel[0];
+                    place = sel[1];
+                } else {
+                    account = new SettingsStore(app).getDefaultAccount();
+                    place = account.isEmpty() ? "" : new PlacesStore(app).getDefaultPlace(account);
+                }
+                account = account == null ? "" : account;
+                place = place == null ? "" : place.trim();
+                d.account = account;
+                if (!account.isEmpty()) {
+                    long cents;
+                    if (!place.isEmpty()) {
+                        cents = AppDatabase.getInstance(app).placeEntryDao().getBalance(account, place);
+                        d.place = place;
+                    } else {
+                        cents = AppDatabase.getInstance(app).bookingDao().getBalanceByAccount(account);
+                        d.place = account;
+                    }
                     d.balance = MoneyFormat.display(cents, Currencies.forAccount(account));
                     d.negative = cents < 0;
                 } else {

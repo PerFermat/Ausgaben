@@ -176,11 +176,13 @@ p("Für den Startbildschirm gibt es vier wählbare Widgets, die den Saldo des <b
   "(Standardkonto → Standardort) zeigen: <b>klein</b> (2×1, nur Saldo), <b>mittel</b> (4×2, Saldo + drei "
   "Schnellaktionen: Buchung, Sprache, Betrag), <b>groß</b> (4×4, Saldo-Kopf mit Aktualisieren, die letzten "
   "Buchungen und die Aktionsleiste) und <b>Typ</b> (4×2, wie auf der Uhr: drei farbige Knöpfe Einnahme/"
-  "Umbuchung/Ausgabe, darunter der Saldo). Ein Tippen auf den Saldo öffnet die App; die Knöpfe des mittleren/"
-  "großen Widgets starten «Neue Buchung», die Spracheingabe, die Betrag-only-Erfassung bzw. die Bestände. "
-  "Beim <b>Typ-Widget</b> startet ein Knopf <b>sofort die Spracherkennung</b> für diesen Typ und legt die "
-  "Buchung direkt an – die App wird dabei nicht geöffnet (nur der System-Sprachdialog erscheint). Das Widget "
-  "aktualisiert sich beim Öffnen der App und in regelmäßigen Abständen.")
+  "Umbuchung/Ausgabe als Symbol-Knöpfe + grauer Wechsel-Knopf, darunter der Saldo). Ein Tippen auf den Saldo "
+  "öffnet die App; die Knöpfe des mittleren/großen Widgets starten «Neue Buchung», die Spracheingabe, die "
+  "Betrag-only-Erfassung bzw. die Bestände. Beim <b>Typ-Widget</b> startet ein Typ-Knopf <b>sofort die "
+  "Spracherkennung</b> und legt die Buchung direkt an – die App wird dabei nicht geöffnet (nur der "
+  "System-Sprachdialog erscheint); der graue <b>Wechsel-Knopf</b> schaltet das gewählte Konto bzw. dessen "
+  "Orte durch (Saldo und Ziel der neuen Buchung folgen der Auswahl). Das Widget aktualisiert sich beim Öffnen "
+  "der App und in regelmäßigen Abständen.")
 
 # ---------------------------------------------------------------- 4 Symbol-Referenz
 h1("4. Symbol- und Bedienelement-Referenz")

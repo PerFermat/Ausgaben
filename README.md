@@ -142,9 +142,11 @@ watch):
 - **small (2×1)** – balance only;
 - **medium (4×2)** – balance + three quick actions (booking, voice, amount);
 - **large (4×4)** – balance header with refresh, the most recent bookings (red/green) and the action bar;
-- **type (4×2)** – like on the watch: three coloured buttons **income** (green) / **transfer** (yellow) /
-  **expense** (red) with the balance below; a button **starts speech recognition immediately** for that type
-  and creates the booking directly — **the app is not opened** (only the system voice dialog appears).
+- **type (4×2)** – like on the watch: three coloured **icon buttons** **income** (green) / **transfer**
+  (yellow) / **expense** (red) and a fourth **grey switch button**, with the balance below. A type button
+  **starts speech recognition immediately** and creates the booking directly — **the app is not opened** (only
+  the system voice dialog appears). The switch button **cycles through the chosen account and its places**;
+  the displayed balance and the target of the new booking follow the selection.
 
 Tapping the balance opens the app; the action buttons launch “New booking”, voice entry, amount-only entry, or
 Holdings directly. The widget refreshes when the app is opened and at regular intervals.

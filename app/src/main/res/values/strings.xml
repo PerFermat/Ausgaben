@@ -154,6 +154,7 @@
     <string name="widget_medium_desc">Balance and quick actions</string>
     <string name="widget_large_desc">Balance, recent bookings, actions</string>
     <string name="widget_type_desc">Income/transfer/expense buttons + balance</string>
+    <string name="widget_switch_account">Switch account/place</string>
     <string name="widget_action_book">Booking</string>
     <string name="widget_action_voice">Voice</string>
     <string name="widget_action_amount">Amount</string>

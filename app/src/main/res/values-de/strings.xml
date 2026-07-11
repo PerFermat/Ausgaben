@@ -84,7 +84,26 @@
     <string name="action_filter">Filtern</string>
     <string name="action_analysis">Auswertung</string>
     <string name="action_balance">Bestände</string>
+    <string name="action_budget">Budget</string>
     <string name="action_settings">Einstellungen</string>
+
+    <!-- Budget -->
+    <string name="budget_title">Budget</string>
+    <string name="budget_view_year">Jahr</string>
+    <string name="budget_view_month">Monat</string>
+    <string name="budget_scope_main">Hauptkategorien</string>
+    <string name="budget_scope_all">Mit Unterkategorien</string>
+    <string name="budget_income_header">Einnahmen</string>
+    <string name="budget_expense_header">Ausgaben</string>
+    <string name="budget_ist_soll">%1$s / %2$s</string>
+    <string name="budget_empty">Noch kein Budget. Aus dem Verlauf berechnen oder aus KMyMoney importieren.</string>
+    <string name="budget_compute">Aus Verlauf berechnen</string>
+    <string name="budget_import">Aus KMyMoney importieren</string>
+    <string name="budget_import_none">In der KMyMoney-Datei ist keine Budgetplanung enthalten</string>
+    <string name="budget_import_done">Budget importiert</string>
+    <string name="budget_edit_title">Jahres-Soll: %1$s</string>
+    <string name="budget_edit_hint">Jahres-Soll</string>
+    <string name="budget_invalid_amount">Ungültiger Betrag</string>
 
     <!-- Saldo-Leiste -->
     <string name="saldo_total">Gesamt</string>
@@ -262,6 +281,9 @@
     <string name="number_format_hint">Zahlenformat</string>
     <string name="show_currency_symbol">Währungskennzeichen anzeigen</string>
     <string name="dividend_gross_switch">Dividenden brutto anzeigen (aus = netto)</string>
+    <string name="budget_internal_switch">Budget app-intern aus Verlauf berechnen (statt aus KMyMoney)</string>
+    <string name="budget_import_button">Budget aus KMyMoney importieren</string>
+    <string name="budget_compute_button">Budget aus Verlauf berechnen</string>
     <string name="depot_dividends_gross">Dividenden (brutto)</string>
     <string name="depot_dividends_net">Dividenden (netto)</string>
     <string name="number_format_de_group">1.234,56 (Tausenderpunkt, Komma)</string>

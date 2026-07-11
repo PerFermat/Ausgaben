@@ -1098,6 +1098,7 @@ public class MainActivity extends LocalizedActivity {
         setMenuTitle(menu, R.id.action_filter, R.string.action_filter);
         setMenuTitle(menu, R.id.action_analysis, R.string.action_analysis);
         setMenuTitle(menu, R.id.action_balance, R.string.action_balance);
+        setMenuTitle(menu, R.id.action_budget, R.string.action_budget);
         setMenuTitle(menu, R.id.action_settings, R.string.action_settings);
         return true;
     }
@@ -1136,6 +1137,9 @@ public class MainActivity extends LocalizedActivity {
             return true;
         } else if (id == R.id.action_balance) {
             startActivity(new Intent(this, BalanceActivity.class));
+            return true;
+        } else if (id == R.id.action_budget) {
+            startActivity(new Intent(this, BudgetActivity.class));
             return true;
         } else if (id == R.id.action_settings) {
             startActivity(new Intent(this, SettingsActivity.class));

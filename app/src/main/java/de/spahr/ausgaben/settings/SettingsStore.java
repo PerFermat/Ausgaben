@@ -35,6 +35,7 @@ public class SettingsStore {
     private static final String KEY_NUMBER_FORMAT = "number_format";
     private static final String KEY_SHOW_CURRENCY = "show_currency";
     private static final String KEY_DIVIDEND_GROSS = "dividend_gross";
+    private static final String KEY_BUDGET_INTERNAL = "budget_internal";
 
     /** Zahlenformat: Tausenderpunkt + Dezimalkomma („1.234,56"). */
     public static final String NUMBER_FORMAT_DE_GROUP = "de_group";
@@ -298,6 +299,15 @@ public class SettingsStore {
 
     public void setDividendGross(boolean gross) {
         prefs.edit().putBoolean(KEY_DIVIDEND_GROSS, gross).apply();
+    }
+
+    /** Budget app-intern aus dem Verlauf berechnen (true) statt aus KMyMoney importieren (false, Standard). */
+    public boolean isBudgetInternal() {
+        return prefs.getBoolean(KEY_BUDGET_INTERNAL, false);
+    }
+
+    public void setBudgetInternal(boolean internal) {
+        prefs.edit().putBoolean(KEY_BUDGET_INTERNAL, internal).apply();
     }
 
     /**

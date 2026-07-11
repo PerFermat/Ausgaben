@@ -26,6 +26,12 @@
         app:showAsAction="never" />
 
     <item
+        android:id="@+id/action_budget"
+        android:icon="@drawable/ic_budget"
+        android:title="@string/action_budget"
+        app:showAsAction="never" />
+
+    <item
         android:id="@+id/action_settings"
         android:icon="@drawable/ic_settings"
         android:title="@string/action_settings"

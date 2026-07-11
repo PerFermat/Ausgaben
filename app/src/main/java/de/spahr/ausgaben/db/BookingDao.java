@@ -43,6 +43,29 @@ public interface BookingDao {
     @Query("SELECT * FROM booking ORDER BY created_at DESC, id DESC LIMIT :limit")
     List<Booking> getRecent(int limit);
 
+    /**
+     * Ist-Summen je Kategorie (Einnahme/Ausgabe) im Zeitraum [fromMs, toMs). Splitbuchungen werden nicht
+     * doppelt gezählt: Einzelbuchungen ohne Split über {@code booking.category}, Splitbuchungen über die
+     * Teilbeträge; Umbuchungen bleiben außen vor.
+     */
+    @Query("SELECT cat AS category, income AS is_income, SUM(amt) AS total FROM ("
+            + " SELECT category AS cat, is_income AS income, amount_cents AS amt FROM booking b "
+            + "   WHERE category != '' AND is_transfer = 0 "
+            + "     AND created_at >= :fromMs AND created_at < :toMs "
+            + "     AND NOT EXISTS (SELECT 1 FROM booking_split s WHERE s.booking_id = b.id) "
+            + " UNION ALL "
+            + " SELECT bs.category AS cat, b.is_income AS income, ABS(bs.amount_cents) AS amt "
+            + "   FROM booking_split bs JOIN booking b ON bs.booking_id = b.id "
+            + "   WHERE bs.category != '' AND b.is_transfer = 0 "
+            + "     AND b.created_at >= :fromMs AND b.created_at < :toMs) "
+            + "GROUP BY cat, income")
+    List<CategorySum> getCategoryActuals(long fromMs, long toMs);
+
+    /** Jahre (mit Daten) mit Buchungen vor {@code ms} – Teiler für die Verlaufs-Budgetberechnung. */
+    @Query("SELECT DISTINCT CAST(strftime('%Y', created_at / 1000, 'unixepoch', 'localtime') AS INTEGER) "
+            + "FROM booking WHERE created_at < :ms")
+    List<Integer> getDataYearsBefore(long ms);
+
     /** Buchungen mit Standort in der Notiz (neueste zuerst) – Vorlagen für die Betrag-only-Erfassung. */
     @Query("SELECT * FROM booking WHERE note LIKE '%GPS:%' ORDER BY created_at DESC, id DESC LIMIT 500")
     List<Booking> getWithGpsNote();

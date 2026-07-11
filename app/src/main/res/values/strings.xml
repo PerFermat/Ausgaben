@@ -84,7 +84,26 @@
     <string name="action_filter">Filter</string>
     <string name="action_analysis">Analysis</string>
     <string name="action_balance">Balances</string>
+    <string name="action_budget">Budget</string>
     <string name="action_settings">Settings</string>
+
+    <!-- Budget -->
+    <string name="budget_title">Budget</string>
+    <string name="budget_view_year">Year</string>
+    <string name="budget_view_month">Month</string>
+    <string name="budget_scope_main">Main categories</string>
+    <string name="budget_scope_all">With subcategories</string>
+    <string name="budget_income_header">Income</string>
+    <string name="budget_expense_header">Expenses</string>
+    <string name="budget_ist_soll">%1$s / %2$s</string>
+    <string name="budget_empty">No budget yet. Compute it from your history or import it from KMyMoney.</string>
+    <string name="budget_compute">Compute from history</string>
+    <string name="budget_import">Import from KMyMoney</string>
+    <string name="budget_import_none">No budget found in the KMyMoney file</string>
+    <string name="budget_import_done">Budget imported</string>
+    <string name="budget_edit_title">Annual target: %1$s</string>
+    <string name="budget_edit_hint">Annual target</string>
+    <string name="budget_invalid_amount">Invalid amount</string>
 
     <!-- Balance bar -->
     <string name="saldo_total">Total</string>
@@ -264,6 +283,9 @@
     <string name="dividend_gross_switch">Show dividends gross (off = net)</string>
     <string name="depot_dividends_gross">Dividends (gross)</string>
     <string name="depot_dividends_net">Dividends (net)</string>
+    <string name="budget_internal_switch">Compute budget internally from history (instead of KMyMoney)</string>
+    <string name="budget_import_button">Import budget from KMyMoney</string>
+    <string name="budget_compute_button">Compute budget from history</string>
     <string name="number_format_de_group">1.234,56 (grouping dot, comma)</string>
     <string name="number_format_en_group">1,234.56 (grouping comma, point)</string>
     <string name="number_format_plain_comma">1234,56 (no grouping, comma)</string>

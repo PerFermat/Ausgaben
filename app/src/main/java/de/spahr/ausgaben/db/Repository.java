@@ -30,6 +30,7 @@ public class Repository {
     private final PayeeCorrectionDao correctionDao;
     private final TranslationDao translationDao;
     private final SecurityDao securityDao;
+    private final BudgetDao budgetDao;
     private final Context appContext;
     private final ExecutorService executor = Executors.newSingleThreadExecutor();
     private final Handler mainHandler = new Handler(Looper.getMainLooper());
@@ -44,6 +45,7 @@ public class Repository {
         this.correctionDao = db.payeeCorrectionDao();
         this.translationDao = db.translationDao();
         this.securityDao = db.securityDao();
+        this.budgetDao = db.budgetDao();
     }
 
     // ---- Mehrsprachigkeit ----
@@ -1172,6 +1174,122 @@ public class Repository {
             this.expense = expense;
             this.income = income;
         }
+    }
+
+    // ---- Budgetplanung ----
+
+    /** Ist-Summen je Kategorie (Einnahme/Ausgabe) im Zeitraum. */
+    public void getCategoryActuals(final long fromMs, final long toMs,
+                                   final Callback<List<CategorySum>> callback) {
+        executor.execute(() -> {
+            final List<CategorySum> result = bookingDao.getCategoryActuals(fromMs, toMs);
+            mainHandler.post(() -> callback.onResult(result));
+        });
+    }
+
+    /** Gespeichertes Budget eines Jahres (Soll-Werte je Kategorie + Herkunft). */
+    public static final class YearBudget {
+        /** {@code "kmy"}/{@code "internal"}; {@code null} = keins vorhanden. */
+        public final String source;
+        public final List<Budget> lines;
+        public YearBudget(String source, List<Budget> lines) {
+            this.source = source;
+            this.lines = lines;
+        }
+    }
+
+    public void getBudget(final int year, final Callback<YearBudget> callback) {
+        executor.execute(() -> {
+            final List<Budget> lines = budgetDao.getForYear(year);
+            final String source = budgetDao.sourceForYear(year);
+            mainHandler.post(() -> callback.onResult(new YearBudget(source, lines)));
+        });
+    }
+
+    /** Setzt/ändert einen Soll-Wert manuell (Herkunft = intern). */
+    public void saveBudgetLine(final int year, final String category, final boolean isIncome,
+                               final long amountCents, final Runnable onDone) {
+        executor.execute(() -> {
+            budgetDao.upsert(new Budget(year, category, isIncome, amountCents, Budget.SOURCE_INTERNAL));
+            if (onDone != null) {
+                mainHandler.post(onDone);
+            }
+        });
+    }
+
+    /** Ersetzt das Budget eines Jahres komplett (Import/Berechnung). */
+    public void replaceBudget(final int year, final String source, final List<Budget> lines,
+                              final Runnable onDone) {
+        executor.execute(() -> {
+            budgetDao.deleteYear(year);
+            for (Budget b : lines) {
+                b.year = year;
+                b.source = source;
+                budgetDao.upsert(b);
+            }
+            if (onDone != null) {
+                mainHandler.post(onDone);
+            }
+        });
+    }
+
+    /**
+     * Berechnet das Budget fürs {@code year} aus dem Verlauf: Ist-Summe aller Buchungen VOR dem Jahresbeginn
+     * geteilt durch die Anzahl der Jahre mit Daten. Speichert als internes Budget.
+     */
+    public void computeBudgetFromHistory(final int year, final Runnable onDone) {
+        executor.execute(() -> {
+            java.util.Calendar c = java.util.Calendar.getInstance();
+            c.clear();
+            c.set(java.util.Calendar.YEAR, year);
+            long yearStart = c.getTimeInMillis();
+            List<CategorySum> sums = bookingDao.getCategoryActuals(0L, yearStart);
+            List<Integer> years = bookingDao.getDataYearsBefore(yearStart);
+            int divisor = years == null || years.isEmpty() ? 1 : years.size();
+            // Kein Vorjahr vorhanden → Fallback: laufendes Jahr als einzige Datenbasis.
+            List<CategorySum> basis = sums;
+            if (basis.isEmpty()) {
+                long yearEnd;
+                java.util.Calendar c2 = java.util.Calendar.getInstance();
+                c2.clear();
+                c2.set(java.util.Calendar.YEAR, year + 1);
+                yearEnd = c2.getTimeInMillis();
+                basis = bookingDao.getCategoryActuals(yearStart, yearEnd);
+                divisor = 1;
+            }
+            // Je Kategorie Einnahme-/Ausgabe-Summe getrennt, dann der Typ aus dem Netto: eine Einnahme auf
+            // einer Ausgabekategorie (Erstattung) mindert deren Soll, die Kategorie bleibt Ausgabe.
+            java.util.Map<String, long[]> perCat = new java.util.HashMap<>();
+            for (CategorySum s : basis) {
+                if (s.category == null || s.category.isEmpty()) {
+                    continue;
+                }
+                long[] a = perCat.get(s.category);
+                if (a == null) {
+                    a = new long[2];
+                    perCat.put(s.category, a);
+                }
+                a[s.isIncome ? 0 : 1] += s.total;
+            }
+            budgetDao.deleteYear(year);
+            for (java.util.Map.Entry<String, long[]> e : perCat.entrySet()) {
+                long inc = e.getValue()[0];
+                long exp = e.getValue()[1];
+                boolean isIncome = inc > exp;
+                long net = isIncome ? inc - exp : exp - inc;
+                if (net <= 0) {
+                    continue;
+                }
+                long soll = Math.round((double) net / divisor);
+                if (soll <= 0) {
+                    continue;
+                }
+                budgetDao.upsert(new Budget(year, e.getKey(), isIncome, soll, Budget.SOURCE_INTERNAL));
+            }
+            if (onDone != null) {
+                mainHandler.post(onDone);
+            }
+        });
     }
 
     // ---- Depot (Wertpapiere) ----

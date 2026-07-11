@@ -79,6 +79,7 @@ public class SettingsActivity extends LocalizedActivity {
     private MaterialAutoCompleteTextView editNumberFormat;
     private MaterialSwitch switchShowCurrency;
     private MaterialSwitch switchDividendGross;
+    private MaterialSwitch switchBudgetInternal;
     /** Aktuell gewählter Zahlenformat-Wert (SettingsStore.NUMBER_FORMAT_*). */
     private String selectedNumberFormat = SettingsStore.NUMBER_FORMAT_PLAIN_COMMA;
     /** Format-Werte passend zu den angezeigten Labels in {@link #setupNumberFormat()}. */
@@ -161,6 +162,17 @@ public class SettingsActivity extends LocalizedActivity {
         switchShowCurrency.setChecked(settings.isCurrencyShown());
         switchDividendGross = findViewById(R.id.switchDividendGross);
         switchDividendGross.setChecked(settings.isDividendGross());
+        switchBudgetInternal = findViewById(R.id.switchBudgetInternal);
+        switchBudgetInternal.setChecked(settings.isBudgetInternal());
+        ((MaterialButton) findViewById(R.id.btnBudgetCompute)).setOnClickListener(v -> {
+            int y = java.util.Calendar.getInstance().get(java.util.Calendar.YEAR);
+            repository.computeBudgetFromHistory(y, () ->
+                    Toast.makeText(this, R.string.budget_import_done, Toast.LENGTH_LONG).show());
+        });
+        ((MaterialButton) findViewById(R.id.btnBudgetImport)).setOnClickListener(v -> {
+            int y = java.util.Calendar.getInstance().get(java.util.Calendar.YEAR);
+            BudgetImportFlow.run(this, settings, repository, y, null);
+        });
         setupNumberFormat();
         setupLanguages();
         ((MaterialButton) findViewById(R.id.btnExportTemplate)).setOnClickListener(
@@ -795,6 +807,7 @@ public class SettingsActivity extends LocalizedActivity {
         settings.setNumberFormat(selectedNumberFormat);
         settings.setCurrencyShown(switchShowCurrency.isChecked());
         settings.setDividendGross(switchDividendGross.isChecked());
+        settings.setBudgetInternal(switchBudgetInternal.isChecked());
         de.spahr.ausgaben.settings.Currencies.refresh(this);
         de.spahr.ausgaben.settings.MoneyFormat.refresh(this);
 

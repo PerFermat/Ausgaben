@@ -141,6 +141,14 @@ Mikrofon-Berechtigung ist davon unberührt). Hinweise zur F-Droid-Paketierung in
   gewählten Kategorie.
 - **Auswertung** (Tag/Woche/Monat/Jahr) als Balken- + Linien-Diagramm mit Konto-, Orts- und
   Gesamt-Sichten; per Fingergeste zoombar (horizontal = Balkenanzahl, vertikal = Y-Achse).
+- **Budget** (eigene Menüseite) stellt je Kategorie das **Ist** dem **Soll** gegenüber. Das Soll wird aus
+  einer **KMyMoney-Budgetplanung** importiert (Knopf in den Einstellungen; nicht editierbar) oder
+  **app-intern** aus dem Verlauf berechnet (Summe aller Vorjahre ÷ Anzahl der Jahre mit Daten). Umschaltbar
+  zwischen **Jahres- und Monatssicht** (Monat = Jahres-Soll ÷ 12) und **nur Haupt- / mit Unterkategorien**.
+  Einnahmen stehen zuerst, dann Ausgaben; unter jeder Kategorie ein dünner Balken – **grün**, wenn man im
+  Plan liegt, **rot**, wenn daneben (Breite = Anteil des verbrauchten Solls, Farbe im Vergleich zum
+  Zeitanteil der Periode; Einnahmen umgekehrt). Intern berechnete Soll-Werte lassen sich durch Antippen einer
+  Zeile ändern; aus KMyMoney importierte nicht.
 
 ### Homescreen-Widget (Handy)
 Vier wählbare Widgets zeigen den Saldo des **Standardorts** (Standardkonto → Standardort, wie auf der Uhr):

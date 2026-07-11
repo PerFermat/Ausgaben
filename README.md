@@ -135,6 +135,13 @@ permission is unaffected). F-Droid packaging notes are in [`fdroid/`](fdroid/).
   a category filter, a split booking shows only the partial amount of the chosen category.
 - **Analysis** (day/week/month/year) as a bar + line chart with account, place and total views; zoomable by
   gesture (horizontal = number of bars, vertical = Y axis).
+- **Budget** (own menu page) puts the **actual** value against a per-category **target**. The target is
+  imported from a **KMyMoney budget** (a button in the settings; read-only) or computed **app-internally**
+  from the history (sum of all previous years ÷ number of years with data). Toggle between **year and month**
+  view (month = annual target ÷ 12) and between **main categories only / with subcategories**. Income is shown
+  first, then expenses; under each category a slim bar is **green** when you are ahead of plan and **red** when
+  behind (width = share of the target used, colour by comparison with the elapsed share of the period; income
+  reversed). Internally computed targets can be edited by tapping a row; imported KMyMoney targets cannot.
 
 ### Home-screen widget (phone)
 Four selectable widgets show the **default-place** balance (default account → default place, like on the

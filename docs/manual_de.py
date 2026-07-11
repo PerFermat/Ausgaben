@@ -146,7 +146,7 @@ bullets([
 ])
 p("Tragen Sie dann URL/Freigabe, Benutzer und Passwort ein und prüfen Sie mit <b>«Verbindung testen»</b>. "
   "Wählen Sie außerdem den Export-Modus (<b>.kmy</b> oder CSV) und – im .kmy-Modus – über <b>«.kmy "
-  "auswählen»</b> die Datei. Die vollständigen Details stehen in Kapitel 12.")
+  "auswählen»</b> die Datei. Die vollständigen Details stehen in Kapitel 13.")
 h2("Konten anlegen – zuerst erforderlich")
 p("Legen Sie danach mindestens ein <b>Konto</b> an: in der Kontenschublade (☰ oben links) unten über "
   "<b>«Konto hinzufügen»</b>; im .kmy-Modus lassen sich die Konten direkt aus der KMyMoney-Datei "
@@ -327,8 +327,33 @@ bullets([
   "Geschlossene Konten zählen nur in der Gesamtsicht (historischer Saldo).",
 ])
 
-# ---------------------------------------------------------------- 10 Bestände / Depot
-h1("10. Bestände (Orte) und Depot")
+# ---------------------------------------------------------------- 10 Budget
+h1("10. Budget")
+p("Die <b>Budget</b>-Seite (Menü <b>⋮ → Budget</b>) stellt je Kategorie das <b>Ist</b> dem <b>Soll</b> "
+  "gegenüber. Sie beantwortet die Frage: «Liege ich im Plan?»")
+h2("Woher kommt das Soll?")
+bullets([
+  "<b>Aus KMyMoney importieren</b> (Knopf in den Einstellungen): enthält Ihre .kmy eine Budgetplanung, "
+  "werden deren Jahreswerte als Soll des laufenden Jahres übernommen. Solche Soll-Werte sind "
+  "<b>nicht editierbar</b>.",
+  "<b>Aus dem Verlauf berechnen</b>: Summe aller bisherigen Jahre ÷ Anzahl der Jahre mit Daten. Automatisch, "
+  "wenn der Schalter «Budget app-intern berechnen» aktiv ist, sonst per Knopf. Diese Soll-Werte lassen sich "
+  "durch <b>Antippen einer Zeile</b> ändern.",
+])
+h2("Anzeige")
+bullets([
+  "Umschalter <b>Jahr / Monat</b> (Monat = Jahres-Soll ÷ 12; Ist = Summe des laufenden Monats).",
+  "Umschalter <b>nur Hauptkategorien / mit Unterkategorien</b> (Hauptkategorie = Summe über ihre "
+  "Unterkategorien).",
+  "<b>Einnahmen</b> zuerst, dann <b>Ausgaben</b> (große Überschriften); Hauptkategorien fett, "
+  "Unterkategorien eingerückt. Rechts steht «Ist / Soll».",
+  "Unter jeder Kategorie ein dünner <b>Balken</b>: <b>grün</b>, wenn man im Plan liegt, <b>rot</b>, wenn "
+  "daneben. Die Breite zeigt den verbrauchten Anteil des Solls; die Farbe vergleicht ihn mit dem "
+  "Zeitanteil der Periode (bei Einnahmen umgekehrt: schneller als die Zeit = gut).",
+])
+
+# ---------------------------------------------------------------- 11 Bestände / Depot
+h1("11. Bestände (Orte) und Depot")
 h2("Bestände / Orte – was ist das?")
 p("Ein <b>Ort</b> beschreibt, <b>wo</b> das Bargeld eines Kontos physisch liegt – z. B. Geldbeutel, "
   "Spardose, Portokasse oder ein Umschlag. Ein Konto «Bargeld» lässt sich damit in mehrere reale "
@@ -383,7 +408,7 @@ p("<b>Dividenden brutto/netto:</b> In den Einstellungen wählbar, ob Dividenden 
   "einmalig ein Depot-Neuimport nötig.")
 
 # ---------------------------------------------------------------- 11 Synchronisieren durchführen
-h1("11. Synchronisieren: Export und Import durchführen")
+h1("12. Synchronisieren: Export und Import durchführen")
 p("Der eigentliche Abgleich mit KMyMoney läuft über <b>ein einziges Symbol</b> in der Titelleiste des "
   "Hauptbildschirms – das <b>Export-/Sync-Symbol</b> (Pfeil nach unten).")
 pic("docs/img/export_button.png", "Das Export-/Sync-Symbol in der Titelleiste (rot umkreist)", width=14*cm)
@@ -410,7 +435,7 @@ p("Vor jedem Rückschreiben legt die App automatisch eine <b>zeitgestempelte Sic
   "falls mit der Datei einmal etwas nicht stimmt.")
 
 # ---------------------------------------------------------------- 12 Sync einrichten
-h1("12. Synchronisation einrichten (Einstellungen)")
+h1("13. Synchronisation einrichten (Einstellungen)")
 p("Bevor Sie zum ersten Mal synchronisieren, hinterlegen Sie einmalig Server, Zugang und Export-Modus "
   "in den Einstellungen (abgebildet in Kapitel 2).")
 h2("Server-Typ und Zugang")
@@ -431,7 +456,7 @@ bullets([
 p("Ohne konfiguriertes Sync-Ziel wird lokal in einen selbst gewählten Ordner exportiert.")
 
 # ---------------------------------------------------------------- 13 Alias-Verwaltung
-h1("13. Alias-Namen verwalten")
+h1("14. Alias-Namen verwalten")
 p("Unter <b>Einstellungen → Alias-Namen</b>: Die automatische Nachfrage lässt sich abschalten (bestehende "
   "Aliase gelten weiter). Über <b>«Alias-Namen verwalten»</b> legen Sie Aliase manuell an, ändern und "
   "löschen sie – mit gesprochenem Begriff, echtem Empfänger, Buchungsart, Konto, Kategorien und Standort "
@@ -440,7 +465,7 @@ p("Unter <b>Einstellungen → Alias-Namen</b>: Die automatische Nachfrage lässt
   "zeigen, die dann per Standort unterschieden werden.")
 
 # ---------------------------------------------------------------- 13 Wear OS
-h1("14. Wear OS (Uhr)")
+h1("15. Wear OS (Uhr)")
 shot("UhranlagemitAlias.png", "Erfassung auf der Uhr", width=6.0*cm)
 p("Mit der Uhren-App erfassen Sie eine Ausgabe per Sprache direkt am Handgelenk. Die Uhr nimmt nur den "
   "Text auf; die Verarbeitung und das Anlegen der Buchung passieren auf dem Handy (derselbe Parser).")
@@ -465,7 +490,7 @@ bullets([
 p("Voraussetzung: Handy- und Uhren-App haben dieselbe Signatur (gleicher Schlüssel).", )
 
 # ---------------------------------------------------------------- 14 Sicherheit
-h1("15. Sicherheit, Datenschutz & Einstellungen")
+h1("16. Sicherheit, Datenschutz & Einstellungen")
 bullets([
   "<b>App-Sperre</b>: optional per Fingerabdruck, Gesicht, PIN, Muster oder Passwort – beim Start und bei "
   "Rückkehr aus dem Hintergrund.",
@@ -483,7 +508,7 @@ p("Diese App wird ohne Gewähr bereitgestellt. Insbesondere gibt es keine Garant
   "jedoch stets einen Fallback. Bewahren Sie zusätzlich eigene, regelmäßige Backups auf.", )
 
 # CSV-Format Kurzreferenz
-h1("16. CSV-Format (Export)")
+h1("17. CSV-Format (Export)")
 p("Deutsch: Spaltentrenner «;», Dezimaltrennzeichen «,», Datum TT.MM.JJJJ, UTF-8. Splitbuchungen werden je "
   "Kategorie als eigene Zeile geschrieben.")
 code = ("Datum;Empfänger;Konto;Typ;Betrag;Notiz;Kategorie<br/>"

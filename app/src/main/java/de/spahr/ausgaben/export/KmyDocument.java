@@ -61,6 +61,9 @@ public class KmyDocument {
     /** Wertpapier-ID → letzter Kurs {price, dateMillis}. */
     private final Map<String, double[]> securityPrice = new LinkedHashMap<>();
 
+    /** Budgetjahr → Liste der Kategorie-Soll-Werte (Jahressumme) aus dem BUDGETS-Block. */
+    private final Map<Integer, List<BudgetEntry>> budgetsByYear = new LinkedHashMap<>();
+
     /** kleingeschriebener Kategorie-Pfad (bzw. Blattname) → id. */
     private final Map<String, String> categoryToId = new LinkedHashMap<>();
     /** id → Kategorie-Pfad (für den Import). */
@@ -80,6 +83,7 @@ public class KmyDocument {
         parseHeader();
         buildDerivedMaps();
         parseSecuritiesAndPrices();
+        parseBudgets();
         scanMaxNumbers();
     }
 
@@ -261,6 +265,108 @@ public class KmyDocument {
                 } else if (event == XmlPullParser.END_TAG && "PRICEPAIR".equals(parser.getName())) {
                     curFrom = null;
                     curTo = null;
+                }
+                event = parser.next();
+            }
+        } catch (XmlPullParserException e) {
+            throw new IOException(ctx.getString(de.spahr.ausgaben.R.string.err_kmy_read), e);
+        }
+    }
+
+    /** Ein Kategorie-Soll-Wert (Jahressumme) aus dem KMyMoney-Budget. */
+    public static final class BudgetEntry {
+        public final String category;
+        public final boolean isIncome;
+        public final long yearlyCents;
+        public BudgetEntry(String category, boolean isIncome, long yearlyCents) {
+            this.category = category;
+            this.isIncome = isIncome;
+            this.yearlyCents = yearlyCents;
+        }
+    }
+
+    /** Budgetjahre aus der Datei (aufsteigend nach Reihenfolge). */
+    public List<Integer> budgetYears() {
+        return new ArrayList<>(budgetsByYear.keySet());
+    }
+
+    /** Kategorie-Soll-Werte (Jahressumme) des Budgetjahres. */
+    public List<BudgetEntry> budgetEntries(int year) {
+        List<BudgetEntry> l = budgetsByYear.get(year);
+        return l == null ? new ArrayList<>() : new ArrayList<>(l);
+    }
+
+    /**
+     * Liest den BUDGETS-Block: je {@code <BUDGET year>} und {@code <ACCOUNT id budgetlevel>} das Jahres-Soll
+     * (Summe aller {@code <PERIOD amount>}; bei {@code budgetlevel="monthly"} mit nur einer Periode ×12).
+     */
+    private void parseBudgets() throws IOException {
+        try {
+            XmlPullParser parser = Xml.newPullParser();
+            parser.setFeature(XmlPullParser.FEATURE_PROCESS_NAMESPACES, false);
+            parser.setInput(new StringReader(xml));
+            int event = parser.getEventType();
+            int curYear = 0;
+            String curAcctId = null;
+            String curLevel = null;
+            double curSum = 0;
+            int curPeriods = 0;
+            while (event != XmlPullParser.END_DOCUMENT) {
+                if (event == XmlPullParser.START_TAG) {
+                    String tag = parser.getName();
+                    if ("BUDGET".equals(tag)) {
+                        curYear = 0;
+                        String start = parser.getAttributeValue(null, "start");
+                        if (start != null && start.length() >= 4) {
+                            try {
+                                curYear = Integer.parseInt(start.substring(0, 4));
+                            } catch (NumberFormatException ignore) {
+                                curYear = 0;
+                            }
+                        }
+                        if (curYear == 0) {
+                            String y = parser.getAttributeValue(null, "year");
+                            if (y != null) {
+                                try {
+                                    curYear = Integer.parseInt(y.trim());
+                                } catch (NumberFormatException ignore) {
+                                    curYear = 0;
+                                }
+                            }
+                        }
+                    } else if ("ACCOUNT".equals(tag) && curYear != 0) {
+                        curAcctId = parser.getAttributeValue(null, "id");
+                        curLevel = orEmpty(parser.getAttributeValue(null, "budgetlevel")).trim();
+                        curSum = 0;
+                        curPeriods = 0;
+                    } else if ("PERIOD".equals(tag) && curAcctId != null) {
+                        curSum += fractionToDouble(parser.getAttributeValue(null, "amount"));
+                        curPeriods++;
+                    }
+                } else if (event == XmlPullParser.END_TAG) {
+                    String tag = parser.getName();
+                    if ("ACCOUNT".equals(tag) && curAcctId != null && curYear != 0) {
+                        String path = categoryIdToPath.get(curAcctId);
+                        Integer type = accountType.get(curAcctId);
+                        if (path != null && type != null) {
+                            double yearly = curSum;
+                            if (curLevel.equalsIgnoreCase("monthly") && curPeriods <= 1) {
+                                yearly = curSum * 12;
+                            }
+                            long cents = Math.round(Math.abs(yearly) * 100);
+                            if (cents > 0) {
+                                List<BudgetEntry> list = budgetsByYear.get(curYear);
+                                if (list == null) {
+                                    list = new ArrayList<>();
+                                    budgetsByYear.put(curYear, list);
+                                }
+                                list.add(new BudgetEntry(path, type == TYPE_INCOME, cents));
+                            }
+                        }
+                        curAcctId = null;
+                    } else if ("BUDGET".equals(tag)) {
+                        curYear = 0;
+                    }
                 }
                 event = parser.next();
             }

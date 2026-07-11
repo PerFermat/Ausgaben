@@ -108,6 +108,33 @@
             android:layout_marginTop="8dp"
             android:text="@string/dividend_gross_switch" />
 
+        <com.google.android.material.materialswitch.MaterialSwitch
+            android:id="@+id/switchBudgetInternal"
+            android:layout_width="match_parent"
+            android:layout_height="wrap_content"
+            android:layout_marginTop="8dp"
+            android:text="@string/budget_internal_switch" />
+
+        <com.google.android.material.button.MaterialButton
+            android:id="@+id/btnBudgetCompute"
+            style="?attr/materialButtonOutlinedStyle"
+            android:layout_width="match_parent"
+            android:layout_height="wrap_content"
+            android:layout_marginTop="8dp"
+            android:textColor="@color/button_accent"
+            app:strokeColor="@color/button_accent"
+            android:text="@string/budget_compute_button" />
+
+        <com.google.android.material.button.MaterialButton
+            android:id="@+id/btnBudgetImport"
+            style="?attr/materialButtonOutlinedStyle"
+            android:layout_width="match_parent"
+            android:layout_height="wrap_content"
+            android:layout_marginTop="8dp"
+            android:textColor="@color/button_accent"
+            app:strokeColor="@color/button_accent"
+            android:text="@string/budget_import_button" />
+
         <TextView
             android:layout_width="wrap_content"
             android:layout_height="wrap_content"

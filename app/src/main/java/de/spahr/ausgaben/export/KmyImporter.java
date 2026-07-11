@@ -48,6 +48,16 @@ public class KmyImporter {
         return doc.depotNames();
     }
 
+    /** Budgetjahre aus der Datei. */
+    public List<Integer> budgetYears() {
+        return doc.budgetYears();
+    }
+
+    /** Kategorie-Soll-Werte (Jahressumme) des Budgetjahres. */
+    public List<KmyDocument.BudgetEntry> budgetEntries(int year) {
+        return doc.budgetEntries(year);
+    }
+
     /** Ergebnis eines Depot-Imports: Wertpapiere (mit letztem Kurs) + ihre Bewegungen. */
     public static final class DepotData {
         public final List<Security> securities = new ArrayList<>();

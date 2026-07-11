@@ -23,3 +23,6 @@
 
 # Signierte Release-APK (Artefakt)
 *.apk
+
+# Persönliche KMyMoney-Datei (Testdaten, nicht einchecken)
+*.kmy

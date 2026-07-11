@@ -61,6 +61,9 @@ public class AusgabenApp extends Application implements Application.ActivityLife
         if (activity instanceof LockActivity) {
             return; // der Sperrbildschirm selbst darf laufen
         }
+        if (activity instanceof de.spahr.ausgaben.ui.VoiceCaptureActivity) {
+            return; // unsichtbare Sprach-Schnellerfassung (Widget) legt nur eine Buchung an – kein Datenzugriff
+        }
         if (lockRequired() && !lockShowing) {
             lockShowing = true;
             Intent intent = new Intent(activity, LockActivity.class);

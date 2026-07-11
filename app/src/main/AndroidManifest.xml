@@ -94,6 +94,14 @@
             android:exported="false"
             android:theme="@style/Theme.Ausgaben" />
 
+        <!-- Unsichtbare Sprach-Schnellerfassung aus dem Typ-Widget (kein sichtbares App-UI). -->
+        <activity
+            android:name=".ui.VoiceCaptureActivity"
+            android:exported="false"
+            android:excludeFromRecents="true"
+            android:taskAffinity=""
+            android:theme="@style/Theme.Ausgaben.Transparent" />
+
         <!-- Homescreen-Widgets (drei Größen: klein/mittel/groß). -->
         <receiver
             android:name=".widget.WidgetSmall"
@@ -129,6 +137,18 @@
             <meta-data
                 android:name="android.appwidget.provider"
                 android:resource="@xml/widget_large_info" />
+        </receiver>
+
+        <receiver
+            android:name=".widget.WidgetType"
+            android:exported="true"
+            android:label="@string/widget_type_desc">
+            <intent-filter>
+                <action android:name="android.appwidget.action.APPWIDGET_UPDATE" />
+            </intent-filter>
+            <meta-data
+                android:name="android.appwidget.provider"
+                android:resource="@xml/widget_type_info" />
         </receiver>
 
         <!-- Der Wear-Data-Layer-Listener (Google Play Services) wird nur im „full"-Flavor registriert:

@@ -143,11 +143,13 @@ Mikrofon-Berechtigung ist davon unberührt). Hinweise zur F-Droid-Paketierung in
   Gesamt-Sichten; per Fingergeste zoombar (horizontal = Balkenanzahl, vertikal = Y-Achse).
 
 ### Homescreen-Widget (Handy)
-Drei wählbare Widget-Größen zeigen den Saldo des **Standardorts** (Standardkonto → Standardort, wie auf der
-Uhr):
+Vier wählbare Widgets zeigen den Saldo des **Standardorts** (Standardkonto → Standardort, wie auf der Uhr):
 - **klein (2×1)** – nur der Saldo;
 - **mittel (4×2)** – Saldo + drei Schnellaktionen (Buchung, Sprache, Betrag);
-- **groß (4×4)** – Saldo-Kopf mit Aktualisieren, die letzten Buchungen (rot/grün) und die Aktionsleiste.
+- **groß (4×4)** – Saldo-Kopf mit Aktualisieren, die letzten Buchungen (rot/grün) und die Aktionsleiste;
+- **Typ (4×2)** – wie auf der Uhr: drei farbige Knöpfe **Einnahme** (grün) / **Umbuchung** (gelb) /
+  **Ausgabe** (rot), darunter der Saldo; ein Knopf startet **sofort die Spracherkennung** für diesen Typ
+  und legt die Buchung direkt an – **die App wird nicht geöffnet** (nur der System-Sprachdialog erscheint).
 
 Ein Tippen auf den Saldo öffnet die App; die Aktionsknöpfe starten direkt „Neue Buchung", die Spracheingabe,
 die Betrag-only-Erfassung bzw. die Bestände. Das Widget aktualisiert sich beim Öffnen der App und in

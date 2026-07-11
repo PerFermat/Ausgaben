@@ -56,11 +56,12 @@
             android:contentDescription="@string/widget_refresh" />
     </LinearLayout>
 
-    <View
+    <LinearLayout
         android:layout_width="match_parent"
         android:layout_height="1dp"
         android:background="@color/widget_text_secondary"
         android:alpha="0.25" />
+
 
     <LinearLayout
         android:layout_width="match_parent"

@@ -137,11 +137,14 @@ permission is unaffected). F-Droid packaging notes are in [`fdroid/`](fdroid/).
   gesture (horizontal = number of bars, vertical = Y axis).
 
 ### Home-screen widget (phone)
-Three selectable widget sizes show the **default-place** balance (default account → default place, like on the
+Four selectable widgets show the **default-place** balance (default account → default place, like on the
 watch):
 - **small (2×1)** – balance only;
 - **medium (4×2)** – balance + three quick actions (booking, voice, amount);
-- **large (4×4)** – balance header with refresh, the most recent bookings (red/green) and the action bar.
+- **large (4×4)** – balance header with refresh, the most recent bookings (red/green) and the action bar;
+- **type (4×2)** – like on the watch: three coloured buttons **income** (green) / **transfer** (yellow) /
+  **expense** (red) with the balance below; a button **starts speech recognition immediately** for that type
+  and creates the booking directly — **the app is not opened** (only the system voice dialog appears).
 
 Tapping the balance opens the app; the action buttons launch “New booking”, voice entry, amount-only entry, or
 Holdings directly. The widget refreshes when the app is opened and at regular intervals.

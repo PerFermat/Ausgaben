@@ -153,6 +153,7 @@
     <string name="widget_small_desc">Saldo des Standardorts</string>
     <string name="widget_medium_desc">Saldo und Schnellaktionen</string>
     <string name="widget_large_desc">Saldo, letzte Buchungen, Aktionen</string>
+    <string name="widget_type_desc">Einnahme/Umbuchung/Ausgabe-Knöpfe + Saldo</string>
     <string name="widget_action_book">Buchung</string>
     <string name="widget_action_voice">Sprache</string>
     <string name="widget_action_amount">Betrag</string>

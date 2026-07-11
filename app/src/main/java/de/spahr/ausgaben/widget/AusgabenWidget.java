@@ -74,7 +74,7 @@ public abstract class AusgabenWidget extends AppWidgetProvider {
     /** Alle vorhandenen Ausgaben-Widgets neu zeichnen (z. B. nach einer Buchungsänderung). */
     public static void refreshAll(Context ctx) {
         AppWidgetManager mgr = AppWidgetManager.getInstance(ctx);
-        Class<?>[] classes = {WidgetSmall.class, WidgetMedium.class, WidgetLarge.class};
+        Class<?>[] classes = {WidgetSmall.class, WidgetMedium.class, WidgetLarge.class, WidgetType.class};
         for (Class<?> cls : classes) {
             int[] ids = mgr.getAppWidgetIds(new ComponentName(ctx, cls));
             if (ids != null && ids.length > 0) {

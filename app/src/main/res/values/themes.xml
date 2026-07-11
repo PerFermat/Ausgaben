@@ -9,6 +9,17 @@
         <item name="android:statusBarColor">@color/green_dark</item>
     </style>
 
+    <!-- Unsichtbare Aktivität für die Sprach-Schnellerfassung aus dem Widget (nur der System-Sprachdialog
+         erscheint über dem Homescreen; die App selbst wird nicht sichtbar geöffnet). -->
+    <style name="Theme.Ausgaben.Transparent" parent="Theme.Ausgaben">
+        <item name="android:windowIsTranslucent">true</item>
+        <item name="android:windowBackground">@android:color/transparent</item>
+        <item name="android:windowContentOverlay">@null</item>
+        <item name="android:windowNoTitle">true</item>
+        <item name="android:backgroundDimEnabled">false</item>
+        <item name="android:windowAnimationStyle">@null</item>
+    </style>
+
     <!-- Toolbar-Icons (Aktionen + Überlauf-Punkte) immer weiß auf grünem Grund.
          Nur die Icon-Tönung anpassen; das Überlauf-Menü nutzt weiter das App-Theme (lesbar in beiden Modi). -->
     <style name="ThemeOverlay.Ausgaben.Toolbar" parent="">

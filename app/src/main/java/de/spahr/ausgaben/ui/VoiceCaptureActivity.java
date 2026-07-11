@@ -1,0 +1,134 @@
+package de.spahr.ausgaben.ui;
+
+import android.content.Intent;
+import android.content.pm.PackageManager;
+import android.location.Location;
+import android.location.LocationManager;
+import android.os.Bundle;
+import android.speech.RecognizerIntent;
+import android.speech.SpeechRecognizer;
+import android.widget.Toast;
+
+import androidx.activity.result.ActivityResultLauncher;
+import androidx.activity.result.contract.ActivityResultContracts;
+import androidx.core.content.ContextCompat;
+
+import java.util.ArrayList;
+import java.util.Locale;
+
+import de.spahr.ausgaben.R;
+import de.spahr.ausgaben.db.Repository;
+import de.spahr.ausgaben.settings.SettingsStore;
+
+/**
+ * Unsichtbare Aktivität für die Sprach-Schnellerfassung aus dem Typ-Widget: startet sofort die
+ * Spracherkennung (nur der System-Dialog erscheint, die App wird nicht geöffnet) und legt aus dem
+ * gesprochenen Satz eine Buchung des vorgegebenen Typs an – wie auf der Uhr. Kein sichtbares UI.
+ */
+public class VoiceCaptureActivity extends LocalizedActivity {
+
+    /** Vorgegebener Buchungstyp (siehe {@code Repository.VOICE_TYPE_*}). */
+    public static final String EXTRA_TYPE = "type";
+
+    private String type;
+    private ActivityResultLauncher<Intent> speechLauncher;
+
+    @Override
+    protected void onCreate(Bundle savedInstanceState) {
+        super.onCreate(savedInstanceState);
+        type = getIntent().getStringExtra(EXTRA_TYPE);
+        if (type == null) {
+            type = Repository.VOICE_TYPE_EXPENSE;
+        }
+        speechLauncher = registerForActivityResult(
+                new ActivityResultContracts.StartActivityForResult(), result -> {
+                    if (result.getResultCode() == RESULT_OK && result.getData() != null) {
+                        ArrayList<String> res = result.getData()
+                                .getStringArrayListExtra(RecognizerIntent.EXTRA_RESULTS);
+                        createBooking(res == null || res.isEmpty() ? "" : res.get(0));
+                    } else {
+                        finish();
+                    }
+                });
+        if (savedInstanceState == null) {
+            startSpeech();
+        }
+    }
+
+    private void startSpeech() {
+        if (!SpeechRecognizer.isRecognitionAvailable(this)) {
+            Toast.makeText(this, R.string.voice_no_recognizer, Toast.LENGTH_LONG).show();
+            finish();
+            return;
+        }
+        Intent intent = new Intent(RecognizerIntent.ACTION_RECOGNIZE_SPEECH);
+        intent.putExtra(RecognizerIntent.EXTRA_LANGUAGE_MODEL,
+                RecognizerIntent.LANGUAGE_MODEL_FREE_FORM);
+        intent.putExtra(RecognizerIntent.EXTRA_LANGUAGE, "de-DE");
+        intent.putExtra(RecognizerIntent.EXTRA_PROMPT, getString(R.string.voice_prompt));
+        intent.putExtra(RecognizerIntent.EXTRA_MAX_RESULTS, 5);
+        try {
+            speechLauncher.launch(intent);
+        } catch (Exception e) {
+            Toast.makeText(this, R.string.voice_no_recognizer, Toast.LENGTH_LONG).show();
+            finish();
+        }
+    }
+
+    /** Legt aus dem gesprochenen Text eine Buchung des vorgegebenen Typs an (im Hintergrund). */
+    private void createBooking(String text) {
+        if (text == null || text.trim().isEmpty()) {
+            Toast.makeText(this, R.string.voice_not_understood, Toast.LENGTH_LONG).show();
+            finish();
+            return;
+        }
+        final String spoken = text.trim();
+        final String coords = lastKnownCoords();
+        new Thread(() -> {
+            Repository repository = new Repository(getApplicationContext());
+            String defaultAccount = new SettingsStore(getApplicationContext()).getDefaultAccount();
+            boolean created = repository.createVoiceBookingBlocking(spoken, defaultAccount, type, coords);
+            runOnUiThread(() -> {
+                Toast.makeText(this, created ? R.string.booking_saved : R.string.voice_not_understood,
+                        Toast.LENGTH_LONG).show();
+                if (created) {
+                    // Offene App + Widgets + Uhr über die neue Buchung informieren.
+                    sendBroadcast(new Intent(de.spahr.ausgaben.wear.WearBridge.ACTION_BOOKINGS_CHANGED)
+                            .setPackage(getPackageName()));
+                    de.spahr.ausgaben.widget.AusgabenWidget.refreshAll(this);
+                    de.spahr.ausgaben.wear.BalanceSync.publish(this);
+                }
+                finish();
+            });
+        }).start();
+    }
+
+    /** Letzte bekannte Position als „lat, lon" (nur bei aktivem GPS + Berechtigung), sonst {@code null}. */
+    private String lastKnownCoords() {
+        if (!new SettingsStore(this).isGpsEnabled()) {
+            return null;
+        }
+        if (ContextCompat.checkSelfPermission(this, android.Manifest.permission.ACCESS_FINE_LOCATION)
+                != PackageManager.PERMISSION_GRANTED
+                && ContextCompat.checkSelfPermission(this, android.Manifest.permission.ACCESS_COARSE_LOCATION)
+                != PackageManager.PERMISSION_GRANTED) {
+            return null;
+        }
+        try {
+            LocationManager lm = (LocationManager) getSystemService(LOCATION_SERVICE);
+            if (lm == null) {
+                return null;
+            }
+            Location loc = lm.getLastKnownLocation(LocationManager.GPS_PROVIDER);
+            if (loc == null) {
+                loc = lm.getLastKnownLocation(LocationManager.NETWORK_PROVIDER);
+            }
+            if (loc == null) {
+                return null;
+            }
+            return String.format(Locale.US, "%.6f, %.6f", loc.getLatitude(), loc.getLongitude());
+        } catch (SecurityException e) {
+            return null;
+        }
+    }
+}

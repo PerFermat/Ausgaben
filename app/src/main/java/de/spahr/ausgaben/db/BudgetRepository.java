@@ -16,24 +16,45 @@ class BudgetRepository {
 
     private final BookingDao bookingDao;
     private final BudgetDao budgetDao;
+    private final CategoryTypeDao categoryTypeDao;
     private final ExecutorService executor;
     private final Handler mainHandler;
 
-    BudgetRepository(BookingDao bookingDao, BudgetDao budgetDao,
+    BudgetRepository(BookingDao bookingDao, BudgetDao budgetDao, CategoryTypeDao categoryTypeDao,
                      ExecutorService executor, Handler mainHandler) {
         this.bookingDao = bookingDao;
         this.budgetDao = budgetDao;
+        this.categoryTypeDao = categoryTypeDao;
         this.executor = executor;
         this.mainHandler = mainHandler;
     }
 
-    /** Ist-Summen je Kategorie (Einnahme/Ausgabe) im Zeitraum. */
+    /** Netto-Zuflüsse je Kategorie (vorzeichenbehaftet) im Zeitraum. */
     void getCategoryActuals(final long fromMs, final long toMs,
                             final Callback<List<CategorySum>> callback) {
         executor.execute(() -> {
             final List<CategorySum> result = bookingDao.getCategoryActuals(fromMs, toMs);
             mainHandler.post(() -> callback.onResult(result));
         });
+    }
+
+    /** Kategorie-Pfad → Typ ({@code true} = Einnahme) aus der Datei; verlässliche Budget-Einordnung. */
+    void getCategoryTypes(final Callback<java.util.Map<String, Boolean>> callback) {
+        executor.execute(() -> {
+            final java.util.Map<String, Boolean> map = loadTypeMap();
+            mainHandler.post(() -> callback.onResult(map));
+        });
+    }
+
+    /** Lädt die Kategorie-Typen (nur auf dem Executor-Thread aufrufen). */
+    private java.util.Map<String, Boolean> loadTypeMap() {
+        java.util.Map<String, Boolean> map = new java.util.HashMap<>();
+        for (CategoryType t : categoryTypeDao.getAll()) {
+            if (t.category != null && !t.category.isEmpty()) {
+                map.put(t.category, t.isIncome);
+            }
+        }
+        return map;
     }
 
     void getBudget(final int year, final Callback<YearBudget> callback) {
@@ -95,30 +116,29 @@ class BudgetRepository {
                 basis = bookingDao.getCategoryActuals(yearStart, yearEnd);
                 divisor = 1;
             }
-            // Je Kategorie Einnahme-/Ausgabe-Summe getrennt, dann der Typ aus dem Netto: eine Einnahme auf
-            // einer Ausgabekategorie (Erstattung) mindert deren Soll, die Kategorie bleibt Ausgabe.
-            java.util.Map<String, long[]> perCat = new java.util.HashMap<>();
+            // Je Kategorie den vorzeichenbehafteten Netto-Zufluss summieren; der Typ kommt allein aus der
+            // kmy-Datei. Eine Einnahme auf einer Ausgabekategorie (Erstattung) mindert deren Soll, die
+            // Kategorie bleibt Ausgabe. Kategorien ohne kmy-Typ werden übersprungen.
+            java.util.Map<String, Boolean> typeMap = loadTypeMap();
+            java.util.Map<String, Long> perCat = new java.util.HashMap<>();
             for (CategorySum s : basis) {
                 if (s.category == null || s.category.isEmpty()) {
                     continue;
                 }
-                long[] a = perCat.get(s.category);
-                if (a == null) {
-                    a = new long[2];
-                    perCat.put(s.category, a);
-                }
-                a[s.isIncome ? 0 : 1] += s.total;
+                Long v = perCat.get(s.category);
+                perCat.put(s.category, (v == null ? 0L : v) + s.total);
             }
             budgetDao.deleteYear(year);
-            for (java.util.Map.Entry<String, long[]> e : perCat.entrySet()) {
-                long inc = e.getValue()[0];
-                long exp = e.getValue()[1];
-                boolean isIncome = inc > exp;
-                long net = isIncome ? inc - exp : exp - inc;
-                if (net <= 0) {
-                    continue;
+            for (java.util.Map.Entry<String, Long> e : perCat.entrySet()) {
+                Boolean isIncome = typeMap.get(e.getKey());
+                if (isIncome == null) {
+                    continue; // strikt: nur kmy-Kategorien erhalten ein Soll
                 }
-                long soll = Math.round((double) net / divisor);
+                long ist = BudgetMath.ist(isIncome, e.getValue());
+                if (ist <= 0) {
+                    continue; // negativer/0-Netto → kein Soll (Clamp auf 0)
+                }
+                long soll = Math.round((double) ist / divisor);
                 if (soll <= 0) {
                     continue;
                 }

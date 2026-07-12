@@ -56,6 +56,8 @@ final class BudgetImportFlow {
                 KmyImporter importer = new KmyImporter(
                         new KmyDocument(raw, activity.getApplicationContext()),
                         activity.getApplicationContext());
+                // Kategorietyp (Einnahme/Ausgabe) aus der Datei übernehmen – verlässliche Budget-Einordnung.
+                repository.applyCategoryTypes(importer.categoryTypes());
                 List<Integer> years = importer.budgetYears();
                 activity.runOnUiThread(() -> {
                     progress.dismiss();

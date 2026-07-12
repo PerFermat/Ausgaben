@@ -50,6 +50,8 @@ public class BudgetActivity extends LocalizedActivity {
     private final List<CategorySum> recentActuals = new ArrayList<>();
     private String budgetSource;            // null = kein Budget vorhanden
     private final List<Budget> budgetLines = new ArrayList<>();
+    /** Kategorie-Pfad → Typ ({@code true} = Einnahme) aus der Datei; verlässliche Einordnung. */
+    private final Map<String, Boolean> categoryTypes = new java.util.HashMap<>();
     private double elapsed = 0;
 
     @Override
@@ -121,22 +123,27 @@ public class BudgetActivity extends LocalizedActivity {
         rc.add(Calendar.YEAR, -2);
         final long recentStart = rc.getTimeInMillis();
         final long recentEnd = now;
-        repository.getCategoryActuals(start, end, list -> {
-            actuals.clear();
-            actuals.addAll(list);
-            repository.getCategoryActuals(recentStart, recentEnd, recent -> {
-                recentActuals.clear();
-                recentActuals.addAll(recent);
-                repository.getBudget(year, yb -> {
-                    budgetSource = yb.source;
-                    budgetLines.clear();
-                    budgetLines.addAll(yb.lines);
-                    if (budgetSource == null && settings.isBudgetInternal()) {
-                        // Automatisch aus dem Verlauf berechnen und erneut laden.
-                        repository.computeBudgetFromHistory(year, this::reload);
-                        return;
-                    }
-                    render();
+        final long fStart = start, fEnd = end;
+        repository.getCategoryTypes(types -> {
+            categoryTypes.clear();
+            categoryTypes.putAll(types);
+            repository.getCategoryActuals(fStart, fEnd, list -> {
+                actuals.clear();
+                actuals.addAll(list);
+                repository.getCategoryActuals(recentStart, recentEnd, recent -> {
+                    recentActuals.clear();
+                    recentActuals.addAll(recent);
+                    repository.getBudget(year, yb -> {
+                        budgetSource = yb.source;
+                        budgetLines.clear();
+                        budgetLines.addAll(yb.lines);
+                        if (budgetSource == null && settings.isBudgetInternal()) {
+                            // Automatisch aus dem Verlauf berechnen und erneut laden.
+                            repository.computeBudgetFromHistory(year, this::reload);
+                            return;
+                        }
+                        render();
+                    });
                 });
             });
         });
@@ -192,39 +199,38 @@ public class BudgetActivity extends LocalizedActivity {
     }
 
     /**
-     * Baut je Kategorie den Typ, den aktuellen Ist und das Soll. Der Typ richtet sich nach der
-     * <b>Kategorie</b> (Budget bzw. 2-Jahres-Netto), nicht nach der einzelnen Buchung – eine Einnahme auf
-     * einer Ausgabekategorie (z. B. Erstattung) mindert dort den Ist. Es zählen nur Kategorien mit
-     * Zahlungen in den letzten 2 Jahren.
+     * Baut je Kategorie den Typ, den aktuellen Ist und das Soll. Der Typ richtet sich <b>allein nach der
+     * kmy-Datei</b> ({@link #categoryTypes}, ersatzweise dem – ebenfalls aus der Datei stammenden – Typ der
+     * Budgetzeile), nicht nach dem Vorzeichen der Buchungen: eine Einnahme auf einer Ausgabekategorie
+     * (z. B. Erstattung) mindert dort den Ist, kippt die Kategorie aber nicht. Kategorien ohne kmy-Typ
+     * werden übersprungen. Es zählen nur Kategorien mit Zahlungen in den letzten 2 Jahren; ein negativer
+     * Netto-Ist wird auf 0 gesetzt.
      */
     private Map<String, Cat> buildCats() {
-        Map<String, long[]> period = sums(actuals);
-        Map<String, long[]> recent = sums(recentActuals);
+        Map<String, Long> period = sums(actuals);
+        Map<String, Long> recent = sums(recentActuals);
 
         Map<String, Long> annualByCat = new java.util.HashMap<>();
-        Map<String, Boolean> typeByCat = new java.util.HashMap<>();
+        Map<String, Boolean> budgetTypeByCat = new java.util.HashMap<>();
         for (Budget b : budgetLines) {
             annualByCat.put(b.category, b.amountCents);
-            typeByCat.put(b.category, b.isIncome);
+            budgetTypeByCat.put(b.category, b.isIncome);
         }
 
         Map<String, Cat> cats = new TreeMap<>(String.CASE_INSENSITIVE_ORDER);
-        for (Map.Entry<String, long[]> e : recent.entrySet()) {
-            long[] r = e.getValue();
-            if (r[0] == 0 && r[1] == 0) {
-                continue;   // keine Zahlung in den letzten 2 Jahren
-            }
-            String cat = e.getKey();
-            Boolean isInc = typeByCat.get(cat);
+        for (Map.Entry<String, Long> e : recent.entrySet()) {
+            String cat = e.getKey();   // in der 2-Jahres-Liste = Zahlung im Zeitraum vorhanden
+            Boolean isInc = categoryTypes.get(cat);
             if (isInc == null) {
-                isInc = r[0] > r[1];   // ohne Budget: Typ aus dem 2-Jahres-Netto
+                isInc = budgetTypeByCat.get(cat);   // Rückfall auf den kmy-Typ der Budgetzeile
             }
-            long[] pp = period.get(cat);
-            long pInc = pp == null ? 0 : pp[0];
-            long pExp = pp == null ? 0 : pp[1];
+            if (isInc == null) {
+                continue;   // strikt: nur Kategorien mit kmy-Typ
+            }
+            long net = period.containsKey(cat) ? period.get(cat) : 0;
             Cat c = new Cat();
             c.isIncome = isInc;
-            c.ist = isInc ? pInc - pExp : pExp - pInc;
+            c.ist = de.spahr.ausgaben.db.BudgetMath.ist(isInc, net);   // Typ-Richtung, Clamp auf 0
             c.annualSoll = annualByCat.containsKey(cat) ? annualByCat.get(cat) : 0;
             c.displaySoll = monthView ? Math.round(c.annualSoll / 12.0) : c.annualSoll;
             cats.put(cat, c);
@@ -232,19 +238,15 @@ public class BudgetActivity extends LocalizedActivity {
         return cats;
     }
 
-    /** Einnahme-/Ausgabe-Summen je Kategorie (beide positiv): [0]=Einnahme, [1]=Ausgabe. */
-    private Map<String, long[]> sums(List<CategorySum> list) {
-        Map<String, long[]> m = new TreeMap<>(String.CASE_INSENSITIVE_ORDER);
+    /** Vorzeichenbehafteter Netto-Zufluss je Kategorie ({@code +} = rein, {@code −} = raus). */
+    private Map<String, Long> sums(List<CategorySum> list) {
+        Map<String, Long> m = new TreeMap<>(String.CASE_INSENSITIVE_ORDER);
         for (CategorySum s : list) {
             if (s.category == null || s.category.isEmpty()) {
                 continue;
             }
-            long[] a = m.get(s.category);
-            if (a == null) {
-                a = new long[2];
-                m.put(s.category, a);
-            }
-            a[s.isIncome ? 0 : 1] += s.total;
+            Long v = m.get(s.category);
+            m.put(s.category, (v == null ? 0L : v) + s.total);
         }
         return m;
     }

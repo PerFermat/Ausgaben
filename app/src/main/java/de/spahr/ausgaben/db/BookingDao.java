@@ -44,21 +44,26 @@ public interface BookingDao {
     List<Booking> getRecent(int limit);
 
     /**
-     * Ist-Summen je Kategorie (Einnahme/Ausgabe) im Zeitraum [fromMs, toMs). Splitbuchungen werden nicht
-     * doppelt gezählt: Einzelbuchungen ohne Split über {@code booking.category}, Splitbuchungen über die
-     * Teilbeträge; Umbuchungen bleiben außen vor.
+     * Netto-Geldzufluss je Kategorie im Zeitraum [fromMs, toMs): eine Zeile je Kategorie, {@code total}
+     * ist <b>vorzeichenbehaftet</b> ({@code +} = Zufluss, {@code −} = Abfluss). Einordnung als Einnahme/
+     * Ausgabe erfolgt später anhand des Kategorietyps ({@code category_type}), nicht hier – deshalb wird
+     * {@code is_income} nicht mehr gesetzt. Splitbuchungen zählen über ihre vorzeichenbehafteten
+     * Teilbeträge (nicht doppelt), Umbuchungen bleiben außen vor.
      */
-    @Query("SELECT cat AS category, income AS is_income, SUM(amt) AS total FROM ("
-            + " SELECT category AS cat, is_income AS income, amount_cents AS amt FROM booking b "
+    @Query("SELECT cat AS category, SUM(signed) AS total FROM ("
+            + " SELECT category AS cat, "
+            + "        (CASE WHEN is_income THEN amount_cents ELSE -amount_cents END) AS signed "
+            + "   FROM booking b "
             + "   WHERE category != '' AND is_transfer = 0 "
             + "     AND created_at >= :fromMs AND created_at < :toMs "
             + "     AND NOT EXISTS (SELECT 1 FROM booking_split s WHERE s.booking_id = b.id) "
             + " UNION ALL "
-            + " SELECT bs.category AS cat, b.is_income AS income, ABS(bs.amount_cents) AS amt "
+            + " SELECT bs.category AS cat, "
+            + "        (CASE WHEN b.is_income THEN bs.amount_cents ELSE -bs.amount_cents END) AS signed "
             + "   FROM booking_split bs JOIN booking b ON bs.booking_id = b.id "
             + "   WHERE bs.category != '' AND b.is_transfer = 0 "
             + "     AND b.created_at >= :fromMs AND b.created_at < :toMs) "
-            + "GROUP BY cat, income")
+            + "GROUP BY cat")
     List<CategorySum> getCategoryActuals(long fromMs, long toMs);
 
     /** Jahre (mit Daten) mit Buchungen vor {@code ms} – Teiler für die Verlaufs-Budgetberechnung. */
@@ -117,20 +122,29 @@ public interface BookingDao {
             + "ORDER BY category COLLATE NOCASE ASC")
     List<String> getDistinctCategories();
 
-    /** Einnahme-Kategorien (Buchungen mit is_income=1; Split-Teile über die zugehörige Buchung). */
-    @Query("SELECT DISTINCT category FROM ("
-            + "SELECT category FROM booking WHERE category != '' AND is_income = 1 "
-            + "UNION SELECT bs.category FROM booking_split bs JOIN booking b ON bs.booking_id = b.id "
-            + "WHERE bs.category != '' AND b.is_income = 1) "
-            + "ORDER BY category COLLATE NOCASE ASC")
+    /**
+     * Einnahme-Kategorien: in Buchungen/Splits vorkommende Kategorien, deren kmy-Typ Einnahme ist
+     * ({@code category_type.is_income = 1}). Der Typ kommt allein aus der Datei, nicht aus der
+     * Buchungsrichtung – so erscheint keine Kategorie in beiden Listen. Kategorien ohne kmy-Typ fehlen.
+     */
+    @Query("SELECT DISTINCT c.category FROM ("
+            + "SELECT category FROM booking WHERE category != '' "
+            + "UNION SELECT category FROM booking_split WHERE category != '') c "
+            + "JOIN category_type ct ON ct.category = c.category COLLATE NOCASE "
+            + "WHERE ct.is_income = 1 "
+            + "ORDER BY c.category COLLATE NOCASE ASC")
     List<String> getIncomeCategories();
 
-    /** Ausgabe-Kategorien (Buchungen mit is_income=0; Split-Teile über die zugehörige Buchung). */
-    @Query("SELECT DISTINCT category FROM ("
-            + "SELECT category FROM booking WHERE category != '' AND is_income = 0 "
-            + "UNION SELECT bs.category FROM booking_split bs JOIN booking b ON bs.booking_id = b.id "
-            + "WHERE bs.category != '' AND b.is_income = 0) "
-            + "ORDER BY category COLLATE NOCASE ASC")
+    /**
+     * Ausgabe-Kategorien: in Buchungen/Splits vorkommende Kategorien, deren kmy-Typ Ausgabe ist
+     * ({@code category_type.is_income = 0}). Typ allein aus der Datei; Kategorien ohne kmy-Typ fehlen.
+     */
+    @Query("SELECT DISTINCT c.category FROM ("
+            + "SELECT category FROM booking WHERE category != '' "
+            + "UNION SELECT category FROM booking_split WHERE category != '') c "
+            + "JOIN category_type ct ON ct.category = c.category COLLATE NOCASE "
+            + "WHERE ct.is_income = 0 "
+            + "ORDER BY c.category COLLATE NOCASE ASC")
     List<String> getExpenseCategories();
 
     // ---- Splitbuchungs-Teile ----

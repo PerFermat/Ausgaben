@@ -11,8 +11,8 @@ import androidx.sqlite.db.SupportSQLiteDatabase;
 
 @Database(entities = {Booking.class, BookingSplit.class, Account.class, Payee.class, PlaceEntry.class,
         PayeeCorrection.class, Translation.class, Language.class, Security.class, SecurityTx.class,
-        Budget.class},
-        version = 23, exportSchema = false)
+        Budget.class, CategoryType.class},
+        version = 24, exportSchema = false)
 public abstract class AppDatabase extends RoomDatabase {
 
     /** v1 → v2: Notiz-Spalte ergänzen (bestehende Buchungen bleiben erhalten). */
@@ -259,6 +259,16 @@ public abstract class AppDatabase extends RoomDatabase {
         }
     };
 
+    /** Kategorie-Typ (Einnahme/Ausgabe) aus der KMyMoney-Datei – verlässliche Budget-Einordnung. */
+    static final Migration MIGRATION_23_24 = new Migration(23, 24) {
+        @Override
+        public void migrate(@NonNull SupportSQLiteDatabase db) {
+            db.execSQL("CREATE TABLE IF NOT EXISTS category_type ("
+                    + "category TEXT PRIMARY KEY NOT NULL, "
+                    + "is_income INTEGER NOT NULL)");
+        }
+    };
+
     public abstract BookingDao bookingDao();
 
     public abstract AccountDao accountDao();
@@ -274,6 +284,8 @@ public abstract class AppDatabase extends RoomDatabase {
     public abstract SecurityDao securityDao();
 
     public abstract BudgetDao budgetDao();
+
+    public abstract CategoryTypeDao categoryTypeDao();
 
     private static volatile AppDatabase instance;
 
@@ -291,7 +303,7 @@ public abstract class AppDatabase extends RoomDatabase {
                                     MIGRATION_13_14, MIGRATION_14_15, MIGRATION_15_16,
                                     MIGRATION_16_17, MIGRATION_17_18, MIGRATION_18_19,
                                     MIGRATION_19_20, MIGRATION_20_21, MIGRATION_21_22,
-                                    MIGRATION_22_23)
+                                    MIGRATION_22_23, MIGRATION_23_24)
                             .build();
                 }
             }

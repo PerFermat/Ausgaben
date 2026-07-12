@@ -243,6 +243,14 @@ public class KmyImporter {
         return out;
     }
 
+    /**
+     * Kategorie-Pfad → Typ ({@code true} = Einnahme, {@code false} = Ausgabe) für alle Kategorien der
+     * Datei (zum Klassifizieren aller Budget-Kategorien beim Import). Siehe {@code KmyDocument}.
+     */
+    public java.util.Map<String, Boolean> categoryTypes() {
+        return doc.categoryTypesByPath();
+    }
+
     /** Alle Buchungen, die einen Split auf dem gewählten Konto haben. */
     public List<Booking> bookingsForAccount(String accountName) throws IOException {
         List<Booking> out = new ArrayList<>();

@@ -1385,6 +1385,8 @@ public class MainActivity extends LocalizedActivity {
             }
             // Anlage/Verbindlichkeit für ALLE vorhandenen Konten aus der .kmy klassifizieren (nicht nur die neu importierten).
             repository.applyAccountTypes(importer.accountTypes());
+            // Kategorietyp (Einnahme/Ausgabe) für ALLE Kategorien der .kmy übernehmen (Budget-Einordnung).
+            repository.applyCategoryTypes(importer.categoryTypes());
             runOnUiThread(() -> repository.replaceImportAccounts(map, res -> {
                 dismissProgress();
                 Toast.makeText(this, getString(R.string.kmy_import_done_multi, res[1], res[0]),

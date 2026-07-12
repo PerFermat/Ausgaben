@@ -68,6 +68,8 @@ public class KmyDocument {
     private final Map<String, String> categoryToId = new LinkedHashMap<>();
     /** id → Kategorie-Pfad (für den Import). */
     private final Map<String, String> categoryIdToPath = new LinkedHashMap<>();
+    /** Kategorie-Pfad → Typ ({@code true} = Einnahme/Typ 12, {@code false} = Ausgabe/Typ 13). */
+    private final Map<String, Boolean> categoryIncomeByPath = new LinkedHashMap<>();
 
     private final Map<String, String> payeeNameToId = new LinkedHashMap<>();
     private final Map<String, String> payeeIdToName = new LinkedHashMap<>();
@@ -116,6 +118,14 @@ public class KmyDocument {
 
     public String categoryPath(String id) {
         return categoryIdToPath.get(id);
+    }
+
+    /**
+     * Kategorie-Pfad → Typ aus der Datei ({@code true} = Einnahme/Typ 12, {@code false} = Ausgabe/Typ 13)
+     * für <b>alle</b> Kategorien der Datei (auch ohne Buchungen). Einzige verlässliche Typ-Quelle.
+     */
+    public Map<String, Boolean> categoryTypesByPath() {
+        return new LinkedHashMap<>(categoryIncomeByPath);
     }
 
     public String payeeId(String name) {
@@ -422,6 +432,7 @@ public class KmyDocument {
                 categoryToId.put(path.toLowerCase(Locale.GERMANY), id);
                 categoryToId.put(name.trim().toLowerCase(Locale.GERMANY), id); // Blatt-Fallback
                 categoryIdToPath.put(id, path);
+                categoryIncomeByPath.put(path, type == TYPE_INCOME);
             } else if (type == TYPE_INVESTMENT) {
                 depotAccounts.put(name, id); // Depot – eigener Import-Pfad (Wertpapiere)
             } else if (type != TYPE_EQUITY && type != TYPE_STOCK) {

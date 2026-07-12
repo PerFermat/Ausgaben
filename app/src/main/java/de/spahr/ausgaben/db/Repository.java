@@ -31,6 +31,7 @@ public class Repository {
     private final TranslationDao translationDao;
     private final SecurityDao securityDao;
     private final BudgetDao budgetDao;
+    private final CategoryTypeDao categoryTypeDao;
     private final Context appContext;
     private final ExecutorService executor = Executors.newSingleThreadExecutor();
     private final Handler mainHandler = new Handler(Looper.getMainLooper());
@@ -51,7 +52,8 @@ public class Repository {
         this.translationDao = db.translationDao();
         this.securityDao = db.securityDao();
         this.budgetDao = db.budgetDao();
-        this.budgetRepo = new BudgetRepository(bookingDao, budgetDao, executor, mainHandler);
+        this.categoryTypeDao = db.categoryTypeDao();
+        this.budgetRepo = new BudgetRepository(bookingDao, budgetDao, categoryTypeDao, executor, mainHandler);
         this.depotRepo = new DepotRepository(securityDao, appContext, executor, mainHandler);
         this.aliasResolver = new AliasResolver(bookingDao, correctionDao, accountDao, executor, mainHandler);
     }
@@ -93,6 +95,23 @@ public class Repository {
                 if (e.getKey() != null && !e.getKey().trim().isEmpty()
                         && e.getValue() != null && e.getValue() != 0) {
                     accountDao.setType(e.getKey().trim(), e.getValue());
+                }
+            }
+        });
+    }
+
+    /**
+     * Übernimmt beim .kmy-Import den Typ <b>aller</b> Kategorien der Datei (Pfad → Einnahme/Ausgabe).
+     * Verlässliche, einzige Typ-Quelle für die Budget-Einordnung. Reines Upsert (mergt, löscht nichts).
+     */
+    public void applyCategoryTypes(final java.util.Map<String, Boolean> types) {
+        if (types == null || types.isEmpty()) {
+            return;
+        }
+        executor.execute(() -> {
+            for (java.util.Map.Entry<String, Boolean> e : types.entrySet()) {
+                if (e.getKey() != null && !e.getKey().trim().isEmpty() && e.getValue() != null) {
+                    categoryTypeDao.upsert(new CategoryType(e.getKey().trim(), e.getValue()));
                 }
             }
         });
@@ -870,6 +889,11 @@ public class Repository {
 
     public void getCategoryActuals(long fromMs, long toMs, Callback<List<CategorySum>> callback) {
         budgetRepo.getCategoryActuals(fromMs, toMs, callback);
+    }
+
+    /** Kategorie-Pfad → Typ ({@code true} = Einnahme) aus der Datei; verlässliche Budget-Einordnung. */
+    public void getCategoryTypes(Callback<Map<String, Boolean>> callback) {
+        budgetRepo.getCategoryTypes(callback);
     }
 
     public void getBudget(int year, Callback<YearBudget> callback) {

@@ -846,6 +846,54 @@ public class Repository {
         });
     }
 
+    /** Saldo (Einnahmen − Ausgaben) je Konto; fehlende Konten = 0. Für die Mehrfach-Konto-Verwaltung. */
+    public void getAllAccountBalances(final Callback<Map<String, Long>> callback) {
+        executor.execute(() -> {
+            final Map<String, Long> result = new HashMap<>();
+            for (AccountBalance ab : bookingDao.getAllAccountBalances()) {
+                if (ab.name != null) {
+                    result.put(ab.name, ab.balance);
+                }
+            }
+            mainHandler.post(() -> callback.onResult(result));
+        });
+    }
+
+    /** Schließt/öffnet mehrere Konten in einem Rutsch; {@code onDone} läuft einmal am Ende (Main-Thread). */
+    public void setAccountsClosed(final List<String> names, final boolean closed, final Runnable onDone) {
+        executor.execute(() -> {
+            if (names != null) {
+                for (String name : names) {
+                    if (name != null && !name.trim().isEmpty()) {
+                        accountDao.setClosed(name.trim(), closed);
+                    }
+                }
+            }
+            if (onDone != null) {
+                mainHandler.post(onDone);
+            }
+        });
+    }
+
+    /** Löscht mehrere Konten samt Buchungen in einem Rutsch; {@code onDone} läuft einmal am Ende. */
+    public void deleteAccounts(final List<String> accounts, final Runnable onDone) {
+        executor.execute(() -> {
+            if (accounts != null) {
+                for (String account : accounts) {
+                    if (account != null && !account.trim().isEmpty()) {
+                        bookingDao.deleteSplitsForAccount(account.trim());
+                        bookingDao.deleteAllByAccount(account.trim());
+                        placeEntryDao.deleteByAccount(account.trim());
+                        accountDao.deleteByName(account.trim());
+                    }
+                }
+            }
+            if (onDone != null) {
+                mainHandler.post(onDone);
+            }
+        });
+    }
+
     public void getCategoryNames(final Callback<List<String>> callback) {
         executor.execute(() -> {
             final List<String> result = bookingDao.getDistinctCategories();

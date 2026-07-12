@@ -97,6 +97,12 @@ public interface BookingDao {
             + "FROM booking WHERE account = :account")
     long getBalanceByAccount(String account);
 
+    /** Saldo je Konto (Einnahmen − Ausgaben); Konten ganz ohne Buchungen fehlen (Saldo 0). */
+    @Query("SELECT account AS name, "
+            + "COALESCE(SUM(CASE WHEN is_income THEN amount_cents ELSE -amount_cents END), 0) AS balance "
+            + "FROM booking GROUP BY account")
+    List<AccountBalance> getAllAccountBalances();
+
     /** Kontosaldo bis einschließlich dieser Buchung (nach created_at, bei Gleichstand nach id). */
     @Query("SELECT COALESCE(SUM(CASE WHEN is_income THEN amount_cents ELSE -amount_cents END), 0) "
             + "FROM booking WHERE account = :account "

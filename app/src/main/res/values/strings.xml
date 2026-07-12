@@ -235,7 +235,7 @@
     <string name="delete_account_done">Account “%1$s” deleted</string>
     <string name="no_accounts">No accounts available</string>
     <string name="account_manage">Delete/close account</string>
-    <string name="account_manage_choose">Choose account</string>
+    <string name="account_manage_choose">Choose accounts</string>
     <string name="account_status_active">Active</string>
     <string name="account_status_closed">Closed</string>
     <string name="account_status_line">%1$s — %2$s</string>
@@ -244,6 +244,10 @@
     <string name="account_close_needs_zero">Closing is only possible with a zero balance (currently %1$s).</string>
     <string name="account_closed_done">Account “%1$s” closed</string>
     <string name="account_reopened_done">Account “%1$s” reopened</string>
+    <string name="delete_accounts_confirm_message">%1$d account(s) and all their bookings will be permanently deleted.</string>
+    <string name="accounts_deleted_done">%1$d account(s) deleted</string>
+    <string name="accounts_closed_done">%1$d account(s) closed</string>
+    <string name="accounts_reopened_done">%1$d account(s) reopened</string>
 
     <!-- Places -->
     <string name="places_section">Places (cash balances)</string>
@@ -320,7 +324,9 @@
     <!-- KMyMoney export/import -->
     <string name="kmy_path_missing">Please specify the KMyMoney file in the settings</string>
     <string name="kmy_no_files">No .kmy file found in the folder</string>
-    <string name="kmy_choose_account">Choose account</string>
+    <string name="kmy_choose_account">Choose accounts</string>
+    <string name="kmy_import_selected">Import</string>
+    <string name="kmy_no_new_accounts">All accounts are already imported</string>
     <string name="kmy_choose_depot">%1$s (portfolio)</string>
     <string name="depot_import_done">Portfolio “%1$s” imported</string>
     <string name="depot_title">Portfolio</string>

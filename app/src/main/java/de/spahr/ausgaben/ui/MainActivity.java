@@ -1260,28 +1260,106 @@ public class MainActivity extends LocalizedActivity {
         }).start();
     }
 
-    /** Auswahl-Dialog: normale Konten + Depots (mit „(Depot)" markiert). */
+    /**
+     * Auswahl-Dialog mit Mehrfachauswahl: mehrere Konten (und/oder Depots) auf einmal importieren.
+     * Bereits importierte Konten (in der App vorhanden) werden ausgeblendet; Depots mit „(Depot)" markiert.
+     */
     private void chooseAccountForImport(KmyImporter importer, List<String> accounts, List<String> depots) {
-        List<String> labels = new ArrayList<>(accounts);
+        // Bereits vorhandene App-Konten ausblenden – nur noch nicht importierte Konten anbieten.
+        final List<String> newAccounts = new ArrayList<>();
+        for (String a : accounts) {
+            if (!containsIgnoreCase(appAccounts, a)) {
+                newAccounts.add(a);
+            }
+        }
+        List<String> labels = new ArrayList<>(newAccounts);
         for (String d : depots) {
             labels.add(getString(R.string.kmy_choose_depot, d));
         }
-        final int accountCount = accounts.size();
+        if (labels.isEmpty()) {
+            Toast.makeText(this, R.string.kmy_no_new_accounts, Toast.LENGTH_LONG).show();
+            return;
+        }
+        final int accountCount = newAccounts.size();
+        final boolean[] checked = new boolean[labels.size()];
         String[] items = labels.toArray(new String[0]);
         new MaterialAlertDialogBuilder(this, R.style.ThemeOverlay_Ausgaben_Dialog)
                 .setTitle(R.string.kmy_choose_account)
-                .setItems(items, (d, w) -> {
-                    if (w >= accountCount) {
-                        importDepotFlow(importer, depots.get(w - accountCount));
-                    } else {
-                        showProgress(getString(R.string.progress_importing));
-                        List<String> one = new ArrayList<>();
-                        one.add(accounts.get(w));
-                        new Thread(() -> replaceFromImporter(importer, one)).start();
+                .setMultiChoiceItems(items, checked, (d, which, isChecked) -> checked[which] = isChecked)
+                .setPositiveButton(R.string.kmy_import_selected, (d, w) -> {
+                    List<String> accountTargets = new ArrayList<>();
+                    List<String> depotTargets = new ArrayList<>();
+                    for (int i = 0; i < checked.length; i++) {
+                        if (!checked[i]) {
+                            continue;
+                        }
+                        if (i < accountCount) {
+                            accountTargets.add(newAccounts.get(i));
+                        } else {
+                            depotTargets.add(depots.get(i - accountCount));
+                        }
                     }
+                    if (accountTargets.isEmpty() && depotTargets.isEmpty()) {
+                        return; // nichts angehakt
+                    }
+                    startBatchImport(importer, accountTargets, depotTargets);
                 })
                 .setNegativeButton(R.string.cancel, null)
                 .show();
+    }
+
+    /** Importiert die gewählten Konten als Batch und anschließend die gewählten Depots nacheinander. */
+    private void startBatchImport(KmyImporter importer, List<String> accountTargets,
+                                  List<String> depotTargets) {
+        showProgress(getString(R.string.progress_importing));
+        new Thread(() -> {
+            try {
+                if (accountTargets.isEmpty()) {
+                    runOnUiThread(() -> importDepotsThenFinish(importer, depotTargets, 0, 0));
+                    return;
+                }
+                java.util.LinkedHashMap<String, List<Booking>> map = new java.util.LinkedHashMap<>();
+                for (String acc : accountTargets) {
+                    map.put(acc, importer.bookingsForAccount(acc));
+                    repository.setAccountCurrency(acc, importer.currencyOf(acc));
+                }
+                // Konto- und Kategorietypen für ALLE Konten/Kategorien der .kmy übernehmen.
+                repository.applyAccountTypes(importer.accountTypes());
+                repository.applyCategoryTypes(importer.categoryTypes());
+                runOnUiThread(() -> repository.replaceImportAccounts(map, res ->
+                        importDepotsThenFinish(importer, depotTargets, res[1], res[0])));
+            } catch (Exception e) {
+                postImportError(e);
+            }
+        }).start();
+    }
+
+    /** Importiert die Depots der Reihe nach; am Ende Abschluss-Toast + Schublade aktualisieren. */
+    private void importDepotsThenFinish(KmyImporter importer, List<String> depots,
+                                        int insertedBookings, int accountCount) {
+        if (depots.isEmpty()) {
+            dismissProgress();
+            if (accountCount > 0) {
+                Toast.makeText(this, getString(R.string.kmy_import_done_multi, insertedBookings,
+                        accountCount), Toast.LENGTH_LONG).show();
+            }
+            refreshBookings();
+            return;
+        }
+        final String depot = depots.get(0);
+        final List<String> rest = new ArrayList<>(depots.subList(1, depots.size()));
+        new Thread(() -> {
+            try {
+                KmyImporter.DepotData data = importer.importDepot(depot);
+                repository.replaceDepotImport(depot, data.securities, data.transactions, () -> {
+                    Toast.makeText(this, getString(R.string.depot_import_done, depot),
+                            Toast.LENGTH_LONG).show();
+                    importDepotsThenFinish(importer, rest, insertedBookings, accountCount);
+                });
+            } catch (Exception e) {
+                postImportError(e);
+            }
+        }).start();
     }
 
     /** Langer Tipp in der Schublade: lädt die .kmy und aktualisiert genau dieses Depot. */
@@ -1313,12 +1391,6 @@ public class MainActivity extends LocalizedActivity {
                 postImportError(e);
             }
         }).start();
-    }
-
-    /** Importiert ein Depot (Wertpapiere + Bewegungen) und ersetzt dessen Daten. */
-    private void importDepotFlow(KmyImporter importer, String depotName) {
-        showProgress(getString(R.string.progress_importing));
-        new Thread(() -> importAndReplaceDepot(importer, depotName)).start();
     }
 
     /** Läuft im Hintergrund: Depot importieren, Daten ersetzen, Toast + Schublade aktualisieren. */

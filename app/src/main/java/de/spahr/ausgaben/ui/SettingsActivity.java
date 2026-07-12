@@ -6,6 +6,7 @@ import android.os.Bundle;
 import android.view.Gravity;
 import android.view.View;
 import android.widget.ArrayAdapter;
+import android.widget.Button;
 import android.widget.CompoundButton;
 import android.widget.EditText;
 import android.widget.LinearLayout;
@@ -14,6 +15,7 @@ import android.widget.Toast;
 
 import androidx.activity.result.ActivityResultLauncher;
 import androidx.activity.result.contract.ActivityResultContracts;
+import androidx.appcompat.app.AlertDialog;
 import androidx.appcompat.app.AppCompatActivity;
 import androidx.appcompat.app.AppCompatDelegate;
 
@@ -36,6 +38,7 @@ import java.util.ArrayList;
 import java.util.Date;
 import java.util.List;
 import java.util.Locale;
+import java.util.Map;
 
 import de.spahr.ausgaben.AusgabenApp;
 import de.spahr.ausgaben.R;
@@ -628,73 +631,137 @@ public class SettingsActivity extends LocalizedActivity {
         }
     }
 
-    /** „Konto löschen/schließen": alle Konten mit Status anzeigen → Aktion (löschen/schließen/öffnen). */
+    /**
+     * „Konto löschen/schließen": alle Konten mit Status als Mehrfachauswahl. Untere Zeile (vor „Abbrechen"):
+     * „Löschen" (immer bei Auswahl) und die kontextabhängige Aktion „Schließen"/„Öffnen". „Schließen" gibt es
+     * nur, wenn <b>alle</b> ausgewählten Konten Saldo 0 haben; „Öffnen", wenn alle ausgewählten geschlossen sind.
+     */
     private void manageAccounts() {
         repository.getAllAccountsWithStatus(accounts -> {
             if (accounts.isEmpty()) {
                 Toast.makeText(this, R.string.no_accounts, Toast.LENGTH_LONG).show();
                 return;
             }
-            String[] items = new String[accounts.size()];
-            for (int i = 0; i < accounts.size(); i++) {
-                de.spahr.ausgaben.db.Account a = accounts.get(i);
-                String status = getString(a.closed
-                        ? R.string.account_status_closed : R.string.account_status_active);
-                items[i] = getString(R.string.account_status_line, a.name, status);
-            }
-            new MaterialAlertDialogBuilder(this, R.style.ThemeOverlay_Ausgaben_Dialog)
-                    .setTitle(R.string.account_manage_choose)
-                    .setItems(items, (d, w) -> onAccountChosen(accounts.get(w)))
-                    .setNegativeButton(R.string.cancel, null)
-                    .show();
+            repository.getAllAccountBalances(balances -> showAccountsDialog(accounts, balances));
         });
     }
 
-    /** Aktions-Dialog für ein Konto: schließen (nur bei Saldo 0) bzw. öffnen, oder löschen. */
-    private void onAccountChosen(de.spahr.ausgaben.db.Account a) {
-        if (a.closed) {
-            showAccountActions(a.name, true, false, 0);
-        } else {
-            repository.getAccountBalance(a.name, bal -> showAccountActions(a.name, false, bal == 0, bal));
+    /** Mehrfachauswahl-Dialog; die Aktionsbuttons werden je nach Auswahl dynamisch ein-/ausgeblendet. */
+    private void showAccountsDialog(List<de.spahr.ausgaben.db.Account> accounts, Map<String, Long> balances) {
+        String[] items = new String[accounts.size()];
+        for (int i = 0; i < accounts.size(); i++) {
+            de.spahr.ausgaben.db.Account a = accounts.get(i);
+            String status = getString(a.closed
+                    ? R.string.account_status_closed : R.string.account_status_active);
+            items[i] = getString(R.string.account_status_line, a.name, status);
         }
+        final boolean[] checked = new boolean[accounts.size()];
+        final Runnable[] updater = new Runnable[1];
+        // Untere Zeile (links→rechts): „Löschen" (Neutral) · „Schließen"/„Öffnen" (Negativ) · „Abbrechen" (Positiv).
+        final AlertDialog dlg = new MaterialAlertDialogBuilder(this, R.style.ThemeOverlay_Ausgaben_Dialog)
+                .setTitle(R.string.account_manage_choose)
+                .setMultiChoiceItems(items, checked, (d, which, isChecked) -> {
+                    checked[which] = isChecked;
+                    if (updater[0] != null) {
+                        updater[0].run();
+                    }
+                })
+                .setNeutralButton(R.string.delete, null)
+                .setNegativeButton(R.string.account_close, null)
+                .setPositiveButton(R.string.cancel, null)
+                .create();
+        dlg.setOnShowListener(dialog -> {
+            Button delBtn = dlg.getButton(AlertDialog.BUTTON_NEUTRAL);
+            Button actBtn = dlg.getButton(AlertDialog.BUTTON_NEGATIVE); // Schließen/Öffnen (dynamisch)
+            updater[0] = () -> {
+                List<de.spahr.ausgaben.db.Account> sel = selectedAccounts(accounts, checked);
+                delBtn.setEnabled(!sel.isEmpty());
+                boolean allClosed = !sel.isEmpty();
+                boolean allOpenZero = !sel.isEmpty();
+                for (de.spahr.ausgaben.db.Account a : sel) {
+                    long bal = balances.containsKey(a.name) ? balances.get(a.name) : 0L;
+                    if (!a.closed) {
+                        allClosed = false;
+                    }
+                    if (a.closed || bal != 0) {
+                        allOpenZero = false;
+                    }
+                }
+                if (allClosed) {
+                    actBtn.setText(R.string.account_reopen);
+                    actBtn.setVisibility(View.VISIBLE);
+                } else if (allOpenZero) {
+                    actBtn.setText(R.string.account_close);
+                    actBtn.setVisibility(View.VISIBLE);
+                } else {
+                    actBtn.setVisibility(View.GONE); // Schließen nur bei Saldo 0 aller Ausgewählten
+                }
+            };
+            delBtn.setOnClickListener(v -> {
+                List<de.spahr.ausgaben.db.Account> sel = selectedAccounts(accounts, checked);
+                if (sel.isEmpty()) {
+                    return;
+                }
+                dlg.dismiss();
+                confirmDeleteAccounts(accountNames(sel));
+            });
+            actBtn.setOnClickListener(v -> {
+                List<de.spahr.ausgaben.db.Account> sel = selectedAccounts(accounts, checked);
+                if (sel.isEmpty()) {
+                    return;
+                }
+                boolean allClosed = true;
+                for (de.spahr.ausgaben.db.Account a : sel) {
+                    if (!a.closed) {
+                        allClosed = false;
+                        break;
+                    }
+                }
+                final List<String> names = accountNames(sel);
+                final boolean reopen = allClosed;
+                dlg.dismiss();
+                repository.setAccountsClosed(names, !reopen, () ->
+                        Toast.makeText(this, getString(reopen
+                                ? R.string.accounts_reopened_done : R.string.accounts_closed_done,
+                                names.size()), Toast.LENGTH_SHORT).show());
+            });
+            updater[0].run();
+        });
+        dlg.show();
     }
 
-    private void showAccountActions(String name, boolean closed, boolean canClose, long balance) {
-        MaterialAlertDialogBuilder b = new MaterialAlertDialogBuilder(this, R.style.ThemeOverlay_Ausgaben_Dialog)
-                .setTitle(name);
-        if (closed) {
-            b.setPositiveButton(R.string.account_reopen, (d, w) -> repository.setAccountClosed(name, false, () -> {
-                Toast.makeText(this, getString(R.string.account_reopened_done, name), Toast.LENGTH_SHORT).show();
-                manageAccounts();
-            }));
-        } else if (canClose) {
-            b.setPositiveButton(R.string.account_close, (d, w) -> repository.setAccountClosed(name, true, () -> {
-                Toast.makeText(this, getString(R.string.account_closed_done, name), Toast.LENGTH_SHORT).show();
-                manageAccounts();
-            }));
-        } else {
-            b.setMessage(getString(R.string.account_close_needs_zero, formatCents(balance, name)));
+    /** Die aktuell angehakten Konten. */
+    private List<de.spahr.ausgaben.db.Account> selectedAccounts(
+            List<de.spahr.ausgaben.db.Account> accounts, boolean[] checked) {
+        List<de.spahr.ausgaben.db.Account> sel = new ArrayList<>();
+        for (int i = 0; i < accounts.size(); i++) {
+            if (checked[i]) {
+                sel.add(accounts.get(i));
+            }
         }
-        b.setNeutralButton(R.string.delete, (d, w) -> confirmDeleteAccount(name));
-        b.setNegativeButton(R.string.cancel, null);
-        b.show();
+        return sel;
     }
 
-    private String formatCents(long cents, String account) {
-        return de.spahr.ausgaben.settings.MoneyFormat.display(cents,
-                de.spahr.ausgaben.settings.Currencies.forAccount(account));
+    private List<String> accountNames(List<de.spahr.ausgaben.db.Account> accounts) {
+        List<String> names = new ArrayList<>();
+        for (de.spahr.ausgaben.db.Account a : accounts) {
+            names.add(a.name);
+        }
+        return names;
     }
 
-    private void confirmDeleteAccount(String account) {
+    private void confirmDeleteAccounts(List<String> accounts) {
         new MaterialAlertDialogBuilder(this, R.style.ThemeOverlay_Ausgaben_Dialog)
                 .setTitle(R.string.delete_account_confirm_title)
-                .setMessage(getString(R.string.delete_account_confirm_message, account))
-                .setPositiveButton(R.string.delete, (d, w) -> repository.deleteAccount(account, () -> {
-                    placesStore.removeAccount(account);
-                    if (account.equals(placesAccount)) {
-                        placesAccount = settings.getDefaultAccount();
+                .setMessage(getString(R.string.delete_accounts_confirm_message, accounts.size()))
+                .setPositiveButton(R.string.delete, (d, w) -> repository.deleteAccounts(accounts, () -> {
+                    for (String account : accounts) {
+                        placesStore.removeAccount(account);
+                        if (account.equals(placesAccount)) {
+                            placesAccount = settings.getDefaultAccount();
+                        }
                     }
-                    Toast.makeText(this, getString(R.string.delete_account_done, account),
+                    Toast.makeText(this, getString(R.string.accounts_deleted_done, accounts.size()),
                             Toast.LENGTH_LONG).show();
                 }))
                 .setNegativeButton(R.string.cancel, null)

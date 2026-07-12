@@ -235,7 +235,7 @@
     <string name="delete_account_done">Konto „%1$s" gelöscht</string>
     <string name="no_accounts">Keine Konten vorhanden</string>
     <string name="account_manage">Konto löschen/schließen</string>
-    <string name="account_manage_choose">Konto wählen</string>
+    <string name="account_manage_choose">Konten wählen</string>
     <string name="account_status_active">Aktiv</string>
     <string name="account_status_closed">Geschlossen</string>
     <string name="account_status_line">%1$s — %2$s</string>
@@ -244,6 +244,10 @@
     <string name="account_close_needs_zero">Schließen nur bei Saldo 0 möglich (aktuell %1$s).</string>
     <string name="account_closed_done">Konto „%1$s" geschlossen</string>
     <string name="account_reopened_done">Konto „%1$s" geöffnet</string>
+    <string name="delete_accounts_confirm_message">%1$d Konto/Konten und alle zugehörigen Buchungen werden endgültig gelöscht.</string>
+    <string name="accounts_deleted_done">%1$d Konto/Konten gelöscht</string>
+    <string name="accounts_closed_done">%1$d Konto/Konten geschlossen</string>
+    <string name="accounts_reopened_done">%1$d Konto/Konten geöffnet</string>
 
     <!-- Orte -->
     <string name="places_section">Orte (Bargeld-Bestände)</string>
@@ -320,7 +324,9 @@
     <!-- KMyMoney-Export/Import -->
     <string name="kmy_path_missing">Bitte die KMyMoney-Datei in den Einstellungen angeben</string>
     <string name="kmy_no_files">Keine .kmy-Datei im Ordner gefunden</string>
-    <string name="kmy_choose_account">Konto auswählen</string>
+    <string name="kmy_choose_account">Konten auswählen</string>
+    <string name="kmy_import_selected">Importieren</string>
+    <string name="kmy_no_new_accounts">Alle Konten sind bereits importiert</string>
     <string name="kmy_choose_depot">%1$s (Depot)</string>
     <string name="depot_import_done">Depot „%1$s" importiert</string>
     <string name="depot_title">Depot</string>

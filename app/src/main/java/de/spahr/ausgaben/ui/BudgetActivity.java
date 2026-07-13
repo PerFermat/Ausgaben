@@ -1,7 +1,10 @@
 package de.spahr.ausgaben.ui;
 
+import android.graphics.Color;
 import android.os.Bundle;
+import android.view.GestureDetector;
 import android.view.Gravity;
+import android.view.MotionEvent;
 import android.view.View;
 import android.widget.LinearLayout;
 import android.widget.TextView;
@@ -16,9 +19,11 @@ import com.google.android.material.textfield.TextInputLayout;
 
 import java.math.BigDecimal;
 import java.math.RoundingMode;
+import java.text.SimpleDateFormat;
 import java.util.ArrayList;
 import java.util.Calendar;
 import java.util.List;
+import java.util.Locale;
 import java.util.Map;
 import java.util.TreeMap;
 
@@ -44,6 +49,9 @@ public class BudgetActivity extends LocalizedActivity {
     private int year;
     private boolean monthView = false;      // false = Jahr, true = Monat
     private boolean includeSubs = false;    // false = nur Haupt, true = mit Unter
+    private int monthOffset = 0;            // Monatssicht: 0 = aktueller Monat, ±n = vor/zurück (Wischgeste)
+    private int displayYear;                // Jahr des aktuell angezeigten Zeitraums (folgt monthOffset)
+    private int displayMonth;               // 1–12 = angezeigter Monat (Monatssicht), 0 = Jahressicht
 
     private final List<CategorySum> actuals = new ArrayList<>();
     /** Ist-Summen der letzten 2 Jahre – für Kategorie-Typ und Aktivitätsfilter. */
@@ -53,6 +61,7 @@ public class BudgetActivity extends LocalizedActivity {
     /** Kategorie-Pfad → Typ ({@code true} = Einnahme) aus der Datei; verlässliche Einordnung. */
     private final Map<String, Boolean> categoryTypes = new java.util.HashMap<>();
     private double elapsed = 0;
+    private GestureDetector swipeDetector;   // Monats-Wischgeste, ganzflächig via dispatchTouchEvent
 
     @Override
     protected void onCreate(Bundle savedInstanceState) {
@@ -75,7 +84,27 @@ public class BudgetActivity extends LocalizedActivity {
                 return;
             }
             monthView = checkedId == R.id.btnMonthView;
+            monthOffset = 0;   // Monatssicht startet immer beim aktuellen Monat
             reload();
+        });
+
+        // Monatssicht: Wischen nach rechts = Monat davor, nach links = Monat danach.
+        // Über dispatchTouchEvent aktiv auf dem ganzen Bildschirm (auch über Zeilen mit Long-Press).
+        swipeDetector = new GestureDetector(this, new GestureDetector.SimpleOnGestureListener() {
+            @Override
+            public boolean onFling(MotionEvent e1, MotionEvent e2, float vx, float vy) {
+                if (!monthView || e1 == null || e2 == null) {
+                    return false;
+                }
+                float dx = e2.getX() - e1.getX();
+                if (Math.abs(dx) > Math.abs(e2.getY() - e1.getY())
+                        && Math.abs(dx) > dp(60) && Math.abs(vx) > dp(60)) {
+                    monthOffset += dx > 0 ? -1 : 1;
+                    reload();
+                    return true;
+                }
+                return false;
+            }
         });
 
         MaterialButtonToggleGroup toggleScope = findViewById(R.id.toggleScope);
@@ -95,6 +124,15 @@ public class BudgetActivity extends LocalizedActivity {
         reload();
     }
 
+    /** Wischgeste ganzflächig auswerten, danach normal weiterreichen (Scrollen/Klicks bleiben). */
+    @Override
+    public boolean dispatchTouchEvent(MotionEvent ev) {
+        if (swipeDetector != null) {
+            swipeDetector.onTouchEvent(ev);
+        }
+        return super.dispatchTouchEvent(ev);
+    }
+
     // ---- Laden ----
 
     private void reload() {
@@ -106,13 +144,18 @@ public class BudgetActivity extends LocalizedActivity {
             c.set(Calendar.MINUTE, 0);
             c.set(Calendar.SECOND, 0);
             c.set(Calendar.MILLISECOND, 0);
+            c.add(Calendar.MONTH, monthOffset);   // per Wischgeste vor/zurück
             start = c.getTimeInMillis();
+            displayYear = c.get(Calendar.YEAR);
+            displayMonth = c.get(Calendar.MONTH) + 1;
             c.add(Calendar.MONTH, 1);
             end = c.getTimeInMillis();
         } else {
             c.clear();
             c.set(Calendar.YEAR, year);
             start = c.getTimeInMillis();
+            displayYear = year;
+            displayMonth = 0;
             c.add(Calendar.YEAR, 1);
             end = c.getTimeInMillis();
         }
@@ -124,6 +167,7 @@ public class BudgetActivity extends LocalizedActivity {
         final long recentStart = rc.getTimeInMillis();
         final long recentEnd = now;
         final long fStart = start, fEnd = end;
+        final int budgetYear = displayYear;
         repository.getCategoryTypes(types -> {
             categoryTypes.clear();
             categoryTypes.putAll(types);
@@ -133,13 +177,13 @@ public class BudgetActivity extends LocalizedActivity {
                 repository.getCategoryActuals(recentStart, recentEnd, recent -> {
                     recentActuals.clear();
                     recentActuals.addAll(recent);
-                    repository.getBudget(year, yb -> {
+                    repository.getBudget(budgetYear, yb -> {
                         budgetSource = yb.source;
                         budgetLines.clear();
                         budgetLines.addAll(yb.lines);
                         if (budgetSource == null && settings.isBudgetInternal()) {
                             // Automatisch aus dem Verlauf berechnen und erneut laden.
-                            repository.computeBudgetFromHistory(year, this::reload);
+                            repository.computeBudgetFromHistory(budgetYear, this::reload);
                             return;
                         }
                         render();
@@ -159,10 +203,65 @@ public class BudgetActivity extends LocalizedActivity {
             return;
         }
 
+        if (monthView) {
+            addMonthNavHeader();
+        }
         Map<String, Cat> cats = buildCats();
         String currency = Currencies.getDefault();
         renderSection(cats, true, getString(R.string.budget_income_header), currency);
         renderSection(cats, false, getString(R.string.budget_expense_header), currency);
+    }
+
+    /**
+     * Kopfzeile der Monatssicht: zentriert der angezeigte Monat, links (grau) der vorige, rechts (grau)
+     * der nächste. Tippen auf links/rechts blättert – wie die Wischgeste – einen Monat zurück/vor.
+     */
+    private void addMonthNavHeader() {
+        Calendar cur = Calendar.getInstance();
+        cur.set(Calendar.DAY_OF_MONTH, 1);
+        cur.add(Calendar.MONTH, monthOffset);
+        Calendar prev = (Calendar) cur.clone();
+        prev.add(Calendar.MONTH, -1);
+        Calendar next = (Calendar) cur.clone();
+        next.add(Calendar.MONTH, 1);
+
+        LinearLayout header = new LinearLayout(this);
+        header.setOrientation(LinearLayout.HORIZONTAL);
+        header.setPadding(0, dp(4), 0, dp(8));
+
+        TextView left = monthLabel(prev, false);
+        left.setGravity(Gravity.START | Gravity.CENTER_VERTICAL);
+        left.setOnClickListener(v -> {
+            monthOffset--;
+            reload();
+        });
+        TextView center = monthLabel(cur, true);
+        center.setGravity(Gravity.CENTER);
+        TextView right = monthLabel(next, false);
+        right.setGravity(Gravity.END | Gravity.CENTER_VERTICAL);
+        right.setOnClickListener(v -> {
+            monthOffset++;
+            reload();
+        });
+
+        header.addView(left, new LinearLayout.LayoutParams(0, LinearLayout.LayoutParams.WRAP_CONTENT, 1f));
+        header.addView(center, new LinearLayout.LayoutParams(0, LinearLayout.LayoutParams.WRAP_CONTENT, 1f));
+        header.addView(right, new LinearLayout.LayoutParams(0, LinearLayout.LayoutParams.WRAP_CONTENT, 1f));
+        container.addView(header);
+    }
+
+    /** Monatslabel; {@code center} = angezeigter Monat (fett, mit Jahr), sonst grauer Monatsname. */
+    private TextView monthLabel(Calendar cal, boolean center) {
+        Locale locale = getResources().getConfiguration().getLocales().get(0);
+        TextView tv = new TextView(this);
+        tv.setText(new SimpleDateFormat(center ? "MMMM yyyy" : "MMMM", locale).format(cal.getTime()));
+        if (center) {
+            tv.setTextSize(18);
+            tv.setTypeface(tv.getTypeface(), android.graphics.Typeface.BOLD);
+        } else {
+            tv.setTextColor(Color.GRAY);
+        }
+        return tv;
     }
 
     private void renderEmptyState() {
@@ -174,7 +273,7 @@ public class BudgetActivity extends LocalizedActivity {
         MaterialButton compute = new MaterialButton(this);
         compute.setText(R.string.budget_compute);
         compute.setOnClickListener(v ->
-                repository.computeBudgetFromHistory(year, this::reload));
+                repository.computeBudgetFromHistory(displayYear, this::reload));
         container.addView(compute);
 
         if (settings.isKmyMode()) {
@@ -182,7 +281,7 @@ public class BudgetActivity extends LocalizedActivity {
                     null, com.google.android.material.R.attr.materialButtonOutlinedStyle);
             imp.setText(R.string.budget_import);
             imp.setOnClickListener(v ->
-                    BudgetImportFlow.run(this, settings, repository, year, this::reload));
+                    BudgetImportFlow.run(this, settings, repository, displayYear, this::reload));
             LinearLayout.LayoutParams lp = new LinearLayout.LayoutParams(
                     LinearLayout.LayoutParams.MATCH_PARENT, LinearLayout.LayoutParams.WRAP_CONTENT);
             lp.topMargin = dp(8);
@@ -205,17 +304,32 @@ public class BudgetActivity extends LocalizedActivity {
      * (z. B. Erstattung) mindert dort den Ist, kippt die Kategorie aber nicht. Kategorien ohne kmy-Typ
      * werden übersprungen. Es zählen nur Kategorien mit Zahlungen in den letzten 2 Jahren; ein negativer
      * Netto-Ist wird auf 0 gesetzt.
+     *
+     * <p>Soll: Jahressicht = Jahreswert (Summe der Monatszeilen). Monatssicht = der Wert des aktuellen
+     * Monats bei monatsgenauen Budgets ({@code month=1..12}), sonst Jahreswert/12.</p>
      */
     private Map<String, Cat> buildCats() {
         Map<String, Long> period = sums(actuals);
         Map<String, Long> recent = sums(recentActuals);
 
+        // Budgetzeilen je Kategorie einsammeln: Jahres-Soll (month=0) bzw. Monatswerte (month=1..12).
         Map<String, Long> annualByCat = new java.util.HashMap<>();
+        Map<String, long[]> monthlyByCat = new java.util.HashMap<>();
         Map<String, Boolean> budgetTypeByCat = new java.util.HashMap<>();
         for (Budget b : budgetLines) {
-            annualByCat.put(b.category, b.amountCents);
             budgetTypeByCat.put(b.category, b.isIncome);
+            if (b.month >= 1 && b.month <= 12) {
+                long[] m = monthlyByCat.get(b.category);
+                if (m == null) {
+                    m = new long[12];
+                    monthlyByCat.put(b.category, m);
+                }
+                m[b.month - 1] += b.amountCents;
+            } else {
+                annualByCat.put(b.category, b.amountCents);
+            }
         }
+        int curMonth = monthView ? displayMonth : 1;   // angezeigter Monat (folgt der Wischgeste)
 
         Map<String, Cat> cats = new TreeMap<>(String.CASE_INSENSITIVE_ORDER);
         for (Map.Entry<String, Long> e : recent.entrySet()) {
@@ -231,8 +345,18 @@ public class BudgetActivity extends LocalizedActivity {
             Cat c = new Cat();
             c.isIncome = isInc;
             c.ist = de.spahr.ausgaben.db.BudgetMath.ist(isInc, net);   // Typ-Richtung, Clamp auf 0
-            c.annualSoll = annualByCat.containsKey(cat) ? annualByCat.get(cat) : 0;
-            c.displaySoll = monthView ? Math.round(c.annualSoll / 12.0) : c.annualSoll;
+            long[] monthly = monthlyByCat.get(cat);
+            if (monthly != null) {
+                long annual = 0;
+                for (long v : monthly) {
+                    annual += v;
+                }
+                c.annualSoll = annual;
+                c.displaySoll = monthView ? monthly[curMonth - 1] : annual;   // Monat = konkreter Monatswert
+            } else {
+                c.annualSoll = annualByCat.containsKey(cat) ? annualByCat.get(cat) : 0;
+                c.displaySoll = monthView ? Math.round(c.annualSoll / 12.0) : c.annualSoll;
+            }
             cats.put(cat, c);
         }
         return cats;
@@ -363,7 +487,10 @@ public class BudgetActivity extends LocalizedActivity {
 
         boolean editable = !Budget.SOURCE_KMY.equals(budgetSource);
         if (editable) {
-            row.setOnClickListener(v -> showEditDialog(category, income, currency));
+            row.setOnLongClickListener(v -> {
+                showEditDialog(category, income, currency);
+                return true;
+            });
         }
         container.addView(row);
     }
@@ -433,7 +560,7 @@ public class BudgetActivity extends LocalizedActivity {
                         Toast.makeText(this, R.string.budget_invalid_amount, Toast.LENGTH_SHORT).show();
                         return;
                     }
-                    repository.saveBudgetLine(year, category, income, cents, this::reload);
+                    repository.saveBudgetLine(displayYear, category, income, cents, this::reload);
                 })
                 .setNegativeButton(android.R.string.cancel, null)
                 .show();

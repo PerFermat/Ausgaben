@@ -12,7 +12,7 @@ import androidx.sqlite.db.SupportSQLiteDatabase;
 @Database(entities = {Booking.class, BookingSplit.class, Account.class, Payee.class, PlaceEntry.class,
         PayeeCorrection.class, Translation.class, Language.class, Security.class, SecurityTx.class,
         Budget.class, CategoryType.class},
-        version = 24, exportSchema = false)
+        version = 25, exportSchema = false)
 public abstract class AppDatabase extends RoomDatabase {
 
     /** v1 → v2: Notiz-Spalte ergänzen (bestehende Buchungen bleiben erhalten). */
@@ -269,6 +269,17 @@ public abstract class AppDatabase extends RoomDatabase {
         }
     };
 
+    /** Monatsbudgets: Spalte month (0 = Jahr, 1–12 = Monat) + Unique-Index inkl. month. */
+    static final Migration MIGRATION_24_25 = new Migration(24, 25) {
+        @Override
+        public void migrate(@NonNull SupportSQLiteDatabase db) {
+            db.execSQL("ALTER TABLE budget ADD COLUMN month INTEGER NOT NULL DEFAULT 0");
+            db.execSQL("DROP INDEX IF EXISTS index_budget_year_category_is_income");
+            db.execSQL("CREATE UNIQUE INDEX IF NOT EXISTS index_budget_year_month_category_is_income "
+                    + "ON budget(year, month, category, is_income)");
+        }
+    };
+
     public abstract BookingDao bookingDao();
 
     public abstract AccountDao accountDao();
@@ -303,7 +314,7 @@ public abstract class AppDatabase extends RoomDatabase {
                                     MIGRATION_13_14, MIGRATION_14_15, MIGRATION_15_16,
                                     MIGRATION_16_17, MIGRATION_17_18, MIGRATION_18_19,
                                     MIGRATION_19_20, MIGRATION_20_21, MIGRATION_21_22,
-                                    MIGRATION_22_23, MIGRATION_23_24)
+                                    MIGRATION_22_23, MIGRATION_23_24, MIGRATION_24_25)
                             .build();
                 }
             }

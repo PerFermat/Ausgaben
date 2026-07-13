@@ -93,7 +93,18 @@ final class BudgetImportFlow {
                               KmyImporter importer, int sourceYear, Runnable onDone) {
         List<Budget> lines = new ArrayList<>();
         for (KmyDocument.BudgetEntry e : importer.budgetEntries(sourceYear)) {
-            lines.add(new Budget(targetYear, e.category, e.isIncome, e.yearlyCents, Budget.SOURCE_KMY));
+            if (e.monthlyCents != null) {
+                // Monatsgenaues Budget (monthbymonth): je Monat mit Betrag eine Zeile (month 1–12).
+                for (int m = 0; m < 12; m++) {
+                    if (e.monthlyCents[m] != 0) {
+                        lines.add(new Budget(targetYear, m + 1, e.category, e.isIncome,
+                                e.monthlyCents[m], Budget.SOURCE_KMY));
+                    }
+                }
+            } else {
+                // Jahres-Soll (yearly/monthly): eine Zeile month=0 (Monatssicht = /12).
+                lines.add(new Budget(targetYear, e.category, e.isIncome, e.yearlyCents, Budget.SOURCE_KMY));
+            }
         }
         repository.replaceBudget(targetYear, Budget.SOURCE_KMY, lines, () -> {
             Toast.makeText(activity, R.string.budget_import_done, Toast.LENGTH_LONG).show();

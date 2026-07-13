@@ -283,16 +283,72 @@ public class KmyDocument {
         }
     }
 
-    /** Ein Kategorie-Soll-Wert (Jahressumme) aus dem KMyMoney-Budget. */
+    /**
+     * Ein Kategorie-Soll aus dem KMyMoney-Budget. {@link #yearlyCents} ist die Jahressumme;
+     * {@link #monthlyCents} ist bei {@code monthbymonth}-Budgets die monatsgenaue Aufteilung
+     * (Länge 12, Index 0 = Januar), sonst {@code null} (Jahr/gleichmäßig).
+     */
     public static final class BudgetEntry {
         public final String category;
         public final boolean isIncome;
         public final long yearlyCents;
-        public BudgetEntry(String category, boolean isIncome, long yearlyCents) {
+        public final long[] monthlyCents;
+        public BudgetEntry(String category, boolean isIncome, long yearlyCents, long[] monthlyCents) {
             this.category = category;
             this.isIncome = isIncome;
             this.yearlyCents = yearlyCents;
+            this.monthlyCents = monthlyCents;
         }
+    }
+
+    /** Ergebnis der {@link #budgetLevelResult} – Jahres-Cent + optional monatsgenaue Cents (Länge 12). */
+    static final class BudgetLevelResult {
+        final long yearlyCents;
+        final long[] monthlyCents; // null oder Länge 12
+        BudgetLevelResult(long yearlyCents, long[] monthlyCents) {
+            this.yearlyCents = yearlyCents;
+            this.monthlyCents = monthlyCents;
+        }
+    }
+
+    /** Monat 1–12 aus einem KMyMoney-Datum „yyyy-MM-dd", sonst 0. */
+    static int monthOfKmyDate(String s) {
+        if (s == null || s.trim().length() < 7) {
+            return 0;
+        }
+        try {
+            int m = Integer.parseInt(s.trim().substring(5, 7));
+            return (m >= 1 && m <= 12) ? m : 0;
+        } catch (NumberFormatException e) {
+            return 0;
+        }
+    }
+
+    /**
+     * Wertet die Budget-Perioden einer Kategorie aus (reine Logik, JVM-testbar).
+     * @param level      budgetlevel-Attribut („monthly"/„yearly"/„monthbymonth"/"")
+     * @param monthCents Cent je Monat (Index 0 = Januar … 11 = Dezember)
+     * @param totalCents Summe aller Perioden in Cent (maßgeblich für das Jahr)
+     * @param periods    Anzahl gelesener PERIOD-Einträge
+     */
+    static BudgetLevelResult budgetLevelResult(String level, long[] monthCents, long totalCents,
+                                               int periods) {
+        if ("monthly".equalsIgnoreCase(level) && periods <= 1) {
+            return new BudgetLevelResult(totalCents * 12, null); // ein Monatswert → Jahr = ×12
+        }
+        int monthsWithValue = 0;
+        for (long c : monthCents) {
+            if (c != 0) {
+                monthsWithValue++;
+            }
+        }
+        boolean perMonth = "monthbymonth".equalsIgnoreCase(level) || periods > 1 || monthsWithValue > 1;
+        if (perMonth) {
+            long[] m = new long[12];
+            System.arraycopy(monthCents, 0, m, 0, 12);
+            return new BudgetLevelResult(totalCents, m);
+        }
+        return new BudgetLevelResult(totalCents, null); // yearly / einzelner Jahreswert
     }
 
     /** Budgetjahre aus der Datei (aufsteigend nach Reihenfolge). */
@@ -307,8 +363,9 @@ public class KmyDocument {
     }
 
     /**
-     * Liest den BUDGETS-Block: je {@code <BUDGET year>} und {@code <ACCOUNT id budgetlevel>} das Jahres-Soll
-     * (Summe aller {@code <PERIOD amount>}; bei {@code budgetlevel="monthly"} mit nur einer Periode ×12).
+     * Liest den BUDGETS-Block: je {@code <BUDGET year>} und {@code <ACCOUNT id budgetlevel>} das Soll.
+     * {@code monthbymonth} (mehrere {@code <PERIOD start amount>}) wird monatsgenau übernommen, sonst als
+     * Jahreswert (bei {@code budgetlevel="monthly"} mit einer Periode ×12). Siehe {@link #budgetLevelResult}.
      */
     private void parseBudgets() throws IOException {
         try {
@@ -320,6 +377,7 @@ public class KmyDocument {
             String curAcctId = null;
             String curLevel = null;
             double curSum = 0;
+            double[] curMonth = new double[12];
             int curPeriods = 0;
             while (event != XmlPullParser.END_DOCUMENT) {
                 if (event == XmlPullParser.START_TAG) {
@@ -348,9 +406,15 @@ public class KmyDocument {
                         curAcctId = parser.getAttributeValue(null, "id");
                         curLevel = orEmpty(parser.getAttributeValue(null, "budgetlevel")).trim();
                         curSum = 0;
+                        curMonth = new double[12];
                         curPeriods = 0;
                     } else if ("PERIOD".equals(tag) && curAcctId != null) {
-                        curSum += fractionToDouble(parser.getAttributeValue(null, "amount"));
+                        double amt = fractionToDouble(parser.getAttributeValue(null, "amount"));
+                        curSum += amt;
+                        int m = monthOfKmyDate(parser.getAttributeValue(null, "start"));
+                        if (m >= 1 && m <= 12) {
+                            curMonth[m - 1] += amt;
+                        }
                         curPeriods++;
                     }
                 } else if (event == XmlPullParser.END_TAG) {
@@ -359,18 +423,21 @@ public class KmyDocument {
                         String path = categoryIdToPath.get(curAcctId);
                         Integer type = accountType.get(curAcctId);
                         if (path != null && type != null) {
-                            double yearly = curSum;
-                            if (curLevel.equalsIgnoreCase("monthly") && curPeriods <= 1) {
-                                yearly = curSum * 12;
+                            long totalCents = Math.round(Math.abs(curSum) * 100);
+                            long[] monthCents = new long[12];
+                            for (int i = 0; i < 12; i++) {
+                                monthCents[i] = Math.round(Math.abs(curMonth[i]) * 100);
                             }
-                            long cents = Math.round(Math.abs(yearly) * 100);
-                            if (cents > 0) {
+                            BudgetLevelResult r = budgetLevelResult(curLevel, monthCents, totalCents,
+                                    curPeriods);
+                            if (r.yearlyCents > 0) {
                                 List<BudgetEntry> list = budgetsByYear.get(curYear);
                                 if (list == null) {
                                     list = new ArrayList<>();
                                     budgetsByYear.put(curYear, list);
                                 }
-                                list.add(new BudgetEntry(path, type == TYPE_INCOME, cents));
+                                list.add(new BudgetEntry(path, type == TYPE_INCOME, r.yearlyCents,
+                                        r.monthlyCents));
                             }
                         }
                         curAcctId = null;

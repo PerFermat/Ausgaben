@@ -66,6 +66,46 @@ public interface BookingDao {
             + "GROUP BY cat")
     List<CategorySum> getCategoryActuals(long fromMs, long toMs);
 
+    /**
+     * Historische Zahlungs-Magnitude je Kategorie und Tag im Monat (1–31) über den gesamten Verlauf –
+     * für den „erwarteten Fortschritt" (Balkenfarbe, Monatssicht). Split-Teile wie in getCategoryActuals.
+     */
+    @Query("SELECT cat AS category, bucket AS bucket, SUM(amt) AS total FROM ("
+            + " SELECT category AS cat, "
+            + "        CAST(strftime('%d', created_at/1000, 'unixepoch', 'localtime') AS INTEGER) AS bucket, "
+            + "        amount_cents AS amt "
+            + "   FROM booking b "
+            + "   WHERE category != '' AND is_transfer = 0 "
+            + "     AND NOT EXISTS (SELECT 1 FROM booking_split s WHERE s.booking_id = b.id) "
+            + " UNION ALL "
+            + " SELECT bs.category AS cat, "
+            + "        CAST(strftime('%d', b.created_at/1000, 'unixepoch', 'localtime') AS INTEGER) AS bucket, "
+            + "        ABS(bs.amount_cents) AS amt "
+            + "   FROM booking_split bs JOIN booking b ON bs.booking_id = b.id "
+            + "   WHERE bs.category != '' AND b.is_transfer = 0) "
+            + "GROUP BY cat, bucket")
+    List<CategoryBucket> getDayOfMonthHistogram();
+
+    /**
+     * Historische Zahlungs-Magnitude je Kategorie und Monat im Jahr (1–12) über den gesamten Verlauf –
+     * für den „erwarteten Fortschritt" (Balkenfarbe, Jahressicht).
+     */
+    @Query("SELECT cat AS category, bucket AS bucket, SUM(amt) AS total FROM ("
+            + " SELECT category AS cat, "
+            + "        CAST(strftime('%m', created_at/1000, 'unixepoch', 'localtime') AS INTEGER) AS bucket, "
+            + "        amount_cents AS amt "
+            + "   FROM booking b "
+            + "   WHERE category != '' AND is_transfer = 0 "
+            + "     AND NOT EXISTS (SELECT 1 FROM booking_split s WHERE s.booking_id = b.id) "
+            + " UNION ALL "
+            + " SELECT bs.category AS cat, "
+            + "        CAST(strftime('%m', b.created_at/1000, 'unixepoch', 'localtime') AS INTEGER) AS bucket, "
+            + "        ABS(bs.amount_cents) AS amt "
+            + "   FROM booking_split bs JOIN booking b ON bs.booking_id = b.id "
+            + "   WHERE bs.category != '' AND b.is_transfer = 0) "
+            + "GROUP BY cat, bucket")
+    List<CategoryBucket> getMonthOfYearHistogram();
+
     /** Jahre (mit Daten) mit Buchungen vor {@code ms} – Teiler für die Verlaufs-Budgetberechnung. */
     @Query("SELECT DISTINCT CAST(strftime('%Y', created_at / 1000, 'unixepoch', 'localtime') AS INTEGER) "
             + "FROM booking WHERE created_at < :ms")

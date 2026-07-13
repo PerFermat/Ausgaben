@@ -38,6 +38,16 @@ class BudgetRepository {
         });
     }
 
+    /** Historische Zahlungs-Verteilung je Kategorie (Tag im Monat bzw. Monat im Jahr) für die Balkenfarbe. */
+    void getCategoryTiming(final boolean monthView, final Callback<List<CategoryBucket>> callback) {
+        executor.execute(() -> {
+            final List<CategoryBucket> result = monthView
+                    ? bookingDao.getDayOfMonthHistogram()
+                    : bookingDao.getMonthOfYearHistogram();
+            mainHandler.post(() -> callback.onResult(result));
+        });
+    }
+
     /** Kategorie-Pfad → Typ ({@code true} = Einnahme) aus der Datei; verlässliche Budget-Einordnung. */
     void getCategoryTypes(final Callback<java.util.Map<String, Boolean>> callback) {
         executor.execute(() -> {

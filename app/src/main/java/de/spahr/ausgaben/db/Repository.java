@@ -974,6 +974,11 @@ public class Repository {
         budgetRepo.getCategoryTypes(callback);
     }
 
+    /** Historische Zahlungs-Verteilung je Kategorie (für die verlaufsbasierte Budget-Balkenfarbe). */
+    public void getCategoryTiming(boolean monthView, Callback<List<CategoryBucket>> callback) {
+        budgetRepo.getCategoryTiming(monthView, callback);
+    }
+
     public void getBudget(int year, Callback<YearBudget> callback) {
         budgetRepo.getBudget(year, callback);
     }

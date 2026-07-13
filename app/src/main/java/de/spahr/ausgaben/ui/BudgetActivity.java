@@ -63,6 +63,13 @@ public class BudgetActivity extends LocalizedActivity {
     private double elapsed = 0;
     private GestureDetector swipeDetector;   // Monats-Wischgeste, ganzflächig via dispatchTouchEvent
 
+    /** Toleranzband für die Balkenfarbe (gegen Flackern am Grenzwert). */
+    private static final double PROGRESS_TOL = 0.05;
+    /** Kategorie-Pfad → historische Magnitude je Bucket (Index = Bucket−1; Tag im Monat bzw. Monat). */
+    private final Map<String, long[]> histoByPath = new java.util.HashMap<>();
+    /** Bucket-Schwelle „bis jetzt" für den erwarteten Fortschritt (aus elapsed). */
+    private int histoThreshold;
+
     @Override
     protected void onCreate(Bundle savedInstanceState) {
         super.onCreate(savedInstanceState);
@@ -168,7 +175,10 @@ public class BudgetActivity extends LocalizedActivity {
         final long recentEnd = now;
         final long fStart = start, fEnd = end;
         final int budgetYear = displayYear;
-        repository.getCategoryTypes(types -> {
+        final boolean forMonth = monthView;
+        repository.getCategoryTiming(forMonth, timing -> {
+            buildHistogram(timing, forMonth);
+            repository.getCategoryTypes(types -> {
             categoryTypes.clear();
             categoryTypes.putAll(types);
             repository.getCategoryActuals(fStart, fEnd, list -> {
@@ -190,7 +200,25 @@ public class BudgetActivity extends LocalizedActivity {
                     });
                 });
             });
+            });
         });
+    }
+
+    /** Baut aus dem Verlaufs-Histogramm die Magnitude je Kategorie-Pfad und Bucket (Index = Bucket−1). */
+    private void buildHistogram(List<de.spahr.ausgaben.db.CategoryBucket> timing, boolean monthBuckets) {
+        histoByPath.clear();
+        int size = monthBuckets ? 31 : 12;
+        for (de.spahr.ausgaben.db.CategoryBucket cb : timing) {
+            if (cb.category == null || cb.category.isEmpty() || cb.bucket < 1 || cb.bucket > size) {
+                continue;
+            }
+            long[] arr = histoByPath.get(cb.category);
+            if (arr == null) {
+                arr = new long[size];
+                histoByPath.put(cb.category, arr);
+            }
+            arr[cb.bucket - 1] += cb.total;
+        }
     }
 
     // ---- Rendern ----
@@ -206,10 +234,37 @@ public class BudgetActivity extends LocalizedActivity {
         if (monthView) {
             addMonthNavHeader();
         }
+        // Erwarteter-Fortschritt-Schwelle: Bucket bis „jetzt" (elapsed) im aktuellen Zeitraum.
+        int maxBucket = monthView ? 31 : 12;
+        histoThreshold = elapsed <= 0 ? 0
+                : (elapsed >= 1 ? maxBucket : (int) Math.round(elapsed * maxBucket));
         Map<String, Cat> cats = buildCats();
         String currency = Currencies.getDefault();
         renderSection(cats, true, getString(R.string.budget_income_header), currency);
         renderSection(cats, false, getString(R.string.budget_expense_header), currency);
+    }
+
+    /**
+     * Erwarteter Ausschöpfungsanteil bis jetzt aus dem Verlauf der angegebenen Kategorie-Pfade;
+     * {@code < 0} → keine Historie → Aufrufer nutzt {@link #elapsed} (linearer Rückfall).
+     */
+    private double expectedFor(java.util.Collection<String> paths) {
+        int size = monthView ? 31 : 12;
+        long[] combined = new long[size];
+        boolean any = false;
+        for (String p : paths) {
+            long[] h = histoByPath.get(p);
+            if (h != null) {
+                any = true;
+                for (int i = 0; i < size && i < h.length; i++) {
+                    combined[i] += h[i];
+                }
+            }
+        }
+        if (!any) {
+            return -1;
+        }
+        return de.spahr.ausgaben.db.BudgetProgress.expectedFraction(combined, histoThreshold);
     }
 
     /**
@@ -390,6 +445,8 @@ public class BudgetActivity extends LocalizedActivity {
         // Haupt → [ist, displaySoll, annualSoll]; Haupt → (Unter-Vollpfad → [ist, displaySoll, annualSoll]).
         Map<String, long[]> mainTot = new TreeMap<>(String.CASE_INSENSITIVE_ORDER);
         Map<String, Map<String, long[]>> subTot = new TreeMap<>(String.CASE_INSENSITIVE_ORDER);
+        // Haupt → alle zugehörigen Kategorie-Pfade dieses Abschnitts (für den erwarteten Fortschritt).
+        Map<String, List<String>> pathsByMain = new TreeMap<>(String.CASE_INSENSITIVE_ORDER);
 
         for (Map.Entry<String, Cat> e : cats.entrySet()) {
             Cat c = e.getValue();
@@ -406,6 +463,12 @@ public class BudgetActivity extends LocalizedActivity {
             mv[0] += c.ist;
             mv[1] += c.displaySoll;
             mv[2] += c.annualSoll;
+            List<String> mp = pathsByMain.get(main);
+            if (mp == null) {
+                mp = new ArrayList<>();
+                pathsByMain.put(main, mp);
+            }
+            mp.add(cat);
             if (cat.contains(":")) {
                 Map<String, long[]> subs = subTot.get(main);
                 if (subs == null) {
@@ -441,10 +504,15 @@ public class BudgetActivity extends LocalizedActivity {
                 addHeader(header);
                 headerAdded = true;
             }
-            addRow(main, main, income, mv[0], mv[1], true, currency);
+            List<String> mainPaths = pathsByMain.get(main);
+            double mainExpected = expectedFor(mainPaths == null ? java.util.Collections.emptyList() : mainPaths);
+            addRow(main, main, income, mv[0], mv[1], true, currency,
+                    mainExpected >= 0 ? mainExpected : elapsed);
             for (Map.Entry<String, long[]> se : visibleSubs) {
                 String label = se.getKey().substring(se.getKey().indexOf(':') + 1);
-                addRow(label, se.getKey(), income, se.getValue()[0], se.getValue()[1], false, currency);
+                double subExpected = expectedFor(java.util.Collections.singletonList(se.getKey()));
+                addRow(label, se.getKey(), income, se.getValue()[0], se.getValue()[1], false, currency,
+                        subExpected >= 0 ? subExpected : elapsed);
             }
         }
     }
@@ -459,7 +527,7 @@ public class BudgetActivity extends LocalizedActivity {
     }
 
     private void addRow(String label, String category, boolean income, long ist, long soll,
-                        boolean main, String currency) {
+                        boolean main, String currency, double base) {
         LinearLayout row = new LinearLayout(this);
         row.setOrientation(LinearLayout.VERTICAL);
         row.setPadding(main ? 0 : dp(16), dp(6), 0, dp(2));
@@ -483,7 +551,7 @@ public class BudgetActivity extends LocalizedActivity {
         line.addView(value);
 
         row.addView(line);
-        row.addView(buildBar(income, ist, soll));
+        row.addView(buildBar(income, ist, soll, base));
 
         boolean editable = !Budget.SOURCE_KMY.equals(budgetSource);
         if (editable) {
@@ -495,17 +563,16 @@ public class BudgetActivity extends LocalizedActivity {
         container.addView(row);
     }
 
-    /** Dünner Balken: Breite = min(Ist/Soll,1); Farbe grün/rot je nach Zeitanteil (Einnahmen invers). */
-    private View buildBar(boolean income, long ist, long soll) {
+    /**
+     * Dünner Balken: Breite = min(Ist/Soll,1); Farbe grün/rot je nach <b>erwartetem Fortschritt</b>
+     * {@code base} (aus dem Verlauf, sonst linear). Ausgabe grün wenn nicht mehr ausgeschöpft als
+     * erwartet, Einnahme grün wenn mindestens so viel erwartet – siehe {@link de.spahr.ausgaben.db.BudgetProgress}.
+     */
+    private View buildBar(boolean income, long ist, long soll, double base) {
         double used = soll > 0 ? (double) ist / soll : (ist > 0 ? 1 : 0);
         double filled = Math.max(0, Math.min(used, 1));
 
-        boolean good;
-        if (income) {
-            good = used >= elapsed;   // Einnahmen: schneller als die Zeit = gut
-        } else {
-            good = used <= elapsed;   // Ausgaben: langsamer als die Zeit = gut
-        }
+        boolean good = de.spahr.ausgaben.db.BudgetProgress.onTrack(income, used, base, PROGRESS_TOL);
         int color = getColor(good ? R.color.income_green : R.color.expense_red);
 
         LinearLayout bar = new LinearLayout(this);

@@ -75,6 +75,12 @@
             android:parentActivityName=".ui.MainActivity" />
 
         <activity
+            android:name=".ui.ScheduledActivity"
+            android:exported="false"
+            android:label="@string/scheduled_title"
+            android:parentActivityName=".ui.MainActivity" />
+
+        <activity
             android:name=".ui.DepotActivity"
             android:exported="false"
             android:label="@string/depot_title"

@@ -25,4 +25,9 @@
     <color name="saldo_bar_flash">#F5F5F5</color>
     <!-- Trennlinie zwischen Buchungszeilen (kMyMoney-Ledger-Optik) -->
     <color name="list_divider">#EEEEEE</color>
+    <!-- Import-Banner: hellgelb mit schwarzer Schrift (Hell-Modus) -->
+    <color name="import_banner_bg">#FFF59D</color>
+    <color name="import_banner_text">#000000</color>
+    <!-- Wandernder Verlauf im Import-Banner (etwas kräftigeres Gelb) -->
+    <color name="import_banner_shimmer">#FFEB3B</color>
 </resources>

@@ -85,7 +85,12 @@
     <string name="action_analysis">Auswertung</string>
     <string name="action_balance">Bestände</string>
     <string name="action_budget">Budget</string>
+    <string name="action_scheduled">Geplante Buchungen</string>
     <string name="action_settings">Einstellungen</string>
+
+    <!-- Geplante Buchungen -->
+    <string name="scheduled_title">Geplante Buchungen</string>
+    <string name="scheduled_empty">Keine geplanten Buchungen. Sie werden aus der KMyMoney-Datei importiert.</string>
 
     <!-- Budget -->
     <string name="budget_title">Budget</string>
@@ -120,6 +125,12 @@
     <string name="kmy_import_all_title">Alle Konten importieren?</string>
     <string name="kmy_import_all_message">Alle Konten werden aus der KMyMoney-Datei aktualisiert (bereits exportierte Buchungen werden ersetzt).</string>
     <string name="kmy_import_done_multi">%1$d Buchung(en) in %2$d Konto/Konten importiert</string>
+    <string name="import_running_banner">Konto wird importiert…</string>
+    <string name="import_stage_download">Datei wird geladen…</string>
+    <string name="import_stage_account">Konto: %1$s</string>
+    <string name="import_stage_saving">Buchungen werden gespeichert…</string>
+    <string name="import_stage_depot">Depot: %1$s</string>
+    <string name="import_stage_done">Fertig</string>
     <string name="kmy_account_not_found">Konto nicht in der KMyMoney-Datei</string>
 
     <!-- Bestände / Umbuchen / Kassensturz / Verlauf -->

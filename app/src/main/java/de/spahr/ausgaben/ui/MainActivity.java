@@ -56,6 +56,11 @@ public class MainActivity extends LocalizedActivity {
     private androidx.swiperefreshlayout.widget.SwipeRefreshLayout swipeRefresh;
     private TextView textBalance;
     private TextView textSaldoLabel;
+    private View importBanner;
+    private ShimmerView importShimmer;
+    private TextView importStatus;
+    private TextView importPercent;
+    private int activeImports = 0;   // laufende Hintergrund-Importe (Banner sichtbar solange > 0)
 
     /** Uhr-Buchung wurde im Hintergrund angelegt → Liste live aktualisieren. */
     private final android.content.BroadcastReceiver bookingsChangedReceiver =
@@ -244,6 +249,11 @@ public class MainActivity extends LocalizedActivity {
 
         // Wischgeste nach unten: in der kmy-Variante das aktuelle Konto neu aus der .kmy einlesen,
         // sonst nur die DB neu anzeigen (in der CSV-Variante nur übers Kontenmenü aktualisierbar).
+        importBanner = findViewById(R.id.importBanner);
+        importShimmer = findViewById(R.id.importShimmer);
+        importStatus = findViewById(R.id.importStatus);
+        importPercent = findViewById(R.id.importPercent);
+        importShimmer.setColors(getColor(R.color.import_banner_bg), getColor(R.color.import_banner_shimmer));
         swipeRefresh = findViewById(R.id.swipeRefresh);
         swipeRefresh.setOnRefreshListener(() -> {
             swipeRefresh.setRefreshing(false);
@@ -1099,8 +1109,19 @@ public class MainActivity extends LocalizedActivity {
         setMenuTitle(menu, R.id.action_analysis, R.string.action_analysis);
         setMenuTitle(menu, R.id.action_balance, R.string.action_balance);
         setMenuTitle(menu, R.id.action_budget, R.string.action_budget);
+        setMenuTitle(menu, R.id.action_scheduled, R.string.action_scheduled);
         setMenuTitle(menu, R.id.action_settings, R.string.action_settings);
         return true;
+    }
+
+    @Override
+    public boolean onPrepareOptionsMenu(android.view.Menu menu) {
+        // „Geplante Buchungen" nur im KMyMoney-Modus (aus der .kmy importiert).
+        android.view.MenuItem scheduled = menu.findItem(R.id.action_scheduled);
+        if (scheduled != null) {
+            scheduled.setVisible(settings.isKmyMode());
+        }
+        return super.onPrepareOptionsMenu(menu);
     }
 
     private void setMenuTitle(android.view.Menu menu, int itemId, int stringId) {
@@ -1140,6 +1161,9 @@ public class MainActivity extends LocalizedActivity {
             return true;
         } else if (id == R.id.action_budget) {
             startActivity(new Intent(this, BudgetActivity.class));
+            return true;
+        } else if (id == R.id.action_scheduled) {
+            startActivity(new Intent(this, ScheduledActivity.class));
             return true;
         } else if (id == R.id.action_settings) {
             startActivity(new Intent(this, SettingsActivity.class));
@@ -1308,54 +1332,59 @@ public class MainActivity extends LocalizedActivity {
                 .show();
     }
 
-    /** Importiert die gewählten Konten als Batch und anschließend die gewählten Depots nacheinander. */
+    /**
+     * Importiert die gewählten Konten als Batch und anschließend die gewählten Depots nacheinander.
+     * Läuft komplett im Hintergrund – die Oberfläche bleibt bedienbar; nur bei einem Fehler kommt eine
+     * Meldung, am Ende wird die Liste still aktualisiert.
+     */
     private void startBatchImport(KmyImporter importer, List<String> accountTargets,
                                   List<String> depotTargets) {
-        showProgress(getString(R.string.progress_importing));
+        importStarted();
+        // Schritte gesamt: je Konto lesen + Speichern + je Depot.
+        final int total = accountTargets.size() + (accountTargets.isEmpty() ? 0 : 1) + depotTargets.size();
         new Thread(() -> {
             try {
                 if (accountTargets.isEmpty()) {
-                    runOnUiThread(() -> importDepotsThenFinish(importer, depotTargets, 0, 0));
+                    runOnUiThread(() -> importDepotsThenFinish(importer, depotTargets, 0, total));
                     return;
                 }
                 java.util.LinkedHashMap<String, List<Booking>> map = new java.util.LinkedHashMap<>();
+                int done = 0;
                 for (String acc : accountTargets) {
+                    postImportProgress(getString(R.string.import_stage_account, acc), pct(done, total));
                     map.put(acc, importer.bookingsForAccount(acc));
                     repository.setAccountCurrency(acc, importer.currencyOf(acc));
+                    done++;
                 }
                 // Konto- und Kategorietypen für ALLE Konten/Kategorien der .kmy übernehmen.
                 repository.applyAccountTypes(importer.accountTypes());
                 repository.applyCategoryTypes(importer.categoryTypes());
+                // Geplante Buchungen bei jedem Import neu einlesen.
+                repository.applyScheduledTransactions(importer.scheduledTransactions(), null);
+                postImportProgress(getString(R.string.import_stage_saving), pct(done, total));
+                final int doneAfterSave = accountTargets.size() + 1;
                 runOnUiThread(() -> repository.replaceImportAccounts(map, res ->
-                        importDepotsThenFinish(importer, depotTargets, res[1], res[0])));
+                        importDepotsThenFinish(importer, depotTargets, doneAfterSave, total)));
             } catch (Exception e) {
                 postImportError(e);
             }
         }).start();
     }
 
-    /** Importiert die Depots der Reihe nach; am Ende Abschluss-Toast + Schublade aktualisieren. */
-    private void importDepotsThenFinish(KmyImporter importer, List<String> depots,
-                                        int insertedBookings, int accountCount) {
+    /** Importiert die Depots der Reihe nach; am Ende Banner auf 100 % und Liste aktualisieren. */
+    private void importDepotsThenFinish(KmyImporter importer, List<String> depots, int done, int total) {
         if (depots.isEmpty()) {
-            dismissProgress();
-            if (accountCount > 0) {
-                Toast.makeText(this, getString(R.string.kmy_import_done_multi, insertedBookings,
-                        accountCount), Toast.LENGTH_LONG).show();
-            }
-            refreshBookings();
+            completeImport();
             return;
         }
         final String depot = depots.get(0);
         final List<String> rest = new ArrayList<>(depots.subList(1, depots.size()));
+        setImportProgress(getString(R.string.import_stage_depot, depot), pct(done, total));
         new Thread(() -> {
             try {
                 KmyImporter.DepotData data = importer.importDepot(depot);
-                repository.replaceDepotImport(depot, data.securities, data.transactions, () -> {
-                    Toast.makeText(this, getString(R.string.depot_import_done, depot),
-                            Toast.LENGTH_LONG).show();
-                    importDepotsThenFinish(importer, rest, insertedBookings, accountCount);
-                });
+                repository.replaceDepotImport(depot, data.securities, data.transactions, () ->
+                        importDepotsThenFinish(importer, rest, done + 1, total));
             } catch (Exception e) {
                 postImportError(e);
             }
@@ -1410,10 +1439,11 @@ public class MainActivity extends LocalizedActivity {
 
     /** Lädt die .kmy und importiert ein Konto ({@code null} = alle bereits vorhandenen App-Konten). */
     private void runKmyImport(final String account) {
-        showProgress(getString(R.string.progress_download));
+        importStarted();
         new Thread(() -> {
             KmyImporter importer;
             try {
+                postImportProgress(getString(R.string.import_stage_download), 0);
                 String path = settings.getKmyPath();
                 byte[] raw = RemoteStorage.from(settings).downloadBytes(folderOf(path), fileOf(path));
                 importer = new KmyImporter(
@@ -1436,35 +1466,39 @@ public class MainActivity extends LocalizedActivity {
             }
             if (targets.isEmpty()) {
                 runOnUiThread(() -> {
-                    dismissProgress();
+                    importFinished();
                     Toast.makeText(this, R.string.kmy_account_not_found, Toast.LENGTH_LONG).show();
                 });
                 return;
             }
-            runOnUiThread(() -> updateProgress(getString(R.string.progress_importing)));
             replaceFromImporter(importer, targets);
         }).start();
     }
 
-    /** Baut die Buchungen der Zielkonten und ersetzt sie in der DB. Läuft im Hintergrund-Thread. */
+    /**
+     * Baut die Buchungen der Zielkonten und ersetzt sie in der DB. Läuft im Hintergrund; die Liste wird
+     * am Ende still aktualisiert, eine Meldung kommt nur bei einem Fehler.
+     */
     private void replaceFromImporter(KmyImporter importer, List<String> accounts) {
         try {
+            final int total = accounts.size() + 1;   // je Konto lesen + Speichern
+            int done = 0;
             java.util.LinkedHashMap<String, List<Booking>> map = new java.util.LinkedHashMap<>();
             for (String acc : accounts) {
+                postImportProgress(getString(R.string.import_stage_account, acc), pct(done, total));
                 map.put(acc, importer.bookingsForAccount(acc));
                 // Währungskennzeichen aus der KMyMoney-Datei je Konto übernehmen.
                 repository.setAccountCurrency(acc, importer.currencyOf(acc));
+                done++;
             }
             // Anlage/Verbindlichkeit für ALLE vorhandenen Konten aus der .kmy klassifizieren (nicht nur die neu importierten).
             repository.applyAccountTypes(importer.accountTypes());
             // Kategorietyp (Einnahme/Ausgabe) für ALLE Kategorien der .kmy übernehmen (Budget-Einordnung).
             repository.applyCategoryTypes(importer.categoryTypes());
-            runOnUiThread(() -> repository.replaceImportAccounts(map, res -> {
-                dismissProgress();
-                Toast.makeText(this, getString(R.string.kmy_import_done_multi, res[1], res[0]),
-                        Toast.LENGTH_LONG).show();
-                refreshBookings();
-            }));
+            // Geplante Buchungen bei jedem Import neu einlesen.
+            repository.applyScheduledTransactions(importer.scheduledTransactions(), null);
+            postImportProgress(getString(R.string.import_stage_saving), pct(done, total));
+            runOnUiThread(() -> repository.replaceImportAccounts(map, res -> completeImport()));
         } catch (Exception e) {
             postImportError(e);
         }
@@ -1483,8 +1517,54 @@ public class MainActivity extends LocalizedActivity {
         final String msg = e.getMessage() == null ? e.toString() : e.getMessage();
         runOnUiThread(() -> {
             dismissProgress();
+            importFinished();
             Toast.makeText(this, getString(R.string.import_failed, msg), Toast.LENGTH_LONG).show();
         });
+    }
+
+    /** Zeigt den gelben „Konto wird importiert"-Banner (zählt laufende Hintergrund-Importe). */
+    private void importStarted() {
+        activeImports++;
+        if (importBanner != null) {
+            importBanner.setVisibility(View.VISIBLE);
+            importShimmer.start();
+            setImportProgress(getString(R.string.import_running_banner), 0);
+        }
+    }
+
+    /** Blendet den Banner aus, sobald kein Import mehr läuft. */
+    private void importFinished() {
+        activeImports = Math.max(0, activeImports - 1);
+        if (importBanner != null && activeImports == 0) {
+            importShimmer.stop();
+            importBanner.setVisibility(View.GONE);
+        }
+    }
+
+    /** Status-Text und Prozentanzeige im Banner setzen (Main-Thread). */
+    private void setImportProgress(String label, int percent) {
+        if (importStatus != null) {
+            importStatus.setText(label);
+        }
+        if (importPercent != null) {
+            importPercent.setText(Math.max(0, Math.min(100, percent)) + " %");
+        }
+    }
+
+    /** Fortschritt aus einem Hintergrund-Thread melden. */
+    private void postImportProgress(String label, int percent) {
+        runOnUiThread(() -> setImportProgress(label, percent));
+    }
+
+    private static int pct(int done, int total) {
+        return total <= 0 ? 100 : Math.round(100f * done / total);
+    }
+
+    /** Import abgeschlossen: 100 % kurz zeigen, dann Banner ausblenden und Liste aktualisieren. */
+    private void completeImport() {
+        setImportProgress(getString(R.string.import_stage_done), 100);
+        importBanner.postDelayed(this::importFinished, 600);
+        refreshBookings();
     }
 
     // ---- CSV-Import (Nextcloud-Liste oder lokaler Picker) ----

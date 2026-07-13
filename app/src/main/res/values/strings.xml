@@ -85,7 +85,12 @@
     <string name="action_analysis">Analysis</string>
     <string name="action_balance">Balances</string>
     <string name="action_budget">Budget</string>
+    <string name="action_scheduled">Scheduled transactions</string>
     <string name="action_settings">Settings</string>
+
+    <!-- Scheduled transactions -->
+    <string name="scheduled_title">Scheduled transactions</string>
+    <string name="scheduled_empty">No scheduled transactions. They are imported from the KMyMoney file.</string>
 
     <!-- Budget -->
     <string name="budget_title">Budget</string>
@@ -120,6 +125,12 @@
     <string name="kmy_import_all_title">Import all accounts?</string>
     <string name="kmy_import_all_message">All accounts are updated from the KMyMoney file (already exported bookings are replaced).</string>
     <string name="kmy_import_done_multi">Imported %1$d booking(s) into %2$d account(s)</string>
+    <string name="import_running_banner">Importing account…</string>
+    <string name="import_stage_download">Loading file…</string>
+    <string name="import_stage_account">Account: %1$s</string>
+    <string name="import_stage_saving">Saving bookings…</string>
+    <string name="import_stage_depot">Portfolio: %1$s</string>
+    <string name="import_stage_done">Done</string>
     <string name="kmy_account_not_found">Account not in the KMyMoney file</string>
 
     <!-- Balances / transfer / cash count / history -->

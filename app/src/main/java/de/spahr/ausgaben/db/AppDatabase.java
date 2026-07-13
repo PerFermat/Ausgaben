@@ -11,8 +11,8 @@ import androidx.sqlite.db.SupportSQLiteDatabase;
 
 @Database(entities = {Booking.class, BookingSplit.class, Account.class, Payee.class, PlaceEntry.class,
         PayeeCorrection.class, Translation.class, Language.class, Security.class, SecurityTx.class,
-        Budget.class, CategoryType.class},
-        version = 25, exportSchema = false)
+        Budget.class, CategoryType.class, ScheduledTransaction.class},
+        version = 28, exportSchema = false)
 public abstract class AppDatabase extends RoomDatabase {
 
     /** v1 → v2: Notiz-Spalte ergänzen (bestehende Buchungen bleiben erhalten). */
@@ -280,6 +280,41 @@ public abstract class AppDatabase extends RoomDatabase {
         }
     };
 
+    /** Geplante Buchungen aus KMyMoney (bei jedem Import neu eingelesen). */
+    static final Migration MIGRATION_25_26 = new Migration(25, 26) {
+        @Override
+        public void migrate(@NonNull SupportSQLiteDatabase db) {
+            db.execSQL("CREATE TABLE IF NOT EXISTS scheduled_transaction ("
+                    + "id INTEGER PRIMARY KEY AUTOINCREMENT NOT NULL, "
+                    + "kmy_id TEXT NOT NULL, "
+                    + "name TEXT NOT NULL, "
+                    + "kind INTEGER NOT NULL, "
+                    + "next_due_ms INTEGER NOT NULL, "
+                    + "amount_cents INTEGER NOT NULL, "
+                    + "payee TEXT NOT NULL, "
+                    + "account TEXT NOT NULL, "
+                    + "counterparty TEXT NOT NULL)");
+        }
+    };
+
+    /** Geplante Buchungen: Wiederholungsangaben (zum Auffalten in die einzelnen Termine). */
+    static final Migration MIGRATION_26_27 = new Migration(26, 27) {
+        @Override
+        public void migrate(@NonNull SupportSQLiteDatabase db) {
+            db.execSQL("ALTER TABLE scheduled_transaction ADD COLUMN occurrence INTEGER NOT NULL DEFAULT 0");
+            db.execSQL("ALTER TABLE scheduled_transaction "
+                    + "ADD COLUMN occurrence_multiplier INTEGER NOT NULL DEFAULT 1");
+        }
+    };
+
+    /** Geplante Buchungen: Enddatum (begrenzt die Projektion in die Zukunft). */
+    static final Migration MIGRATION_27_28 = new Migration(27, 28) {
+        @Override
+        public void migrate(@NonNull SupportSQLiteDatabase db) {
+            db.execSQL("ALTER TABLE scheduled_transaction ADD COLUMN end_ms INTEGER NOT NULL DEFAULT 0");
+        }
+    };
+
     public abstract BookingDao bookingDao();
 
     public abstract AccountDao accountDao();
@@ -298,6 +333,8 @@ public abstract class AppDatabase extends RoomDatabase {
 
     public abstract CategoryTypeDao categoryTypeDao();
 
+    public abstract ScheduledTransactionDao scheduledTransactionDao();
+
     private static volatile AppDatabase instance;
 
     public static AppDatabase getInstance(Context context) {
@@ -314,7 +351,8 @@ public abstract class AppDatabase extends RoomDatabase {
                                     MIGRATION_13_14, MIGRATION_14_15, MIGRATION_15_16,
                                     MIGRATION_16_17, MIGRATION_17_18, MIGRATION_18_19,
                                     MIGRATION_19_20, MIGRATION_20_21, MIGRATION_21_22,
-                                    MIGRATION_22_23, MIGRATION_23_24, MIGRATION_24_25)
+                                    MIGRATION_22_23, MIGRATION_23_24, MIGRATION_24_25,
+                                    MIGRATION_25_26, MIGRATION_26_27, MIGRATION_27_28)
                             .build();
                 }
             }

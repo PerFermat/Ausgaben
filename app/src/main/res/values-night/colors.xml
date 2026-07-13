@@ -15,4 +15,9 @@
     <color name="widget_bg">#1E1E1E</color>
     <color name="widget_text">#FFFFFF</color>
     <color name="widget_text_secondary">#B0B0B0</color>
+    <!-- Import-Banner: dunkelgelb mit weißer Schrift (Dunkel-Modus) -->
+    <color name="import_banner_bg">#F57F17</color>
+    <color name="import_banner_text">#FFFFFF</color>
+    <!-- Wandernder Verlauf im Import-Banner (etwas helleres Amber) -->
+    <color name="import_banner_shimmer">#FFB300</color>
 </resources>

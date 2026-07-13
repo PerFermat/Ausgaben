@@ -32,6 +32,7 @@ public class Repository {
     private final SecurityDao securityDao;
     private final BudgetDao budgetDao;
     private final CategoryTypeDao categoryTypeDao;
+    private final ScheduledTransactionDao scheduledTransactionDao;
     private final Context appContext;
     private final ExecutorService executor = Executors.newSingleThreadExecutor();
     private final Handler mainHandler = new Handler(Looper.getMainLooper());
@@ -53,6 +54,7 @@ public class Repository {
         this.securityDao = db.securityDao();
         this.budgetDao = db.budgetDao();
         this.categoryTypeDao = db.categoryTypeDao();
+        this.scheduledTransactionDao = db.scheduledTransactionDao();
         this.budgetRepo = new BudgetRepository(bookingDao, budgetDao, categoryTypeDao, executor, mainHandler);
         this.depotRepo = new DepotRepository(securityDao, appContext, executor, mainHandler);
         this.aliasResolver = new AliasResolver(bookingDao, correctionDao, accountDao, executor, mainHandler);
@@ -114,6 +116,34 @@ public class Repository {
                     categoryTypeDao.upsert(new CategoryType(e.getKey().trim(), e.getValue()));
                 }
             }
+        });
+    }
+
+    /**
+     * Ersetzt beim .kmy-Import die geplanten Buchungen komplett (leeren + neu einfügen), damit sie sich
+     * „sobald ein Konto neu eingelesen wurde" aktualisieren. {@code onDone} optional (Main-Thread).
+     */
+    public void applyScheduledTransactions(final List<ScheduledTransaction> list, final Runnable onDone) {
+        executor.execute(() -> {
+            scheduledTransactionDao.deleteAll();
+            if (list != null) {
+                for (ScheduledTransaction st : list) {
+                    if (st != null) {
+                        scheduledTransactionDao.insert(st);
+                    }
+                }
+            }
+            if (onDone != null) {
+                mainHandler.post(onDone);
+            }
+        });
+    }
+
+    /** Geplante Buchungen nach nächster Fälligkeit (für die Seite „Geplante Buchungen"). */
+    public void getScheduledTransactions(final Callback<List<ScheduledTransaction>> callback) {
+        executor.execute(() -> {
+            final List<ScheduledTransaction> result = scheduledTransactionDao.getAllByDue();
+            mainHandler.post(() -> callback.onResult(result));
         });
     }
 

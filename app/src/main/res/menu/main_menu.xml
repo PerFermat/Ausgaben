@@ -32,6 +32,11 @@
         app:showAsAction="never" />
 
     <item
+        android:id="@+id/action_scheduled"
+        android:title="@string/action_scheduled"
+        app:showAsAction="never" />
+
+    <item
         android:id="@+id/action_settings"
         android:icon="@drawable/ic_settings"
         android:title="@string/action_settings"

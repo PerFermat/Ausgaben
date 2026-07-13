@@ -20,6 +20,7 @@ import java.util.Map;
 
 import de.spahr.ausgaben.db.Booking;
 import de.spahr.ausgaben.db.BookingSplit;
+import de.spahr.ausgaben.db.ScheduledTransaction;
 import de.spahr.ausgaben.db.Security;
 import de.spahr.ausgaben.db.SecurityTx;
 
@@ -415,6 +416,130 @@ public class KmyImporter {
             }
         }
         return "";
+    }
+
+    /**
+     * Liest den (nach {@code <TRANSACTIONS>} stehenden) {@code <SCHEDULES>}-Block: je {@code <SCHEDULED_TX>}
+     * die eingebettete Transaktion. Klassifikation (Einzahlung/Auszahlung/Umbuchung, Betrag, Empfänger,
+     * Kategorie/Zielkonto) über die vorhandene {@link #toBooking}-Logik; nächste Fälligkeit = postdate.
+     */
+    public List<ScheduledTransaction> scheduledTransactions() throws IOException {
+        List<ScheduledTransaction> out = new ArrayList<>();
+        try {
+            XmlPullParser parser = Xml.newPullParser();
+            parser.setFeature(XmlPullParser.FEATURE_PROCESS_NAMESPACES, false);
+            parser.setInput(new StringReader(doc.xml()));
+            int event = parser.getEventType();
+            boolean inSchedules = false;
+            String schedId = null;
+            String schedName = null;
+            String schedEnd = "";
+            int schedOcc = 0;
+            int schedMult = 1;
+            String postdate = null;
+            String entrydate = null;
+            String txMemo = "";
+            List<String[]> splits = null;
+            while (event != XmlPullParser.END_DOCUMENT) {
+                if (event == XmlPullParser.START_TAG) {
+                    String tag = parser.getName();
+                    if ("SCHEDULES".equals(tag)) {
+                        inSchedules = true;
+                    } else if (inSchedules && "SCHEDULED_TX".equals(tag)) {
+                        schedId = orEmpty(parser.getAttributeValue(null, "id"));
+                        schedName = orEmpty(parser.getAttributeValue(null, "name"));
+                        schedEnd = orEmpty(parser.getAttributeValue(null, "endDate"));
+                        schedOcc = parseIntOr(parser.getAttributeValue(null, "occurence"), 0);
+                        schedMult = parseIntOr(parser.getAttributeValue(null, "occurenceMultiplier"), 1);
+                        postdate = null;
+                        entrydate = null;
+                        txMemo = "";
+                        splits = null;
+                    } else if (inSchedules && "TRANSACTION".equals(tag)) {
+                        postdate = parser.getAttributeValue(null, "postdate");
+                        entrydate = parser.getAttributeValue(null, "entrydate");
+                        txMemo = orEmpty(parser.getAttributeValue(null, "memo"));
+                        splits = new ArrayList<>();
+                    } else if (inSchedules && "SPLIT".equals(tag) && splits != null) {
+                        splits.add(new String[]{
+                                orEmpty(parser.getAttributeValue(null, "account")),
+                                orEmpty(parser.getAttributeValue(null, "value")),
+                                orEmpty(parser.getAttributeValue(null, "payee")),
+                                orEmpty(parser.getAttributeValue(null, "memo"))});
+                    }
+                } else if (event == XmlPullParser.END_TAG) {
+                    String tag = parser.getName();
+                    if ("SCHEDULES".equals(tag)) {
+                        break; // Block vollständig
+                    } else if (inSchedules && "SCHEDULED_TX".equals(tag)) {
+                        ScheduledTransaction st = buildScheduled(schedId, schedName, schedEnd, schedOcc,
+                                schedMult, postdate, entrydate, txMemo, splits);
+                        if (st != null) {
+                            out.add(st);
+                        }
+                        schedId = null;
+                        schedName = null;
+                        splits = null;
+                    }
+                }
+                event = parser.next();
+            }
+        } catch (XmlPullParserException e) {
+            throw new IOException(ctx.getString(de.spahr.ausgaben.R.string.err_kmy_read), e);
+        }
+        return out;
+    }
+
+    /**
+     * Baut aus der Transaktion einer geplanten Buchung den DB-Eintrag (Wiederverwendung von toBooking).
+     * Nur <b>aktive</b> Planungen: mit gesetztem {@code endDate} in der Vergangenheit werden übersprungen.
+     */
+    private ScheduledTransaction buildScheduled(String schedId, String name, String endDate,
+                                                int occurrence, int occurrenceMultiplier, String postdate,
+                                                String entrydate, String txMemo, List<String[]> splits) {
+        if (splits == null || splits.isEmpty()) {
+            return null;
+        }
+        // Nur aktive Planungen: endDate gesetzt und vor heute → abgelaufen, überspringen.
+        long endMs = de.spahr.ausgaben.export.KmyDocument.parseKmyDate(endDate);
+        if (endMs >= 0 && endMs < System.currentTimeMillis()) {
+            return null;
+        }
+        // Primäres Konto: erster Split auf einem echten Konto (nicht Kategorie 12/13, nicht Aktie 15).
+        String primaryId = null;
+        for (String[] s : splits) {
+            int t = doc.accountTypeOf(s[0]);
+            if (t != 12 && t != 13 && t != 15) {
+                primaryId = s[0];
+                break;
+            }
+        }
+        if (primaryId == null) {
+            return null; // kein Kontobezug
+        }
+        String primaryName = orEmpty(doc.accountNameById(primaryId)).trim();
+        Booking b = toBooking(primaryId, primaryName, postdate, entrydate, txMemo, splits);
+        if (b == null) {
+            return null;
+        }
+        int kind = b.isTransfer ? ScheduledTransaction.KIND_TRANSFER
+                : (b.isIncome ? ScheduledTransaction.KIND_INCOME : ScheduledTransaction.KIND_EXPENSE);
+        String counterparty = b.isTransfer ? orEmpty(b.transferAccount) : orEmpty(b.category);
+        return new ScheduledTransaction(orEmpty(schedId), orEmpty(name).trim(), kind, b.createdAt,
+                b.amountCents, orEmpty(b.payee), primaryName, counterparty,
+                occurrence, occurrenceMultiplier <= 0 ? 1 : occurrenceMultiplier,
+                endMs < 0 ? 0 : endMs);
+    }
+
+    private static int parseIntOr(String s, int fallback) {
+        if (s == null || s.trim().isEmpty()) {
+            return fallback;
+        }
+        try {
+            return Integer.parseInt(s.trim());
+        } catch (NumberFormatException e) {
+            return fallback;
+        }
     }
 
     /** KMyMoney-Betrag „num/den" → Cent (gerundet, mit Vorzeichen). */

@@ -44,6 +44,21 @@ public class PendingStore {
         save(entries);
     }
 
+    /** Setzt Koordinaten und Sendezeitpunkt eines Eintrags (nach der GPS-Auflösung). */
+    public synchronized void updateGps(String id, String gps, long readyAt) {
+        List<PendingEntry> entries = getPending();
+        List<PendingEntry> out = new ArrayList<>();
+        for (PendingEntry e : entries) {
+            if (e.id.equals(id)) {
+                out.add(new PendingEntry(e.id, e.text, e.type, gps, e.account, e.place,
+                        e.timestamp, readyAt));
+            } else {
+                out.add(e);
+            }
+        }
+        save(out);
+    }
+
     public synchronized void remove(String id) {
         List<PendingEntry> entries = getPending();
         List<PendingEntry> kept = new ArrayList<>();

@@ -39,6 +39,8 @@ public class WearMainActivity extends WearLocalizedActivity {
     public static final String EXTRA_TYPE = "de.spahr.ausgaben.wear.TYPE";
 
     private static final long CANCEL_WINDOW_MS = 10_000L;
+    /** Reserve, bis der Standort aufgelöst ist (danach setzt updateGps readyAt auf jetzt). */
+    private static final long LOCATION_WAIT_MS = 65_000L;
 
     private PendingStore store;
     private View typeSelection;
@@ -331,24 +333,37 @@ public class WearMainActivity extends WearLocalizedActivity {
             return;
         }
         long now = System.currentTimeMillis();
-        String gps = hasLocationPermission() ? location.currentCoordinates() : null;
         // text = nur Betrag → das Phone parst leeren Empfänger + Betrag → Auflösung per Standort.
-        store.add(new PendingEntry(UUID.randomUUID().toString(), amt, pendingType, gps,
-                BalanceStore.selectedAccount(this), BalanceStore.selectedPlace(this), now, now));
+        // Zunächst ohne Koordinaten und mit zurückgehaltenem readyAt ablegen; der Standort wird
+        // anschließend aufgelöst (bis ~1 Min auf frischen Fix warten), dann wird gesendet.
+        String id = UUID.randomUUID().toString();
+        store.add(new PendingEntry(id, amt, pendingType, "",
+                BalanceStore.selectedAccount(this), BalanceStore.selectedPlace(this),
+                now, now + LOCATION_WAIT_MS));
         numberEntryActive = false;
-        WearSync.syncPending(this);
+        resolveLocationThenSend(id);
         showTypeSelection();
+    }
+
+    /** Löst den Standort auf (Warten auf frischen Fix / Rückfall) und sendet den Eintrag danach. */
+    private void resolveLocationThenSend(String id) {
+        final Context app = getApplicationContext();
+        location.resolve(coords -> {
+            new PendingStore(app).updateGps(id, coords == null ? "" : coords,
+                    System.currentTimeMillis());
+            WearSync.syncPending(app);
+        });
     }
 
     /** Erkannter Text → sofort lokal speichern (mit 10-s-Sperre), Bestätigung mit Countdown zeigen. */
     private void onRecognized(String text) {
         long now = System.currentTimeMillis();
         confirmEntryId = UUID.randomUUID().toString();
-        // Standort zum Sprechzeitpunkt bestimmen und mitgeben.
-        String gps = hasLocationPermission() ? location.currentCoordinates() : null;
-        store.add(new PendingEntry(confirmEntryId, text, pendingType, gps,
+        // Ohne Koordinaten ablegen; readyAt zurückhalten, bis nach dem 10-s-Fenster der Standort
+        // aufgelöst ist (siehe finalizeConfirm). „Abbrechen" entfernt den Eintrag vorher wieder.
+        store.add(new PendingEntry(confirmEntryId, text, pendingType, "",
                 BalanceStore.selectedAccount(this), BalanceStore.selectedPlace(this),
-                now, now + CANCEL_WINDOW_MS));
+                now, now + CANCEL_WINDOW_MS + LOCATION_WAIT_MS));
 
         confirmText.setText(text);
         btnCancel.setVisibility(View.VISIBLE);
@@ -370,11 +385,14 @@ public class WearMainActivity extends WearLocalizedActivity {
         confirmTimer.start();
     }
 
-    /** 10 s abgelaufen → jetzt senden (readyAt ist erreicht). */
+    /** 10 s abgelaufen → jetzt Standort auflösen und danach senden. */
     private void finalizeConfirm() {
         stopTimer();
+        String id = confirmEntryId;
         confirmEntryId = null;
-        WearSync.syncPending(this);
+        if (id != null) {
+            resolveLocationThenSend(id);
+        }
         showTypeSelection();
     }
 

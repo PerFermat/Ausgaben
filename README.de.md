@@ -143,12 +143,28 @@ Mikrofon-Berechtigung ist davon unberührt). Hinweise zur F-Droid-Paketierung in
   Gesamt-Sichten; per Fingergeste zoombar (horizontal = Balkenanzahl, vertikal = Y-Achse).
 - **Budget** (eigene Menüseite) stellt je Kategorie das **Ist** dem **Soll** gegenüber. Das Soll wird aus
   einer **KMyMoney-Budgetplanung** importiert (Knopf in den Einstellungen; nicht editierbar) oder
-  **app-intern** aus dem Verlauf berechnet (Summe aller Vorjahre ÷ Anzahl der Jahre mit Daten). Umschaltbar
-  zwischen **Jahres- und Monatssicht** (Monat = Jahres-Soll ÷ 12) und **nur Haupt- / mit Unterkategorien**.
-  Einnahmen stehen zuerst, dann Ausgaben; unter jeder Kategorie ein dünner Balken – **grün**, wenn man im
-  Plan liegt, **rot**, wenn daneben (Breite = Anteil des verbrauchten Solls, Farbe im Vergleich zum
-  Zeitanteil der Periode; Einnahmen umgekehrt). Intern berechnete Soll-Werte lassen sich durch Antippen einer
-  Zeile ändern; aus KMyMoney importierte nicht.
+  **app-intern** aus dem Verlauf berechnet (Summe aller Vorjahre ÷ Anzahl der Jahre mit Daten). Ob eine
+  Kategorie **Einnahme oder Ausgabe** ist, wird zuverlässig **aus der `.kmy`-Datei** bestimmt (KMyMoney-Typ),
+  nicht mehr aus dem Vorzeichen der Buchungen: eine Erstattung mindert die Ausgabekategorie, kippt sie aber
+  nicht; ein negativer Ist wird auf 0 gesetzt.
+- **Monatsgenaue Budgets**: KMyMoney-Budgets werden monatsgenau importiert (`monatlich`/`monatweise`). Die
+  **Jahressicht** summiert die Monate, die **Monatssicht** zeigt das Soll des angezeigten Monats gegen die
+  Ist-Werte desselben Monats. In der Monatssicht blättert man per **Wischgeste** (oder Tippen auf den grauen
+  Vor-/Folgemonat in der Kopfzeile) durch die Monate. Umschaltbar außerdem **nur Haupt- / mit
+  Unterkategorien**; Einnahmen stehen zuerst, dann Ausgaben. **Bearbeiten** intern berechneter Soll-Werte per
+  **langem Druck** auf die Zeile; aus KMyMoney importierte sind nicht editierbar.
+- **Balkenfarbe nach erwartetem Verlauf**: Der dünne Balken je Kategorie ist **grün**, wenn man im Plan
+  liegt, sonst **rot**. Statt eines rein linearen Zeitvergleichs lernt die App aus der **Zahlungshistorie**
+  das typische Timing jeder Kategorie: eine **einmalige** Ausgabe (z. B. am Monatsanfang gekaufte Monatskarte)
+  ist bereits grün, sobald sie im Budget liegt; **regelmäßige** Ausgaben (Lebensmittel) werden weiter am
+  Zeitanteil gemessen. Ohne Historie gilt der bisherige lineare Vergleich.
+- **Geplante Buchungen** (eigene Menüseite, **nur im `.kmy`-Modus** sichtbar): importiert die in KMyMoney
+  angelegten Daueraufträge/Planungen und zeigt sie als **eine chronologische Liste** nach Fälligkeit. Jede
+  wiederkehrende Planung wird in ihre **Einzeltermine aufgefaltet** (z. B. wöchentlicher Bäcker mehrfach),
+  ab der gespeicherten nächsten Fälligkeit bis **max. 2 Jahre** in die Zukunft; abgelaufene Planungen und
+  solche ohne Datum werden ausgelassen, ein Enddatum begrenzt die Vorschau. Vor jeder Zeile ein farbiger
+  Strich: **grün** = Einzahlung, **rot** = Auszahlung, **gelb** = Umbuchung; Datum als eigene Spalte. Die
+  Liste wird bei jedem Konto-Import automatisch aktualisiert.
 
 ### Homescreen-Widget (Handy)
 Vier wählbare Widgets zeigen den Saldo des **Standardorts** (Standardkonto → Standardort, wie auf der Uhr):
@@ -175,6 +191,11 @@ regelmäßigen Abständen.
 - **kMyMoney-`.kmy`-Modus**: schreibt neue Buchungen direkt in die `.kmy` (gzip-XML) und importiert
   Konten/Buchungen daraus – inkl. Splitbuchungen und Umbuchungen. Import ersetzt je Konto die bereits
   exportierten Buchungen.
+- **Mehrfachauswahl beim Import**: Der Konten-Auswahldialog erlaubt jetzt, **mehrere Konten (und Depots)
+  auf einmal** anzuhaken; **bereits importierte Konten werden ausgeblendet**. Der eigentliche Import läuft
+  **im Hintergrund** – die Oberfläche bleibt bedienbar; oben in der Buchungsliste zeigt ein **gelber Banner**
+  („Konto wird importiert …") mit wanderndem Verlauf, Status und Prozentanzeige den Fortschritt und
+  verschwindet am Ende. Eine Meldung kommt **nur bei einem Fehler**.
 - **Depot-Import**: das **Investment-Konto** (Depot) wird in der Import-Auswahl **einmal** als „… (Depot)"
   angeboten (nicht mehr jedes Wertpapier einzeln). Der Import liest die **Wertpapiere**, ihre
   **Käufe/Verkäufe/Dividenden/Einbuchungen** und den **letzten Kurs** je Wertpapier. Das Depot erscheint
@@ -230,10 +251,12 @@ regelmäßigen Abständen.
   Standardkonto, Orte je Konto, Alias-Namen, Hell-/Dunkel-Design, Datenbank-Backup/Restore,
   **Konto löschen/schließen**.
 - **Konto schließen statt löschen**: unter „Konto löschen/schließen" zeigt eine Liste alle Konten mit Status
-  (Aktiv/Geschlossen). Ein Konto lässt sich **schließen**, wenn sein Saldo **0** ist (sonst nur löschen), und
-  jederzeit wieder **öffnen**. Ein geschlossenes Konto erscheint nirgends mehr (Kontenmenü, Buchungs-Auswahl
-  manuell/automatisch, Bestände inkl. seiner Orte, Einzel-Auswertung) – nur in der **Auswertung-Gesamtsicht**
-  zählt sein historischer Saldo weiter. Löschen entfernt Buchungen + Orte dauerhaft.
+  (Aktiv/Geschlossen) als **Mehrfachauswahl**. In der unteren Zeile stehen **Löschen** und (kontextabhängig)
+  **Schließen/Öffnen** vor **Abbrechen**; **Schließen** erscheint nur, wenn **alle** ausgewählten Konten Saldo
+  **0** haben, **Öffnen**, wenn alle ausgewählten geschlossen sind. So lassen sich mehrere Konten auf einmal
+  schließen, öffnen oder löschen. Ein geschlossenes Konto erscheint nirgends mehr (Kontenmenü,
+  Buchungs-Auswahl manuell/automatisch, Bestände inkl. seiner Orte, Einzel-Auswertung) – nur in der
+  **Auswertung-Gesamtsicht** zählt sein historischer Saldo weiter. Löschen entfernt Buchungen + Orte dauerhaft.
 
 ## Wear OS (Sprach-Schnellerfassung)
 
@@ -261,6 +284,11 @@ Parser wie am Phone) und die Buchungsanlage passieren auf dem Smartphone.
   Zahlenblock (0–9 + Komma, Rücktaste, Enter, oben die eingegebene Zahl). So lässt sich eine Buchung
   **lautlos** erfassen; der Betrag wird am Phone über den aktuellen Standort aufgelöst (siehe „Nur den
   Betrag erfassen").
+- **Standort erst nach frischem Fix**: Nach der Eingabe wird der Standort nicht sofort aus einem evtl.
+  **veralteten** Fix genommen, sondern die Uhr **wartet bis zu ~1 Minute auf einen frischen GPS-Fix** und
+  sendet die Buchung erst danach. Gibt es keinen frischen Fix, wird die **zuletzt gespeicherte Messung**
+  genutzt (höchstens 5 Minuten alt), sonst **ohne Koordinaten** gesendet. Damit landet eine Zahlung nicht mehr
+  am zuvor besuchten Ort, wenn man inzwischen woanders ist.
 - **Offline & Sync**: Die Übertragung läuft **vollautomatisch** über die Wear Data Layer API als
   **DataItem** (`DataClient`). Ist das Phone nicht erreichbar, bleibt der Eintrag PENDING; der Data Layer
   stellt ihn bei Wiederverbindung automatisch zu (ohne dass die Uhr wach bleiben oder pollen muss). Das

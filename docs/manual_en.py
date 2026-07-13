@@ -143,7 +143,7 @@ bullets([
 ])
 p("Then enter URL/share, user name and password and verify with <b>«Test connection»</b>. Also choose the "
   "export mode (<b>.kmy</b> or CSV) and – in .kmy mode – pick the file via <b>«Choose .kmy»</b>. Full "
-  "details are in Chapter 13.")
+  "details are in Chapter 14.")
 h2("Create accounts – required first")
 p("Next, create at least one <b>account</b>: in the account drawer (☰ top left) via <b>«Add account»</b>; "
   "in .kmy mode the accounts can be imported directly from the KMyMoney file. <b>Important:</b> the "
@@ -317,25 +317,48 @@ p("The <b>Budget</b> page (menu <b>⋮ → Budget</b>) puts the <b>actual</b> va
   "<b>target</b>. It answers the question: «Am I on plan?»")
 h2("Where does the target come from?")
 bullets([
-  "<b>Import from KMyMoney</b> (a button in the settings): if your .kmy contains a budget, its annual values "
-  "are taken as the target for the current year. Such targets are <b>not editable</b>.",
+  "<b>Import from KMyMoney</b> (a button in the settings): if your .kmy contains a budget, its values are "
+  "taken as the target — <b>month-accurate</b> (monthly and month-by-month budgets are stored per month). "
+  "Such targets are <b>not editable</b>.",
   "<b>Compute from history</b>: sum of all previous years ÷ number of years with data. Automatic when the "
-  "«compute budget internally» switch is on, otherwise via a button. These targets can be edited by "
-  "<b>tapping a row</b>.",
+  "«compute budget internally» switch is on, otherwise via a button. These targets can be edited by a "
+  "<b>long press on a row</b>.",
 ])
+p("Whether a category is <b>income or expense</b> is taken reliably from the KMyMoney type in the .kmy file "
+  "(not from the sign of individual bookings). A refund therefore reduces the expense category without turning "
+  "it into income; a computed negative actual is clamped to 0.")
 h2("Display")
 bullets([
-  "Toggle <b>year / month</b> (month = annual target ÷ 12; actual = sum of the current month).",
+  "Toggle <b>year / month</b>. The year view sums the months; the month view shows the displayed month's "
+  "target against that same month's actuals. In month view you page through months with a <b>swipe</b> (or by "
+  "tapping the grey previous/next month in the header).",
   "Toggle <b>main categories only / with subcategories</b> (a main category sums its subcategories).",
   "<b>Income</b> first, then <b>expenses</b> (large headers); main categories bold, subcategories indented. "
   "The right side shows «actual / target».",
-  "Under each category a slim <b>bar</b>: <b>green</b> when you are ahead of plan, <b>red</b> when behind. "
-  "The width is the share of the target used; the colour compares it with the elapsed share of the period "
-  "(for income reversed: faster than time = good).",
+  "Under each category a slim <b>bar</b>: <b>green</b> when on plan, <b>red</b> when behind (width = share of "
+  "the target used). Instead of a purely linear time comparison, the app learns each category's typical timing "
+  "from the <b>payment history</b>: a <b>one-time</b> expense (e.g. a transit pass bought at the start of the "
+  "month) is green as soon as it is within budget, while <b>regular</b> expenses (groceries) are still "
+  "measured against the elapsed time. Without history the linear comparison applies (for income reversed).",
 ])
 
-# ---------------------------------------------------------------- 11
-h1("11. Holdings (places) and portfolio")
+# ---------------------------------------------------------------- 11 Scheduled transactions
+h1("11. Scheduled transactions")
+p("The <b>Scheduled transactions</b> page (menu <b>⋮ → Scheduled transactions</b>, shown only in "
+  "<b>.kmy mode</b>) imports the standing orders / schedules set up in KMyMoney and shows them as <b>one "
+  "chronological list</b> by due date. The values refresh on every account import.")
+bullets([
+  "Each recurring schedule is <b>expanded into its individual occurrences</b> (e.g. a weekly bakery appears "
+  "several times) — from the stored next due date up to <b>2 years</b> ahead.",
+  "Only <b>active</b> schedules; entries <b>without a date</b> are skipped, and an <b>end date</b> (or a "
+  "limited number of payments in KMyMoney) limits the preview.",
+  "A coloured <b>strip</b> precedes each row: <b>green</b> = deposit, <b>red</b> = payment, <b>yellow</b> = "
+  "transfer. The <b>date</b> is its own column at the front, next to it the name/payee and the amount on the "
+  "right.",
+])
+
+# ---------------------------------------------------------------- 12 Holdings / portfolio
+h1("12. Holdings (places) and portfolio")
 h2("Holdings / places – what are they?")
 p("A <b>place</b> describes <b>where</b> an account's cash physically is – e.g. wallet, jar, petty cash or "
   "an envelope. An account «Cash» can thus be split into several real storage locations. <b>This feature "
@@ -386,7 +409,7 @@ p("<b>Dividends gross/net:</b> the settings let you choose whether dividends are
   "needed.")
 
 # ---------------------------------------------------------------- 11
-h1("12. Synchronizing: performing export and import")
+h1("13. Synchronizing: performing export and import")
 p("The actual sync with KMyMoney runs through <b>a single symbol</b> in the main screen's title bar – the "
   "<b>export/sync symbol</b> (down arrow).")
 pic("docs/img/export_button.png", "The export/sync symbol in the title bar (circled in red)", width=14*cm)
@@ -399,20 +422,23 @@ p("Import is done selectively via the account drawer (long press):")
 bullets([
   "<b>Long press on an account</b>: imports/updates exactly that account from the .kmy.",
   "<b>Long press on «All accounts»</b>: re-imports <b>all</b> existing accounts.",
-  "<b>«Add account»</b>: fetches an account not yet present from the .kmy.",
+  "<b>«Add account»</b>: fetches an account not yet present from the .kmy. In the picker you can tick "
+  "<b>several accounts (and portfolios) at once</b>; <b>already-imported accounts are hidden</b>.",
   "<b>Long press on the portfolio</b>: updates securities and prices.",
 ])
-p("An import replaces the already-exported bookings per account (no duplicates). In <b>CSV mode with "
-  "SMB/WebDAV</b>, adding an account or long-pressing one opens a <b>navigable folder browser</b> (subfolders "
-  "📁 + CSV files, «..» to go up); the chosen CSV is imported from the current folder. The drawer stays open "
-  "on long press.")
+p("An import replaces the already-exported bookings per account (no duplicates). The import runs <b>in the "
+  "background</b> – the UI stays usable; a <b>yellow banner</b> at the top of the booking list («Importing "
+  "account …») with a moving gradient, status text and percentage shows the progress and disappears when done. "
+  "A message appears <b>only on error</b>. In <b>CSV mode with SMB/WebDAV</b>, adding an account or "
+  "long-pressing one opens a <b>navigable folder browser</b> (subfolders 📁 + CSV files, «..» to go up); the "
+  "chosen CSV is imported from the current folder. The drawer stays open on long press.")
 h2("Backup before every export")
 p("Before every write-back the app automatically creates a <b>timestamped backup</b> of the .kmy (e.g. "
   "<i>file.kmy.bak-YYYYMMDD-HHMM</i>) right next to the original. So you always have a fallback in case "
   "something is ever wrong with the file.")
 
 # ---------------------------------------------------------------- 12
-h1("13. Setting up synchronization (Settings)")
+h1("14. Setting up synchronization (Settings)")
 p("Before synchronizing for the first time, store server, access and export mode once in the settings "
   "(shown in Chapter 2).")
 h2("Server type and access")
@@ -433,7 +459,7 @@ bullets([
 p("Without a configured sync target, export goes locally into a folder you choose.")
 
 # ---------------------------------------------------------------- 13
-h1("14. Managing alias names")
+h1("15. Managing alias names")
 p("Under <b>Settings → Alias names</b>: the automatic prompt can be turned off (existing aliases still "
   "apply). Via <b>«Manage alias names»</b> you create, edit and delete aliases by hand – with spoken term, "
   "real payee, booking type, account, categories and location (settable via <b>«Open map»</b> on an "
@@ -441,7 +467,7 @@ p("Under <b>Settings → Alias names</b>: the automatic prompt can be turned off
   "spoken term may point to several payees, which are then distinguished by location.")
 
 # ---------------------------------------------------------------- 14
-h1("15. Wear OS (watch)")
+h1("16. Wear OS (watch)")
 shot("UhranlagemitAlias.png", "Recording on the watch", width=6.0*cm)
 p("With the watch app you record an expense by voice right on your wrist. The watch only captures the text; "
   "processing and creating the booking happen on the phone (the same parser).")
@@ -449,6 +475,10 @@ bullets([
   "<b>Three type buttons</b>: income (green), transfer (yellow), expense (red). Then voice starts.",
   "The recognized text is shown for 10 seconds with «Cancel» and otherwise processed automatically.",
   "<b>Silent digit entry</b>: enter an amount silently via the digits symbol (resolved by location on the phone).",
+  "<b>Location only after a fresh fix</b>: after input the watch waits up to ~1 minute for a fresh GPS fix "
+  "and sends the booking only afterwards – instead of taking a possibly stale fix immediately. Without a "
+  "fresh fix the last stored measurement is used (at most 5 minutes old), otherwise it is sent without "
+  "coordinates. This keeps a payment from landing at a previously visited place after you have moved.",
   "<b>Wear tile</b>: quick access as a tile.",
   "<b>Default-place balance</b>: below the buttons, the app and tile show the balance of the default place "
   "as «Place: balance» (e.g. «Wallet: 70.00 €»). The phone sends the value only when it changes; the watch "
@@ -465,7 +495,7 @@ bullets([
 p("Requirement: the phone and watch apps share the same signature (same key).")
 
 # ---------------------------------------------------------------- 15
-h1("16. Security, privacy & settings")
+h1("17. Security, privacy & settings")
 bullets([
   "<b>App lock</b>: optional via biometrics/device credential (fingerprint, face, PIN, pattern, password) – "
   "on start and when returning from the background.",
@@ -473,9 +503,11 @@ bullets([
   "no GPS note, no amount-only entry, no alias location. The position is used locally only, never sent to a service.",
   "<b>Currency symbol</b>: default; taken per account from the file on .kmy import.",
   "<b>Theme</b>: light/dark. <b>Backup/restore</b> of the database.",
-  "<b>Delete/close account</b>: an account can be <b>closed</b> when its balance is 0 (otherwise only deleted) "
-  "and reopened at any time. A closed account no longer appears anywhere – only in the total analysis view "
-  "does its historical balance still count.",
+  "<b>Delete/close account</b>: a <b>multi-select</b> lists all accounts with status (Active/Closed). The "
+  "bottom row has <b>Delete</b> and (context-dependent) <b>Close/Reopen</b> before <b>Cancel</b>; <b>Close</b> "
+  "appears only when all selected accounts have a balance of 0, <b>Reopen</b> when all selected are closed – so "
+  "several accounts can be closed, reopened or deleted at once. A closed account no longer appears anywhere – "
+  "only in the total analysis view does its historical balance still count.",
 ])
 h2("Disclaimer")
 p("This app is provided as-is, with no warranty. In particular, there is no guarantee that the .kmy file "
@@ -483,7 +515,7 @@ p("This app is provided as-is, with no warranty. In particular, there is no guar
   "always have a fallback. Keep your own regular backups as well.")
 
 # ---------------------------------------------------------------- 16
-h1("17. CSV format (export)")
+h1("18. CSV format (export)")
 p("German locale: column separator «;», decimal separator «,», date DD.MM.YYYY, UTF-8. Split bookings are "
   "written as one line per category.")
 code = ("Datum;Empfänger;Konto;Typ;Betrag;Notiz;Kategorie<br/>"

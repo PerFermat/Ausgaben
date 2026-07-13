@@ -146,7 +146,7 @@ bullets([
 ])
 p("Tragen Sie dann URL/Freigabe, Benutzer und Passwort ein und prüfen Sie mit <b>«Verbindung testen»</b>. "
   "Wählen Sie außerdem den Export-Modus (<b>.kmy</b> oder CSV) und – im .kmy-Modus – über <b>«.kmy "
-  "auswählen»</b> die Datei. Die vollständigen Details stehen in Kapitel 13.")
+  "auswählen»</b> die Datei. Die vollständigen Details stehen in Kapitel 14.")
 h2("Konten anlegen – zuerst erforderlich")
 p("Legen Sie danach mindestens ein <b>Konto</b> an: in der Kontenschublade (☰ oben links) unten über "
   "<b>«Konto hinzufügen»</b>; im .kmy-Modus lassen sich die Konten direkt aus der KMyMoney-Datei "
@@ -334,26 +334,50 @@ p("Die <b>Budget</b>-Seite (Menü <b>⋮ → Budget</b>) stellt je Kategorie das
 h2("Woher kommt das Soll?")
 bullets([
   "<b>Aus KMyMoney importieren</b> (Knopf in den Einstellungen): enthält Ihre .kmy eine Budgetplanung, "
-  "werden deren Jahreswerte als Soll des laufenden Jahres übernommen. Solche Soll-Werte sind "
-  "<b>nicht editierbar</b>.",
+  "werden deren Werte als Soll übernommen – <b>monatsgenau</b> (monatliche bzw. monatweise Budgets werden "
+  "je Monat gespeichert). Solche Soll-Werte sind <b>nicht editierbar</b>.",
   "<b>Aus dem Verlauf berechnen</b>: Summe aller bisherigen Jahre ÷ Anzahl der Jahre mit Daten. Automatisch, "
   "wenn der Schalter «Budget app-intern berechnen» aktiv ist, sonst per Knopf. Diese Soll-Werte lassen sich "
-  "durch <b>Antippen einer Zeile</b> ändern.",
+  "durch <b>langen Druck auf eine Zeile</b> ändern.",
 ])
+p("Ob eine Kategorie <b>Einnahme oder Ausgabe</b> ist, wird zuverlässig aus dem KMyMoney-Typ der .kmy-Datei "
+  "bestimmt (nicht aus dem Vorzeichen einzelner Buchungen). Eine Erstattung mindert daher die Ausgabekategorie, "
+  "ohne sie zur Einnahme zu machen; ein rechnerisch negativer Ist wird auf 0 gesetzt.")
 h2("Anzeige")
 bullets([
-  "Umschalter <b>Jahr / Monat</b> (Monat = Jahres-Soll ÷ 12; Ist = Summe des laufenden Monats).",
+  "Umschalter <b>Jahr / Monat</b>. Die Jahressicht summiert die Monate; die Monatssicht zeigt das Soll des "
+  "angezeigten Monats gegen die Ist-Werte desselben Monats. In der Monatssicht blättert man per "
+  "<b>Wischgeste</b> (oder Tippen auf den grauen Vor-/Folgemonat in der Kopfzeile) durch die Monate.",
   "Umschalter <b>nur Hauptkategorien / mit Unterkategorien</b> (Hauptkategorie = Summe über ihre "
   "Unterkategorien).",
   "<b>Einnahmen</b> zuerst, dann <b>Ausgaben</b> (große Überschriften); Hauptkategorien fett, "
   "Unterkategorien eingerückt. Rechts steht «Ist / Soll».",
   "Unter jeder Kategorie ein dünner <b>Balken</b>: <b>grün</b>, wenn man im Plan liegt, <b>rot</b>, wenn "
-  "daneben. Die Breite zeigt den verbrauchten Anteil des Solls; die Farbe vergleicht ihn mit dem "
-  "Zeitanteil der Periode (bei Einnahmen umgekehrt: schneller als die Zeit = gut).",
+  "daneben (Breite = verbrauchter Anteil des Solls). Statt eines rein linearen Zeitvergleichs lernt die App "
+  "aus der <b>Zahlungshistorie</b> das typische Timing jeder Kategorie: eine <b>einmalige</b> Ausgabe (z. B. "
+  "eine am Monatsanfang gekaufte Monatskarte) ist bereits grün, sobald sie im Budget liegt, während "
+  "<b>regelmäßige</b> Ausgaben (Lebensmittel) weiter am Zeitanteil gemessen werden. Ohne Historie gilt der "
+  "lineare Vergleich (bei Einnahmen umgekehrt).",
 ])
 
-# ---------------------------------------------------------------- 11 Bestände / Depot
-h1("11. Bestände (Orte) und Depot")
+# ---------------------------------------------------------------- 11 Geplante Buchungen
+h1("11. Geplante Buchungen")
+p("Die Seite <b>Geplante Buchungen</b> (Menü <b>⋮ → Geplante Buchungen</b>, nur im <b>.kmy-Modus</b> "
+  "sichtbar) importiert die in KMyMoney angelegten Daueraufträge/Planungen und zeigt sie als <b>eine "
+  "chronologische Liste</b> nach Fälligkeit. Die Werte werden bei jedem Konto-Import automatisch aktualisiert.")
+bullets([
+  "Jede wiederkehrende Planung wird in ihre <b>Einzeltermine aufgefaltet</b> (z. B. ein wöchentlicher "
+  "Bäcker erscheint mehrfach) – <b>ab der gespeicherten nächsten Fälligkeit</b> bis <b>höchstens 2 Jahre</b> "
+  "in die Zukunft.",
+  "Nur <b>aktive</b> Planungen; Termine <b>ohne Datum</b> werden ausgelassen, ein <b>Enddatum</b> (bzw. eine "
+  "begrenzte Anzahl Buchungen in KMyMoney) begrenzt die Vorschau.",
+  "Vor jeder Zeile ein farbiger <b>Strich</b>: <b>grün</b> = Einzahlung, <b>rot</b> = Auszahlung, "
+  "<b>gelb</b> = Umbuchung. Das <b>Datum</b> steht in einer eigenen Spalte vorne, daneben Name/Empfänger und "
+  "rechts der Betrag.",
+])
+
+# ---------------------------------------------------------------- 12 Bestände / Depot
+h1("12. Bestände (Orte) und Depot")
 h2("Bestände / Orte – was ist das?")
 p("Ein <b>Ort</b> beschreibt, <b>wo</b> das Bargeld eines Kontos physisch liegt – z. B. Geldbeutel, "
   "Spardose, Portokasse oder ein Umschlag. Ein Konto «Bargeld» lässt sich damit in mehrere reale "
@@ -408,7 +432,7 @@ p("<b>Dividenden brutto/netto:</b> In den Einstellungen wählbar, ob Dividenden 
   "einmalig ein Depot-Neuimport nötig.")
 
 # ---------------------------------------------------------------- 11 Synchronisieren durchführen
-h1("12. Synchronisieren: Export und Import durchführen")
+h1("13. Synchronisieren: Export und Import durchführen")
 p("Der eigentliche Abgleich mit KMyMoney läuft über <b>ein einziges Symbol</b> in der Titelleiste des "
   "Hauptbildschirms – das <b>Export-/Sync-Symbol</b> (Pfeil nach unten).")
 pic("docs/img/export_button.png", "Das Export-/Sync-Symbol in der Titelleiste (rot umkreist)", width=14*cm)
@@ -422,10 +446,15 @@ p("Der Import erfolgt gezielt über die Kontenschublade (langer Druck):")
 bullets([
   "<b>Langer Druck auf ein Konto</b>: importiert/aktualisiert genau dieses Konto aus der .kmy.",
   "<b>Langer Druck auf «Alle Konten»</b>: importiert <b>alle</b> vorhandenen Konten neu.",
-  "<b>«Konto hinzufügen»</b>: holt ein noch nicht vorhandenes Konto aus der .kmy.",
+  "<b>«Konto hinzufügen»</b>: holt ein noch nicht vorhandenes Konto aus der .kmy. Im Auswahldialog lassen "
+  "sich <b>mehrere Konten (und Depots) auf einmal</b> anhaken; <b>bereits importierte Konten werden "
+  "ausgeblendet</b>.",
   "<b>Langer Druck auf das Depot</b>: aktualisiert Wertpapiere und Kurse.",
 ])
-p("Ein Import ersetzt je Konto die bereits exportierten Buchungen (keine Dubletten). Im <b>CSV-Modus mit "
+p("Ein Import ersetzt je Konto die bereits exportierten Buchungen (keine Dubletten). Der Import läuft "
+  "<b>im Hintergrund</b> – die Oberfläche bleibt bedienbar; oben in der Buchungsliste zeigt ein <b>gelber "
+  "Banner</b> («Konto wird importiert …») mit wanderndem Verlauf, Status und Prozentanzeige den Fortschritt "
+  "und verschwindet am Ende. Eine Meldung kommt <b>nur bei einem Fehler</b>. Im <b>CSV-Modus mit "
   "SMB/WebDAV</b> öffnet sich beim Hinzufügen bzw. beim langen Druck ein <b>navigierbarer Ordner-Browser</b> "
   "(Unterordner 📁 + CSV-Dateien, «..» zurück); die gewählte CSV wird aus dem aktuellen Ordner importiert. "
   "Die Schublade bleibt beim langen Druck geöffnet.")
@@ -435,7 +464,7 @@ p("Vor jedem Rückschreiben legt die App automatisch eine <b>zeitgestempelte Sic
   "falls mit der Datei einmal etwas nicht stimmt.")
 
 # ---------------------------------------------------------------- 12 Sync einrichten
-h1("13. Synchronisation einrichten (Einstellungen)")
+h1("14. Synchronisation einrichten (Einstellungen)")
 p("Bevor Sie zum ersten Mal synchronisieren, hinterlegen Sie einmalig Server, Zugang und Export-Modus "
   "in den Einstellungen (abgebildet in Kapitel 2).")
 h2("Server-Typ und Zugang")
@@ -456,7 +485,7 @@ bullets([
 p("Ohne konfiguriertes Sync-Ziel wird lokal in einen selbst gewählten Ordner exportiert.")
 
 # ---------------------------------------------------------------- 13 Alias-Verwaltung
-h1("14. Alias-Namen verwalten")
+h1("15. Alias-Namen verwalten")
 p("Unter <b>Einstellungen → Alias-Namen</b>: Die automatische Nachfrage lässt sich abschalten (bestehende "
   "Aliase gelten weiter). Über <b>«Alias-Namen verwalten»</b> legen Sie Aliase manuell an, ändern und "
   "löschen sie – mit gesprochenem Begriff, echtem Empfänger, Buchungsart, Konto, Kategorien und Standort "
@@ -465,7 +494,7 @@ p("Unter <b>Einstellungen → Alias-Namen</b>: Die automatische Nachfrage lässt
   "zeigen, die dann per Standort unterschieden werden.")
 
 # ---------------------------------------------------------------- 13 Wear OS
-h1("15. Wear OS (Uhr)")
+h1("16. Wear OS (Uhr)")
 shot("UhranlagemitAlias.png", "Erfassung auf der Uhr", width=6.0*cm)
 p("Mit der Uhren-App erfassen Sie eine Ausgabe per Sprache direkt am Handgelenk. Die Uhr nimmt nur den "
   "Text auf; die Verarbeitung und das Anlegen der Buchung passieren auf dem Handy (derselbe Parser).")
@@ -473,6 +502,11 @@ bullets([
   "<b>Drei Typ-Knöpfe</b>: Einnahme (grün), Umbuchung (gelb), Ausgabe (rot). Danach startet die Sprache.",
   "Der erkannte Text wird 10 Sekunden mit «Abbrechen» angezeigt und sonst automatisch verarbeitet.",
   "<b>Stille Zifferneingabe</b>: über das Ziffern-Symbol einen Betrag lautlos eingeben (Standort-Auflösung am Handy).",
+  "<b>Standort erst nach frischem Fix</b>: Nach der Eingabe wartet die Uhr bis zu ~1 Minute auf einen "
+  "frischen GPS-Fix und sendet die Buchung erst danach – statt sofort einen veralteten Fix zu nehmen. Ohne "
+  "frischen Fix wird die zuletzt gespeicherte Messung genutzt (höchstens 5 Minuten alt), sonst ohne "
+  "Koordinaten gesendet. So landet eine Zahlung nicht mehr am zuvor besuchten Ort, wenn man inzwischen "
+  "woanders ist.",
   "<b>Wear-Tile</b>: Schnellzugriff als Kachel.",
   "<b>Standardort-Saldo</b>: Unter den Knöpfen zeigen App und Tile den Saldo des Standardorts als "
   "«Ort: Saldo» (z. B. «Geldbeutel: 70,00 €»). Das Handy sendet den Wert nur bei Änderung; die Uhr liest "
@@ -490,7 +524,7 @@ bullets([
 p("Voraussetzung: Handy- und Uhren-App haben dieselbe Signatur (gleicher Schlüssel).", )
 
 # ---------------------------------------------------------------- 14 Sicherheit
-h1("16. Sicherheit, Datenschutz & Einstellungen")
+h1("17. Sicherheit, Datenschutz & Einstellungen")
 bullets([
   "<b>App-Sperre</b>: optional per Fingerabdruck, Gesicht, PIN, Muster oder Passwort – beim Start und bei "
   "Rückkehr aus dem Hintergrund.",
@@ -498,9 +532,12 @@ bullets([
   "Betrag-only-Erfassung, kein Alias-Standort. Die Position wird nur lokal genutzt, nie an einen Dienst gesendet.",
   "<b>Währungskennzeichen</b>: Standard; beim .kmy-Import je Konto aus der Datei übernommen.",
   "<b>Design</b>: Hell/Dunkel. <b>Backup/Restore</b> der Datenbank.",
-  "<b>Konto löschen/schließen</b>: Ein Konto lässt sich <b>schließen</b>, wenn sein Saldo 0 ist (sonst nur "
-  "löschen), und jederzeit wieder öffnen. Ein geschlossenes Konto erscheint nirgends mehr – nur in der "
-  "Auswertung-Gesamtsicht zählt sein historischer Saldo weiter.",
+  "<b>Konto löschen/schließen</b>: Eine <b>Mehrfachauswahl</b> listet alle Konten mit Status (Aktiv/"
+  "Geschlossen). In der unteren Zeile stehen <b>Löschen</b> und (kontextabhängig) <b>Schließen/Öffnen</b> vor "
+  "<b>Abbrechen</b>; <b>Schließen</b> erscheint nur, wenn alle ausgewählten Konten Saldo 0 haben, <b>Öffnen</b>, "
+  "wenn alle ausgewählten geschlossen sind. So lassen sich mehrere Konten auf einmal schließen, öffnen oder "
+  "löschen. Ein geschlossenes Konto erscheint nirgends mehr – nur in der Auswertung-Gesamtsicht zählt sein "
+  "historischer Saldo weiter.",
 ])
 h2("Haftungsausschluss")
 p("Diese App wird ohne Gewähr bereitgestellt. Insbesondere gibt es keine Garantie, dass die .kmy-Datei "
@@ -508,7 +545,7 @@ p("Diese App wird ohne Gewähr bereitgestellt. Insbesondere gibt es keine Garant
   "jedoch stets einen Fallback. Bewahren Sie zusätzlich eigene, regelmäßige Backups auf.", )
 
 # CSV-Format Kurzreferenz
-h1("17. CSV-Format (Export)")
+h1("18. CSV-Format (Export)")
 p("Deutsch: Spaltentrenner «;», Dezimaltrennzeichen «,», Datum TT.MM.JJJJ, UTF-8. Splitbuchungen werden je "
   "Kategorie als eigene Zeile geschrieben.")
 code = ("Datum;Empfänger;Konto;Typ;Betrag;Notiz;Kategorie<br/>"

@@ -137,11 +137,25 @@ permission is unaffected). F-Droid packaging notes are in [`fdroid/`](fdroid/).
   gesture (horizontal = number of bars, vertical = Y axis).
 - **Budget** (own menu page) puts the **actual** value against a per-category **target**. The target is
   imported from a **KMyMoney budget** (a button in the settings; read-only) or computed **app-internally**
-  from the history (sum of all previous years ÷ number of years with data). Toggle between **year and month**
-  view (month = annual target ÷ 12) and between **main categories only / with subcategories**. Income is shown
-  first, then expenses; under each category a slim bar is **green** when you are ahead of plan and **red** when
-  behind (width = share of the target used, colour by comparison with the elapsed share of the period; income
-  reversed). Internally computed targets can be edited by tapping a row; imported KMyMoney targets cannot.
+  from the history (sum of all previous years ÷ number of years with data). Whether a category is **income or
+  expense** is now taken reliably **from the `.kmy` file** (KMyMoney type), no longer from the sign of the
+  bookings: a refund reduces the expense category but does not flip it; a negative actual is clamped to 0.
+- **Month-accurate budgets**: KMyMoney budgets are imported per month (`monthly`/`month-by-month`). The
+  **year view** sums the months, the **month view** shows the displayed month's target against that same
+  month's actuals. In month view you page through months with a **swipe** (or by tapping the grey previous/next
+  month in the header). Also toggle **main categories only / with subcategories**; income first, then expenses.
+  **Edit** internally computed targets with a **long press** on a row; imported KMyMoney targets are read-only.
+- **Bar colour from expected progress**: the slim per-category bar is **green** when you are on plan, otherwise
+  **red**. Instead of a purely linear time comparison, the app learns each category's typical timing from the
+  **payment history**: a **one-time** expense (e.g. a transit pass bought at the start of the month) is green
+  as soon as it is within budget; **regular** expenses (groceries) are still measured against the elapsed
+  time. Without history the previous linear comparison applies.
+- **Scheduled transactions** (own menu page, shown **only in `.kmy` mode**): imports the standing orders /
+  schedules set up in KMyMoney and shows them as **one chronological list** by due date. Each recurring
+  schedule is **expanded into its individual occurrences** (e.g. a weekly bakery appears several times), from
+  the stored next due date up to **2 years** ahead; finished schedules and those without a date are skipped, an
+  end date limits the preview. A coloured strip precedes each row: **green** = deposit, **red** = payment,
+  **yellow** = transfer; the date is its own column. The list refreshes on every account import.
 
 ### Home-screen widget (phone)
 Four selectable widgets show the **default-place** balance (default account → default place, like on the
@@ -167,6 +181,10 @@ Holdings directly. The widget refreshes when the app is opened and at regular in
 - **KMyMoney `.kmy` mode**: writes new bookings straight into the `.kmy` (gzip XML) and imports
   accounts/bookings from it — including splits and transfers. Import replaces the already-exported bookings
   per account.
+- **Multi-select import**: the account picker now lets you tick **several accounts (and portfolios) at once**;
+  **already-imported accounts are hidden**. The import itself runs **in the background** — the UI stays usable;
+  a **yellow banner** at the top of the booking list (“Importing account …”) with a moving gradient, status
+  text and percentage shows the progress and disappears when done. A message appears **only on error**.
 - **Portfolio import**: the **investment account** (portfolio) is offered **once** in the import picker as
   “… (Depot)” (no longer each security individually). The import reads the **securities**, their
   **buys/sells/dividends/add-ins** and the **latest price** per security. After import the portfolio appears
@@ -218,10 +236,12 @@ Holdings directly. The widget refreshes when the app is opened and at regular in
   Nextcloud access (app password encrypted), export mode (CSV/`.kmy`), default account, places per account,
   alias names, light/dark theme, database backup/restore, **delete/close account**.
 - **Close an account instead of deleting it**: under “Delete/close account” a list shows all accounts with
-  their status (Active/Closed). An account can be **closed** when its balance is **0** (otherwise only
-  deleted), and **reopened** any time. A closed account no longer appears anywhere (account menu, booking
-  selection manual/automatic, holdings including its places, single-account analysis) — only in the **total
-  analysis view** does its historical balance still count. Deleting removes bookings + places permanently.
+  their status (Active/Closed) as a **multi-select**. The bottom row has **Delete** and (context-dependent)
+  **Close/Reopen** before **Cancel**; **Close** only appears when **all** selected accounts have a balance of
+  **0**, **Reopen** when all selected are closed — so several accounts can be closed, reopened or deleted at
+  once. A closed account no longer appears anywhere (account menu, booking selection manual/automatic, holdings
+  including its places, single-account analysis) — only in the **total analysis view** does its historical
+  balance still count. Deleting removes bookings + places permanently.
 
 ## Wear OS (voice quick entry)
 
@@ -247,6 +267,11 @@ booking creation happen on the phone.
 - **Silent digit entry**: on the “speak now” screen there is a **digits icon** at the bottom → a keypad (0–9
   + comma, backspace, enter, the entered number on top). This lets you record a booking **silently**; the
   amount is resolved on the phone via the current location (see “Amount-only entry”).
+- **Location only after a fresh fix**: after input the location is no longer taken from a possibly **stale**
+  fix; instead the watch **waits up to ~1 minute for a fresh GPS fix** and sends the booking only afterwards.
+  If no fresh fix arrives, the **last stored measurement** is used (at most 5 minutes old), otherwise the
+  booking is sent **without coordinates**. This prevents a payment from landing at a previously visited place
+  when you have since moved elsewhere.
 - **Offline & sync**: transmission runs **fully automatically** over the Wear Data Layer API as a **DataItem**
   (`DataClient`). If the phone is unreachable, the entry stays PENDING; the Data Layer delivers it
   automatically on reconnect (without the watch having to stay awake or poll). The phone processes it and

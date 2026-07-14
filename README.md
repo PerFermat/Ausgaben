@@ -201,8 +201,9 @@ Holdings directly. The widget refreshes when the app is opened and at regular in
   “… (Depot)” (no longer each security individually). The import reads the **securities**, their
   **buys/sells/dividends/add-ins** and the **latest price** per security. After import the portfolio appears
   **in the account drawer** (short tap opens the portfolio view, long tap refreshes it from the `.kmy`). The
-  **portfolio view** is laid out like an account view (drawer, header with the portfolio name, its own menu,
-  filter) and shows shares × price = current value per security. The **balance line toggles by tap** through
+  **portfolio view** is laid out exactly like an account view – same **menu bar** (hamburger menu, portfolio
+  name, and on the right the same menu items as a normal account), drawer and filter – and shows shares ×
+  price = current value per security. The **balance line toggles by tap** through
   portfolio value → buys → sells (if any) → dividends (if any) → **net invested** (buys − sells − dividends)
   → **gain/loss** (coloured, with percentage). The **portfolio filter** narrows the securities by name and
   **value (slider)**. A tap on a security opens its **movements full-screen** with the same figures for that

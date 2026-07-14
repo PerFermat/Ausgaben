@@ -9,15 +9,15 @@
         app:showAsAction="ifRoom" />
 
     <item
-        android:id="@+id/action_analysis"
-        android:icon="@drawable/ic_chart"
-        android:title="@string/action_analysis"
-        app:showAsAction="ifRoom" />
-
-    <item
         android:id="@+id/action_filter"
         android:icon="@drawable/ic_filter"
         android:title="@string/action_filter"
+        app:showAsAction="ifRoom" />
+
+    <item
+        android:id="@+id/action_analysis"
+        android:icon="@drawable/ic_chart"
+        android:title="@string/action_analysis"
         app:showAsAction="ifRoom" />
 
     <item
@@ -26,9 +26,20 @@
         app:showAsAction="never" />
 
     <item
+        android:id="@+id/action_budget"
+        android:icon="@drawable/ic_budget"
+        android:title="@string/action_budget"
+        app:showAsAction="never" />
+
+    <item
+        android:id="@+id/action_scheduled"
+        android:title="@string/action_scheduled"
+        app:showAsAction="never" />
+
+    <item
         android:id="@+id/action_settings"
         android:icon="@drawable/ic_settings"
         android:title="@string/action_settings"
-        app:showAsAction="never" />
+        app:showAsAction="ifRoom" />
 
 </menu>

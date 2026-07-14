@@ -430,8 +430,9 @@ p("Accounts are grouped by their KMyMoney type into <b>asset accounts</b>, <b>li
   "re-import).")
 h2("Portfolio (securities)")
 p("After importing a KMyMoney investment account, the <b>portfolio</b> appears in the account drawer. The "
-  "portfolio view is laid out like an account view (drawer, header with the portfolio name, its own menu, "
-  "filter) and shows <b>shares × price = current value</b> per security; fully sold securities are hidden. "
+  "portfolio view is laid out exactly like an account view – same <b>menu bar</b> (hamburger menu on the left, "
+  "portfolio name as the title, and on the right the same menu items as a normal account) plus drawer and "
+  "filter – and shows <b>shares × price = current value</b> per security; fully sold securities are hidden. "
   "The <b>balance line toggles by tap</b> through portfolio value → buys → sells (if any) → dividends (if "
   "any) → <b>net invested</b> (buys − sells − dividends) → <b>gain/loss</b> (coloured, with percentage). The "
   "<b>portfolio filter</b> narrows the securities by name and value (slider). When you scroll far down, the "

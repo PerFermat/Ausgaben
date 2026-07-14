@@ -212,8 +212,9 @@ regelmäßigen Abständen.
   angeboten (nicht mehr jedes Wertpapier einzeln). Der Import liest die **Wertpapiere**, ihre
   **Käufe/Verkäufe/Dividenden/Einbuchungen** und den **letzten Kurs** je Wertpapier. Das Depot erscheint
   nach dem Import **in der Kontenschublade** (kurzer Tipp öffnet die Depot-Ansicht, langer Tipp
-  aktualisiert es aus der .kmy). Die **Depot-Ansicht** ist wie eine Konto-Ansicht aufgebaut (Schublade,
-  Kopf mit Depotname, eigenes Menü, Filter) und zeigt je Wertpapier Stückzahl × Kurs = aktueller Wert. Die
+  aktualisiert es aus der .kmy). Die **Depot-Ansicht** ist genau wie eine Konto-Ansicht aufgebaut – gleiche
+  **Menüleiste** (Hamburger-Menü, Depotname, rechts dieselben Menüpunkte wie bei einem normalen Konto),
+  Schublade und Filter – und zeigt je Wertpapier Stückzahl × Kurs = aktueller Wert. Die
   **Saldenzeile schaltet per Tipp** durch Depotwert → Käufe → Verkäufe (falls vorhanden) → Dividenden
   (falls vorhanden) → **Nettoeinsatz** (Käufe − Verkäufe − Dividenden) → **Gewinn/Verlust** (farbig, mit
   Prozent). Der **Depot-Filter** grenzt die Wertpapiere nach Name und **Wert (Schieberegler)** ein. Ein

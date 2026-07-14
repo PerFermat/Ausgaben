@@ -452,7 +452,8 @@ p("Konten werden anhand ihres KMyMoney-Typs in <b>Anlagekonten</b>, <b>Verbindli
   "beim Import aus der .kmy übernommen (nach einem erneuten Import sichtbar).")
 h2("Depot (Wertpapiere)")
 p("Nach dem Import eines KMyMoney-Investmentkontos erscheint das <b>Depot</b> in der Kontenschublade. Die "
-  "Depot-Ansicht ist wie eine Konto-Ansicht aufgebaut (Schublade, Kopf mit Depotname, eigenes Menü, Filter) "
+  "Depot-Ansicht ist genau wie eine Konto-Ansicht aufgebaut – gleiche <b>Menüleiste</b> (Hamburger-Menü links, "
+  "Depotname als Titel, rechts dieselben Menüpunkte wie bei einem normalen Konto) sowie Schublade und Filter – "
   "und zeigt je Wertpapier <b>Stückzahl × Kurs = aktueller Wert</b>; vollständig verkaufte Papiere werden "
   "ausgeblendet. Die <b>Saldenzeile schaltet per Tipp</b> durch Depotwert → Käufe → Verkäufe (falls "
   "vorhanden) → Dividenden (falls vorhanden) → <b>Nettoeinsatz</b> (Käufe − Verkäufe − Dividenden) → "

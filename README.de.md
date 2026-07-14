@@ -192,10 +192,11 @@ regelmäßigen Abständen.
   Konten/Buchungen daraus – inkl. Splitbuchungen und Umbuchungen. Import ersetzt je Konto die bereits
   exportierten Buchungen.
 - **Mehrfachauswahl beim Import**: Der Konten-Auswahldialog erlaubt jetzt, **mehrere Konten (und Depots)
-  auf einmal** anzuhaken; **bereits importierte Konten werden ausgeblendet**. Der eigentliche Import läuft
-  **im Hintergrund** – die Oberfläche bleibt bedienbar; oben in der Buchungsliste zeigt ein **gelber Banner**
-  („Konto wird importiert …") mit wanderndem Verlauf, Status und Prozentanzeige den Fortschritt und
-  verschwindet am Ende. Eine Meldung kommt **nur bei einem Fehler**.
+  auf einmal** anzuhaken; **bereits importierte Konten und Depots werden ausgeblendet**. Der eigentliche
+  Import läuft **im Hintergrund** – die Oberfläche bleibt bedienbar; oben in der Buchungsliste zeigt ein
+  **gelber Banner** („Konto wird importiert …") mit wanderndem Verlauf, Status und Prozentanzeige den
+  Fortschritt und verschwindet am Ende. Eine Meldung kommt **nur bei einem Fehler**. Auch das **Aktualisieren
+  eines Depots** (langer Tipp in der Schublade) läuft im Hintergrund mit demselben Banner.
 - **Depot-Import**: das **Investment-Konto** (Depot) wird in der Import-Auswahl **einmal** als „… (Depot)"
   angeboten (nicht mehr jedes Wertpapier einzeln). Der Import liest die **Wertpapiere**, ihre
   **Käufe/Verkäufe/Dividenden/Einbuchungen** und den **letzten Kurs** je Wertpapier. Das Depot erscheint

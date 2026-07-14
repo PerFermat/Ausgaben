@@ -447,9 +447,10 @@ bullets([
   "<b>Langer Druck auf ein Konto</b>: importiert/aktualisiert genau dieses Konto aus der .kmy.",
   "<b>Langer Druck auf «Alle Konten»</b>: importiert <b>alle</b> vorhandenen Konten neu.",
   "<b>«Konto hinzufügen»</b>: holt ein noch nicht vorhandenes Konto aus der .kmy. Im Auswahldialog lassen "
-  "sich <b>mehrere Konten (und Depots) auf einmal</b> anhaken; <b>bereits importierte Konten werden "
-  "ausgeblendet</b>.",
-  "<b>Langer Druck auf das Depot</b>: aktualisiert Wertpapiere und Kurse.",
+  "sich <b>mehrere Konten (und Depots) auf einmal</b> anhaken; <b>bereits importierte Konten und Depots "
+  "werden ausgeblendet</b>.",
+  "<b>Langer Druck auf das Depot</b>: aktualisiert Wertpapiere und Kurse – ebenfalls im Hintergrund mit dem "
+  "gelben Fortschrittsbanner.",
 ])
 p("Ein Import ersetzt je Konto die bereits exportierten Buchungen (keine Dubletten). Der Import läuft "
   "<b>im Hintergrund</b> – die Oberfläche bleibt bedienbar; oben in der Buchungsliste zeigt ein <b>gelber "

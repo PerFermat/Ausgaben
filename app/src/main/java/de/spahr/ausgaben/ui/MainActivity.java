@@ -100,6 +100,8 @@ public class MainActivity extends LocalizedActivity {
     private long selectedAccountBalance = 0;
     /** Aktuell in der App vorhandene Konten (für „Alle Konten aktualisieren"). */
     private final List<String> appAccounts = new ArrayList<>();
+    /** Alle bereits importierten Konten inkl. geschlossener – zum Ausblenden im Import-Auswahldialog. */
+    private final List<String> importedAccounts = new ArrayList<>();
     /** Bereits importierte Depots – um sie im Import-Auswahldialog auszublenden. */
     private final List<String> appDepots = new ArrayList<>();
 
@@ -617,6 +619,11 @@ public class MainActivity extends LocalizedActivity {
         if (names != null) {
             appAccounts.addAll(names);
         }
+        // Alle bereits importierten Konten (auch geschlossene) merken – zum Ausblenden im Import-Dialog.
+        repository.getAllAccountNames(all -> {
+            importedAccounts.clear();
+            importedAccounts.addAll(all);
+        });
         // Schublade nach Anlage-/Verbindlichkeitskonten gruppieren.
         repository.getAccountsGrouped(g -> accountAdapter.setAccounts(g.assets, g.liabilities));
         if (!accountInitialized) {
@@ -1294,9 +1301,10 @@ public class MainActivity extends LocalizedActivity {
      */
     private void chooseAccountForImport(KmyImporter importer, List<String> accounts, List<String> depots) {
         // Bereits vorhandene App-Konten/Depots ausblenden – nur noch nicht importierte anbieten.
+        // Konten inkl. geschlossener (importedAccounts), damit auch geschlossene nicht erneut erscheinen.
         final List<String> newAccounts = new ArrayList<>();
         for (String a : accounts) {
-            if (!containsIgnoreCase(appAccounts, a)) {
+            if (!containsIgnoreCase(importedAccounts, a)) {
                 newAccounts.add(a);
             }
         }

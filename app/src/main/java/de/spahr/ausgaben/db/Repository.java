@@ -856,6 +856,14 @@ public class Repository {
         });
     }
 
+    /** Alle Konten (auch geschlossene) – zum Ausblenden bereits importierter Konten im Import-Dialog. */
+    public void getAllAccountNames(final Callback<List<String>> callback) {
+        executor.execute(() -> {
+            final List<String> result = accountDao.getAllNames();
+            mainHandler.post(() -> callback.onResult(result));
+        });
+    }
+
     /** Alle Konten mit Status (aktiv/geschlossen) – für die Konto-Verwaltung. */
     public void getAllAccountsWithStatus(final Callback<List<Account>> callback) {
         executor.execute(() -> {

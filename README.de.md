@@ -192,7 +192,7 @@ regelmäßigen Abständen.
   Konten/Buchungen daraus – inkl. Splitbuchungen und Umbuchungen. Import ersetzt je Konto die bereits
   exportierten Buchungen.
 - **Mehrfachauswahl beim Import**: Der Konten-Auswahldialog erlaubt jetzt, **mehrere Konten (und Depots)
-  auf einmal** anzuhaken; **bereits importierte Konten und Depots werden ausgeblendet**. Der eigentliche
+  auf einmal** anzuhaken; **bereits importierte Konten (auch geschlossene) und Depots werden ausgeblendet**. Der eigentliche
   Import läuft **im Hintergrund** – die Oberfläche bleibt bedienbar; oben in der Buchungsliste zeigt ein
   **gelber Banner** („Konto wird importiert …") mit wanderndem Verlauf, Status und Prozentanzeige den
   Fortschritt und verschwindet am Ende. Eine Meldung kommt **nur bei einem Fehler**. Auch das **Aktualisieren

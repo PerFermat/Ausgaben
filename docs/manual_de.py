@@ -447,8 +447,8 @@ bullets([
   "<b>Langer Druck auf ein Konto</b>: importiert/aktualisiert genau dieses Konto aus der .kmy.",
   "<b>Langer Druck auf «Alle Konten»</b>: importiert <b>alle</b> vorhandenen Konten neu.",
   "<b>«Konto hinzufügen»</b>: holt ein noch nicht vorhandenes Konto aus der .kmy. Im Auswahldialog lassen "
-  "sich <b>mehrere Konten (und Depots) auf einmal</b> anhaken; <b>bereits importierte Konten und Depots "
-  "werden ausgeblendet</b>.",
+  "sich <b>mehrere Konten (und Depots) auf einmal</b> anhaken; <b>bereits importierte Konten (auch "
+  "geschlossene) und Depots werden ausgeblendet</b>.",
   "<b>Langer Druck auf das Depot</b>: aktualisiert Wertpapiere und Kurse – ebenfalls im Hintergrund mit dem "
   "gelben Fortschrittsbanner.",
 ])

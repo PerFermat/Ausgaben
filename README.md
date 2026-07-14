@@ -182,7 +182,7 @@ Holdings directly. The widget refreshes when the app is opened and at regular in
   accounts/bookings from it — including splits and transfers. Import replaces the already-exported bookings
   per account.
 - **Multi-select import**: the account picker now lets you tick **several accounts (and portfolios) at once**;
-  **already-imported accounts and portfolios are hidden**. The import itself runs **in the background** — the
+  **already-imported accounts (including closed) and portfolios are hidden**. The import itself runs **in the background** — the
   UI stays usable; a **yellow banner** at the top of the booking list (“Importing account …”) with a moving
   gradient, status text and percentage shows the progress and disappears when done. A message appears **only on
   error**. **Refreshing a portfolio** (long press in the drawer) also runs in the background with the same

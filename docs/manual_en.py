@@ -423,7 +423,7 @@ bullets([
   "<b>Long press on an account</b>: imports/updates exactly that account from the .kmy.",
   "<b>Long press on «All accounts»</b>: re-imports <b>all</b> existing accounts.",
   "<b>«Add account»</b>: fetches an account not yet present from the .kmy. In the picker you can tick "
-  "<b>several accounts (and portfolios) at once</b>; <b>already-imported accounts and portfolios are hidden</b>.",
+  "<b>several accounts (and portfolios) at once</b>; <b>already-imported accounts (including closed) and portfolios are hidden</b>.",
   "<b>Long press on the portfolio</b>: updates securities and prices – also in the background with the yellow "
   "progress banner.",
 ])

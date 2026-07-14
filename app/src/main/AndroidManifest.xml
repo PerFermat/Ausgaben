@@ -81,6 +81,12 @@
             android:parentActivityName=".ui.MainActivity" />
 
         <activity
+            android:name=".ui.ScheduledChartActivity"
+            android:exported="false"
+            android:label="@string/scheduled_title"
+            android:parentActivityName=".ui.ScheduledActivity" />
+
+        <activity
             android:name=".ui.DepotActivity"
             android:exported="false"
             android:label="@string/depot_title"

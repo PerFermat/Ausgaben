@@ -91,6 +91,17 @@
     <!-- Geplante Buchungen -->
     <string name="scheduled_title">Geplante Buchungen</string>
     <string name="scheduled_empty">Keine geplanten Buchungen. Sie werden aus der KMyMoney-Datei importiert.</string>
+    <string name="sched_saldo_net">Überschuss/Fehlbetrag</string>
+    <string name="sched_saldo_income">Summe Einzahlungen</string>
+    <string name="sched_saldo_expense">Summe Rechnungen</string>
+    <string name="sched_filter_kind">Buchungsart</string>
+    <string name="sched_filter_income">Einzahlungen</string>
+    <string name="sched_filter_expense">Rechnungen</string>
+    <string name="sched_filter_transfer">Umbuchungen</string>
+    <string name="sched_filter_account">Konto</string>
+    <string name="sched_filter_name">Name</string>
+    <string name="sched_account_all">Alle Konten</string>
+    <string name="scroll_start">Zum Anfang</string>
 
     <!-- Budget -->
     <string name="budget_title">Budget</string>

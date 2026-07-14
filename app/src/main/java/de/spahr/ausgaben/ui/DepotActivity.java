@@ -133,6 +133,19 @@ public class DepotActivity extends LocalizedActivity {
                 reimportDepot(depot);
             }
         });
+
+        // Scroll-nach-oben-Knopf, sobald nach unten gescrollt wurde.
+        android.widget.ScrollView depotScroll = findViewById(R.id.depotScroll);
+        com.google.android.material.floatingactionbutton.FloatingActionButton fabScrollTop =
+                findViewById(R.id.fabScrollTop);
+        fabScrollTop.setOnClickListener(v -> depotScroll.smoothScrollTo(0, 0));
+        depotScroll.setOnScrollChangeListener((v, x, y, ox, oy) -> {
+            if (y > 0) {
+                fabScrollTop.show();
+            } else {
+                fabScrollTop.hide();
+            }
+        });
     }
 
     private void setupDrawer() {

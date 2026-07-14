@@ -372,9 +372,38 @@ bullets([
   "Nur <b>aktive</b> Planungen; Termine <b>ohne Datum</b> werden ausgelassen, ein <b>Enddatum</b> (bzw. eine "
   "begrenzte Anzahl Buchungen in KMyMoney) begrenzt die Vorschau.",
   "Vor jeder Zeile ein farbiger <b>Strich</b>: <b>grün</b> = Einzahlung, <b>rot</b> = Auszahlung, "
-  "<b>gelb</b> = Umbuchung. Das <b>Datum</b> steht in einer eigenen Spalte vorne, daneben Name/Empfänger und "
-  "rechts der Betrag.",
+  "<b>gelb</b> = Umbuchung. Das <b>Datum</b> steht in einer eigenen Spalte vorne, daneben der <b>Name</b> mit "
+  "dem <b>Zahlungsempfänger</b> in kleinerer, grauer Schrift dahinter, dann eine <b>Konto-Spalte</b> und "
+  "rechts der Betrag. Bei einer <b>Umbuchung</b> zeigt die Konto-Spalte <b>beide Konten untereinander</b>.",
 ])
+h2("Saldo-Streifen (durchschaltbar)")
+p("Oben – wie in der normalen Kontoansicht – ein <b>Saldo-Streifen</b>, der sich immer auf den <b>aktuell "
+  "gesetzten Filter</b> bezieht. Jeder <b>Tipp</b> schaltet die Anzeige weiter:")
+bullets([
+  "<b>Überschuss/Fehlbetrag</b> (Standard) = Summe Einzahlungen − Summe Rechnungen (grün ≥ 0, sonst rot).",
+  "<b>Summe Einzahlungen</b> (grün).",
+  "<b>Summe Rechnungen</b> (rot).",
+])
+p("Umbuchungen zählen in keine dieser Summen (sie verschieben nur Geld zwischen eigenen Konten).")
+h2("Filter")
+p("Über das <b>Filter-Symbol</b> oben rechts lässt sich die Liste (und damit auch der Saldo-Streifen und die "
+  "Grafik) eingrenzen nach:")
+bullets([
+  "<b>Buchungsart</b>: Einzahlungen, Rechnungen, Umbuchungen (einzeln an-/abwählbar).",
+  "<b>Konto</b>: Einzelauswahl aus einer Liste aller Konten (oder «Alle Konten»).",
+  "<b>Name</b>: Suchtext, der in <b>Name oder Zahlungsempfänger</b> gesucht wird.",
+  "<b>Zeitraum</b>: Schieberegler (monatsgenau) oder direkte, taggenaue Datumseingabe.",
+])
+h2("Grafik")
+p("Das <b>Grafik-Symbol</b> oben rechts öffnet eine Auswertung, die <b>genauso aussieht wie die Grafik der "
+  "Kontoansicht</b>: grüne/rote <b>Balken</b> für Einzahlungen bzw. Rechnungen und eine <b>Entwicklungslinie</b> "
+  "des gewählten Kontos bzw. des Gesamtvermögens. Wählbar sind die <b>Sicht</b> (Gesamt oder einzelnes Konto) "
+  "und die <b>Zeiteinheit</b> Tag/Woche/Monat. Die Linie <b>startet am Anfang des Betrachtungszeitraums "
+  "(= aktueller Tag) bei 0</b> und lässt sich – wie die Konto-Grafik – <b>zoomen und verschieben</b>; sie "
+  "beginnt jedoch ganz links (heute) und läuft nach rechts in die Zukunft. Die Grafik übernimmt den "
+  "eingestellten Listenfilter.")
+p("Wer weit nach unten scrollt, kann über den eingeblendeten <b>Nach-oben-Knopf</b> (unten links) direkt an "
+  "den Listenanfang springen.")
 
 # ---------------------------------------------------------------- 12 Bestände / Depot
 h1("12. Bestände (Orte) und Depot")
@@ -417,7 +446,8 @@ p("Nach dem Import eines KMyMoney-Investmentkontos erscheint das <b>Depot</b> in
   "ausgeblendet. Die <b>Saldenzeile schaltet per Tipp</b> durch Depotwert → Käufe → Verkäufe (falls "
   "vorhanden) → Dividenden (falls vorhanden) → <b>Nettoeinsatz</b> (Käufe − Verkäufe − Dividenden) → "
   "<b>Gewinn/Verlust</b> (farbig, mit Prozent). Der <b>Depot-Filter</b> grenzt die Wertpapiere nach Name "
-  "und Wert (Schieberegler) ein. Ein Tipp auf ein Wertpapier öffnet seine <b>Bewegungen im Vollbild</b> "
+  "und Wert (Schieberegler) ein. Wer weit nach unten scrollt, springt über den eingeblendeten "
+  "<b>Nach-oben-Knopf</b> (unten links) direkt an den Anfang. Ein Tipp auf ein Wertpapier öffnet seine <b>Bewegungen im Vollbild</b> "
   "(Käufe grün, Verkäufe rot, Dividenden neutral) mit denselben Kennzahlen für dieses Papier und einem "
   "<b>Filter nach Käufen/Verkäufen/Dividenden</b> sowie einem Datums-Slider (Startdatum = erster Kauf). Der "
   "Depotwert wird getrennt geführt und erscheint zusätzlich als «Gesamtvermögen» in der Saldenzeile des "

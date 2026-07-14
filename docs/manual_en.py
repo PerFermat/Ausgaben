@@ -353,9 +353,36 @@ bullets([
   "Only <b>active</b> schedules; entries <b>without a date</b> are skipped, and an <b>end date</b> (or a "
   "limited number of payments in KMyMoney) limits the preview.",
   "A coloured <b>strip</b> precedes each row: <b>green</b> = deposit, <b>red</b> = payment, <b>yellow</b> = "
-  "transfer. The <b>date</b> is its own column at the front, next to it the name/payee and the amount on the "
-  "right.",
+  "transfer. The <b>date</b> is its own column at the front, next to it the <b>name</b> with the <b>payee</b> "
+  "in smaller, grey text behind it, then an <b>account column</b> and the amount on the right. For a "
+  "<b>transfer</b> the account column shows <b>both accounts, one below the other</b>.",
 ])
+h2("Balance strip (cycling)")
+p("At the top – like in the normal account view – a <b>balance strip</b> that always reflects the <b>currently "
+  "set filter</b>. Each <b>tap</b> cycles the display:")
+bullets([
+  "<b>Surplus/deficit</b> (default) = total deposits − total bills (green ≥ 0, otherwise red).",
+  "<b>Total deposits</b> (green).",
+  "<b>Total bills</b> (red).",
+])
+p("Transfers count towards none of these sums (they only move money between your own accounts).")
+h2("Filter")
+p("The <b>filter icon</b> at the top right narrows the list (and thus also the balance strip and the chart) by:")
+bullets([
+  "<b>Type</b>: deposits, bills, transfers (each can be toggled on/off).",
+  "<b>Account</b>: single selection from a list of all accounts (or «All accounts»).",
+  "<b>Name</b>: search text matched against <b>name or payee</b>.",
+  "<b>Period</b>: slider (month granularity) or direct, day-precise date entry.",
+])
+h2("Chart")
+p("The <b>chart icon</b> at the top right opens an analysis that <b>looks exactly like the account view's "
+  "chart</b>: green/red <b>bars</b> for deposits and bills and a <b>development line</b> of the selected "
+  "account or of total wealth. You can pick the <b>view</b> (total or a single account) and the <b>time unit</b> "
+  "day/week/month. The line <b>starts at 0 at the beginning of the observation period (= today)</b> and can be "
+  "<b>zoomed and panned</b> like the account chart; it starts at the far left (today) and runs to the right "
+  "into the future. The chart inherits the list filter.")
+p("When you scroll far down, the <b>scroll-to-top button</b> (bottom left) jumps straight back to the start of "
+  "the list.")
 
 # ---------------------------------------------------------------- 12 Holdings / portfolio
 h1("12. Holdings (places) and portfolio")
@@ -395,7 +422,8 @@ p("After importing a KMyMoney investment account, the <b>portfolio</b> appears i
   "filter) and shows <b>shares × price = current value</b> per security; fully sold securities are hidden. "
   "The <b>balance line toggles by tap</b> through portfolio value → buys → sells (if any) → dividends (if "
   "any) → <b>net invested</b> (buys − sells − dividends) → <b>gain/loss</b> (coloured, with percentage). The "
-  "<b>portfolio filter</b> narrows the securities by name and value (slider). A tap on a security opens its "
+  "<b>portfolio filter</b> narrows the securities by name and value (slider). When you scroll far down, the "
+  "<b>scroll-to-top button</b> (bottom left) jumps straight back to the start. A tap on a security opens its "
   "<b>movements full-screen</b> (buys green, sells red, dividends neutral) with the same figures for that "
   "security plus a <b>filter by buys/sells/dividends</b> and a date slider (start date = first purchase). "
   "The portfolio value is kept separate and also appears as «Net worth» in the main screen's balance line.")

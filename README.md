@@ -155,7 +155,13 @@ permission is unaffected). F-Droid packaging notes are in [`fdroid/`](fdroid/).
   schedule is **expanded into its individual occurrences** (e.g. a weekly bakery appears several times), from
   the stored next due date up to **2 years** ahead; finished schedules and those without a date are skipped, an
   end date limits the preview. A coloured strip precedes each row: **green** = deposit, **red** = payment,
-  **yellow** = transfer; the date is its own column. The list refreshes on every account import.
+  **yellow** = transfer; the date is its own column, the **name** with the **payee** in smaller grey text
+  behind it, an **account column** (a transfer shows both accounts one below the other) and the amount on the
+  right. At the top a cycling **balance strip** (surplus/deficit → total deposits → total bills), a **filter**
+  (type, account, name/payee, period) and a **chart button** (green/red bars + development line starting at 0
+  today, view total/account, day/week/month, zoomable and pannable) — all reflecting the active filter. A
+  **scroll-to-top button** appears when scrolling (also in the portfolio view). The list refreshes on every
+  account import.
 
 ### Home-screen widget (phone)
 Four selectable widgets show the **default-place** balance (default account → default place, like on the

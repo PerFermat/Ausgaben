@@ -91,6 +91,17 @@
     <!-- Scheduled transactions -->
     <string name="scheduled_title">Scheduled transactions</string>
     <string name="scheduled_empty">No scheduled transactions. They are imported from the KMyMoney file.</string>
+    <string name="sched_saldo_net">Surplus/deficit</string>
+    <string name="sched_saldo_income">Total deposits</string>
+    <string name="sched_saldo_expense">Total bills</string>
+    <string name="sched_filter_kind">Type</string>
+    <string name="sched_filter_income">Deposits</string>
+    <string name="sched_filter_expense">Bills</string>
+    <string name="sched_filter_transfer">Transfers</string>
+    <string name="sched_filter_account">Account</string>
+    <string name="sched_filter_name">Name</string>
+    <string name="sched_account_all">All accounts</string>
+    <string name="scroll_start">To start</string>
 
     <!-- Budget -->
     <string name="budget_title">Budget</string>

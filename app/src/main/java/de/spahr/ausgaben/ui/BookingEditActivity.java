@@ -161,7 +161,10 @@ public class BookingEditActivity extends LocalizedActivity {
         editPlaceTo = findViewById(R.id.editPlaceTo);
         splitSection = findViewById(R.id.splitSection);
         splitContainer = findViewById(R.id.splitContainer);
-        readOnly = getIntent().getBooleanExtra(EXTRA_READ_ONLY, false);
+        // Geplante Buchungen öffnen ebenfalls schreibgeschützt – readOnly muss VOR dem SplitRowController
+        // feststehen, damit auch die Kategorie-Zeilen nicht editierbar sind.
+        readOnly = getIntent().getBooleanExtra(EXTRA_READ_ONLY, false)
+                || getIntent().getLongExtra(EXTRA_SCHEDULED_ID, -1) >= 0;
         splitCtl = new SplitRowController(splitContainer, editAmount, getLayoutInflater(),
                 readOnly, this::updateSaveEnabled);
         editNote = findViewById(R.id.editNote);
@@ -537,8 +540,11 @@ public class BookingEditActivity extends LocalizedActivity {
         b.id = -1;
         b.createdAt = dueMs;
         b.amountCents = st.amountCents;
-        b.isIncome = st.kind == de.spahr.ausgaben.db.ScheduledTransaction.KIND_INCOME;
         b.isTransfer = st.kind == de.spahr.ausgaben.db.ScheduledTransaction.KIND_TRANSFER;
+        // Bei einer Umbuchung steuert isIncome die Von/Nach-Zuordnung: incoming = Geld fließt IN st.account.
+        b.isIncome = b.isTransfer
+                ? st.incoming == 1
+                : st.kind == de.spahr.ausgaben.db.ScheduledTransaction.KIND_INCOME;
         b.account = st.account;
         b.payee = st.payee;
         b.note = "";

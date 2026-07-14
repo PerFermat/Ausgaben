@@ -346,7 +346,9 @@ bullets([
 h1("11. Scheduled transactions")
 p("The <b>Scheduled transactions</b> page (menu <b>⋮ → Scheduled transactions</b>, shown only in "
   "<b>.kmy mode</b>) imports the standing orders / schedules set up in KMyMoney and shows them as <b>one "
-  "chronological list</b> by due date. The values refresh on every account import.")
+  "chronological list</b> by due date. The schedules are <b>not</b> refreshed by the normal account import; "
+  "they update only when you use the <b>pull-to-refresh</b> gesture on this page – with the familiar "
+  "<b>yellow progress banner</b>.")
 bullets([
   "Each recurring schedule is <b>expanded into its individual occurrences</b> (e.g. a weekly bakery appears "
   "several times) — from the stored next due date up to <b>2 years</b> ahead.",
@@ -388,7 +390,9 @@ p("The <b>chart icon</b> at the top right opens an analysis that <b>looks exactl
   "account or of total wealth. You can pick the <b>view</b> (total or a single account) and the <b>time unit</b> "
   "day/week/month. The line <b>starts at 0 at the beginning of the observation period (= today)</b> and can be "
   "<b>zoomed and panned</b> like the account chart; it starts at the far left (today) and runs to the right "
-  "into the future. The chart inherits the list filter.")
+  "into the future. The chart inherits the list filter. For a <b>transfer</b> the amount decreases on the "
+  "<b>source account</b> (red) and increases on the <b>target account</b> (green) – the direction («pay to» "
+  "or «from») is taken from KMyMoney.")
 p("When you scroll far down, the <b>scroll-to-top button</b> (bottom left) jumps straight back to the start of "
   "the list.")
 

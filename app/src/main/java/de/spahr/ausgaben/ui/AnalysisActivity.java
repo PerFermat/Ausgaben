@@ -556,7 +556,7 @@ public class AnalysisActivity extends LocalizedActivity {
         c.setTimeInMillis(periodStartMs);
         switch (granularity) {
             case DAY:
-                return new SimpleDateFormat("dd.MM.", Locale.GERMANY).format(new Date(periodStartMs));
+                return new SimpleDateFormat("dd.MM.yy", Locale.GERMANY).format(new Date(periodStartMs));
             case WEEK:
                 return String.format(Locale.GERMANY, "%02d/%02d",
                         c.get(Calendar.WEEK_OF_YEAR), c.get(Calendar.YEAR) % 100);

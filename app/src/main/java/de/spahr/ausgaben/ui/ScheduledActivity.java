@@ -15,6 +15,9 @@ import android.widget.CheckBox;
 import android.widget.LinearLayout;
 import android.widget.ScrollView;
 import android.widget.TextView;
+import android.widget.Toast;
+
+import androidx.swiperefreshlayout.widget.SwipeRefreshLayout;
 
 import com.google.android.material.appbar.MaterialToolbar;
 import com.google.android.material.dialog.MaterialAlertDialogBuilder;
@@ -35,8 +38,12 @@ import de.spahr.ausgaben.R;
 import de.spahr.ausgaben.db.Repository;
 import de.spahr.ausgaben.db.ScheduleProjection;
 import de.spahr.ausgaben.db.ScheduledTransaction;
+import de.spahr.ausgaben.export.KmyDocument;
+import de.spahr.ausgaben.export.KmyImporter;
+import de.spahr.ausgaben.net.RemoteStorage;
 import de.spahr.ausgaben.settings.Currencies;
 import de.spahr.ausgaben.settings.MoneyFormat;
+import de.spahr.ausgaben.settings.SettingsStore;
 
 /**
  * Seite „Geplante Buchungen": faltet jede aus KMyMoney importierte Planung in ihre einzelnen Termine auf
@@ -52,11 +59,17 @@ public class ScheduledActivity extends LocalizedActivity {
     private static final int GREY = 0xFF9E9E9E;
 
     private Repository repository;
+    private SettingsStore settings;
     private LinearLayout container;
     private ScrollView scroll;
     private TextView saldoValue;
     private TextView saldoLabel;
     private FloatingActionButton fabScrollTop;
+    private SwipeRefreshLayout swipeRefresh;
+    private View importBanner;
+    private ShimmerView importShimmer;
+    private TextView importStatus;
+    private TextView importPercent;
 
     private List<ScheduledTransaction> all = new ArrayList<>();
 
@@ -108,8 +121,19 @@ public class ScheduledActivity extends LocalizedActivity {
         });
 
         repository = new Repository(this);
+        settings = new SettingsStore(this);
         container = findViewById(R.id.scheduledContainer);
         scroll = findViewById(R.id.scheduledScroll);
+
+        importBanner = findViewById(R.id.importBanner);
+        importShimmer = findViewById(R.id.importShimmer);
+        importStatus = findViewById(R.id.importStatus);
+        importPercent = findViewById(R.id.importPercent);
+        importShimmer.setColors(getColor(R.color.import_banner_bg), getColor(R.color.import_banner_shimmer));
+
+        // Wischgeste nach unten aktualisiert die geplanten Buchungen aus der .kmy (nur hier, nicht beim Konto-Import).
+        swipeRefresh = findViewById(R.id.swipeRefresh);
+        swipeRefresh.setOnRefreshListener(this::refreshFromKmy);
 
         saldoValue = findViewById(R.id.textBalance);
         saldoLabel = findViewById(R.id.textSaldoLabel);
@@ -136,6 +160,81 @@ public class ScheduledActivity extends LocalizedActivity {
             all = list;
             render();
         });
+    }
+
+    // ---- Wisch-nach-unten: geplante Buchungen aus der .kmy neu einlesen (mit gelbem Banner) ----
+
+    /** Lädt die .kmy und liest NUR die geplanten Buchungen neu ein (nicht beim normalen Konto-Import). */
+    private void refreshFromKmy() {
+        String path = settings.getKmyPath();
+        if (path == null || path.trim().isEmpty()) {
+            swipeRefresh.setRefreshing(false);
+            Toast.makeText(this, R.string.kmy_path_missing, Toast.LENGTH_LONG).show();
+            return;
+        }
+        // Der gelbe Banner übernimmt die Fortschrittsanzeige – den Kreis-Spinner der Geste ausblenden.
+        swipeRefresh.setRefreshing(false);
+        importStart();
+        final String folder = folderOf(path);
+        final String file = fileOf(path);
+        new Thread(() -> {
+            try {
+                setImportProgress(getString(R.string.import_stage_download), 0);
+                byte[] raw = RemoteStorage.from(settings).downloadBytes(folder, file);
+                KmyImporter importer = new KmyImporter(
+                        new KmyDocument(raw, getApplicationContext()), getApplicationContext());
+                List<ScheduledTransaction> list = importer.scheduledTransactions();
+                setImportProgress(getString(R.string.import_stage_saving), 60);
+                repository.applyScheduledTransactions(list, () -> {
+                    repository.getScheduledTransactions(loaded -> {
+                        all = loaded;
+                        render();
+                    });
+                    importDone();
+                });
+            } catch (Exception e) {
+                runOnUiThread(() -> {
+                    importFinishNow();
+                    String msg = e.getMessage() == null ? e.toString() : e.getMessage();
+                    Toast.makeText(this, msg, Toast.LENGTH_LONG).show();
+                });
+            }
+        }).start();
+    }
+
+    private void importStart() {
+        importBanner.setVisibility(View.VISIBLE);
+        importShimmer.start();
+        setImportProgress(getString(R.string.import_running_banner), 0);
+    }
+
+    private void setImportProgress(String label, int percent) {
+        runOnUiThread(() -> {
+            importStatus.setText(label);
+            importPercent.setText(Math.max(0, Math.min(100, percent)) + " %");
+        });
+    }
+
+    private void importDone() {
+        setImportProgress(getString(R.string.import_stage_done), 100);
+        importBanner.postDelayed(this::importFinishNow, 600);
+    }
+
+    private void importFinishNow() {
+        importShimmer.stop();
+        importBanner.setVisibility(View.GONE);
+    }
+
+    private static String folderOf(String path) {
+        String p = path.trim();
+        int slash = p.lastIndexOf('/');
+        return slash < 0 ? "" : p.substring(0, slash);
+    }
+
+    private static String fileOf(String path) {
+        String p = path.trim();
+        int slash = p.lastIndexOf('/');
+        return slash < 0 ? p : p.substring(slash + 1);
     }
 
     // ---- Fenster / Auffalten / Filter ----

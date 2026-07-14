@@ -68,6 +68,13 @@ public class ScheduledTransaction {
     @ColumnInfo(name = "split")
     public int split;
 
+    /**
+     * Nur bei Umbuchung relevant: 1 = Geld fließt <b>in</b> {@link #account} (dieses Konto ist das Ziel/„Nach",
+     * {@link #counterparty} die Quelle/„Von"); 0 = Geld fließt <b>aus</b> {@link #account} (Quelle/„Von").
+     */
+    @ColumnInfo(name = "incoming")
+    public int incoming;
+
     /** Nur beim Import gefüllt (nicht persistiert) – wird in {@code scheduled_split} geschrieben. */
     @Ignore
     public java.util.List<ScheduledSplit> splitParts;

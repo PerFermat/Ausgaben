@@ -230,11 +230,13 @@ public class ScheduledChartActivity extends LocalizedActivity {
         } else if (st.kind == ScheduledTransaction.KIND_EXPENSE && account.equalsIgnoreCase(st.account)) {
             events.add(new long[]{due, -amt});
         } else if (st.kind == ScheduledTransaction.KIND_TRANSFER) {
+            // Richtung: incoming = Geld fließt IN st.account (dieses Konto steigt, das Gegenkonto sinkt).
+            boolean accountIsDest = st.incoming == 1;
             if (account.equalsIgnoreCase(st.account)) {
-                events.add(new long[]{due, -amt});   // Von-Konto
+                events.add(new long[]{due, accountIsDest ? amt : -amt});
             }
             if (account.equalsIgnoreCase(st.counterparty)) {
-                events.add(new long[]{due, amt});    // Nach-Konto
+                events.add(new long[]{due, accountIsDest ? -amt : amt});
             }
         }
     }
@@ -455,7 +457,7 @@ public class ScheduledChartActivity extends LocalizedActivity {
         c.setTimeInMillis(periodStartMs);
         switch (granularity) {
             case DAY:
-                return new SimpleDateFormat("dd.MM.", Locale.GERMANY).format(new Date(periodStartMs));
+                return new SimpleDateFormat("dd.MM.yy", Locale.GERMANY).format(new Date(periodStartMs));
             case WEEK:
                 return String.format(Locale.GERMANY, "%02d/%02d",
                         c.get(Calendar.WEEK_OF_YEAR), c.get(Calendar.YEAR) % 100);

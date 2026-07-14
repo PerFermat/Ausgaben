@@ -364,7 +364,9 @@ bullets([
 h1("11. Geplante Buchungen")
 p("Die Seite <b>Geplante Buchungen</b> (Menü <b>⋮ → Geplante Buchungen</b>, nur im <b>.kmy-Modus</b> "
   "sichtbar) importiert die in KMyMoney angelegten Daueraufträge/Planungen und zeigt sie als <b>eine "
-  "chronologische Liste</b> nach Fälligkeit. Die Werte werden bei jedem Konto-Import automatisch aktualisiert.")
+  "chronologische Liste</b> nach Fälligkeit. Die Planungen werden <b>nicht</b> beim normalen Konto-Import "
+  "aktualisiert, sondern nur, wenn Sie auf dieser Seite die <b>Wischgeste nach unten</b> ausführen – dabei "
+  "erscheint der gewohnte <b>gelbe Fortschrittsbanner</b>.")
 bullets([
   "Jede wiederkehrende Planung wird in ihre <b>Einzeltermine aufgefaltet</b> (z. B. ein wöchentlicher "
   "Bäcker erscheint mehrfach) – <b>ab der gespeicherten nächsten Fälligkeit</b> bis <b>höchstens 2 Jahre</b> "
@@ -409,7 +411,8 @@ p("Das <b>Grafik-Symbol</b> oben rechts öffnet eine Auswertung, die <b>genauso 
   "und die <b>Zeiteinheit</b> Tag/Woche/Monat. Die Linie <b>startet am Anfang des Betrachtungszeitraums "
   "(= aktueller Tag) bei 0</b> und lässt sich – wie die Konto-Grafik – <b>zoomen und verschieben</b>; sie "
   "beginnt jedoch ganz links (heute) und läuft nach rechts in die Zukunft. Die Grafik übernimmt den "
-  "eingestellten Listenfilter.")
+  "eingestellten Listenfilter. Bei einer <b>Umbuchung</b> sinkt der Betrag beim <b>Quellkonto</b> (rot) und "
+  "steigt beim <b>Zielkonto</b> (grün) – die Richtung («Zahlen an» bzw. «von») wird aus KMyMoney übernommen.")
 p("Wer weit nach unten scrollt, kann über den eingeblendeten <b>Nach-oben-Knopf</b> (unten links) direkt an "
   "den Listenanfang springen.")
 

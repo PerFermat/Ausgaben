@@ -1377,8 +1377,6 @@ public class MainActivity extends LocalizedActivity {
                 // Konto- und Kategorietypen für ALLE Konten/Kategorien der .kmy übernehmen.
                 repository.applyAccountTypes(importer.accountTypes());
                 repository.applyCategoryTypes(importer.categoryTypes());
-                // Geplante Buchungen bei jedem Import neu einlesen.
-                repository.applyScheduledTransactions(importer.scheduledTransactions(), null);
                 postImportProgress(getString(R.string.import_stage_saving), pct(done, total));
                 final int doneAfterSave = accountTargets.size() + 1;
                 runOnUiThread(() -> repository.replaceImportAccounts(map, res ->
@@ -1502,8 +1500,6 @@ public class MainActivity extends LocalizedActivity {
             repository.applyAccountTypes(importer.accountTypes());
             // Kategorietyp (Einnahme/Ausgabe) für ALLE Kategorien der .kmy übernehmen (Budget-Einordnung).
             repository.applyCategoryTypes(importer.categoryTypes());
-            // Geplante Buchungen bei jedem Import neu einlesen.
-            repository.applyScheduledTransactions(importer.scheduledTransactions(), null);
             postImportProgress(getString(R.string.import_stage_saving), pct(done, total));
             runOnUiThread(() -> repository.replaceImportAccounts(map, res -> completeImport()));
         } catch (Exception e) {

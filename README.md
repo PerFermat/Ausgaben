@@ -162,9 +162,10 @@ permission is unaffected). F-Droid packaging notes are in [`fdroid/`](fdroid/).
   **familiar detail view** (read-only, incl. split categories and the balance before/after). At the top a
   cycling **balance strip** (surplus/deficit → total deposits → total bills → **transfers**), a **filter**
   (type, account, name/payee, period) and a **chart button** (green/red bars + development line starting at 0
-  today, view total/account, day/week/month, zoomable and pannable) — all reflecting the active filter. A
-  **scroll-to-top button** appears when scrolling (also in the portfolio view). The list refreshes on every
-  account import.
+  today, view total/account, day/week/month, zoomable and pannable; a transfer lowers the source account (red)
+  and raises the target account (green)) — all reflecting the active filter. A **scroll-to-top button** appears
+  when scrolling (also in the portfolio view). The schedules are **not** refreshed by the account import; they
+  update only via **pull-to-refresh** on this page (with the yellow progress banner).
 
 ### Home-screen widget (phone)
 Four selectable widgets show the **default-place** balance (default account → default place, like on the

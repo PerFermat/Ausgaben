@@ -171,9 +171,10 @@ Mikrofon-Berechtigung ist davon unberührt). Hinweise zur F-Droid-Paketierung in
   und Kontostand vorher/nachher). Oben ein durchschaltbarer **Saldo-Streifen** (Überschuss/Fehlbetrag → Summe
   Einzahlungen → Summe Rechnungen → **Umbuchungen**), ein **Filter** (Buchungsart, Konto, Name bzw. Empfänger,
   Zeitraum) und ein **Grafik-Knopf** (grüne/rote Balken + Entwicklungslinie ab heute bei 0, Sicht Gesamt/Konto,
-  Tag/Woche/Monat, zoom- und verschiebbar) – alle beziehen sich auf den aktiven Filter. Ein **Nach-oben-Knopf**
-  erscheint beim Scrollen (ebenso in der Depot-Ansicht). Die
-  Liste wird bei jedem Konto-Import automatisch aktualisiert.
+  Tag/Woche/Monat, zoom- und verschiebbar; eine Umbuchung senkt das Quellkonto (rot) und hebt das Zielkonto
+  (grün)) – alle beziehen sich auf den aktiven Filter. Ein **Nach-oben-Knopf** erscheint beim Scrollen (ebenso
+  in der Depot-Ansicht). Die Planungen werden **nicht** beim Konto-Import aktualisiert, sondern nur per
+  **Wischgeste nach unten** auf dieser Seite (mit gelbem Fortschrittsbanner).
 
 ### Homescreen-Widget (Handy)
 Vier wählbare Widgets zeigen den Saldo des **Standardorts** (Standardkonto → Standardort, wie auf der Uhr):

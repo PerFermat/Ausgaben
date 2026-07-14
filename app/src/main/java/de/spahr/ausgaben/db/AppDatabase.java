@@ -12,7 +12,7 @@ import androidx.sqlite.db.SupportSQLiteDatabase;
 @Database(entities = {Booking.class, BookingSplit.class, Account.class, Payee.class, PlaceEntry.class,
         PayeeCorrection.class, Translation.class, Language.class, Security.class, SecurityTx.class,
         Budget.class, CategoryType.class, ScheduledTransaction.class, ScheduledSplit.class},
-        version = 29, exportSchema = false)
+        version = 30, exportSchema = false)
 public abstract class AppDatabase extends RoomDatabase {
 
     /** v1 → v2: Notiz-Spalte ergänzen (bestehende Buchungen bleiben erhalten). */
@@ -328,6 +328,14 @@ public abstract class AppDatabase extends RoomDatabase {
         }
     };
 
+    /** v29 → v30: Umbuchungs-Richtung (Geld in das Primärkonto oder heraus) für die geplanten Buchungen. */
+    static final Migration MIGRATION_29_30 = new Migration(29, 30) {
+        @Override
+        public void migrate(@NonNull SupportSQLiteDatabase db) {
+            db.execSQL("ALTER TABLE scheduled_transaction ADD COLUMN incoming INTEGER NOT NULL DEFAULT 0");
+        }
+    };
+
     public abstract BookingDao bookingDao();
 
     public abstract AccountDao accountDao();
@@ -368,7 +376,7 @@ public abstract class AppDatabase extends RoomDatabase {
                                     MIGRATION_19_20, MIGRATION_20_21, MIGRATION_21_22,
                                     MIGRATION_22_23, MIGRATION_23_24, MIGRATION_24_25,
                                     MIGRATION_25_26, MIGRATION_26_27, MIGRATION_27_28,
-                                    MIGRATION_28_29)
+                                    MIGRATION_28_29, MIGRATION_29_30)
                             .build();
                 }
             }

@@ -529,6 +529,8 @@ public class KmyImporter {
                 b.createdAt, b.amountCents, orEmpty(b.payee), primaryName, counterparty,
                 occurrence, occurrenceMultiplier <= 0 ? 1 : occurrenceMultiplier,
                 endMs < 0 ? 0 : endMs);
+        // Umbuchungs-Richtung: b.isIncome = Geld fließt IN das Primärkonto (dieses Konto ist „Nach").
+        st.incoming = (b.isTransfer && b.isIncome) ? 1 : 0;
         // Splitbuchung: mehrere Kategorien → Kennzeichen + Kategorie-Teile für die Detail-Maske sichern.
         if (b.parts != null && b.parts.size() >= 2) {
             st.split = 1;

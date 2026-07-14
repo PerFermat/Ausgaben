@@ -424,8 +424,8 @@ bullets([
   "<b>Long press on «All accounts»</b>: re-imports <b>all</b> existing accounts.",
   "<b>«Add account»</b>: fetches an account not yet present from the .kmy. In the picker you can tick "
   "<b>several accounts (and portfolios) at once</b>; <b>already-imported accounts (including closed) and portfolios are hidden</b>.",
-  "<b>Long press on the portfolio</b>: updates securities and prices – also in the background with the yellow "
-  "progress banner.",
+  "<b>Long press on the portfolio</b> (or pull-to-refresh in the portfolio view): updates securities and "
+  "prices – also in the background with the yellow progress banner.",
 ])
 p("An import replaces the already-exported bookings per account (no duplicates). The import runs <b>in the "
   "background</b> – the UI stays usable; a <b>yellow banner</b> at the top of the booking list («Importing "

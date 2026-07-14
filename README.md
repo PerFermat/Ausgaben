@@ -185,8 +185,8 @@ Holdings directly. The widget refreshes when the app is opened and at regular in
   **already-imported accounts (including closed) and portfolios are hidden**. The import itself runs **in the background** — the
   UI stays usable; a **yellow banner** at the top of the booking list (“Importing account …”) with a moving
   gradient, status text and percentage shows the progress and disappears when done. A message appears **only on
-  error**. **Refreshing a portfolio** (long press in the drawer) also runs in the background with the same
-  banner.
+  error**. **Refreshing a portfolio** (long press in the drawer or pull-to-refresh in the portfolio view) also
+  runs in the background with the same banner.
 - **Portfolio import**: the **investment account** (portfolio) is offered **once** in the import picker as
   “… (Depot)” (no longer each security individually). The import reads the **securities**, their
   **buys/sells/dividends/add-ins** and the **latest price** per security. After import the portfolio appears

@@ -196,7 +196,8 @@ regelmäßigen Abständen.
   Import läuft **im Hintergrund** – die Oberfläche bleibt bedienbar; oben in der Buchungsliste zeigt ein
   **gelber Banner** („Konto wird importiert …") mit wanderndem Verlauf, Status und Prozentanzeige den
   Fortschritt und verschwindet am Ende. Eine Meldung kommt **nur bei einem Fehler**. Auch das **Aktualisieren
-  eines Depots** (langer Tipp in der Schublade) läuft im Hintergrund mit demselben Banner.
+  eines Depots** (langer Tipp in der Schublade oder Herunterziehen in der Depot-Ansicht) läuft im
+  Hintergrund mit demselben Banner.
 - **Depot-Import**: das **Investment-Konto** (Depot) wird in der Import-Auswahl **einmal** als „… (Depot)"
   angeboten (nicht mehr jedes Wertpapier einzeln). Der Import liest die **Wertpapiere**, ihre
   **Käufe/Verkäufe/Dividenden/Einbuchungen** und den **letzten Kurs** je Wertpapier. Das Depot erscheint

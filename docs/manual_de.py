@@ -449,8 +449,8 @@ bullets([
   "<b>«Konto hinzufügen»</b>: holt ein noch nicht vorhandenes Konto aus der .kmy. Im Auswahldialog lassen "
   "sich <b>mehrere Konten (und Depots) auf einmal</b> anhaken; <b>bereits importierte Konten (auch "
   "geschlossene) und Depots werden ausgeblendet</b>.",
-  "<b>Langer Druck auf das Depot</b>: aktualisiert Wertpapiere und Kurse – ebenfalls im Hintergrund mit dem "
-  "gelben Fortschrittsbanner.",
+  "<b>Langer Druck auf das Depot</b> (oder Herunterziehen in der Depot-Ansicht): aktualisiert Wertpapiere "
+  "und Kurse – ebenfalls im Hintergrund mit dem gelben Fortschrittsbanner.",
 ])
 p("Ein Import ersetzt je Konto die bereits exportierten Buchungen (keine Dubletten). Der Import läuft "
   "<b>im Hintergrund</b> – die Oberfläche bleibt bedienbar; oben in der Buchungsliste zeigt ein <b>gelber "

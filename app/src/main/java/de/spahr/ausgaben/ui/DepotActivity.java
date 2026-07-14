@@ -62,6 +62,12 @@ public class DepotActivity extends LocalizedActivity {
     private AlertDialog progressDialog;
     private TextView progressTextView;
 
+    /** Gelber Import-Banner (Depot-Aktualisierung im Hintergrund), wie im Hauptbildschirm. */
+    private View importBanner;
+    private ShimmerView importShimmer;
+    private TextView importStatus;
+    private TextView importPercent;
+
     private String depot;
     private Repository.DepotMetrics metrics;
     private java.util.List<Integer> saldoModes = new java.util.ArrayList<>();
@@ -115,6 +121,11 @@ public class DepotActivity extends LocalizedActivity {
         depot = getIntent().getStringExtra(EXTRA_DEPOT);
 
         // Herunterziehen: das angezeigte Depot neu aus der .kmy einlesen (nur kmy-Modus).
+        importBanner = findViewById(R.id.importBanner);
+        importShimmer = findViewById(R.id.importShimmer);
+        importStatus = findViewById(R.id.importStatus);
+        importPercent = findViewById(R.id.importPercent);
+        importShimmer.setColors(getColor(R.color.import_banner_bg), getColor(R.color.import_banner_shimmer));
         swipeRefresh = findViewById(R.id.swipeRefresh);
         swipeRefresh.setOnRefreshListener(() -> {
             swipeRefresh.setRefreshing(false);
@@ -382,7 +393,10 @@ public class DepotActivity extends LocalizedActivity {
 
     // ---- Depot neu einlesen (Herunterziehen / langer Druck auf das Depot) ----
 
-    /** Lädt die .kmy und aktualisiert genau dieses Depot; danach neu zeichnen. Nur im kmy-Modus. */
+    /**
+     * Lädt die .kmy und aktualisiert genau dieses Depot – im Hintergrund mit dem gelben Fortschrittsbanner
+     * (wie im Hauptbildschirm); die Oberfläche bleibt bedienbar, nur bei Fehlern kommt eine Meldung.
+     */
     private void reimportDepot(String depotName) {
         if (!settings.isKmyMode() || !settings.hasRemoteConfig()) {
             Toast.makeText(this, R.string.export_no_config, Toast.LENGTH_LONG).show();
@@ -393,28 +407,65 @@ public class DepotActivity extends LocalizedActivity {
             Toast.makeText(this, R.string.kmy_path_missing, Toast.LENGTH_LONG).show();
             return;
         }
-        showProgress(getString(R.string.progress_download));
+        importStarted();
         new Thread(() -> {
             try {
+                postImportProgress(getString(R.string.import_stage_download), 0);
                 byte[] raw = RemoteStorage.from(settings).downloadBytes(folderOf(path), fileOf(path));
                 KmyImporter importer = new KmyImporter(
                         new KmyDocument(raw, getApplicationContext()), getApplicationContext());
-                runOnUiThread(() -> updateProgress(getString(R.string.progress_importing)));
+                postImportProgress(getString(R.string.import_stage_depot, depotName), 50);
                 KmyImporter.DepotData data = importer.importDepot(depotName);
                 repository.replaceDepotImport(depotName, data.securities, data.transactions,
-                        () -> runOnUiThread(() -> {
-                            dismissProgress();
-                            Toast.makeText(this, getString(R.string.depot_import_done, depotName),
-                                    Toast.LENGTH_LONG).show();
-                            render();
-                        }));
+                        () -> runOnUiThread(this::completeImport));
             } catch (Exception e) {
                 runOnUiThread(() -> {
-                    dismissProgress();
+                    importFinished();
                     Toast.makeText(this, R.string.import_failed, Toast.LENGTH_LONG).show();
                 });
             }
         }).start();
+    }
+
+    // ---- Gelber Import-Banner (Depot-Aktualisierung im Hintergrund) ----
+
+    private int activeImports = 0;
+
+    private void importStarted() {
+        activeImports++;
+        if (importBanner != null) {
+            importBanner.setVisibility(View.VISIBLE);
+            importShimmer.start();
+            setImportProgress(getString(R.string.import_running_banner), 0);
+        }
+    }
+
+    private void importFinished() {
+        activeImports = Math.max(0, activeImports - 1);
+        if (importBanner != null && activeImports == 0) {
+            importShimmer.stop();
+            importBanner.setVisibility(View.GONE);
+        }
+    }
+
+    private void setImportProgress(String label, int percent) {
+        if (importStatus != null) {
+            importStatus.setText(label);
+        }
+        if (importPercent != null) {
+            importPercent.setText(Math.max(0, Math.min(100, percent)) + " %");
+        }
+    }
+
+    private void postImportProgress(String label, int percent) {
+        runOnUiThread(() -> setImportProgress(label, percent));
+    }
+
+    /** Fertig: 100 % kurz zeigen, Banner ausblenden und Depot neu zeichnen. */
+    private void completeImport() {
+        setImportProgress(getString(R.string.import_stage_done), 100);
+        importBanner.postDelayed(this::importFinished, 600);
+        render();
     }
 
     private static String folderOf(String path) {

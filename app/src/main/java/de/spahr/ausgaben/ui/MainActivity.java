@@ -1500,7 +1500,8 @@ public class MainActivity extends LocalizedActivity {
             repository.applyAccountTypes(importer.accountTypes());
             // Kategorietyp (Einnahme/Ausgabe) für ALLE Kategorien der .kmy übernehmen (Budget-Einordnung).
             repository.applyCategoryTypes(importer.categoryTypes());
-            postImportProgress(getString(R.string.import_stage_saving), pct(done, total));
+            // Kein separates „Buchungen werden gespeichert" beim Konto-Aktualisieren – nur die Konto-Phase zeigen.
+            postImportProgress(getString(R.string.import_running_banner), pct(done, total));
             runOnUiThread(() -> repository.replaceImportAccounts(map, res -> completeImport()));
         } catch (Exception e) {
             postImportError(e);

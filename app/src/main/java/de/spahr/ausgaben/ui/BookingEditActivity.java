@@ -62,6 +62,10 @@ public class BookingEditActivity extends LocalizedActivity {
     public static final String EXTRA_PRESET_PLACE = "preset_place";
     /** Öffnet eine bestehende Buchung nur zur Ansicht (keine Änderung möglich). */
     public static final String EXTRA_READ_ONLY = "read_only";
+    /** Öffnet eine geplante Buchung ({@link de.spahr.ausgaben.db.ScheduledTransaction}) nur zur Ansicht. */
+    public static final String EXTRA_SCHEDULED_ID = "scheduled_id";
+    /** Fälligkeitstermin (ms) der getippten Planung – als Buchungsdatum in der Vorschau. */
+    public static final String EXTRA_SCHEDULED_DUE_MS = "scheduled_due_ms";
 
     private Repository repository;
     private SettingsStore settings;
@@ -225,12 +229,13 @@ public class BookingEditActivity extends LocalizedActivity {
 
         long templateId = getIntent().getLongExtra(EXTRA_TEMPLATE_BOOKING_ID, -1);
         long id = getIntent().getLongExtra(EXTRA_BOOKING_ID, -1);
+        long scheduledId = getIntent().getLongExtra(EXTRA_SCHEDULED_ID, -1);
         long voiceAmount = getIntent().getLongExtra(EXTRA_VOICE_AMOUNT_CENTS, -1);
         voiceSpokenPayee = getIntent().getStringExtra(EXTRA_VOICE_SPOKEN_PAYEE);
 
         // Nur bei NEUEN Buchungen und aktivem GPS: Standort vorwärmen und ggf. Berechtigung anfragen,
         // damit beim Speichern Koordinaten an die Notiz angehängt werden können.
-        if (id < 0 && settings.isGpsEnabled()) {
+        if (id < 0 && scheduledId < 0 && settings.isGpsEnabled()) {
             locationTagger = new LocationTagger(this);
             locationTagger.setOnLocationUpdate(this::refreshNoteLocation);
             locationPermissionLauncher = registerForActivityResult(
@@ -247,7 +252,12 @@ public class BookingEditActivity extends LocalizedActivity {
             }
         }
 
-        if (templateId >= 0) {
+        if (scheduledId >= 0) {
+            // Geplante Buchung nur zur Ansicht (1:1 wie eine normale Buchung).
+            readOnly = true;
+            long dueMs = getIntent().getLongExtra(EXTRA_SCHEDULED_DUE_MS, System.currentTimeMillis());
+            repository.getScheduledById(scheduledId, st -> bindScheduledPreview(st, dueMs));
+        } else if (templateId >= 0) {
             // Sprach-Schnellerfassung: neue Buchung aus Vorlage vorbefüllen.
             final Long amount = voiceAmount >= 0 ? voiceAmount : null;
             repository.getBookingById(templateId, b -> bindTemplate(b, amount));
@@ -513,6 +523,56 @@ public class BookingEditActivity extends LocalizedActivity {
         }
     }
 
+    /**
+     * Zeigt eine geplante Buchung 1:1 wie eine normale Read-Only-Buchung: baut ein synthetisches
+     * {@link Booking} aus der Planung (inkl. Split-Kategorien) und schickt es durch denselben
+     * {@code populateFrom}+{@code applyReadOnly}-Pfad wie {@link #bindEditMode}.
+     */
+    private void bindScheduledPreview(de.spahr.ausgaben.db.ScheduledTransaction st, long dueMs) {
+        if (st == null) {
+            finish();
+            return;
+        }
+        final Booking b = new Booking();
+        b.id = -1;
+        b.createdAt = dueMs;
+        b.amountCents = st.amountCents;
+        b.isIncome = st.kind == de.spahr.ausgaben.db.ScheduledTransaction.KIND_INCOME;
+        b.isTransfer = st.kind == de.spahr.ausgaben.db.ScheduledTransaction.KIND_TRANSFER;
+        b.account = st.account;
+        b.payee = st.payee;
+        b.note = "";
+        b.place = "";
+        b.placeManaged = false;
+        if (b.isTransfer) {
+            b.transferAccount = st.counterparty;
+            b.category = "";
+        } else {
+            b.category = st.counterparty;
+        }
+        booking = b;
+        origIsTransfer = b.isTransfer;
+        origPlaceManaged = false;
+        openedFromExistingBooking = true;
+        selectedDate.setTimeInMillis(dueMs);
+        updateDateField();
+        if (st.split == 1) {
+            repository.getScheduledSplits(st.id, parts -> {
+                b.parts = new ArrayList<>();
+                if (parts != null) {
+                    for (de.spahr.ausgaben.db.ScheduledSplit p : parts) {
+                        b.parts.add(new BookingSplit(0, p.category, p.amountCents));
+                    }
+                }
+                populateFrom(b, null);
+                applyReadOnly();
+            });
+        } else {
+            populateFrom(b, null);
+            applyReadOnly();
+        }
+    }
+
     /** Reine Ansicht: Titel setzen, alle Felder sperren, Aktionsknöpfe ausblenden. */
     private void applyReadOnly() {
         toolbar.setTitle(R.string.booking_view_title);
@@ -675,31 +735,40 @@ public class BookingEditActivity extends LocalizedActivity {
 
         final long templateAmount = b.amountCents;
         final String singleCategory = b.category;
+        // Geplante Vorschau: Split-Teile liegen direkt an {@code b.parts} (keine DB-Buchung vorhanden).
+        if (b.parts != null) {
+            fillSplitRows(b.parts, total, templateAmount, singleCategory);
+            return;
+        }
         // Kategorie-Teile laden (oder Einzelkategorie als eine Zeile); Betrag ggf. skaliert übernehmen.
-        repository.getSplits(b.id, splits -> {
-            splitCtl.setSuppressEvents(true);
-            splitCtl.clear();
-            if (splits != null && !splits.isEmpty()) {
-                long assigned = 0;
-                for (int idx = 0; idx < splits.size(); idx++) {
-                    BookingSplit s = splits.get(idx);
-                    long part;
-                    if (idx < splits.size() - 1 && templateAmount != 0) {
-                        part = Math.round((double) s.amountCents * total / templateAmount);
-                        assigned += part;
-                    } else {
-                        part = total - assigned; // letzte Zeile → exakte Summe = Gesamtbetrag
-                    }
-                    splitCtl.addRow(s.category, formatCents(part));
+        repository.getSplits(b.id, splits -> fillSplitRows(splits, total, templateAmount, singleCategory));
+    }
+
+    /** Füllt die Split-Zeilen aus {@code splits} (proportional auf {@code total} skaliert). */
+    private void fillSplitRows(List<BookingSplit> splits, long total, long templateAmount,
+                               String singleCategory) {
+        splitCtl.setSuppressEvents(true);
+        splitCtl.clear();
+        if (splits != null && !splits.isEmpty()) {
+            long assigned = 0;
+            for (int idx = 0; idx < splits.size(); idx++) {
+                BookingSplit s = splits.get(idx);
+                long part;
+                if (idx < splits.size() - 1 && templateAmount != 0) {
+                    part = Math.round((double) s.amountCents * total / templateAmount);
+                    assigned += part;
+                } else {
+                    part = total - assigned; // letzte Zeile → exakte Summe = Gesamtbetrag
                 }
-            } else if (!singleCategory.isEmpty()) {
-                splitCtl.addRow(singleCategory, formatCents(total));
+                splitCtl.addRow(s.category, formatCents(part));
             }
-            splitCtl.setSuppressEvents(false);
-            splitCtl.ensureTrailingRow();
-            editAmount.setText(formatCents(total));
-            updateSaveEnabled();
-        });
+        } else if (!singleCategory.isEmpty()) {
+            splitCtl.addRow(singleCategory, formatCents(total));
+        }
+        splitCtl.setSuppressEvents(false);
+        splitCtl.ensureTrailingRow();
+        editAmount.setText(formatCents(total));
+        updateSaveEnabled();
     }
 
     private boolean isTransferType() {

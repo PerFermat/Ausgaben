@@ -64,6 +64,14 @@ public class ScheduledTransaction {
     @ColumnInfo(name = "end_ms")
     public long endMs;
 
+    /** 1 = Splitbuchung (mehrere Kategorien); die Teile stehen in {@code scheduled_split}. */
+    @ColumnInfo(name = "split")
+    public int split;
+
+    /** Nur beim Import gefüllt (nicht persistiert) – wird in {@code scheduled_split} geschrieben. */
+    @Ignore
+    public java.util.List<ScheduledSplit> splitParts;
+
     public ScheduledTransaction() {
     }
 

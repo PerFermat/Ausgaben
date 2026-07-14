@@ -164,12 +164,15 @@ Mikrofon-Berechtigung ist davon unberührt). Hinweise zur F-Droid-Paketierung in
   ab der gespeicherten nächsten Fälligkeit bis **max. 2 Jahre** in die Zukunft; abgelaufene Planungen und
   solche ohne Datum werden ausgelassen, ein Enddatum begrenzt die Vorschau. Vor jeder Zeile ein farbiger
   Strich: **grün** = Einzahlung, **rot** = Auszahlung, **gelb** = Umbuchung; Datum als eigene Spalte, der
-  **Name** mit dem **Zahlungsempfänger** in kleinerer grauer Schrift dahinter, eine **Konto-Spalte** (bei
-  Umbuchung beide Konten untereinander) und rechts der Betrag. Oben ein durchschaltbarer **Saldo-Streifen**
-  (Überschuss/Fehlbetrag → Summe Einzahlungen → Summe Rechnungen), ein **Filter** (Buchungsart, Konto, Name
-  bzw. Empfänger, Zeitraum) und ein **Grafik-Knopf** (grüne/rote Balken + Entwicklungslinie ab heute bei 0,
-  Sicht Gesamt/Konto, Tag/Woche/Monat, zoom- und verschiebbar) – alle beziehen sich auf den aktiven Filter.
-  Ein **Nach-oben-Knopf** erscheint beim Scrollen (ebenso in der Depot-Ansicht). Die
+  **Name** mit dem **Zahlungsempfänger** dahinter und darunter die **Kategorie** (bei mehreren „Splitbuchung"),
+  eine **Konto-Spalte** (bei Umbuchung beide Konten untereinander) und rechts der Betrag. Die Buchungsart wird
+  **streng** aus KMyMoney übernommen (ein **Aktien-/ETF-Kauf** ist eine Umbuchung, keine Ausgabe). Ein **Tipp
+  auf eine Zeile** öffnet die Buchung in der **gewohnten Detail-Maske** (schreibgeschützt, inkl. Split-Kategorien
+  und Kontostand vorher/nachher). Oben ein durchschaltbarer **Saldo-Streifen** (Überschuss/Fehlbetrag → Summe
+  Einzahlungen → Summe Rechnungen → **Umbuchungen**), ein **Filter** (Buchungsart, Konto, Name bzw. Empfänger,
+  Zeitraum) und ein **Grafik-Knopf** (grüne/rote Balken + Entwicklungslinie ab heute bei 0, Sicht Gesamt/Konto,
+  Tag/Woche/Monat, zoom- und verschiebbar) – alle beziehen sich auf den aktiven Filter. Ein **Nach-oben-Knopf**
+  erscheint beim Scrollen (ebenso in der Depot-Ansicht). Die
   Liste wird bei jedem Konto-Import automatisch aktualisiert.
 
 ### Homescreen-Widget (Handy)

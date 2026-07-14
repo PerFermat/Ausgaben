@@ -69,10 +69,12 @@ public class ScheduledActivity extends LocalizedActivity {
     private Long fDateFrom = null;
     private Long fDateTo = null;
 
-    // Saldo-Streifen: 0 = Überschuss/Fehlbetrag, 1 = Summe Einzahlungen, 2 = Summe Rechnungen.
+    // Saldo-Streifen: 0 = Überschuss/Fehlbetrag, 1 = Summe Einzahlungen, 2 = Summe Rechnungen,
+    // 3 = Summe Umbuchungen.
     private int saldoIndex = 0;
     private long sumIncomeCents = 0;
     private long sumExpenseCents = 0;
+    private long sumTransferCents = 0;
 
     /** Ein einzelner Fälligkeitstermin einer Planung. */
     private static final class Occurrence {
@@ -112,7 +114,7 @@ public class ScheduledActivity extends LocalizedActivity {
         saldoValue = findViewById(R.id.textBalance);
         saldoLabel = findViewById(R.id.textSaldoLabel);
         findViewById(R.id.saldoHeader).setOnClickListener(v -> {
-            saldoIndex = (saldoIndex + 1) % 3;
+            saldoIndex = (saldoIndex + 1) % 4;
             showSaldo();
         });
 
@@ -189,6 +191,7 @@ public class ScheduledActivity extends LocalizedActivity {
         List<Occurrence> items = new ArrayList<>();
         sumIncomeCents = 0;
         sumExpenseCents = 0;
+        sumTransferCents = 0;
         for (ScheduledTransaction st : all) {
             if (st.nextDueMs <= 0 || !kindSelected(st.kind) || !accountMatches(st) || !nameMatches(st)) {
                 continue;
@@ -206,6 +209,8 @@ public class ScheduledActivity extends LocalizedActivity {
                     sumIncomeCents += st.amountCents;
                 } else if (st.kind == ScheduledTransaction.KIND_EXPENSE) {
                     sumExpenseCents += st.amountCents;
+                } else {
+                    sumTransferCents += st.amountCents;
                 }
             }
         }
@@ -241,9 +246,14 @@ public class ScheduledActivity extends LocalizedActivity {
             value = sumExpenseCents;
             labelRes = R.string.sched_saldo_expense;
             color = R.color.expense_red;
+        } else if (saldoIndex == 3) {
+            value = sumTransferCents;
+            labelRes = R.string.sched_saldo_transfer;
+            color = R.color.transfer_yellow;
         } else {
-            value = sumIncomeCents - sumExpenseCents;   // Überschuss/Fehlbetrag
-            labelRes = R.string.sched_saldo_net;
+            // Überschuss (≥ 0, grün) ODER Fehlbetrag (< 0, rot) – nur der zutreffende Zustand.
+            value = sumIncomeCents - sumExpenseCents;
+            labelRes = value < 0 ? R.string.sched_saldo_deficit : R.string.sched_saldo_surplus;
             color = value < 0 ? R.color.expense_red : R.color.income_green;
         }
         saldoValue.setText(MoneyFormat.display(value, Currencies.getDefault()));
@@ -285,10 +295,23 @@ public class ScheduledActivity extends LocalizedActivity {
         date.setMinWidth(dp(64));
         row.addView(date, dateLp);
 
-        // Name (fett) + Empfänger dahinter (kleiner, nicht fett, grau).
+        // Titel-Block: Name (fett) + Empfänger dahinter, darunter Kategorie bzw. „Splitbuchung".
+        LinearLayout titleBox = new LinearLayout(this);
+        titleBox.setOrientation(LinearLayout.VERTICAL);
         TextView title = new TextView(this);
         title.setText(nameWithPayee(st));
-        row.addView(title, new LinearLayout.LayoutParams(0, LinearLayout.LayoutParams.WRAP_CONTENT, 1f));
+        titleBox.addView(title, new LinearLayout.LayoutParams(
+                LinearLayout.LayoutParams.MATCH_PARENT, LinearLayout.LayoutParams.WRAP_CONTENT));
+        String sub = categorySubline(st);
+        if (!sub.isEmpty()) {
+            TextView cat = new TextView(this);
+            cat.setText(sub);
+            cat.setTextSize(12);
+            cat.setTextColor(GREY);
+            titleBox.addView(cat, new LinearLayout.LayoutParams(
+                    LinearLayout.LayoutParams.MATCH_PARENT, LinearLayout.LayoutParams.WRAP_CONTENT));
+        }
+        row.addView(titleBox, new LinearLayout.LayoutParams(0, LinearLayout.LayoutParams.WRAP_CONTENT, 1f));
 
         // Konto-Spalte (bei Umbuchung beide untereinander).
         LinearLayout konto = new LinearLayout(this);
@@ -311,7 +334,30 @@ public class ScheduledActivity extends LocalizedActivity {
         row.addView(amount, new LinearLayout.LayoutParams(
                 LinearLayout.LayoutParams.WRAP_CONTENT, LinearLayout.LayoutParams.WRAP_CONTENT));
 
+        // Klick → Detail-Maske (1:1 wie eine normale Buchung, schreibgeschützt).
+        android.util.TypedValue ripple = new android.util.TypedValue();
+        getTheme().resolveAttribute(android.R.attr.selectableItemBackground, ripple, true);
+        row.setBackgroundResource(ripple.resourceId);
+        row.setClickable(true);
+        row.setOnClickListener(v -> {
+            Intent i = new Intent(this, BookingEditActivity.class);
+            i.putExtra(BookingEditActivity.EXTRA_SCHEDULED_ID, st.id);
+            i.putExtra(BookingEditActivity.EXTRA_SCHEDULED_DUE_MS, o.dueMs);
+            startActivity(i);
+        });
+
         return row;
+    }
+
+    /** Kategorie-Untertitel: „Splitbuchung" bei mehreren Kategorien, sonst die Kategorie (nicht bei Umbuchung). */
+    private String categorySubline(ScheduledTransaction st) {
+        if (st.split == 1) {
+            return getString(R.string.sched_split);
+        }
+        if (st.kind == ScheduledTransaction.KIND_TRANSFER) {
+            return "";   // Konten stehen bereits in der Konto-Spalte
+        }
+        return st.counterparty;
     }
 
     private void addKontoLine(LinearLayout parent, String account) {

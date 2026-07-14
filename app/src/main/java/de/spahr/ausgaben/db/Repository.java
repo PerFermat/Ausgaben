@@ -33,6 +33,7 @@ public class Repository {
     private final BudgetDao budgetDao;
     private final CategoryTypeDao categoryTypeDao;
     private final ScheduledTransactionDao scheduledTransactionDao;
+    private final ScheduledSplitDao scheduledSplitDao;
     private final Context appContext;
     private final ExecutorService executor = Executors.newSingleThreadExecutor();
     private final Handler mainHandler = new Handler(Looper.getMainLooper());
@@ -55,6 +56,7 @@ public class Repository {
         this.budgetDao = db.budgetDao();
         this.categoryTypeDao = db.categoryTypeDao();
         this.scheduledTransactionDao = db.scheduledTransactionDao();
+        this.scheduledSplitDao = db.scheduledSplitDao();
         this.budgetRepo = new BudgetRepository(bookingDao, budgetDao, categoryTypeDao, executor, mainHandler);
         this.depotRepo = new DepotRepository(securityDao, appContext, executor, mainHandler);
         this.aliasResolver = new AliasResolver(bookingDao, correctionDao, accountDao, executor, mainHandler);
@@ -126,16 +128,39 @@ public class Repository {
     public void applyScheduledTransactions(final List<ScheduledTransaction> list, final Runnable onDone) {
         executor.execute(() -> {
             scheduledTransactionDao.deleteAll();
+            scheduledSplitDao.deleteAll();
             if (list != null) {
                 for (ScheduledTransaction st : list) {
                     if (st != null) {
-                        scheduledTransactionDao.insert(st);
+                        long id = scheduledTransactionDao.insert(st);
+                        if (st.splitParts != null) {
+                            for (ScheduledSplit part : st.splitParts) {
+                                part.scheduledId = id;
+                                scheduledSplitDao.insert(part);
+                            }
+                        }
                     }
                 }
             }
             if (onDone != null) {
                 mainHandler.post(onDone);
             }
+        });
+    }
+
+    /** Eine geplante Buchung nach id (für die Detail-Maske). */
+    public void getScheduledById(final long id, final Callback<ScheduledTransaction> callback) {
+        executor.execute(() -> {
+            final ScheduledTransaction result = scheduledTransactionDao.getById(id);
+            mainHandler.post(() -> callback.onResult(result));
+        });
+    }
+
+    /** Die Kategorie-Teile einer geplanten Splitbuchung (für die Detail-Maske). */
+    public void getScheduledSplits(final long scheduledId, final Callback<List<ScheduledSplit>> callback) {
+        executor.execute(() -> {
+            final List<ScheduledSplit> result = scheduledSplitDao.getForScheduled(scheduledId);
+            mainHandler.post(() -> callback.onResult(result));
         });
     }
 

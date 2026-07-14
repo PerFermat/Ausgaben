@@ -354,18 +354,26 @@ bullets([
   "limited number of payments in KMyMoney) limits the preview.",
   "A coloured <b>strip</b> precedes each row: <b>green</b> = deposit, <b>red</b> = payment, <b>yellow</b> = "
   "transfer. The <b>date</b> is its own column at the front, next to it the <b>name</b> with the <b>payee</b> "
-  "in smaller, grey text behind it, then an <b>account column</b> and the amount on the right. For a "
-  "<b>transfer</b> the account column shows <b>both accounts, one below the other</b>.",
+  "in smaller, grey text behind it and below it the <b>category</b> (with several categories <b>«Split "
+  "transaction»</b>), then an <b>account column</b> and the amount on the right. For a <b>transfer</b> the "
+  "account column shows <b>both accounts, one below the other</b> (instead of a category).",
+  "The <b>type</b> is taken strictly from KMyMoney: a <b>stock/ETF purchase</b> (savings plan) is a "
+  "<b>transfer</b> from the cash account into the security – not an expense.",
+  "A <b>tap on a row</b> opens the transaction in the <b>familiar detail view</b> (read-only, exactly like a "
+  "real account movement – including the categories of a split transaction and the balance before/after).",
 ])
 h2("Balance strip (cycling)")
-p("At the top – like in the normal account view – a <b>balance strip</b> that always reflects the <b>currently "
-  "set filter</b>. Each <b>tap</b> cycles the display:")
+p("At the top – like in the normal account view – a <b>balance strip</b> (label on the left, amount on the "
+  "right) that always reflects the <b>currently set filter</b>. Each <b>tap</b> cycles the display:")
 bullets([
-  "<b>Surplus/deficit</b> (default) = total deposits − total bills (green ≥ 0, otherwise red).",
+  "<b>Surplus</b> or <b>deficit</b> (default) = total deposits − total bills; only the applicable state is "
+  "shown (green = surplus, red = deficit).",
   "<b>Total deposits</b> (green).",
   "<b>Total bills</b> (red).",
+  "<b>Transfers</b> (yellow) = sum of all scheduled transfers.",
 ])
-p("Transfers count towards none of these sums (they only move money between your own accounts).")
+p("Transfers count towards <b>neither</b> deposits nor bills (they only move money between your own accounts) "
+  "and therefore have their own line.")
 h2("Filter")
 p("The <b>filter icon</b> at the top right narrows the list (and thus also the balance strip and the chart) by:")
 bullets([

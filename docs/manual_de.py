@@ -373,18 +373,26 @@ bullets([
   "begrenzte Anzahl Buchungen in KMyMoney) begrenzt die Vorschau.",
   "Vor jeder Zeile ein farbiger <b>Strich</b>: <b>grün</b> = Einzahlung, <b>rot</b> = Auszahlung, "
   "<b>gelb</b> = Umbuchung. Das <b>Datum</b> steht in einer eigenen Spalte vorne, daneben der <b>Name</b> mit "
-  "dem <b>Zahlungsempfänger</b> in kleinerer, grauer Schrift dahinter, dann eine <b>Konto-Spalte</b> und "
-  "rechts der Betrag. Bei einer <b>Umbuchung</b> zeigt die Konto-Spalte <b>beide Konten untereinander</b>.",
+  "dem <b>Zahlungsempfänger</b> in kleinerer, grauer Schrift dahinter und darunter die <b>Kategorie</b> "
+  "(bei mehreren Kategorien <b>«Splitbuchung»</b>), dann eine <b>Konto-Spalte</b> und rechts der Betrag. Bei "
+  "einer <b>Umbuchung</b> zeigt die Konto-Spalte <b>beide Konten untereinander</b> (statt einer Kategorie).",
+  "Die <b>Buchungsart</b> wird streng aus KMyMoney übernommen: ein <b>Aktien-/ETF-Kauf</b> (Sparplan) ist "
+  "eine <b>Umbuchung</b> vom Geldkonto ins Wertpapier – nicht eine Ausgabe.",
+  "Ein <b>Tipp auf eine Zeile</b> öffnet die Buchung in der <b>gewohnten Detail-Maske</b> (schreibgeschützt, "
+  "genau wie eine echte Kontobewegung – inkl. Kategorien einer Splitbuchung und Kontostand vorher/nachher).",
 ])
 h2("Saldo-Streifen (durchschaltbar)")
-p("Oben – wie in der normalen Kontoansicht – ein <b>Saldo-Streifen</b>, der sich immer auf den <b>aktuell "
-  "gesetzten Filter</b> bezieht. Jeder <b>Tipp</b> schaltet die Anzeige weiter:")
+p("Oben – wie in der normalen Kontoansicht – ein <b>Saldo-Streifen</b> (Bezeichnung links, Betrag rechts), "
+  "der sich immer auf den <b>aktuell gesetzten Filter</b> bezieht. Jeder <b>Tipp</b> schaltet die Anzeige weiter:")
 bullets([
-  "<b>Überschuss/Fehlbetrag</b> (Standard) = Summe Einzahlungen − Summe Rechnungen (grün ≥ 0, sonst rot).",
+  "<b>Überschuss</b> bzw. <b>Fehlbetrag</b> (Standard) = Summe Einzahlungen − Summe Rechnungen; es wird nur "
+  "der zutreffende Zustand angezeigt (grün = Überschuss, rot = Fehlbetrag).",
   "<b>Summe Einzahlungen</b> (grün).",
   "<b>Summe Rechnungen</b> (rot).",
+  "<b>Umbuchungen</b> (gelb) = Summe aller geplanten Umbuchungen.",
 ])
-p("Umbuchungen zählen in keine dieser Summen (sie verschieben nur Geld zwischen eigenen Konten).")
+p("Umbuchungen zählen <b>nicht</b> in Einzahlungen oder Rechnungen (sie verschieben nur Geld zwischen eigenen "
+  "Konten) und haben deshalb eine eigene Zeile.")
 h2("Filter")
 p("Über das <b>Filter-Symbol</b> oben rechts lässt sich die Liste (und damit auch der Saldo-Streifen und die "
   "Grafik) eingrenzen nach:")

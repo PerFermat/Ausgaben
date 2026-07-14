@@ -20,6 +20,7 @@ import java.util.Map;
 
 import de.spahr.ausgaben.db.Booking;
 import de.spahr.ausgaben.db.BookingSplit;
+import de.spahr.ausgaben.db.ScheduledSplit;
 import de.spahr.ausgaben.db.ScheduledTransaction;
 import de.spahr.ausgaben.db.Security;
 import de.spahr.ausgaben.db.SecurityTx;
@@ -335,15 +336,11 @@ public class KmyImporter {
         // Gegen-Splits klassifizieren: Kategorie (Typ 12/13) vs. Konto; Aktien/ETF (Typ 15) gesondert.
         List<String[]> categorySplits = new ArrayList<>();
         List<String[]> nonCatCounters = new ArrayList<>();
-        boolean hasStock = false;
         for (String[] s : splits) {
             if (s == own) {
                 continue;
             }
             int type = doc.accountTypeOf(s[0]);
-            if (type == 15) {
-                hasStock = true;
-            }
             if (type == 12 || type == 13) {
                 categorySplits.add(s);
             } else {
@@ -351,8 +348,11 @@ public class KmyImporter {
             }
         }
 
-        // Umbuchung: genau ein Nicht-Kategorie-Gegenkonto, keine Kategorien, kein Aktien-/ETF-Split.
-        if (!hasStock && categorySplits.isEmpty() && nonCatCounters.size() == 1) {
+        // Umbuchung: genau ein Nicht-Kategorie-Gegenkonto, keine Kategorien. Ein Aktien-/ETF-Kauf
+        // (Konto → Wertpapier, Typ 15) zählt ebenfalls als Umbuchung – der Aktien-Split liegt bereits in
+        // nonCatCounters. Gemischte Fälle (Aktie + Gebühren-Kategorie) bleiben durch die leere
+        // categorySplits-Bedingung normale Buchungen.
+        if (categorySplits.isEmpty() && nonCatCounters.size() == 1) {
             String[] counterSplit = nonCatCounters.get(0);
             b.isTransfer = true;
             b.transferAccount = orEmpty(doc.accountNameById(counterSplit[0])).trim();
@@ -525,10 +525,19 @@ public class KmyImporter {
         int kind = b.isTransfer ? ScheduledTransaction.KIND_TRANSFER
                 : (b.isIncome ? ScheduledTransaction.KIND_INCOME : ScheduledTransaction.KIND_EXPENSE);
         String counterparty = b.isTransfer ? orEmpty(b.transferAccount) : orEmpty(b.category);
-        return new ScheduledTransaction(orEmpty(schedId), orEmpty(name).trim(), kind, b.createdAt,
-                b.amountCents, orEmpty(b.payee), primaryName, counterparty,
+        ScheduledTransaction st = new ScheduledTransaction(orEmpty(schedId), orEmpty(name).trim(), kind,
+                b.createdAt, b.amountCents, orEmpty(b.payee), primaryName, counterparty,
                 occurrence, occurrenceMultiplier <= 0 ? 1 : occurrenceMultiplier,
                 endMs < 0 ? 0 : endMs);
+        // Splitbuchung: mehrere Kategorien → Kennzeichen + Kategorie-Teile für die Detail-Maske sichern.
+        if (b.parts != null && b.parts.size() >= 2) {
+            st.split = 1;
+            st.splitParts = new ArrayList<>();
+            for (BookingSplit part : b.parts) {
+                st.splitParts.add(new ScheduledSplit(0, orEmpty(part.category), part.amountCents));
+            }
+        }
+        return st;
     }
 
     private static int parseIntOr(String s, int fallback) {

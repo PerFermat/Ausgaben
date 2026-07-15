@@ -329,6 +329,11 @@ p("The <b>Categories</b> page (menu <b>⋮ → Categories</b>) shows the <b>expe
   "which only shows the development over time per account/place.")
 bullets([
   "<b>Month/Year</b> toggle: current month resp. current year.",
+  "In the <b>month view</b> you page through the months by <b>swiping</b> – just like in the budget "
+  "(right = previous month, left = next month); the header shows the displayed month centred and bold, with "
+  "the previous and next one in grey to the left and right (tapping pages as well).",
+  "The chart uses the <b>full width</b> and at most <b>half the screen height</b>; the list below scrolls on "
+  "its own while the chart stays visible.",
   "The slices are unlabelled; a <b>tap</b> shows category and amount in the centre, without a selection the "
   "total is shown there. The list additionally states the <b>share in percent</b>.",
   "<b>Split transactions</b> count through their partial amounts (not twice), <b>transfers</b> are left out "

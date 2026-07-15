@@ -170,10 +170,12 @@ Mikrofon-Berechtigung ist davon unberührt). Hinweise zur F-Droid-Paketierung in
   ist bereits grün, sobald sie im Budget liegt; **regelmäßige** Ausgaben (Lebensmittel) werden weiter am
   Zeitanteil gemessen. Ohne Historie gilt der bisherige lineare Vergleich.
 - **Kategorien** (Menü **⋮ → Kategorien**, auch aus dem Depot erreichbar): beantwortet „Wofür geht mein
-  Geld?" – die **Ausgaben je Kategorie** als **Kreisdiagramm** (unbeschriftete Segmente, Tipp zeigt Kategorie
-  und Betrag in der Mitte) plus **absteigend sortierte Liste** mit Anteil in Prozent, umschaltbar
-  **Monat/Jahr**. Splitbuchungen zählen über ihre Teilbeträge, Umbuchungen bleiben außen vor (dieselbe
-  Datenbasis wie das Budget); gilt über **alle Konten**.
+  Geld?" – die **Ausgaben je Kategorie** als **Kreisdiagramm** (volle Breite, max. halbe Bildschirmhöhe,
+  unbeschriftete Segmente, Tipp zeigt Kategorie und Betrag in der Mitte) plus **absteigend sortierte Liste**
+  mit Anteil in Prozent, die für sich scrollt – das Diagramm bleibt dabei sichtbar. Umschaltbar
+  **Monat/Jahr**; in der Monatssicht blättert eine **Wischgeste** (wie im Budget) durch die Monate, mit
+  Kopfzeile Vormonat | **aktueller Monat** | Folgemonat. Splitbuchungen zählen über ihre Teilbeträge,
+  Umbuchungen bleiben außen vor (dieselbe Datenbasis wie das Budget); gilt über **alle Konten**.
 - **Geplante Buchungen** (eigene Menüseite, **nur im `.kmy`-Modus** sichtbar): importiert die in KMyMoney
   angelegten Daueraufträge/Planungen und zeigt sie als **eine chronologische Liste** nach Fälligkeit. Jede
   wiederkehrende Planung wird in ihre **Einzeltermine aufgefaltet** (z. B. wöchentlicher Bäcker mehrfach),

@@ -41,7 +41,25 @@
             android:text="@string/budget_view_year" />
     </com.google.android.material.button.MaterialButtonToggleGroup>
 
+    <!-- Monats-Kopfzeile wie im Budget (vorheriger | aktueller | nächster); nur in der Monatssicht. -->
+    <LinearLayout
+        android:id="@+id/monthHeader"
+        android:layout_width="match_parent"
+        android:layout_height="wrap_content"
+        android:orientation="horizontal"
+        android:paddingHorizontal="16dp"
+        android:paddingTop="4dp"
+        android:paddingBottom="4dp" />
+
+    <!-- Volle Breite; die Höhe setzt die Activity auf höchstens 50 % der Bildschirmhöhe.
+         Bewusst NICHT in der ScrollView: das Diagramm bleibt beim Blättern der Liste sichtbar. -->
+    <com.github.mikephil.charting.charts.PieChart
+        android:id="@+id/categoryPie"
+        android:layout_width="match_parent"
+        android:layout_height="260dp" />
+
     <ScrollView
+        android:id="@+id/categoryScroll"
         android:layout_width="match_parent"
         android:layout_height="0dp"
         android:layout_weight="1"
@@ -51,12 +69,6 @@
             android:layout_width="match_parent"
             android:layout_height="wrap_content"
             android:orientation="vertical">
-
-            <com.github.mikephil.charting.charts.PieChart
-                android:id="@+id/categoryPie"
-                android:layout_width="match_parent"
-                android:layout_height="300dp"
-                android:layout_margin="12dp" />
 
             <!-- Top-Liste: je Kategorie Name, Anteil und Betrag, absteigend sortiert. -->
             <LinearLayout

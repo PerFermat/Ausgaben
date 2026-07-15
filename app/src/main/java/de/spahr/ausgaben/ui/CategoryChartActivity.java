@@ -2,7 +2,9 @@ package de.spahr.ausgaben.ui;
 
 import android.graphics.Typeface;
 import android.os.Bundle;
+import android.view.GestureDetector;
 import android.view.Gravity;
+import android.view.MotionEvent;
 import android.view.View;
 import android.widget.LinearLayout;
 import android.widget.TextView;
@@ -48,10 +50,14 @@ public class CategoryChartActivity extends LocalizedActivity {
     private Repository repository;
     private PieChart pie;
     private LinearLayout list;
+    private LinearLayout monthHeader;
     private TextView empty;
     private String totalText = "";
-    /** true = laufender Monat, false = laufendes Jahr. */
+    /** true = Monatssicht, false = laufendes Jahr. */
     private boolean monthRange = true;
+    /** Monatssicht: 0 = aktueller Monat, ±n = vor/zurück (Wischgeste bzw. Tipp auf die Kopfzeile). */
+    private int monthOffset = 0;
+    private GestureDetector swipeDetector;
 
     @Override
     protected void onCreate(Bundle savedInstanceState) {
@@ -63,17 +69,48 @@ public class CategoryChartActivity extends LocalizedActivity {
         repository = new Repository(this);
         pie = findViewById(R.id.categoryPie);
         list = findViewById(R.id.categoryList);
+        monthHeader = findViewById(R.id.monthHeader);
         empty = findViewById(R.id.categoryEmpty);
+
+        // Diagramm höchstens halb so hoch wie der Bildschirm; die Liste darunter bleibt scrollbar.
+        pie.getLayoutParams().height = getResources().getDisplayMetrics().heightPixels / 2;
 
         MaterialButtonToggleGroup toggle = findViewById(R.id.toggleRange);
         toggle.check(R.id.btnRangeMonth);
         toggle.addOnButtonCheckedListener((group, checkedId, isChecked) -> {
             if (isChecked) {
                 monthRange = checkedId == R.id.btnRangeMonth;
+                monthOffset = 0;   // Monatssicht startet immer beim aktuellen Monat
                 load();
             }
         });
+
+        // Monatssicht: Wischen nach rechts = Monat davor, nach links = Monat danach (wie im Budget).
+        swipeDetector = new GestureDetector(this, new GestureDetector.SimpleOnGestureListener() {
+            @Override
+            public boolean onFling(MotionEvent e1, MotionEvent e2, float vx, float vy) {
+                if (!monthRange || e1 == null || e2 == null) {
+                    return false;
+                }
+                float dx = e2.getX() - e1.getX();
+                if (Math.abs(dx) > Math.abs(e2.getY() - e1.getY())
+                        && Math.abs(dx) > dp(60) && Math.abs(vx) > dp(60)) {
+                    monthOffset += dx > 0 ? -1 : 1;
+                    load();
+                    return true;
+                }
+                return false;
+            }
+        });
         load();
+    }
+
+    @Override
+    public boolean dispatchTouchEvent(MotionEvent ev) {
+        if (swipeDetector != null) {
+            swipeDetector.onTouchEvent(ev);
+        }
+        return super.dispatchTouchEvent(ev);
     }
 
     private void load() {
@@ -83,13 +120,69 @@ public class CategoryChartActivity extends LocalizedActivity {
         c.set(Calendar.MINUTE, 0);
         c.set(Calendar.SECOND, 0);
         c.set(Calendar.MILLISECOND, 0);
-        if (!monthRange) {
+        if (monthRange) {
+            c.add(Calendar.MONTH, monthOffset);   // per Wischgeste vor/zurück
+        } else {
             c.set(Calendar.MONTH, Calendar.JANUARY);
         }
         long from = c.getTimeInMillis();
         c.add(monthRange ? Calendar.MONTH : Calendar.YEAR, 1);
         long to = c.getTimeInMillis();
+        buildMonthHeader();
         repository.getCategoryActuals(from, to, this::render);
+    }
+
+    /**
+     * Kopfzeile der Monatssicht wie im Budget: zentriert der angezeigte Monat (fett, mit Jahr), links und
+     * rechts grau der vorige bzw. nächste. Tippen blättert – wie die Wischgeste – einen Monat.
+     */
+    private void buildMonthHeader() {
+        monthHeader.removeAllViews();
+        if (!monthRange) {
+            monthHeader.setVisibility(View.GONE);
+            return;
+        }
+        monthHeader.setVisibility(View.VISIBLE);
+        Calendar cur = Calendar.getInstance();
+        cur.set(Calendar.DAY_OF_MONTH, 1);
+        cur.add(Calendar.MONTH, monthOffset);
+        Calendar prev = (Calendar) cur.clone();
+        prev.add(Calendar.MONTH, -1);
+        Calendar next = (Calendar) cur.clone();
+        next.add(Calendar.MONTH, 1);
+
+        TextView left = monthLabel(prev, false);
+        left.setGravity(Gravity.START | Gravity.CENTER_VERTICAL);
+        left.setOnClickListener(v -> {
+            monthOffset--;
+            load();
+        });
+        TextView center = monthLabel(cur, true);
+        center.setGravity(Gravity.CENTER);
+        TextView right = monthLabel(next, false);
+        right.setGravity(Gravity.END | Gravity.CENTER_VERTICAL);
+        right.setOnClickListener(v -> {
+            monthOffset++;
+            load();
+        });
+        monthHeader.addView(left, new LinearLayout.LayoutParams(0, LinearLayout.LayoutParams.WRAP_CONTENT, 1f));
+        monthHeader.addView(center, new LinearLayout.LayoutParams(0, LinearLayout.LayoutParams.WRAP_CONTENT, 1f));
+        monthHeader.addView(right, new LinearLayout.LayoutParams(0, LinearLayout.LayoutParams.WRAP_CONTENT, 1f));
+    }
+
+    /** Monatslabel; {@code center} = angezeigter Monat (fett, mit Jahr), sonst grauer Monatsname. */
+    private TextView monthLabel(Calendar cal, boolean center) {
+        java.util.Locale locale = getResources().getConfiguration().getLocales().get(0);
+        TextView tv = new TextView(this);
+        tv.setText(new java.text.SimpleDateFormat(center ? "MMMM yyyy" : "MMMM", locale)
+                .format(cal.getTime()));
+        if (center) {
+            tv.setTextSize(18);
+            tv.setTypeface(tv.getTypeface(), Typeface.BOLD);
+        } else {
+            tv.setTextColor(android.graphics.Color.GRAY);
+        }
+        return tv;
     }
 
     /** Eine Kategorie mit positivem Ausgabebetrag (Anzeige-Modell; {@link CategorySum} ist ein Room-Typ). */

@@ -346,6 +346,11 @@ p("Die Seite <b>Kategorien</b> (Menü <b>⋮ → Kategorien</b>) zeigt die <b>Au
   "(Kapitel 9), die nur den zeitlichen Verlauf je Konto/Ort zeigt.")
 bullets([
   "Umschalter <b>Monat/Jahr</b>: laufender Monat bzw. laufendes Jahr.",
+  "In der <b>Monatssicht</b> blättern Sie – wie im Budget – per <b>Wischgeste</b> durch die Monate "
+  "(nach rechts = Vormonat, nach links = Folgemonat); die Kopfzeile zeigt mittig fett den angezeigten "
+  "Monat, links und rechts grau den vorigen bzw. nächsten (Tippen blättert ebenfalls).",
+  "Das Diagramm nutzt die <b>volle Breite</b> und höchstens die <b>halbe Bildschirmhöhe</b>; die Liste "
+  "darunter scrollt für sich, das Diagramm bleibt dabei sichtbar.",
   "Die Segmente sind unbeschriftet; ein <b>Tipp</b> zeigt in der Mitte Kategorie und Betrag, ohne Auswahl "
   "steht dort die Gesamtsumme. Die Liste nennt zusätzlich den <b>Anteil in Prozent</b>.",
   "<b>Splitbuchungen</b> zählen über ihre Teilbeträge (nicht doppelt), <b>Umbuchungen</b> bleiben außen vor "

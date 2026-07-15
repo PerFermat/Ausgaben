@@ -134,7 +134,12 @@ Mikrofon-Berechtigung ist davon unberührt). Hinweise zur F-Droid-Paketierung in
   der berechnete Rest (Kontosaldo − Summe der Orte), sodass die Summe der Ort-Salden stets dem Kontosaldo
   entspricht. In den Beständen lassen sich Ort-Bewegungen einzeln anlegen/bearbeiten/löschen sowie zwischen
   Orten umbuchen (z. B. um eine importierte Buchung einem Ort zuzuordnen); ein Kassensturz setzt den Saldo
-  eines Orts. Importierte Buchungen tragen keine Ort-Verknüpfung.
+  eines Orts. Importierte Buchungen tragen keine Ort-Verknüpfung. Öffnet man eine solche alte Buchung
+  **zum Bearbeiten**, wird das **Ort-Feld trotzdem angezeigt** (sofern das Konto Orte hat):
+  **„Neue Buchung"** (duplizieren) speichert den gewählten Ort und legt die Bewegung an; **„Buchung ändern"**
+  ignoriert den Ort, wenn die Buchung vorher keinen Ort hatte und bereits exportiert ist, und speichert ihn
+  (mit Ausgleichs-Bewegung), wenn vorher ein Ort vorhanden war. In der reinen Ansicht bleibt das Feld
+  ausgeblendet; bei **Umbuchungen** gibt es Von-/Nach-Ort mit Bewegung auf beiden Konten.
 - **Filter** nach Empfänger, Kategorie (als Baum), Betrag (Schieberegler) und **Datum von–bis**
   (Schieberegler in Monatsschritten; für ein taggenaues Datum tippt man es direkt ins Feld). Der Filter
   wirkt auf Liste **und** Auswertung. Bei Kategorie-Filter zeigt eine Splitbuchung nur den Teilbetrag der

@@ -129,7 +129,12 @@ permission is unaffected). F-Droid packaging notes are in [`fdroid/`](fdroid/).
   movements, so the history is preserved). **“No place”** is the computed remainder (account balance − sum of
   places), so the sum of place balances always equals the account balance. In Holdings you can create/edit/
   delete individual place movements and transfer between places (e.g. to assign an imported booking to a
-  place); a cash count sets a place's balance. Imported bookings carry no place link.
+  place); a cash count sets a place's balance. Imported bookings carry no place link. If you open such an old
+  booking **for editing**, the **place field is shown anyway** (as long as the account has places):
+  **“New transaction”** (duplicate) saves the chosen place and creates the movement; **“Update transaction”**
+  ignores the place when the booking had none before and is already exported, and saves it (with balancing
+  movements) when it had a place before. In the plain view the field stays hidden; **transfers** have a
+  from-/to-place with a movement on both accounts.
 - **Filter** by payee, category (as a tree), amount (slider) and **date from–to** (slider in whole-month
   steps; for an exact day type it into the field). The filter applies to the list **and** the analysis. With
   a category filter, a split booking shows only the partial amount of the chosen category.

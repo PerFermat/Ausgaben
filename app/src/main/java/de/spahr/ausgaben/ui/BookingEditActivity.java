@@ -795,10 +795,12 @@ public class BookingEditActivity extends LocalizedActivity {
             placeLayout.setVisibility(hasPlaces(textOf(editAccount)) ? View.VISIBLE : View.GONE);
             placeToLayout.setVisibility(hasPlaces(textOf(editAccountTo)) ? View.VISIBLE : View.GONE);
         } else {
-            // Ort-Feld nur bei in der App angelegten (ort-verknüpften) Buchungen UND wenn das Konto Orte hat.
+            // Ort-Feld (nur wenn das Konto Orte hat): bei ort-verknüpften Buchungen immer; bei importierten
+            // zusätzlich beim Bearbeiten, damit ein Duplikat („Als neue speichern") einen Ort bekommen kann.
             placeLayout.setHint(getString(R.string.place_hint));
             placeLayout.setVisibility(
-                    origPlaceManaged && hasPlaces(textOf(editAccount)) ? View.VISIBLE : View.GONE);
+                    hasPlaces(textOf(editAccount)) && (origPlaceManaged || !readOnly)
+                            ? View.VISIBLE : View.GONE);
             placeToLayout.setVisibility(View.GONE);
         }
         splitSection.setVisibility(transfer ? View.GONE : View.VISIBLE);
@@ -1002,7 +1004,8 @@ public class BookingEditActivity extends LocalizedActivity {
         booking.transferAccount = "";
         booking.transferGroup = "";
         booking.exported = switchExported.isChecked();
-        final boolean managed = origPlaceManaged;
+        // Ort nur ignorieren, wenn die Buchung vorher KEINE Ort-Verknüpfung hatte UND bereits exportiert ist.
+        final boolean ignorePlace = !origPlaceManaged && booking.exported;
         final String place = selectedPlace();
         maybeAskCorrection(booking.payee, () -> {
             booking.createdAt = composeTimestamp();
@@ -1011,11 +1014,11 @@ public class BookingEditActivity extends LocalizedActivity {
                 Toast.makeText(this, R.string.booking_updated, Toast.LENGTH_SHORT).show();
                 finish();
             };
-            if (managed) {
-                // App-Buchung: Ort-Journal per Ausgleichs-Bewegung nachziehen (Betrag/Ort/Löschung).
+            if (!ignorePlace) {
+                // Ort-verknüpfte Buchung: Ort-Journal per Ausgleichs-Bewegung nachziehen (Betrag/Ort/Löschung).
                 repository.updateBookingWithPlace(booking, place, splits, done);
             } else {
-                // Importierte Buchung: keine Ort-Verknüpfung → Ort-Journal unberührt lassen.
+                // Bereits exportierte Buchung ohne Ort-Verknüpfung: Ort ignorieren, Ort-Journal unberührt lassen.
                 repository.updateSplitBooking(booking, splits, done);
             }
         });

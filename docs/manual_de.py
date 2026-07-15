@@ -436,6 +436,23 @@ bullets([
   "oder um Bargeld vom Umschlag in den Geldbeutel zu verschieben).",
   "Spätere Betrags- oder Lösch-Änderungen hängen datierte Ausgleichs-Bewegungen an – die Historie bleibt erhalten.",
 ])
+h2("Ort bei alten (importierten) Buchungen")
+p("Eine <b>exportierte und wieder importierte</b> Buchung verliert ihre Ort-Verknüpfung – das ist so "
+  "gewollt. Öffnen Sie solch eine Buchung trotzdem <b>zum Bearbeiten</b> (langer Druck), wird das "
+  "<b>Ort-Feld angezeigt</b>, sobald das Konto überhaupt Orte hat. So lässt sich ein Ort auswählen. Was "
+  "damit passiert, hängt davon ab, welchen Knopf Sie drücken:")
+bullets([
+  "<b>«Neue Buchung»</b> (duplizieren): Es entsteht eine <b>neue</b> Buchung – der gewählte Ort wird "
+  "<b>gespeichert</b> und in den Beständen als Bewegung angelegt. Das ist der Weg, einer alten Buchung "
+  "nachträglich einen Ort zu geben.",
+  "<b>«Buchung ändern»</b> bei einer Buchung, die <b>vorher keinen Ort</b> hatte und <b>bereits exportiert</b> "
+  "ist: Der eingegebene Ort wird <b>ignoriert</b>, das Ort-Journal bleibt unberührt.",
+  "<b>«Buchung ändern»</b> bei einer Buchung, die <b>vorher einen Ort</b> hatte: Der neue Ort wird "
+  "<b>gespeichert</b> und per Ausgleichs-Bewegung nachgezogen (alter Ort −Betrag, neuer Ort +Betrag).",
+])
+p("In der reinen <b>Ansicht</b> (kurzer Tipp) bleibt das Ort-Feld bei importierten Buchungen wie bisher "
+  "ausgeblendet. Bei <b>Umbuchungen</b> gilt dasselbe – dort gibt es Von-Ort und Nach-Ort, und die Bewegung "
+  "wird auf <b>beiden Konten</b> angelegt.")
 h2("Kassensturz auf Orts-Ebene")
 p("Ein besonderer Vorteil: Der <b>Kassensturz</b> (Soll-Ist-Abgleich) lässt sich <b>pro Ort</b> "
   "durchführen. Sie zählen nur das Bargeld <i>eines</i> Ortes – etwa den Geldbeutel –, tragen den "

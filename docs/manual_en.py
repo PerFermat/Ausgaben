@@ -415,6 +415,21 @@ bullets([
   "cash from the envelope into the wallet).",
   "Later amount or deletion changes append dated balancing movements – the history is preserved.",
 ])
+h2("Place on old (imported) transactions")
+p("A transaction that was <b>exported and imported again</b> loses its place link – that is intended. If you "
+  "still open such a transaction <b>for editing</b> (long press), the <b>place field is shown</b> as soon as "
+  "the account has any places, so you can pick one. What happens then depends on the button you press:")
+bullets([
+  "<b>«New transaction»</b> (duplicate): a <b>new</b> transaction is created – the chosen place <b>is saved</b> "
+  "and a movement is added in the holdings. This is the way to give an old transaction a place afterwards.",
+  "<b>«Update transaction»</b> on a transaction that had <b>no place before</b> and is <b>already exported</b>: "
+  "the entered place is <b>ignored</b>, the place journal stays untouched.",
+  "<b>«Update transaction»</b> on a transaction that <b>had a place before</b>: the new place <b>is saved</b> "
+  "and followed up with balancing movements (old place −amount, new place +amount).",
+])
+p("In the plain <b>view</b> (short tap) the place field stays hidden for imported transactions, as before. The "
+  "same applies to <b>transfers</b> – there you get a from-place and a to-place, and the movement is created "
+  "on <b>both accounts</b>.")
 h2("Cash count at place level")
 p("A particular advantage: the <b>cash count</b> (reconciliation) can be done <b>per place</b>. You count "
   "only the cash of <i>one</i> place – say the wallet – enter the counted amount, and the app automatically "

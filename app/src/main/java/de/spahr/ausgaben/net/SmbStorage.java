@@ -210,17 +210,35 @@ public class SmbStorage implements RemoteStorage {
 
     @Override
     public byte[] downloadBytes(String folder, String fileName) throws IOException {
+        return downloadBytes(folder, fileName, null);
+    }
+
+    /** Herunterladen mit Rückmeldung der gelesenen Bytes; Gesamtgröße aus der Datei-Info. */
+    @Override
+    public byte[] downloadBytes(String folder, String fileName,
+                                de.spahr.ausgaben.util.ProgressListener listener) throws IOException {
         final String path = joinPath(joinPath(base, folder), fileName);
         return withShare(disk -> {
+            long total = -1;
+            try {
+                total = disk.getFileInformation(path).getStandardInformation().getEndOfFile();
+            } catch (Exception ignored) {
+                // Ohne Größe läuft der Download weiter, nur ohne Prozentwert.
+            }
             try (com.hierynomus.smbj.share.File f = disk.openFile(path,
                     EnumSet.of(AccessMask.GENERIC_READ), null, SMB2ShareAccess.ALL,
                     SMB2CreateDisposition.FILE_OPEN, null);
                  InputStream is = f.getInputStream()) {
                 ByteArrayOutputStream bos = new ByteArrayOutputStream();
                 byte[] buf = new byte[8192];
+                long read = 0;
                 int n;
                 while ((n = is.read(buf)) > 0) {
                     bos.write(buf, 0, n);
+                    read += n;
+                    if (listener != null) {
+                        listener.onProgress(read, total);
+                    }
                 }
                 return bos.toByteArray();
             }

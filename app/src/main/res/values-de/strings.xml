@@ -142,6 +142,8 @@
     <string name="import_running_banner">Konto wird importiert…</string>
     <string name="import_stage_download">Datei wird geladen…</string>
     <string name="import_stage_account">Konto: %1$s</string>
+    <string name="import_stage_reading">Datei wird gelesen…</string>
+    <string name="import_stage_bookings">Buchungen werden gelesen…</string>
     <string name="import_stage_saving">Buchungen werden gespeichert…</string>
     <string name="import_stage_depot">Depot: %1$s</string>
     <string name="import_stage_done">Fertig</string>

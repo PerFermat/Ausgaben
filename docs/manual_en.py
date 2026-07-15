@@ -528,6 +528,18 @@ p("An import replaces the already-exported bookings per account (no duplicates).
   "A message appears <b>only on error</b>. In <b>CSV mode with SMB/WebDAV</b>, adding an account or "
   "long-pressing one opens a <b>navigable folder browser</b> (subfolders 📁 + CSV files, «..» to go up); the "
   "chosen CSV is imported from the current folder. The drawer stays open on long press.")
+h2("What the progress in the banner means")
+p("The percentage follows four phases, each with a real reference value – so it keeps moving instead of "
+  "jumping:")
+bullets([
+  "<b>0–30 % «Reading file…»</b>: the downloaded bytes of the .kmy. If the server reports no file size, the "
+  "display stays at 0 during this phase – the import still runs.",
+  "<b>30–45 % «Reading file…»</b>: the file is unpacked and prepared.",
+  "<b>45–70 % «Reading bookings…»</b>: share of the bookings read (the count is in the file header).",
+  "<b>70–99 %</b>: the bookings are saved; <b>100 %</b> = done.",
+])
+p("Each value is reported <b>after</b> a step of work. With very many bookings the display may rest at 99 % "
+  "briefly before it jumps to 100 %.")
 h2("Backup before every export")
 p("Before every write-back the app automatically creates a <b>timestamped backup</b> of the .kmy (e.g. "
   "<i>file.kmy.bak-YYYYMMDD-HHMMSS</i>). The backups go into the <b>«Backup» subfolder</b> next to the "

@@ -559,6 +559,19 @@ p("Ein Import ersetzt je Konto die bereits exportierten Buchungen (keine Dublett
   "SMB/WebDAV</b> öffnet sich beim Hinzufügen bzw. beim langen Druck ein <b>navigierbarer Ordner-Browser</b> "
   "(Unterordner 📁 + CSV-Dateien, «..» zurück); die gewählte CSV wird aus dem aktuellen Ordner importiert. "
   "Die Schublade bleibt beim langen Druck geöffnet.")
+h2("Was der Fortschritt im Banner bedeutet")
+p("Die Prozentanzeige folgt vier Phasen, jede mit einer echten Bezugsgröße – der Wert bewegt sich also "
+  "durchgehend statt in großen Sprüngen:")
+bullets([
+  "<b>0–30 % «Datei wird geladen…»</b>: die heruntergeladenen Bytes der .kmy. Meldet der Server keine "
+  "Dateigröße, bleibt die Anzeige in dieser Phase bei 0 – der Import läuft trotzdem.",
+  "<b>30–45 % «Datei wird gelesen…»</b>: die Datei wird entpackt und aufbereitet.",
+  "<b>45–70 % «Buchungen werden gelesen…»</b>: Anteil der gelesenen Buchungen (die Anzahl steht im "
+  "Dateikopf).",
+  "<b>70–99 %</b>: die Buchungen werden gespeichert; <b>100 %</b> = fertig.",
+])
+p("Gemeldet wird jeweils <b>nach</b> einem Arbeitsschritt. Bei sehr vielen Buchungen darf die Anzeige "
+  "kurz bei 99 % stehen, bevor sie auf 100 % springt.")
 h2("Sicherung vor jedem Export")
 p("Vor jedem Rückschreiben legt die App automatisch eine <b>zeitgestempelte Sicherung</b> der .kmy an "
   "(z. B. <i>datei.kmy.bak-JJJJMMTT-HHMMSS</i>). Die Sicherungen landen im <b>Unterordner «Backup»</b> neben "

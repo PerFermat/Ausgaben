@@ -210,6 +210,11 @@ Holdings directly. The widget refreshes when the app is opened and at regular in
   with HTTP basic auth.
 - **CSV export** to Nextcloud: one file `<account>-<timestamp>.csv` per account; each booking is exported
   only once (marked exported only after a successful upload). Full export via the settings.
+- **Import progress in four phases**, each with a real reference value: **0–30 %** bytes downloaded,
+  **30–45 %** unpacking/preparing, **45–70 %** bookings read (count from the file header,
+  `<TRANSACTIONS count>`), **70–99 %** saving, **100 %** done — each reported *after* the step. The import
+  reads the file **once for all accounts** (instead of once per account) and writes in **one** transaction,
+  which is noticeably faster.
 - **KMyMoney `.kmy` mode**: writes new bookings straight into the `.kmy` (gzip XML) and imports
   accounts/bookings from it — including splits and transfers. Import replaces the already-exported bookings
   per account. Before every write-back a **timestamped backup** of the `.kmy`

@@ -242,6 +242,18 @@ public class NextcloudUploader {
     /** Lädt die Rohbytes einer Datei aus dem Ordner herunter (z. B. eine gepackte .kmy). */
     public byte[] downloadBytes(String baseUrl, String user, String password, String folder,
                                 String fileName) throws IOException {
+        return downloadBytes(baseUrl, user, password, folder, fileName, null);
+    }
+
+    /**
+     * Wie oben, meldet aber die gelesenen Bytes. Statt {@code body().bytes()} (liest alles in einem Rutsch,
+     * ohne jede Beobachtbarkeit) wird der Datenstrom in Blöcken gelesen. Gesamtgröße aus
+     * {@code Content-Length}; liefert der Server keine (chunked, {@code -1}), wird {@code total = -1}
+     * gemeldet – die Anzeige überspringt die Phase dann einfach.
+     */
+    public byte[] downloadBytes(String baseUrl, String user, String password, String folder,
+                                String fileName, de.spahr.ausgaben.util.ProgressListener listener)
+            throws IOException {
         String url = buildUrl(baseUrl, user, folder, fileName);
         Request request = new Request.Builder()
                 .url(url)
@@ -250,11 +262,28 @@ public class NextcloudUploader {
                 .build();
         try (Response response = client.newCall(request).execute()) {
             ResponseBody rb = response.body();
-            byte[] content = rb == null ? new byte[0] : rb.bytes();
             if (!response.isSuccessful()) {
                 throw new IOException("HTTP " + response.code() + " " + response.message());
             }
-            return content;
+            if (rb == null) {
+                return new byte[0];
+            }
+            long total = rb.contentLength();
+            try (java.io.InputStream in = rb.byteStream()) {
+                java.io.ByteArrayOutputStream bos = new java.io.ByteArrayOutputStream(
+                        total > 0 ? (int) Math.min(total, Integer.MAX_VALUE) : 32768);
+                byte[] buf = new byte[8192];
+                long read = 0;
+                int n;
+                while ((n = in.read(buf)) > 0) {
+                    bos.write(buf, 0, n);
+                    read += n;
+                    if (listener != null) {
+                        listener.onProgress(read, total);
+                    }
+                }
+                return bos.toByteArray();
+            }
         }
     }
 

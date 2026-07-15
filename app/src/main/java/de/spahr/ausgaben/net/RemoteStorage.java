@@ -55,6 +55,15 @@ public interface RemoteStorage {
 
     byte[] downloadBytes(String folder, String fileName) throws IOException;
 
+    /**
+     * Wie {@link #downloadBytes(String, String)}, meldet aber die gelesenen Bytes (für die
+     * Fortschrittsanzeige). Standard: ohne Rückmeldung – Backends überschreiben das.
+     */
+    default byte[] downloadBytes(String folder, String fileName,
+                                 de.spahr.ausgaben.util.ProgressListener listener) throws IOException {
+        return downloadBytes(folder, fileName);
+    }
+
     /** Prüft die Verbindung (Verbinden + Auflisten der Basis); wirft bei Fehler eine {@link IOException}. */
     void testConnection() throws IOException;
 

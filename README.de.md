@@ -219,6 +219,11 @@ regelmäßigen Abständen.
 - **CSV-Export** auf Nextcloud: pro Konto eine Datei `<Konto>-<Zeitstempel>.csv`; jede Buchung wird nur
   einmal exportiert (erst nach erfolgreichem Upload als exportiert markiert). Kompletter Export über die
   Einstellungen.
+- **Import-Fortschritt in vier Phasen**, jede mit echter Bezugsgröße: **0–30 %** geladene Bytes,
+  **30–45 %** entpacken/aufbereiten, **45–70 %** gelesene Buchungen (Anzahl aus dem Dateikopf,
+  `<TRANSACTIONS count>`), **70–99 %** speichern, **100 %** fertig – gemeldet jeweils *nach* dem Schritt.
+  Der Import liest die Datei dabei **einmal für alle Konten** (statt einmal je Konto) und schreibt in
+  **einer** Transaktion; das ist spürbar schneller.
 - **kMyMoney-`.kmy`-Modus**: schreibt neue Buchungen direkt in die `.kmy` (gzip-XML) und importiert
   Konten/Buchungen daraus – inkl. Splitbuchungen und Umbuchungen. Import ersetzt je Konto die bereits
   exportierten Buchungen. Vor jedem Rückschreiben wird eine **zeitgestempelte Sicherung** der `.kmy`

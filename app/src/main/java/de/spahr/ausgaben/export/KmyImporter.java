@@ -253,6 +253,87 @@ public class KmyImporter {
         return doc.categoryTypesByPath();
     }
 
+    /**
+     * Buchungen <b>mehrerer</b> Konten in <b>einem</b> Durchlauf – je Transaktion wird für jedes Zielkonto
+     * geprüft, ob sie es betrifft ({@code toBooking} liefert sonst {@code null}). Semantisch identisch zu
+     * {@link #bookingsForAccount(String)} je Konto, aber ohne den kompletten Neuaufbau des Parsers pro Konto
+     * (bei 20 Konten und ~10.000 Buchungen war das der Löwenanteil der Wartezeit).
+     *
+     * @param listener meldet die verarbeiteten Transaktionen gegen {@code doc.transactionCount()}
+     */
+    public java.util.LinkedHashMap<String, List<Booking>> bookingsForAccounts(
+            List<String> accountNames, de.spahr.ausgaben.util.ProgressListener listener)
+            throws IOException {
+        java.util.LinkedHashMap<String, List<Booking>> out = new java.util.LinkedHashMap<>();
+        // Konto → id; Konten ohne id in der Datei liefern (wie bisher) eine leere Liste.
+        java.util.LinkedHashMap<String, String> ids = new java.util.LinkedHashMap<>();
+        for (String name : accountNames) {
+            out.put(name, new ArrayList<>());
+            String id = doc.accountId(name);
+            if (id != null) {
+                ids.put(name, id);
+            }
+        }
+        if (ids.isEmpty()) {
+            return out;
+        }
+        final int total = doc.transactionCount();
+        try {
+            XmlPullParser parser = Xml.newPullParser();
+            parser.setFeature(XmlPullParser.FEATURE_PROCESS_NAMESPACES, false);
+            parser.setInput(new StringReader(doc.xml()));
+
+            int event = parser.getEventType();
+            boolean inLedger = false;
+            String postdate = null;
+            String entrydate = null;
+            String txMemo = "";
+            List<String[]> splits = null;
+            int seen = 0;
+            while (event != XmlPullParser.END_DOCUMENT) {
+                if (event == XmlPullParser.START_TAG) {
+                    String tag = parser.getName();
+                    if ("TRANSACTIONS".equals(tag)) {
+                        inLedger = true;
+                    } else if (inLedger && "TRANSACTION".equals(tag)) {
+                        postdate = parser.getAttributeValue(null, "postdate");
+                        entrydate = parser.getAttributeValue(null, "entrydate");
+                        txMemo = orEmpty(parser.getAttributeValue(null, "memo"));
+                        splits = new ArrayList<>();
+                    } else if (inLedger && "SPLIT".equals(tag) && splits != null) {
+                        splits.add(new String[]{
+                                orEmpty(parser.getAttributeValue(null, "account")),
+                                orEmpty(parser.getAttributeValue(null, "value")),
+                                orEmpty(parser.getAttributeValue(null, "payee")),
+                                orEmpty(parser.getAttributeValue(null, "memo"))});
+                    }
+                } else if (event == XmlPullParser.END_TAG) {
+                    String tag = parser.getName();
+                    if ("TRANSACTIONS".equals(tag)) {
+                        break; // Hauptbuch vollständig; <SCHEDULES> ignorieren
+                    } else if (inLedger && "TRANSACTION".equals(tag)) {
+                        for (java.util.Map.Entry<String, String> e : ids.entrySet()) {
+                            Booking b = toBooking(e.getValue(), e.getKey(), postdate, entrydate, txMemo,
+                                    splits);
+                            if (b != null) {
+                                out.get(e.getKey()).add(b);
+                            }
+                        }
+                        splits = null;
+                        seen++;
+                        if (listener != null) {
+                            listener.onProgress(seen, total);
+                        }
+                    }
+                }
+                event = parser.next();
+            }
+        } catch (XmlPullParserException e) {
+            throw new IOException(ctx.getString(de.spahr.ausgaben.R.string.err_kmy_read), e);
+        }
+        return out;
+    }
+
     /** Alle Buchungen, die einen Split auf dem gewählten Konto haben. */
     public List<Booking> bookingsForAccount(String accountName) throws IOException {
         List<Booking> out = new ArrayList<>();

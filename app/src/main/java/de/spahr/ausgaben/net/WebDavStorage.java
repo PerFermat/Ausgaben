@@ -46,6 +46,13 @@ public class WebDavStorage implements RemoteStorage {
         uploader.createFolder(baseUrl, user, password, folder);
     }
 
+    /** Herunterladen mit Rückmeldung der gelesenen Bytes (Fortschrittsanzeige). */
+    @Override
+    public byte[] downloadBytes(String folder, String fileName,
+                                de.spahr.ausgaben.util.ProgressListener listener) throws IOException {
+        return uploader.downloadBytes(baseUrl, user, password, folder, fileName, listener);
+    }
+
     /** WebDAV-ETag der Datei (leer, wenn der Server keinen liefert). */
     @Override
     public String fileVersion(String folder, String fileName) throws IOException {

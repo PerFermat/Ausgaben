@@ -1443,21 +1443,23 @@ public class MainActivity extends LocalizedActivity {
                     runOnUiThread(() -> importDepotsThenFinish(importer, depotTargets, 0, total));
                     return;
                 }
-                java.util.LinkedHashMap<String, List<Booking>> map = new java.util.LinkedHashMap<>();
-                int done = 0;
+                // Ein Lesedurchlauf für ALLE Konten (vorher: einer je Konto über die ganze Datei).
+                java.util.LinkedHashMap<String, List<Booking>> map = importer.bookingsForAccounts(
+                        accountTargets, phaseListener(getString(R.string.import_stage_bookings),
+                                de.spahr.ausgaben.export.ImportPhase.BOOKINGS_FROM,
+                                de.spahr.ausgaben.export.ImportPhase.BOOKINGS_TO));
                 for (String acc : accountTargets) {
-                    postImportProgress(getString(R.string.import_stage_account, acc), pct(done, total));
-                    map.put(acc, importer.bookingsForAccount(acc));
                     repository.setAccountCurrency(acc, importer.currencyOf(acc));
-                    done++;
                 }
                 // Konto- und Kategorietypen für ALLE Konten/Kategorien der .kmy übernehmen.
                 repository.applyAccountTypes(importer.accountTypes());
                 repository.applyCategoryTypes(importer.categoryTypes());
-                postImportProgress(getString(R.string.import_stage_saving), pct(done, total));
                 final int doneAfterSave = accountTargets.size() + 1;
-                runOnUiThread(() -> repository.replaceImportAccounts(map, res ->
-                        importDepotsThenFinish(importer, depotTargets, doneAfterSave, total)));
+                runOnUiThread(() -> repository.replaceImportAccounts(map,
+                        phaseListener(getString(R.string.import_stage_saving),
+                                de.spahr.ausgaben.export.ImportPhase.SAVE_FROM,
+                                de.spahr.ausgaben.export.ImportPhase.SAVE_TO),
+                        res -> importDepotsThenFinish(importer, depotTargets, doneAfterSave, total)));
             } catch (Exception e) {
                 postImportError(e);
             }
@@ -1505,12 +1507,21 @@ public class MainActivity extends LocalizedActivity {
         importStarted();
         new Thread(() -> {
             try {
-                postImportProgress(getString(R.string.import_stage_download), 0);
-                byte[] raw = RemoteStorage.from(settings).downloadBytes(folderOf(path), fileOf(path));
+                byte[] raw = RemoteStorage.from(settings).downloadBytes(folderOf(path), fileOf(path),
+                        phaseListener(getString(R.string.import_stage_download),
+                                de.spahr.ausgaben.export.ImportPhase.DOWNLOAD_FROM,
+                                de.spahr.ausgaben.export.ImportPhase.DOWNLOAD_TO));
                 KmyImporter importer = new KmyImporter(
-                        new KmyDocument(raw, getApplicationContext()), getApplicationContext());
-                postImportProgress(getString(R.string.import_stage_depot, depotName), 50);
+                        new KmyDocument(raw, getApplicationContext(),
+                                phaseListener(getString(R.string.import_stage_reading),
+                                        de.spahr.ausgaben.export.ImportPhase.READ_FILE_FROM,
+                                        de.spahr.ausgaben.export.ImportPhase.READ_FILE_TO)),
+                        getApplicationContext());
+                postImportProgress(getString(R.string.import_stage_depot, depotName),
+                        de.spahr.ausgaben.export.ImportPhase.BOOKINGS_FROM);
                 KmyImporter.DepotData data = importer.importDepot(depotName);
+                postImportProgress(getString(R.string.import_stage_depot, depotName),
+                        de.spahr.ausgaben.export.ImportPhase.SAVE_FROM);
                 runOnUiThread(() -> repository.replaceDepotImport(depotName, data.securities,
                         data.transactions, this::completeImport));
             } catch (Exception e) {
@@ -1525,11 +1536,17 @@ public class MainActivity extends LocalizedActivity {
         new Thread(() -> {
             KmyImporter importer;
             try {
-                postImportProgress(getString(R.string.import_stage_download), 0);
                 String path = settings.getKmyPath();
-                byte[] raw = RemoteStorage.from(settings).downloadBytes(folderOf(path), fileOf(path));
+                byte[] raw = RemoteStorage.from(settings).downloadBytes(folderOf(path), fileOf(path),
+                        phaseListener(getString(R.string.import_stage_download),
+                                de.spahr.ausgaben.export.ImportPhase.DOWNLOAD_FROM,
+                                de.spahr.ausgaben.export.ImportPhase.DOWNLOAD_TO));
                 importer = new KmyImporter(
-                        new KmyDocument(raw, getApplicationContext()), getApplicationContext());
+                        new KmyDocument(raw, getApplicationContext(),
+                                phaseListener(getString(R.string.import_stage_reading),
+                                        de.spahr.ausgaben.export.ImportPhase.READ_FILE_FROM,
+                                        de.spahr.ausgaben.export.ImportPhase.READ_FILE_TO)),
+                        getApplicationContext());
             } catch (Exception e) {
                 postImportError(e);
                 return;
@@ -1563,23 +1580,25 @@ public class MainActivity extends LocalizedActivity {
      */
     private void replaceFromImporter(KmyImporter importer, List<String> accounts) {
         try {
-            final int total = accounts.size() + 1;   // je Konto lesen + Speichern
-            int done = 0;
-            java.util.LinkedHashMap<String, List<Booking>> map = new java.util.LinkedHashMap<>();
+            // Ein Lesedurchlauf für ALLE Konten (vorher: einer je Konto über die ganze Datei).
+            java.util.LinkedHashMap<String, List<Booking>> map = importer.bookingsForAccounts(accounts,
+                    phaseListener(getString(R.string.import_stage_bookings),
+                            de.spahr.ausgaben.export.ImportPhase.BOOKINGS_FROM,
+                            de.spahr.ausgaben.export.ImportPhase.BOOKINGS_TO));
             for (String acc : accounts) {
-                postImportProgress(getString(R.string.import_stage_account, acc), pct(done, total));
-                map.put(acc, importer.bookingsForAccount(acc));
                 // Währungskennzeichen aus der KMyMoney-Datei je Konto übernehmen.
                 repository.setAccountCurrency(acc, importer.currencyOf(acc));
-                done++;
             }
             // Anlage/Verbindlichkeit für ALLE vorhandenen Konten aus der .kmy klassifizieren (nicht nur die neu importierten).
             repository.applyAccountTypes(importer.accountTypes());
             // Kategorietyp (Einnahme/Ausgabe) für ALLE Kategorien der .kmy übernehmen (Budget-Einordnung).
             repository.applyCategoryTypes(importer.categoryTypes());
             // Kein separates „Buchungen werden gespeichert" beim Konto-Aktualisieren – nur die Konto-Phase zeigen.
-            postImportProgress(getString(R.string.import_running_banner), pct(done, total));
-            runOnUiThread(() -> repository.replaceImportAccounts(map, res -> completeImport()));
+            runOnUiThread(() -> repository.replaceImportAccounts(map,
+                    phaseListener(getString(R.string.import_running_banner),
+                            de.spahr.ausgaben.export.ImportPhase.SAVE_FROM,
+                            de.spahr.ausgaben.export.ImportPhase.SAVE_TO),
+                    res -> completeImport()));
         } catch (Exception e) {
             postImportError(e);
         }
@@ -1639,6 +1658,23 @@ public class MainActivity extends LocalizedActivity {
 
     private static int pct(int done, int total) {
         return total <= 0 ? 100 : Math.round(100f * done / total);
+    }
+
+    /** Zuletzt gemeldeter Prozentwert – gegen Fluten des Main-Threads (der Download meldet je 8 KB). */
+    private int lastPostedPercent = -1;
+
+    /**
+     * Fortschritts-Empfänger für eine Phase: bildet {@code done/total} auf {@code from..to} ab und meldet
+     * nur, wenn sich der ganzzahlige Prozentwert geändert hat.
+     */
+    private de.spahr.ausgaben.util.ProgressListener phaseListener(String label, int from, int to) {
+        return (done, total) -> {
+            int p = de.spahr.ausgaben.export.ImportPhase.map(done, total, from, to);
+            if (p != lastPostedPercent) {
+                lastPostedPercent = p;
+                postImportProgress(label, p);
+            }
+        };
     }
 
     /** Import abgeschlossen: 100 % kurz zeigen, dann Banner ausblenden und Liste aktualisieren. */

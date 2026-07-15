@@ -179,12 +179,21 @@ public class ScheduledActivity extends LocalizedActivity {
         final String file = fileOf(path);
         new Thread(() -> {
             try {
-                setImportProgress(getString(R.string.import_stage_download), 0);
-                byte[] raw = RemoteStorage.from(settings).downloadBytes(folder, file);
+                byte[] raw = RemoteStorage.from(settings).downloadBytes(folder, file,
+                        phaseListener(getString(R.string.import_stage_download),
+                                de.spahr.ausgaben.export.ImportPhase.DOWNLOAD_FROM,
+                                de.spahr.ausgaben.export.ImportPhase.DOWNLOAD_TO));
                 KmyImporter importer = new KmyImporter(
-                        new KmyDocument(raw, getApplicationContext()), getApplicationContext());
+                        new KmyDocument(raw, getApplicationContext(),
+                                phaseListener(getString(R.string.import_stage_reading),
+                                        de.spahr.ausgaben.export.ImportPhase.READ_FILE_FROM,
+                                        de.spahr.ausgaben.export.ImportPhase.READ_FILE_TO)),
+                        getApplicationContext());
+                setImportProgress(getString(R.string.import_stage_bookings),
+                        de.spahr.ausgaben.export.ImportPhase.BOOKINGS_FROM);
                 List<ScheduledTransaction> list = importer.scheduledTransactions();
-                setImportProgress(getString(R.string.import_stage_saving), 60);
+                setImportProgress(getString(R.string.import_stage_saving),
+                        de.spahr.ausgaben.export.ImportPhase.SAVE_FROM);
                 repository.applyScheduledTransactions(list, () -> {
                     repository.getScheduledTransactions(loaded -> {
                         all = loaded;
@@ -213,6 +222,20 @@ public class ScheduledActivity extends LocalizedActivity {
             importStatus.setText(label);
             importPercent.setText(Math.max(0, Math.min(100, percent)) + " %");
         });
+    }
+
+    /** Zuletzt gemeldeter Prozentwert – gegen Fluten des Main-Threads (der Download meldet je 8 KB). */
+    private int lastPostedPercent = -1;
+
+    /** Fortschritts-Empfänger für eine Phase; meldet nur bei Änderung des ganzzahligen Prozentwerts. */
+    private de.spahr.ausgaben.util.ProgressListener phaseListener(String label, int from, int to) {
+        return (done, total) -> {
+            int p = de.spahr.ausgaben.export.ImportPhase.map(done, total, from, to);
+            if (p != lastPostedPercent) {
+                lastPostedPercent = p;
+                setImportProgress(label, p);
+            }
+        };
     }
 
     private void importDone() {

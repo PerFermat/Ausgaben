@@ -23,6 +23,8 @@ public class Repository {
         void onResult(T result);
     }
 
+    /** Für {@code runInTransaction} beim Import (Massen-Insert in einer Transaktion). */
+    private final AppDatabase db;
     private final BookingDao bookingDao;
     private final AccountDao accountDao;
     private final PayeeDao payeeDao;
@@ -45,7 +47,8 @@ public class Repository {
 
     public Repository(Context context) {
         this.appContext = context.getApplicationContext();
-        AppDatabase db = AppDatabase.getInstance(context);
+        this.db = AppDatabase.getInstance(context);
+        AppDatabase db = this.db;
         this.bookingDao = db.bookingDao();
         this.accountDao = db.accountDao();
         this.payeeDao = db.payeeDao();
@@ -808,24 +811,45 @@ public class Repository {
      */
     public void replaceImportAccounts(final java.util.LinkedHashMap<String, List<Booking>> byAccount,
                                       final Callback<int[]> callback) {
+        replaceImportAccounts(byAccount, null, callback);
+    }
+
+    /**
+     * Wie oben, meldet aber den Fortschritt (geschriebene von insgesamt zu schreibenden Buchungen).
+     *
+     * <p>Der ganze Block läuft in <b>einer</b> Transaktion: vorher bekam jede einzelne Buchung ihre eigene
+     * (inkl. fsync) – bei ~10.000 Buchungen war das der Hauptgrund für die lange Pause in der Anzeige.</p>
+     */
+    public void replaceImportAccounts(final java.util.LinkedHashMap<String, List<Booking>> byAccount,
+                                      final de.spahr.ausgaben.util.ProgressListener listener,
+                                      final Callback<int[]> callback) {
         executor.execute(() -> {
-            int accounts = 0;
-            int inserted = 0;
-            for (java.util.Map.Entry<String, List<Booking>> e : byAccount.entrySet()) {
-                String account = e.getKey();
-                if (account != null && !account.trim().isEmpty()) {
-                    bookingDao.deleteSplitsForExportedAccount(account.trim());
-                    bookingDao.deleteExportedByAccount(account.trim());
-                    accountDao.insertIfAbsent(new Account(account.trim()));
-                }
-                for (Booking b : e.getValue()) {
-                    insertImported(b);
-                    inserted++;
-                }
-                accounts++;
+            int total = 0;
+            for (List<Booking> l : byAccount.values()) {
+                total += l.size();
             }
-            final int fa = accounts;
-            final int fi = inserted;
+            final int fTotal = total;
+            final int[] counters = new int[2];   // [0] = Konten, [1] = Buchungen
+            db.runInTransaction(() -> {
+                for (java.util.Map.Entry<String, List<Booking>> e : byAccount.entrySet()) {
+                    String account = e.getKey();
+                    if (account != null && !account.trim().isEmpty()) {
+                        bookingDao.deleteSplitsForExportedAccount(account.trim());
+                        bookingDao.deleteExportedByAccount(account.trim());
+                        accountDao.insertIfAbsent(new Account(account.trim()));
+                    }
+                    for (Booking b : e.getValue()) {
+                        insertImported(b);
+                        counters[1]++;
+                        if (listener != null) {
+                            listener.onProgress(counters[1], fTotal);
+                        }
+                    }
+                    counters[0]++;
+                }
+            });
+            final int fa = counters[0];
+            final int fi = counters[1];
             mainHandler.post(() -> callback.onResult(new int[]{fa, fi}));
         });
     }

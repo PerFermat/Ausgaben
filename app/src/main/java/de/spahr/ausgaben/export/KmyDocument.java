@@ -76,17 +76,57 @@ public class KmyDocument {
 
     private long maxTransactionNumber = 0;
     private int maxPayeeNumber = 0;
+    /** Anzahl der Buchungen laut {@code <TRANSACTIONS count="…">}; 0 = unbekannt. */
+    private int transactionCount = 0;
 
     private final android.content.Context ctx;
 
     public KmyDocument(byte[] raw, android.content.Context context) throws IOException {
+        this(raw, context, null);
+    }
+
+    /**
+     * Wie oben, meldet aber den Fortschritt der (teuren) Aufbereitung: Entpacken plus vier Durchläufe über
+     * den entpackten Text. Gemeldet wird jeweils <b>nach</b> einem Teilschritt als {@code done} von
+     * {@link #PREPARE_STEPS} – die Phase ist sonst ein minutenlanges schwarzes Loch in der Anzeige.
+     */
+    public KmyDocument(byte[] raw, android.content.Context context,
+                       de.spahr.ausgaben.util.ProgressListener listener) throws IOException {
         this.ctx = de.spahr.ausgaben.i18n.LocaleManager.localizedContext(context);
         this.xml = gunzip(raw);
+        step(listener, 1);
         parseHeader();
+        step(listener, 2);
         buildDerivedMaps();
+        step(listener, 3);
         parseSecuritiesAndPrices();
+        step(listener, 4);
         parseBudgets();
+        step(listener, 5);
         scanMaxNumbers();
+        step(listener, 6);
+    }
+
+    /** Anzahl der Teilschritte beim Aufbereiten (Nenner für die Fortschrittsanzeige). */
+    public static final int PREPARE_STEPS = 6;
+
+    private static void step(de.spahr.ausgaben.util.ProgressListener l, int done) {
+        if (l != null) {
+            l.onProgress(done, PREPARE_STEPS);
+        }
+    }
+
+    /** Anzahl der Buchungen im Hauptbuch laut Datei-Kopf; {@code 0} = unbekannt. */
+    public int transactionCount() {
+        return transactionCount;
+    }
+
+    private static int parseIntOr(String s, int fallback) {
+        try {
+            return s == null ? fallback : Integer.parseInt(s.trim());
+        } catch (NumberFormatException e) {
+            return fallback;
+        }
     }
 
     // ---- Öffentliche Zugriffe ----
@@ -204,6 +244,9 @@ public class KmyDocument {
                 if (event == XmlPullParser.START_TAG) {
                     String tag = parser.getName();
                     if ("TRANSACTIONS".equals(tag)) {
+                        // KMyMoney schreibt hier die Anzahl der Buchungen – gratis als Nenner für die
+                        // Fortschrittsanzeige (der Exporter zählt dasselbe Attribut beim Schreiben hoch).
+                        transactionCount = parseIntOr(parser.getAttributeValue(null, "count"), 0);
                         break; // Kopfdaten vollständig
                     } else if ("PAYEE".equals(tag)) {
                         String id = parser.getAttributeValue(null, "id");

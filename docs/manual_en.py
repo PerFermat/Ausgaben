@@ -312,7 +312,20 @@ bullets([
 ])
 
 # ---------------------------------------------------------------- 10 Budget
-h1("10. Budget")
+h1("10. Where does my money go?")
+p("The <b>Categories</b> page (menu <b>⋮ → Categories</b>) shows the <b>expenses per category</b> – as a pie "
+  "chart and below it as a list, sorted <b>descending</b> by amount. It complements the analysis (chapter 9), "
+  "which only shows the development over time per account/place.")
+bullets([
+  "<b>Month/Year</b> toggle: current month resp. current year.",
+  "The slices are unlabelled; a <b>tap</b> shows category and amount in the centre, without a selection the "
+  "total is shown there. The list additionally states the <b>share in percent</b>.",
+  "<b>Split transactions</b> count through their partial amounts (not twice), <b>transfers</b> are left out "
+  "– the same data source as the budget page.",
+  "The analysis covers <b>all accounts</b> and lists only categories with expenses.",
+])
+
+h1("11. Budget")
 p("The <b>Budget</b> page (menu <b>⋮ → Budget</b>) puts the <b>actual</b> value against a per-category "
   "<b>target</b>. It answers the question: «Am I on plan?»")
 h2("Where does the target come from?")
@@ -343,7 +356,7 @@ bullets([
 ])
 
 # ---------------------------------------------------------------- 11 Scheduled transactions
-h1("11. Scheduled transactions")
+h1("12. Scheduled transactions")
 p("The <b>Scheduled transactions</b> page (menu <b>⋮ → Scheduled transactions</b>, shown only in "
   "<b>.kmy mode</b>) imports the standing orders / schedules set up in KMyMoney and shows them as <b>one "
   "chronological list</b> by due date. The schedules are <b>not</b> refreshed by the normal account import; "
@@ -407,7 +420,7 @@ p("When you scroll far down, the <b>scroll-to-top button</b> (bottom left) jumps
   "the list.")
 
 # ---------------------------------------------------------------- 12 Holdings / portfolio
-h1("12. Holdings (places) and portfolio")
+h1("13. Holdings (places) and portfolio")
 h2("Holdings / places – what are they?")
 p("A <b>place</b> describes <b>where</b> an account's cash physically is – e.g. wallet, jar, petty cash or "
   "an envelope. An account «Cash» can thus be split into several real storage locations. <b>This feature "
@@ -475,7 +488,7 @@ p("<b>Dividends gross/net:</b> the settings let you choose whether dividends are
   "needed.")
 
 # ---------------------------------------------------------------- 11
-h1("13. Synchronizing: performing export and import")
+h1("14. Synchronizing: performing export and import")
 p("The actual sync with KMyMoney runs through <b>a single symbol</b> in the main screen's title bar – the "
   "<b>export/sync symbol</b> (down arrow).")
 pic("docs/img/export_button.png", "The export/sync symbol in the title bar (circled in red)", width=14*cm)
@@ -518,7 +531,7 @@ p("If the file changed in the meantime, the <b>export aborts and writes nothing<
   "state, the app writes unchecked as before – the export never fails because of this.")
 
 # ---------------------------------------------------------------- 12
-h1("14. Setting up synchronization (Settings)")
+h1("15. Setting up synchronization (Settings)")
 p("Before synchronizing for the first time, store server, access and export mode once in the settings "
   "(shown in Chapter 2).")
 h2("Server type and access")
@@ -539,7 +552,7 @@ bullets([
 p("Without a configured sync target, export goes locally into a folder you choose.")
 
 # ---------------------------------------------------------------- 13
-h1("15. Managing alias names")
+h1("16. Managing alias names")
 p("Under <b>Settings → Alias names</b>: the automatic prompt can be turned off (existing aliases still "
   "apply). Via <b>«Manage alias names»</b> you create, edit and delete aliases by hand – with spoken term, "
   "real payee, booking type, account, categories and location (settable via <b>«Open map»</b> on an "
@@ -547,7 +560,7 @@ p("Under <b>Settings → Alias names</b>: the automatic prompt can be turned off
   "spoken term may point to several payees, which are then distinguished by location.")
 
 # ---------------------------------------------------------------- 14
-h1("16. Wear OS (watch)")
+h1("17. Wear OS (watch)")
 shot("UhranlagemitAlias.png", "Recording on the watch", width=6.0*cm)
 p("With the watch app you record an expense by voice right on your wrist. The watch only captures the text; "
   "processing and creating the booking happen on the phone (the same parser).")
@@ -578,7 +591,7 @@ bullets([
 p("Requirement: the phone and watch apps share the same signature (same key).")
 
 # ---------------------------------------------------------------- 15
-h1("17. Security, privacy & settings")
+h1("18. Security, privacy & settings")
 bullets([
   "<b>App lock</b>: optional via biometrics/device credential (fingerprint, face, PIN, pattern, password) – "
   "on start and when returning from the background.",
@@ -598,7 +611,7 @@ p("This app is provided as-is, with no warranty. In particular, there is no guar
   "always have a fallback. Keep your own regular backups as well.")
 
 # ---------------------------------------------------------------- 16
-h1("18. CSV format (export)")
+h1("19. CSV format (export)")
 p("German locale: column separator «;», decimal separator «,», date DD.MM.YYYY, UTF-8. Split bookings are "
   "written as one line per category.")
 code = ("Datum;Empfänger;Konto;Typ;Betrag;Notiz;Kategorie<br/>"

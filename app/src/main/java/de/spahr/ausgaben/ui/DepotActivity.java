@@ -297,6 +297,7 @@ public class DepotActivity extends LocalizedActivity {
         setMenuTitle(menu, R.id.action_export, R.string.action_export);
         setMenuTitle(menu, R.id.action_filter, R.string.action_filter);
         setMenuTitle(menu, R.id.action_analysis, R.string.action_analysis);
+        setMenuTitle(menu, R.id.action_categories, R.string.action_categories);
         setMenuTitle(menu, R.id.action_balance, R.string.action_balance);
         setMenuTitle(menu, R.id.action_budget, R.string.action_budget);
         setMenuTitle(menu, R.id.action_scheduled, R.string.action_scheduled);
@@ -327,6 +328,9 @@ public class DepotActivity extends LocalizedActivity {
             return true;
         } else if (id == R.id.action_filter) {
             showFilterDialog();
+            return true;
+        } else if (id == R.id.action_categories) {
+            startActivity(new Intent(this, CategoryChartActivity.class));
             return true;
         } else if (id == R.id.action_balance) {
             startActivity(new Intent(this, BalanceActivity.class));

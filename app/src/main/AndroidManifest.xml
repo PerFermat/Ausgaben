@@ -72,6 +72,12 @@
             android:parentActivityName=".ui.MainActivity" />
 
         <activity
+            android:name=".ui.CategoryChartActivity"
+            android:exported="false"
+            android:label="@string/category_chart_title"
+            android:parentActivityName=".ui.MainActivity" />
+
+        <activity
             android:name=".ui.BudgetActivity"
             android:exported="false"
             android:label="@string/budget_title"

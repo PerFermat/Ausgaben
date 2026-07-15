@@ -230,6 +230,9 @@
     <string name="data_section">Data</string>
     <string name="appearance_section">Appearance</string>
     <string name="dark_mode">Dark theme</string>
+    <string name="action_categories">Categories</string>
+    <string name="category_chart_title">Where does my money go?</string>
+    <string name="category_chart_empty">No expenses in the selected period.</string>
     <string name="reminder_scheduled">Remind me of due transactions</string>
     <string name="reminder_channel">Due scheduled transactions</string>
     <string name="reminder_title">Scheduled transactions</string>

@@ -230,6 +230,9 @@
     <string name="data_section">Daten</string>
     <string name="appearance_section">Darstellung</string>
     <string name="dark_mode">Dunkles Design</string>
+    <string name="action_categories">Kategorien</string>
+    <string name="category_chart_title">Wofür geht mein Geld?</string>
+    <string name="category_chart_empty">Keine Ausgaben im gewählten Zeitraum.</string>
     <string name="reminder_scheduled">Erinnerung an fällige Buchungen</string>
     <string name="reminder_channel">Fällige geplante Buchungen</string>
     <string name="reminder_title">Geplante Buchungen</string>

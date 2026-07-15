@@ -328,7 +328,20 @@ bullets([
 ])
 
 # ---------------------------------------------------------------- 10 Budget
-h1("10. Budget")
+h1("10. Wofür geht mein Geld?")
+p("Die Seite <b>Kategorien</b> (Menü <b>⋮ → Kategorien</b>) zeigt die <b>Ausgaben je Kategorie</b> – als "
+  "Kreisdiagramm und darunter als Liste, <b>absteigend</b> nach Betrag. Sie ergänzt die Auswertung "
+  "(Kapitel 9), die nur den zeitlichen Verlauf je Konto/Ort zeigt.")
+bullets([
+  "Umschalter <b>Monat/Jahr</b>: laufender Monat bzw. laufendes Jahr.",
+  "Die Segmente sind unbeschriftet; ein <b>Tipp</b> zeigt in der Mitte Kategorie und Betrag, ohne Auswahl "
+  "steht dort die Gesamtsumme. Die Liste nennt zusätzlich den <b>Anteil in Prozent</b>.",
+  "<b>Splitbuchungen</b> zählen über ihre Teilbeträge (nicht doppelt), <b>Umbuchungen</b> bleiben außen vor "
+  "– dieselbe Datenbasis wie die Budget-Seite.",
+  "Die Auswertung gilt über <b>alle Konten</b> und zeigt nur Kategorien mit Ausgaben.",
+])
+
+h1("11. Budget")
 p("Die <b>Budget</b>-Seite (Menü <b>⋮ → Budget</b>) stellt je Kategorie das <b>Ist</b> dem <b>Soll</b> "
   "gegenüber. Sie beantwortet die Frage: «Liege ich im Plan?»")
 h2("Woher kommt das Soll?")
@@ -361,7 +374,7 @@ bullets([
 ])
 
 # ---------------------------------------------------------------- 11 Geplante Buchungen
-h1("11. Geplante Buchungen")
+h1("12. Geplante Buchungen")
 p("Die Seite <b>Geplante Buchungen</b> (Menü <b>⋮ → Geplante Buchungen</b>, nur im <b>.kmy-Modus</b> "
   "sichtbar) importiert die in KMyMoney angelegten Daueraufträge/Planungen und zeigt sie als <b>eine "
   "chronologische Liste</b> nach Fälligkeit. Die Planungen werden <b>nicht</b> beim normalen Konto-Import "
@@ -428,7 +441,7 @@ p("Wer weit nach unten scrollt, kann über den eingeblendeten <b>Nach-oben-Knopf
   "den Listenanfang springen.")
 
 # ---------------------------------------------------------------- 12 Bestände / Depot
-h1("12. Bestände (Orte) und Depot")
+h1("13. Bestände (Orte) und Depot")
 h2("Bestände / Orte – was ist das?")
 p("Ein <b>Ort</b> beschreibt, <b>wo</b> das Bargeld eines Kontos physisch liegt – z. B. Geldbeutel, "
   "Spardose, Portokasse oder ein Umschlag. Ein Konto «Bargeld» lässt sich damit in mehrere reale "
@@ -502,7 +515,7 @@ p("<b>Dividenden brutto/netto:</b> In den Einstellungen wählbar, ob Dividenden 
   "einmalig ein Depot-Neuimport nötig.")
 
 # ---------------------------------------------------------------- 11 Synchronisieren durchführen
-h1("13. Synchronisieren: Export und Import durchführen")
+h1("14. Synchronisieren: Export und Import durchführen")
 p("Der eigentliche Abgleich mit KMyMoney läuft über <b>ein einziges Symbol</b> in der Titelleiste des "
   "Hauptbildschirms – das <b>Export-/Sync-Symbol</b> (Pfeil nach unten).")
 pic("docs/img/export_button.png", "Das Export-/Sync-Symbol in der Titelleiste (rot umkreist)", width=14*cm)
@@ -548,7 +561,7 @@ p("Wurde die Datei zwischenzeitlich geändert, <b>bricht der Export ab und schre
   "Liefert der Server keinen Stand, wird wie bisher ungeprüft geschrieben – der Export scheitert daran nicht.")
 
 # ---------------------------------------------------------------- 12 Sync einrichten
-h1("14. Synchronisation einrichten (Einstellungen)")
+h1("15. Synchronisation einrichten (Einstellungen)")
 p("Bevor Sie zum ersten Mal synchronisieren, hinterlegen Sie einmalig Server, Zugang und Export-Modus "
   "in den Einstellungen (abgebildet in Kapitel 2).")
 h2("Server-Typ und Zugang")
@@ -569,7 +582,7 @@ bullets([
 p("Ohne konfiguriertes Sync-Ziel wird lokal in einen selbst gewählten Ordner exportiert.")
 
 # ---------------------------------------------------------------- 13 Alias-Verwaltung
-h1("15. Alias-Namen verwalten")
+h1("16. Alias-Namen verwalten")
 p("Unter <b>Einstellungen → Alias-Namen</b>: Die automatische Nachfrage lässt sich abschalten (bestehende "
   "Aliase gelten weiter). Über <b>«Alias-Namen verwalten»</b> legen Sie Aliase manuell an, ändern und "
   "löschen sie – mit gesprochenem Begriff, echtem Empfänger, Buchungsart, Konto, Kategorien und Standort "
@@ -578,7 +591,7 @@ p("Unter <b>Einstellungen → Alias-Namen</b>: Die automatische Nachfrage lässt
   "zeigen, die dann per Standort unterschieden werden.")
 
 # ---------------------------------------------------------------- 13 Wear OS
-h1("16. Wear OS (Uhr)")
+h1("17. Wear OS (Uhr)")
 shot("UhranlagemitAlias.png", "Erfassung auf der Uhr", width=6.0*cm)
 p("Mit der Uhren-App erfassen Sie eine Ausgabe per Sprache direkt am Handgelenk. Die Uhr nimmt nur den "
   "Text auf; die Verarbeitung und das Anlegen der Buchung passieren auf dem Handy (derselbe Parser).")
@@ -611,7 +624,7 @@ bullets([
 p("Voraussetzung: Handy- und Uhren-App haben dieselbe Signatur (gleicher Schlüssel).", )
 
 # ---------------------------------------------------------------- 14 Sicherheit
-h1("17. Sicherheit, Datenschutz & Einstellungen")
+h1("18. Sicherheit, Datenschutz & Einstellungen")
 bullets([
   "<b>App-Sperre</b>: optional per Fingerabdruck, Gesicht, PIN, Muster oder Passwort – beim Start und bei "
   "Rückkehr aus dem Hintergrund.",
@@ -632,7 +645,7 @@ p("Diese App wird ohne Gewähr bereitgestellt. Insbesondere gibt es keine Garant
   "jedoch stets einen Fallback. Bewahren Sie zusätzlich eigene, regelmäßige Backups auf.", )
 
 # CSV-Format Kurzreferenz
-h1("18. CSV-Format (Export)")
+h1("19. CSV-Format (Export)")
 p("Deutsch: Spaltentrenner «;», Dezimaltrennzeichen «,», Datum TT.MM.JJJJ, UTF-8. Splitbuchungen werden je "
   "Kategorie als eigene Zeile geschrieben.")
 code = ("Datum;Empfänger;Konto;Typ;Betrag;Notiz;Kategorie<br/>"

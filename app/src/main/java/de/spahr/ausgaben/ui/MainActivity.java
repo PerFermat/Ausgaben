@@ -1167,6 +1167,9 @@ public class MainActivity extends LocalizedActivity {
             i.putExtra(AnalysisActivity.EXTRA_VIEW_KEY, currentViewKey());
             startActivity(i);
             return true;
+        } else if (id == R.id.action_categories) {
+            startActivity(new Intent(this, CategoryChartActivity.class));
+            return true;
         } else if (id == R.id.action_balance) {
             startActivity(new Intent(this, BalanceActivity.class));
             return true;

@@ -29,6 +29,9 @@ public class KmyExportCoordinator {
         void onComplete(String message, boolean refreshNeeded);
     }
 
+    /** Unterordner neben der .kmy, in dem die Sicherungen vor jedem Export abgelegt werden. */
+    private static final String BACKUP_DIR = "Backup";
+
     private final Repository repository;
     private final SettingsStore settings;
     private final Context appContext;
@@ -81,9 +84,13 @@ public class KmyExportCoordinator {
                     return;
                 }
 
+                // Sicherung in den Unterordner „Backup" neben der .kmy (wird bei Bedarf angelegt).
                 progress(listener, r.getString(de.spahr.ausgaben.R.string.kmy_progress_backup));
-                String backup = file + ".bak-" + tsFormat.format(new Date());
-                storage.uploadBytes(folder, backup, raw);
+                String backupFolder = folder.isEmpty() ? BACKUP_DIR : folder + "/" + BACKUP_DIR;
+                String backupName = file + ".bak-" + tsFormat.format(new Date());
+                String backup = BACKUP_DIR + "/" + backupName;
+                storage.ensureFolder(backupFolder);
+                storage.uploadBytes(backupFolder, backupName, raw);
 
                 progress(listener, r.getString(de.spahr.ausgaben.R.string.kmy_progress_writing));
                 byte[] packed = KmyDocument.gzip(res.xml);

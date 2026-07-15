@@ -205,7 +205,9 @@ regelmäßigen Abständen.
   Einstellungen.
 - **kMyMoney-`.kmy`-Modus**: schreibt neue Buchungen direkt in die `.kmy` (gzip-XML) und importiert
   Konten/Buchungen daraus – inkl. Splitbuchungen und Umbuchungen. Import ersetzt je Konto die bereits
-  exportierten Buchungen.
+  exportierten Buchungen. Vor jedem Rückschreiben wird eine **zeitgestempelte Sicherung** der `.kmy`
+  (`datei.kmy.bak-JJJJMMTT-HHMMSS`) im **Unterordner `Backup`** neben dem Original abgelegt; der Ordner wird
+  bei Bedarf automatisch angelegt.
 - **Mehrfachauswahl beim Import**: Der Konten-Auswahldialog erlaubt jetzt, **mehrere Konten (und Depots)
   auf einmal** anzuhaken; **bereits importierte Konten (auch geschlossene) und Depots werden ausgeblendet**. Der eigentliche
   Import läuft **im Hintergrund** – die Oberfläche bleibt bedienbar; oben in der Buchungsliste zeigt ein

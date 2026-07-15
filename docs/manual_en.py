@@ -491,8 +491,9 @@ p("An import replaces the already-exported bookings per account (no duplicates).
   "chosen CSV is imported from the current folder. The drawer stays open on long press.")
 h2("Backup before every export")
 p("Before every write-back the app automatically creates a <b>timestamped backup</b> of the .kmy (e.g. "
-  "<i>file.kmy.bak-YYYYMMDD-HHMM</i>) right next to the original. So you always have a fallback in case "
-  "something is ever wrong with the file.")
+  "<i>file.kmy.bak-YYYYMMDD-HHMMSS</i>). The backups go into the <b>«Backup» subfolder</b> next to the "
+  "original; the folder is created automatically the first time. So you always have a fallback in case "
+  "something is ever wrong with the file, and the actual folder stays tidy.")
 
 # ---------------------------------------------------------------- 12
 h1("14. Setting up synchronization (Settings)")

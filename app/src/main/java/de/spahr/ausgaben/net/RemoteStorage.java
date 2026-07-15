@@ -24,6 +24,13 @@ public interface RemoteStorage {
         return java.util.Collections.emptyList();
     }
 
+    /**
+     * Stellt sicher, dass {@code folder} existiert (legt ihn ggf. an). Standard: nichts zu tun – Backends,
+     * deren Upload den Ordner ohnehin anlegt (SMB), brauchen keine eigene Implementierung.
+     */
+    default void ensureFolder(String folder) throws IOException {
+    }
+
     String downloadText(String folder, String fileName) throws IOException;
 
     byte[] downloadBytes(String folder, String fileName) throws IOException;

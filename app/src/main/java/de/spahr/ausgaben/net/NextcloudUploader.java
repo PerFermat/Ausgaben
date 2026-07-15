@@ -93,6 +93,26 @@ public class NextcloudUploader {
         return listFiles(baseUrl, user, password, folder, "csv");
     }
 
+    /**
+     * Legt den Ordner per WebDAV-MKCOL an. Existiert er bereits (HTTP 405), ist das kein Fehler.
+     * Übergeordnete Ordner müssen vorhanden sein (MKCOL legt nur eine Ebene an).
+     */
+    public void createFolder(String baseUrl, String user, String password, String folder)
+            throws IOException {
+        String url = buildFolderUrl(baseUrl, user, folder);
+        Request request = new Request.Builder()
+                .url(url)
+                .header("Authorization", Credentials.basic(user, password))
+                .method("MKCOL", null)
+                .build();
+        try (Response response = client.newCall(request).execute()) {
+            // 201 = angelegt, 405 = existiert bereits.
+            if (!response.isSuccessful() && response.code() != 405) {
+                throw new IOException("HTTP " + response.code() + " " + response.message());
+            }
+        }
+    }
+
     /** Listet die Dateinamen mit der angegebenen Endung (ohne Punkt, z. B. "csv" oder "kmy"). */
     public List<String> listFiles(String baseUrl, String user, String password, String folder,
                                   String ext) throws IOException {

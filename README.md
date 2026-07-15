@@ -195,7 +195,9 @@ Holdings directly. The widget refreshes when the app is opened and at regular in
   only once (marked exported only after a successful upload). Full export via the settings.
 - **KMyMoney `.kmy` mode**: writes new bookings straight into the `.kmy` (gzip XML) and imports
   accounts/bookings from it — including splits and transfers. Import replaces the already-exported bookings
-  per account.
+  per account. Before every write-back a **timestamped backup** of the `.kmy`
+  (`file.kmy.bak-YYYYMMDD-HHMMSS`) is placed in the **`Backup` subfolder** next to the original; the folder
+  is created automatically if needed.
 - **Multi-select import**: the account picker now lets you tick **several accounts (and portfolios) at once**;
   **already-imported accounts (including closed) and portfolios are hidden**. The import itself runs **in the background** — the
   UI stays usable; a **yellow banner** at the top of the booking list (“Importing account …”) with a moving

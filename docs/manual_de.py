@@ -520,8 +520,9 @@ p("Ein Import ersetzt je Konto die bereits exportierten Buchungen (keine Dublett
   "Die Schublade bleibt beim langen Druck geöffnet.")
 h2("Sicherung vor jedem Export")
 p("Vor jedem Rückschreiben legt die App automatisch eine <b>zeitgestempelte Sicherung</b> der .kmy an "
-  "(z. B. <i>datei.kmy.bak-JJJJMMTT-HHMM</i>) direkt neben dem Original. So haben Sie stets einen Fallback, "
-  "falls mit der Datei einmal etwas nicht stimmt.")
+  "(z. B. <i>datei.kmy.bak-JJJJMMTT-HHMMSS</i>). Die Sicherungen landen im <b>Unterordner «Backup»</b> neben "
+  "dem Original; der Ordner wird beim ersten Mal automatisch angelegt. So haben Sie stets einen Fallback, "
+  "falls mit der Datei einmal etwas nicht stimmt, und der eigentliche Ordner bleibt übersichtlich.")
 
 # ---------------------------------------------------------------- 12 Sync einrichten
 h1("14. Synchronisation einrichten (Einstellungen)")

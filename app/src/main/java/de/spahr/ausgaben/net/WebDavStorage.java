@@ -46,6 +46,19 @@ public class WebDavStorage implements RemoteStorage {
         uploader.createFolder(baseUrl, user, password, folder);
     }
 
+    /** WebDAV-ETag der Datei (leer, wenn der Server keinen liefert). */
+    @Override
+    public String fileVersion(String folder, String fileName) throws IOException {
+        return uploader.etag(baseUrl, user, password, folder, fileName);
+    }
+
+    /** Schreibt per {@code If-Match} nur, wenn die Datei noch den erwarteten ETag hat (Server prüft). */
+    @Override
+    public void uploadBytes(String folder, String fileName, byte[] content, String expectedVersion)
+            throws IOException {
+        uploader.uploadBytes(baseUrl, user, password, folder, fileName, content, expectedVersion);
+    }
+
     @Override
     public String downloadText(String folder, String fileName) throws IOException {
         return uploader.downloadText(baseUrl, user, password, folder, fileName);

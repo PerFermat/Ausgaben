@@ -112,6 +112,55 @@ public class SmbStorage implements RemoteStorage {
         });
     }
 
+    /** Dateistand als {@code "changeTime:size"}; leer, wenn die Datei (noch) nicht lesbar ist. */
+    @Override
+    public String fileVersion(String folder, String fileName) throws IOException {
+        final String path = joinPath(joinPath(base, folder), fileName);
+        return withShare(disk -> versionOf(disk, path));
+    }
+
+    /**
+     * Schreibt nur, wenn die Datei noch auf {@code expectedVersion} steht. SMB kennt kein {@code If-Match};
+     * geprüft wird deshalb unmittelbar vor dem Schreiben in derselben Sitzung – das Restrisiko sind
+     * Millisekunden statt der Minuten zwischen Herunterladen und Rückschreiben.
+     */
+    @Override
+    public void uploadBytes(String folder, String fileName, byte[] content, String expectedVersion)
+            throws IOException {
+        if (expectedVersion == null || expectedVersion.isEmpty()) {
+            uploadBytes(folder, fileName, content);
+            return;
+        }
+        final String dir = joinPath(base, folder);
+        final String path = joinPath(dir, fileName);
+        withShare(disk -> {
+            String current = versionOf(disk, path);
+            if (!current.isEmpty() && !current.equals(expectedVersion)) {
+                throw new RemoteConflictException("SMB: " + fileName + " wurde zwischenzeitlich geändert");
+            }
+            ensureDir(disk, dir);
+            try (com.hierynomus.smbj.share.File f = disk.openFile(path,
+                    EnumSet.of(AccessMask.GENERIC_WRITE), null, SMB2ShareAccess.ALL,
+                    SMB2CreateDisposition.FILE_OVERWRITE_IF, null);
+                 OutputStream os = f.getOutputStream()) {
+                os.write(content);
+            }
+            return null;
+        });
+    }
+
+    /** Änderungszeit + Größe der Datei; "" wenn nicht ermittelbar (dann kein Schutz). */
+    private String versionOf(DiskShare disk, String path) {
+        try {
+            com.hierynomus.msfscc.fileinformation.FileAllInformation info = disk.getFileInformation(path);
+            long changed = info.getBasicInformation().getChangeTime().toEpochMillis();
+            long size = info.getStandardInformation().getEndOfFile();
+            return changed + ":" + size;
+        } catch (Exception e) {
+            return "";
+        }
+    }
+
     @Override
     public List<String> listFiles(String folder, String ext) throws IOException {
         final String dir = joinPath(base, folder);

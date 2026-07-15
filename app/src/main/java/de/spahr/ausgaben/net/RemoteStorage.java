@@ -16,6 +16,26 @@ public interface RemoteStorage {
 
     void uploadBytes(String folder, String fileName, byte[] content) throws IOException;
 
+    /**
+     * Undurchsichtiges Kennzeichen des aktuellen Dateistands (z. B. WebDAV-ETag oder „mtime:size"), um
+     * eine Fremdänderung zwischen Herunterladen und Rückschreiben zu erkennen. {@code ""} = das Backend
+     * unterstützt das nicht (dann gibt es keinen Schutz).
+     */
+    default String fileVersion(String folder, String fileName) throws IOException {
+        return "";
+    }
+
+    /**
+     * Wie {@link #uploadBytes(String, String, byte[])}, schreibt aber nur, wenn die Datei noch auf dem
+     * Stand {@code expectedVersion} ist (aus {@link #fileVersion}); sonst
+     * {@link RemoteConflictException}. Leeres {@code expectedVersion} = ungeprüft schreiben.
+     * Standard: kein Schutz – Backends überschreiben das.
+     */
+    default void uploadBytes(String folder, String fileName, byte[] content, String expectedVersion)
+            throws IOException {
+        uploadBytes(folder, fileName, content);
+    }
+
     /** Dateinamen im Ordner mit der Endung {@code ext} (ohne Punkt, z. B. "csv" oder "kmy"). */
     List<String> listFiles(String folder, String ext) throws IOException;
 

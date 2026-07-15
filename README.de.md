@@ -208,6 +208,11 @@ regelmäßigen Abständen.
   exportierten Buchungen. Vor jedem Rückschreiben wird eine **zeitgestempelte Sicherung** der `.kmy`
   (`datei.kmy.bak-JJJJMMTT-HHMMSS`) im **Unterordner `Backup`** neben dem Original abgelegt; der Ordner wird
   bei Bedarf automatisch angelegt.
+- **Schutz vor Überschreiben**: Die App merkt sich beim Herunterladen den Stand der `.kmy` und schreibt nur,
+  wenn er unverändert ist – bei **Nextcloud/WebDAV** per **ETag + `If-Match`** (der Server prüft, also
+  lückenlos), bei **SMB** per Änderungszeit/Größe direkt vor dem Schreiben. Hat inzwischen jemand am Rechner
+  in KMyMoney gearbeitet, **bricht der Export ab und schreibt nichts**; die Buchungen bleiben unexportiert.
+  Liefert der Server keinen Stand, wird wie bisher ungeprüft geschrieben.
 - **Mehrfachauswahl beim Import**: Der Konten-Auswahldialog erlaubt jetzt, **mehrere Konten (und Depots)
   auf einmal** anzuhaken; **bereits importierte Konten (auch geschlossene) und Depots werden ausgeblendet**. Der eigentliche
   Import läuft **im Hintergrund** – die Oberfläche bleibt bedienbar; oben in der Buchungsliste zeigt ein

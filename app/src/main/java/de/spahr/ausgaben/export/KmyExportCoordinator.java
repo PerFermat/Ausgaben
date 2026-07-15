@@ -73,6 +73,16 @@ public class KmyExportCoordinator {
             try {
                 progress(listener, r.getString(de.spahr.ausgaben.R.string.progress_download));
                 byte[] raw = storage.downloadBytes(folder, file);
+                // Stand der Datei merken: Schreibt KMyMoney am Rechner in der Zwischenzeit, bricht das
+                // Rückschreiben unten ab, statt die fremden Änderungen still zu überschreiben.
+                // Lässt sich der Stand nicht ermitteln (alter/eigenwilliger Server), wird ungeprüft
+                // geschrieben wie bisher – der Export darf daran nicht scheitern.
+                String version;
+                try {
+                    version = storage.fileVersion(folder, file);
+                } catch (Exception e) {
+                    version = "";
+                }
 
                 progress(listener, r.getString(de.spahr.ausgaben.R.string.kmy_progress_processing));
                 KmyDocument doc = new KmyDocument(raw, appContext);
@@ -94,10 +104,13 @@ public class KmyExportCoordinator {
 
                 progress(listener, r.getString(de.spahr.ausgaben.R.string.kmy_progress_writing));
                 byte[] packed = KmyDocument.gzip(res.xml);
-                storage.uploadBytes(folder, file, packed);
+                storage.uploadBytes(folder, file, packed, version);
 
                 repository.bookingDao().markExported(res.writtenIds);
                 complete(listener, buildMessage(r, res, file, backup), true);
+            } catch (de.spahr.ausgaben.net.RemoteConflictException e) {
+                // Fremdänderung erkannt: nichts geschrieben, nichts als exportiert markiert.
+                complete(listener, r.getString(de.spahr.ausgaben.R.string.kmy_conflict), false);
             } catch (Exception e) {
                 String msg = e.getMessage() == null ? e.toString() : e.getMessage();
                 complete(listener, r.getString(de.spahr.ausgaben.R.string.export_failed, msg), false);

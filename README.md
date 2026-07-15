@@ -198,6 +198,11 @@ Holdings directly. The widget refreshes when the app is opened and at regular in
   per account. Before every write-back a **timestamped backup** of the `.kmy`
   (`file.kmy.bak-YYYYMMDD-HHMMSS`) is placed in the **`Backup` subfolder** next to the original; the folder
   is created automatically if needed.
+- **Protection against overwriting**: the app remembers the state of the `.kmy` when downloading and only
+  writes if it is unchanged — via **ETag + `If-Match`** on **Nextcloud/WebDAV** (the server checks, so it is
+  gap-free), via change time/size on **SMB** right before writing. If somebody worked in KMyMoney on the
+  computer meanwhile, the **export aborts and writes nothing**; the bookings stay unexported. If the server
+  reports no state, the app writes unchecked as before.
 - **Multi-select import**: the account picker now lets you tick **several accounts (and portfolios) at once**;
   **already-imported accounts (including closed) and portfolios are hidden**. The import itself runs **in the background** — the
   UI stays usable; a **yellow banner** at the top of the booking list (“Importing account …”) with a moving

@@ -494,6 +494,18 @@ p("Before every write-back the app automatically creates a <b>timestamped backup
   "<i>file.kmy.bak-YYYYMMDD-HHMMSS</i>). The backups go into the <b>«Backup» subfolder</b> next to the "
   "original; the folder is created automatically the first time. So you always have a fallback in case "
   "something is ever wrong with the file, and the actual folder stays tidy.")
+h2("Protection against overwriting")
+p("A few seconds pass between downloading the .kmy and writing it back. If somebody works in KMyMoney on "
+  "the computer during that window, their changes must not be lost. The app therefore remembers the "
+  "<b>state of the file</b> when downloading and only writes if it is unchanged:")
+bullets([
+  "<b>Nextcloud/WebDAV</b>: via the file's <b>ETag</b>; the server itself performs the check "
+  "(<i>If-Match</i>), so it is gap-free.",
+  "<b>SMB/Samba</b>: via change time and size, checked immediately before writing.",
+])
+p("If the file changed in the meantime, the <b>export aborts and writes nothing</b>; the bookings stay "
+  "unexported and can be exported again after a fresh import, without any loss. If the server reports no "
+  "state, the app writes unchecked as before – the export never fails because of this.")
 
 # ---------------------------------------------------------------- 12
 h1("14. Setting up synchronization (Settings)")

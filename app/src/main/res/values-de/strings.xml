@@ -400,6 +400,7 @@
     <string name="kmy_result_written">%1$d Buchung(en) in %2$s geschrieben</string>
     <string name="kmy_result_new_payees">, %1$d neue(r) Empfänger</string>
     <string name="kmy_result_backup">Backup: %1$s</string>
+    <string name="kmy_conflict">Die .kmy wurde zwischenzeitlich geändert (vermutlich am Rechner). Es wurde nichts geschrieben – bitte die Konten neu importieren und dann erneut exportieren.</string>
     <string name="kmy_skipped">%1$d übersprungen: %2$s</string>
 
     <!-- Meldungen -->

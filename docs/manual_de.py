@@ -523,6 +523,18 @@ p("Vor jedem Rückschreiben legt die App automatisch eine <b>zeitgestempelte Sic
   "(z. B. <i>datei.kmy.bak-JJJJMMTT-HHMMSS</i>). Die Sicherungen landen im <b>Unterordner «Backup»</b> neben "
   "dem Original; der Ordner wird beim ersten Mal automatisch angelegt. So haben Sie stets einen Fallback, "
   "falls mit der Datei einmal etwas nicht stimmt, und der eigentliche Ordner bleibt übersichtlich.")
+h2("Schutz vor Überschreiben")
+p("Zwischen dem Herunterladen der .kmy und dem Rückschreiben vergehen einige Sekunden. Arbeitet in dieser "
+  "Zeit jemand am Rechner in KMyMoney, dürfen dessen Änderungen nicht verloren gehen. Die App merkt sich "
+  "deshalb beim Herunterladen den <b>Stand der Datei</b> und schreibt nur, wenn er unverändert ist:")
+bullets([
+  "<b>Nextcloud/WebDAV</b>: über den <b>ETag</b> der Datei; die Prüfung macht der Server selbst "
+  "(<i>If-Match</i>), sie ist damit lückenlos.",
+  "<b>SMB/Samba</b>: über Änderungszeit und Größe, unmittelbar vor dem Schreiben geprüft.",
+])
+p("Wurde die Datei zwischenzeitlich geändert, <b>bricht der Export ab und schreibt nichts</b>; die Buchungen "
+  "bleiben unexportiert und können nach einem erneuten Import ohne Verlust nochmals exportiert werden. "
+  "Liefert der Server keinen Stand, wird wie bisher ungeprüft geschrieben – der Export scheitert daran nicht.")
 
 # ---------------------------------------------------------------- 12 Sync einrichten
 h1("14. Synchronisation einrichten (Einstellungen)")

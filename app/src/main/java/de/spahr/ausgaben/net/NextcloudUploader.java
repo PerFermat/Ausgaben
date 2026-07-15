@@ -69,18 +69,79 @@ public class NextcloudUploader {
     /** Lädt {@code content} (Rohbytes) unter {@code fileName} hoch, z. B. eine gepackte .kmy. */
     public void uploadBytes(String baseUrl, String user, String password, String folder,
                             String fileName, byte[] content) throws IOException {
+        uploadBytes(baseUrl, user, password, folder, fileName, content, "");
+    }
+
+    /**
+     * Wie {@link #uploadBytes(String, String, String, String, String, byte[])}, aber mit optionaler
+     * Vorbedingung: Ist {@code expectedEtag} gesetzt, schreibt der Server per {@code If-Match} nur, wenn
+     * die Datei noch diesen ETag hat – sonst HTTP 412 → {@link RemoteConflictException}. Die Prüfung
+     * findet auf dem Server statt und ist damit atomar.
+     */
+    public void uploadBytes(String baseUrl, String user, String password, String folder,
+                            String fileName, byte[] content, String expectedEtag) throws IOException {
         String url = buildUrl(baseUrl, user, folder, fileName);
         RequestBody body = RequestBody.create(content, OCTET);
-        Request request = new Request.Builder()
+        Request.Builder builder = new Request.Builder()
                 .url(url)
                 .header("Authorization", Credentials.basic(user, password))
-                .put(body)
-                .build();
-        try (Response response = client.newCall(request).execute()) {
+                .put(body);
+        if (expectedEtag != null && !expectedEtag.isEmpty()) {
+            builder.header("If-Match", expectedEtag);
+        }
+        try (Response response = client.newCall(builder.build()).execute()) {
+            if (response.code() == 412) {
+                throw new RemoteConflictException("HTTP 412 (If-Match): " + fileName);
+            }
             if (!response.isSuccessful()) {
                 throw new IOException("HTTP " + response.code() + " " + response.message());
             }
         }
+    }
+
+    /**
+     * ETag der Datei per PROPFIND (Depth 0). Leerer String, wenn der Server keinen ETag liefert
+     * (dann gibt es keinen Konflikt-Schutz).
+     */
+    public String etag(String baseUrl, String user, String password, String folder, String fileName)
+            throws IOException {
+        String url = buildUrl(baseUrl, user, folder, fileName);
+        String body = "<?xml version=\"1.0\"?><d:propfind xmlns:d=\"DAV:\">"
+                + "<d:prop><d:getetag/></d:prop></d:propfind>";
+        Request request = new Request.Builder()
+                .url(url)
+                .header("Authorization", Credentials.basic(user, password))
+                .header("Depth", "0")
+                .method("PROPFIND", RequestBody.create(body, XML))
+                .build();
+        try (Response response = client.newCall(request).execute()) {
+            ResponseBody rb = response.body();
+            String xml = rb == null ? "" : rb.string();
+            if (!response.isSuccessful()) {
+                throw new IOException("HTTP " + response.code() + " " + response.message());
+            }
+            return parseEtag(xml);
+        }
+    }
+
+    /** Erstes {@code <d:getetag>} aus der PROPFIND-Antwort; "" wenn keins vorhanden. */
+    private String parseEtag(String xml) throws IOException {
+        try {
+            XmlPullParser parser = Xml.newPullParser();
+            parser.setFeature(XmlPullParser.FEATURE_PROCESS_NAMESPACES, false);
+            parser.setInput(new StringReader(xml));
+            int event = parser.getEventType();
+            while (event != XmlPullParser.END_DOCUMENT) {
+                if (event == XmlPullParser.START_TAG && "getetag".equals(localName(parser.getName()))) {
+                    String v = parser.nextText();
+                    return v == null ? "" : v.trim();
+                }
+                event = parser.next();
+            }
+        } catch (XmlPullParserException e) {
+            throw new IOException("PROPFIND (ETag) nicht lesbar", e);
+        }
+        return "";
     }
 
     /**

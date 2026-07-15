@@ -214,7 +214,8 @@ Holdings directly. The widget refreshes when the app is opened and at regular in
   **30–45 %** unpacking/preparing, **45–70 %** bookings read (count from the file header,
   `<TRANSACTIONS count>`), **70–99 %** saving, **100 %** done — each reported *after* the step. The import
   reads the file **once for all accounts** (instead of once per account) and writes in **one** transaction,
-  which is noticeably faster.
+  which is noticeably faster. Prices, budgets and scheduled transactions sit **after** the ledger in the
+  file and are now read from that part only — three passes over every booking are gone.
 - **KMyMoney `.kmy` mode**: writes new bookings straight into the `.kmy` (gzip XML) and imports
   accounts/bookings from it — including splits and transfers. Import replaces the already-exported bookings
   per account. Before every write-back a **timestamped backup** of the `.kmy`

@@ -223,7 +223,9 @@ regelmäßigen Abständen.
   **30–45 %** entpacken/aufbereiten, **45–70 %** gelesene Buchungen (Anzahl aus dem Dateikopf,
   `<TRANSACTIONS count>`), **70–99 %** speichern, **100 %** fertig – gemeldet jeweils *nach* dem Schritt.
   Der Import liest die Datei dabei **einmal für alle Konten** (statt einmal je Konto) und schreibt in
-  **einer** Transaktion; das ist spürbar schneller.
+  **einer** Transaktion; das ist spürbar schneller. Kurse, Budgets und geplante Buchungen stehen in der
+  Datei **hinter** dem Hauptbuch und werden nur noch aus diesem Teil gelesen – drei Durchläufe durch alle
+  Buchungen entfallen damit.
 - **kMyMoney-`.kmy`-Modus**: schreibt neue Buchungen direkt in die `.kmy` (gzip-XML) und importiert
   Konten/Buchungen daraus – inkl. Splitbuchungen und Umbuchungen. Import ersetzt je Konto die bereits
   exportierten Buchungen. Vor jedem Rückschreiben wird eine **zeitgestempelte Sicherung** der `.kmy`

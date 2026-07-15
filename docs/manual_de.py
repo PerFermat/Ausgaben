@@ -572,6 +572,10 @@ bullets([
 ])
 p("Gemeldet wird jeweils <b>nach</b> einem Arbeitsschritt. Bei sehr vielen Buchungen darf die Anzeige "
   "kurz bei 99 % stehen, bevor sie auf 100 % springt.")
+p("Damit der Import zügig bleibt, liest die App die Datei <b>einmal für alle gewählten Konten</b> und "
+  "speichert alles in einem Zug. Kurse, Budgets und geplante Buchungen stehen in der .kmy erst "
+  "<b>hinter</b> den Buchungen – die App springt dorthin, statt für jeden dieser Bereiche noch einmal "
+  "durch das gesamte Hauptbuch zu laufen.")
 h2("Sicherung vor jedem Export")
 p("Vor jedem Rückschreiben legt die App automatisch eine <b>zeitgestempelte Sicherung</b> der .kmy an "
   "(z. B. <i>datei.kmy.bak-JJJJMMTT-HHMMSS</i>). Die Sicherungen landen im <b>Unterordner «Backup»</b> neben "

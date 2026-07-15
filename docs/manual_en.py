@@ -540,6 +540,10 @@ bullets([
 ])
 p("Each value is reported <b>after</b> a step of work. With very many bookings the display may rest at 99 % "
   "briefly before it jumps to 100 %.")
+p("To keep the import quick, the app reads the file <b>once for all selected accounts</b> and saves "
+  "everything in one go. Prices, budgets and scheduled transactions only appear <b>after</b> the bookings "
+  "in the .kmy — the app jumps straight there instead of walking through the whole ledger again for each "
+  "of those parts.")
 h2("Backup before every export")
 p("Before every write-back the app automatically creates a <b>timestamped backup</b> of the .kmy (e.g. "
   "<i>file.kmy.bak-YYYYMMDD-HHMMSS</i>). The backups go into the <b>«Backup» subfolder</b> next to the "

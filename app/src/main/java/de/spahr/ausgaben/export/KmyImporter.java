@@ -509,7 +509,8 @@ public class KmyImporter {
         try {
             XmlPullParser parser = Xml.newPullParser();
             parser.setFeature(XmlPullParser.FEATURE_PROCESS_NAMESPACES, false);
-            parser.setInput(new StringReader(doc.xml()));
+            // SCHEDULES steht hinter dem Hauptbuch – der Rest reicht, das spart einen vollen Durchlauf.
+            parser.setInput(new StringReader(doc.xmlTail()));
             int event = parser.getEventType();
             boolean inSchedules = false;
             String schedId = null;

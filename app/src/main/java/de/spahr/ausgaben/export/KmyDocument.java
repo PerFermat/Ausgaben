@@ -39,6 +39,8 @@ public class KmyDocument {
     private static final int TYPE_STOCK = 15;     // Wertpapier im Depot
 
     private final String xml;
+    /** Lazy: alles hinter dem Hauptbuch, siehe {@link #xmlTail()}. */
+    private String xmlTail;
 
     /** id → einfacher (Blatt-)Kontoname, für alle Konten. */
     private final Map<String, String> accountName = new LinkedHashMap<>();
@@ -119,6 +121,27 @@ public class KmyDocument {
     /** Anzahl der Buchungen im Hauptbuch laut Datei-Kopf; {@code 0} = unbekannt. */
     public int transactionCount() {
         return transactionCount;
+    }
+
+    /**
+     * Der Teil der Datei <b>hinter</b> {@code </TRANSACTIONS>} (SCHEDULES, SECURITIES, PRICES, BUDGETS …),
+     * eingepackt in ein künstliches Wurzelelement und damit für sich wohlgeformt.
+     *
+     * <p>Wer nur diese Blöcke braucht, musste bisher vom Dateianfang an durch das komplette Hauptbuch
+     * laufen – bei ~10.000 Buchungen der teuerste Teil des Einlesens, und das gleich dreifach
+     * ({@code parseSecuritiesAndPrices}, {@code parseBudgets}, {@code KmyImporter.scheduledTransactions}).</p>
+     *
+     * <p>Fällt auf das ganze Dokument zurück, wenn es keinen Hauptbuch-Endtag gibt (z. B. leere Datei mit
+     * {@code <TRANSACTIONS count="0"/>}) – dann ist der Rest ohnehin klein.</p>
+     */
+    String xmlTail() {
+        if (xmlTail == null) {
+            final String end = "</TRANSACTIONS>";
+            int idx = xml.indexOf(end);
+            // In Attributwerten steht "<" escaped, ein falscher Treffer ist damit ausgeschlossen.
+            xmlTail = idx < 0 ? xml : "<KMYMONEY-FILE>" + xml.substring(idx + end.length());
+        }
+        return xmlTail;
     }
 
     private static int parseIntOr(String s, int fallback) {
@@ -284,7 +307,7 @@ public class KmyDocument {
         try {
             XmlPullParser parser = Xml.newPullParser();
             parser.setFeature(XmlPullParser.FEATURE_PROCESS_NAMESPACES, false);
-            parser.setInput(new StringReader(xml));
+            parser.setInput(new StringReader(xmlTail()));
             int event = parser.getEventType();
             String curFrom = null;
             String curTo = null;
@@ -414,7 +437,7 @@ public class KmyDocument {
         try {
             XmlPullParser parser = Xml.newPullParser();
             parser.setFeature(XmlPullParser.FEATURE_PROCESS_NAMESPACES, false);
-            parser.setInput(new StringReader(xml));
+            parser.setInput(new StringReader(xmlTail()));
             int event = parser.getEventType();
             int curYear = 0;
             String curAcctId = null;

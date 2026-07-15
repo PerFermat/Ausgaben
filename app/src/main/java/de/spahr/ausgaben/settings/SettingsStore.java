@@ -28,6 +28,7 @@ public class SettingsStore {
     private static final String KEY_KMY_PATH = "kmy_path";
     private static final String KEY_APP_LOCK = "app_lock";
     private static final String KEY_GPS_ENABLED = "gps_enabled";
+    private static final String KEY_SCHEDULED_REMINDER = "scheduled_reminder";
     private static final String KEY_SERVER_TYPE = "server_type";
     private static final String KEY_ALIAS_PROMPT = "alias_prompt";
     private static final String KEY_LANGUAGE = "language";
@@ -229,6 +230,15 @@ public class SettingsStore {
      * Standort-/GPS-Nutzung (Standard: aus). Aus = keine Berechtigungsabfrage, keine GPS-Koordinaten in
      * Buchungsnotizen, keine Betrag-only-Erfassung am Handy, kein Alias-Standort.
      */
+    /** Tägliche Erinnerung an fällige geplante Buchungen; standardmäßig aus. */
+    public boolean isScheduledReminderEnabled() {
+        return prefs.getBoolean(KEY_SCHEDULED_REMINDER, false);
+    }
+
+    public void setScheduledReminderEnabled(boolean enabled) {
+        prefs.edit().putBoolean(KEY_SCHEDULED_REMINDER, enabled).apply();
+    }
+
     public boolean isGpsEnabled() {
         return prefs.getBoolean(KEY_GPS_ENABLED, false);
     }

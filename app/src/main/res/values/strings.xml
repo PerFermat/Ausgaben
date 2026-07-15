@@ -230,6 +230,11 @@
     <string name="data_section">Data</string>
     <string name="appearance_section">Appearance</string>
     <string name="dark_mode">Dark theme</string>
+    <string name="reminder_scheduled">Remind me of due transactions</string>
+    <string name="reminder_channel">Due scheduled transactions</string>
+    <string name="reminder_title">Scheduled transactions</string>
+    <string name="reminder_due">%d scheduled transactions due today</string>
+    <string name="reminder_no_permission">Without notification permission no reminder is possible.</string>
 
     <!-- App lock (biometrics) -->
     <string name="security_section">Security</string>

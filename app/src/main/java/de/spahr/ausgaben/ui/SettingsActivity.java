@@ -1,7 +1,10 @@
 package de.spahr.ausgaben.ui;
 
+import android.Manifest;
 import android.content.Intent;
+import android.content.pm.PackageManager;
 import android.net.Uri;
+import android.os.Build;
 import android.os.Bundle;
 import android.view.Gravity;
 import android.view.View;
@@ -18,6 +21,7 @@ import androidx.activity.result.contract.ActivityResultContracts;
 import androidx.appcompat.app.AlertDialog;
 import androidx.appcompat.app.AppCompatActivity;
 import androidx.appcompat.app.AppCompatDelegate;
+import androidx.core.content.ContextCompat;
 
 import com.google.android.material.appbar.MaterialToolbar;
 import com.google.android.material.button.MaterialButton;
@@ -75,6 +79,7 @@ public class SettingsActivity extends LocalizedActivity {
     private TextInputEditText editKmyPath;
     private MaterialAutoCompleteTextView editDefaultAccount;
     private MaterialSwitch switchDarkMode;
+    private MaterialSwitch switchScheduledReminder;
     private MaterialSwitch switchAppLock;
 
     private MaterialAutoCompleteTextView editLanguage;
@@ -91,6 +96,7 @@ public class SettingsActivity extends LocalizedActivity {
             SettingsStore.NUMBER_FORMAT_PLAIN_COMMA, SettingsStore.NUMBER_FORMAT_PLAIN_DOT};
     private java.util.List<de.spahr.ausgaben.db.Language> languages = new java.util.ArrayList<>();
 
+    private ActivityResultLauncher<String> notificationPermissionLauncher;
     private ActivityResultLauncher<String> backupLauncher;
     private ActivityResultLauncher<String[]> restoreLauncher;
     private ActivityResultLauncher<Uri> exportTreeLauncher;
@@ -141,6 +147,20 @@ public class SettingsActivity extends LocalizedActivity {
             int mode = checked ? AppCompatDelegate.MODE_NIGHT_YES : AppCompatDelegate.MODE_NIGHT_NO;
             settings.setNightMode(mode);
             AppCompatDelegate.setDefaultNightMode(mode);
+        });
+
+        // Tägliche Erinnerung an fällige geplante Buchungen (Standard aus).
+        switchScheduledReminder = findViewById(R.id.switchScheduledReminder);
+        switchScheduledReminder.setChecked(settings.isScheduledReminderEnabled());
+        switchScheduledReminder.setOnCheckedChangeListener((b, checked) -> {
+            settings.setScheduledReminderEnabled(checked);
+            if (checked && Build.VERSION.SDK_INT >= Build.VERSION_CODES.TIRAMISU
+                    && ContextCompat.checkSelfPermission(this, Manifest.permission.POST_NOTIFICATIONS)
+                    != PackageManager.PERMISSION_GRANTED) {
+                notificationPermissionLauncher.launch(Manifest.permission.POST_NOTIFICATIONS);
+                return;   // Wecker erst nach der Antwort stellen
+            }
+            de.spahr.ausgaben.notify.ScheduledReminder.apply(this);
         });
 
         switchAppLock = findViewById(R.id.switchAppLock);
@@ -501,6 +521,17 @@ public class SettingsActivity extends LocalizedActivity {
     }
 
     private void registerLaunchers() {
+        // Benachrichtigungs-Berechtigung (ab Android 13) für die Erinnerung an fällige Buchungen.
+        notificationPermissionLauncher = registerForActivityResult(
+                new ActivityResultContracts.RequestPermission(), granted -> {
+                    if (granted) {
+                        de.spahr.ausgaben.notify.ScheduledReminder.apply(this);
+                    } else {
+                        settings.setScheduledReminderEnabled(false);
+                        switchScheduledReminder.setChecked(false);
+                        Toast.makeText(this, R.string.reminder_no_permission, Toast.LENGTH_LONG).show();
+                    }
+                });
         backupLauncher = registerForActivityResult(
                 new ActivityResultContracts.CreateDocument("application/octet-stream"),
                 uri -> {

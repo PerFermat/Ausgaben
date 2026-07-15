@@ -164,7 +164,10 @@ permission is unaffected). F-Droid packaging notes are in [`fdroid/`](fdroid/).
   **category** below (with several categories "Split transaction"), an **account column** (a transfer shows both
   accounts one below the other) and the amount on the right. The type is taken **strictly** from KMyMoney (a
   **stock/ETF purchase** is a transfer, not an expense). A **tap on a row** opens the transaction in the
-  **familiar detail view** (read-only, incl. split categories and the balance before/after). At the top a
+  **familiar detail view** (read-only, incl. split categories and the balance before/after); a **long press**
+  opens it prefilled as a **new booking** (“book now” – date = due date, incl. splits/transfer), leaving the
+  schedule itself untouched. Optionally the app reminds you **once a day** about transactions due today
+  (switch in the settings, **off by default**). At the top a
   cycling **balance strip** (surplus/deficit → total deposits → total bills → **transfers**), a **filter**
   (type, account, name/payee, period) and a **chart button** (green/red bars + development line starting at 0
   today, view total/account, day/week/month, zoomable and pannable; a transfer lowers the source account (red)

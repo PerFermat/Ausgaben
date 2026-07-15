@@ -64,6 +64,8 @@ public class BookingEditActivity extends LocalizedActivity {
     public static final String EXTRA_READ_ONLY = "read_only";
     /** Öffnet eine geplante Buchung ({@link de.spahr.ausgaben.db.ScheduledTransaction}) nur zur Ansicht. */
     public static final String EXTRA_SCHEDULED_ID = "scheduled_id";
+    /** Öffnet eine geplante Buchung als NEUE Buchung vorbefüllt („jetzt buchen"); nicht schreibgeschützt. */
+    public static final String EXTRA_SCHEDULED_BOOK_ID = "scheduled_book_id";
     /** Fälligkeitstermin (ms) der getippten Planung – als Buchungsdatum in der Vorschau. */
     public static final String EXTRA_SCHEDULED_DUE_MS = "scheduled_due_ms";
 
@@ -233,12 +235,14 @@ public class BookingEditActivity extends LocalizedActivity {
         long templateId = getIntent().getLongExtra(EXTRA_TEMPLATE_BOOKING_ID, -1);
         long id = getIntent().getLongExtra(EXTRA_BOOKING_ID, -1);
         long scheduledId = getIntent().getLongExtra(EXTRA_SCHEDULED_ID, -1);
+        long scheduledBookId = getIntent().getLongExtra(EXTRA_SCHEDULED_BOOK_ID, -1);
         long voiceAmount = getIntent().getLongExtra(EXTRA_VOICE_AMOUNT_CENTS, -1);
         voiceSpokenPayee = getIntent().getStringExtra(EXTRA_VOICE_SPOKEN_PAYEE);
 
         // Nur bei NEUEN Buchungen und aktivem GPS: Standort vorwärmen und ggf. Berechtigung anfragen,
-        // damit beim Speichern Koordinaten an die Notiz angehängt werden können.
-        if (id < 0 && scheduledId < 0 && settings.isGpsEnabled()) {
+        // damit beim Speichern Koordinaten an die Notiz angehängt werden können. Bei einer geplanten
+        // Buchung ist der Empfänger bekannt – dort wären Koordinaten nur Rauschen.
+        if (id < 0 && scheduledId < 0 && scheduledBookId < 0 && settings.isGpsEnabled()) {
             locationTagger = new LocationTagger(this);
             locationTagger.setOnLocationUpdate(this::refreshNoteLocation);
             locationPermissionLauncher = registerForActivityResult(
@@ -260,6 +264,10 @@ public class BookingEditActivity extends LocalizedActivity {
             readOnly = true;
             long dueMs = getIntent().getLongExtra(EXTRA_SCHEDULED_DUE_MS, System.currentTimeMillis());
             repository.getScheduledById(scheduledId, st -> bindScheduledPreview(st, dueMs));
+        } else if (scheduledBookId >= 0) {
+            // „Jetzt buchen": Planung als NEUE Buchung vorbefüllt, bearbeitbar.
+            long dueMs = getIntent().getLongExtra(EXTRA_SCHEDULED_DUE_MS, System.currentTimeMillis());
+            repository.getScheduledById(scheduledBookId, st -> bindScheduledBooking(st, dueMs));
         } else if (templateId >= 0) {
             // Sprach-Schnellerfassung: neue Buchung aus Vorlage vorbefüllen.
             final Long amount = voiceAmount >= 0 ? voiceAmount : null;
@@ -532,11 +540,65 @@ public class BookingEditActivity extends LocalizedActivity {
      * {@code populateFrom}+{@code applyReadOnly}-Pfad wie {@link #bindEditMode}.
      */
     private void bindScheduledPreview(de.spahr.ausgaben.db.ScheduledTransaction st, long dueMs) {
+        bindSchedule(st, dueMs, true);
+    }
+
+    /**
+     * Zeigt eine geplante Buchung im Editor, vorbefüllt als <b>neue</b> Buchung („jetzt buchen").
+     * Speichern läuft über den normalen {@code saveAsNew()}-Pfad – inkl. Ort-Bewegung.
+     */
+    private void bindScheduledBooking(de.spahr.ausgaben.db.ScheduledTransaction st, long dueMs) {
+        bindSchedule(st, dueMs, false);
+    }
+
+    /**
+     * Gemeinsamer Weg für Ansicht und „jetzt buchen": baut aus der Planung ein {@link Booking} und schickt
+     * es durch {@code populateFrom}. {@code preview} = schreibgeschützt ansehen, sonst als neue Buchung
+     * bearbeitbar.
+     */
+    private void bindSchedule(de.spahr.ausgaben.db.ScheduledTransaction st, long dueMs, boolean preview) {
         if (st == null) {
             finish();
             return;
         }
-        final Booking b = new Booking();
+        final Booking b = bookingFromSchedule(st, dueMs);
+        // Ansicht: „booking" trägt den Typ für applyReadOnly. Buchen: null = NEUE Buchung (wie bindTemplate).
+        booking = preview ? b : null;
+        origIsTransfer = b.isTransfer;
+        origPlaceManaged = !preview;   // neue Buchung ist ort-verknüpft, die Vorschau nie
+        openedFromExistingBooking = true;
+        selectedDate.setTimeInMillis(dueMs);
+        updateDateField();
+        if (!preview) {
+            toolbar.setTitle(R.string.new_booking_title);
+            switchExported.setVisibility(View.GONE);
+            btnUpdate.setVisibility(View.GONE);
+            btnDelete.setVisibility(View.GONE);
+        }
+        final Runnable bind = () -> {
+            populateFrom(b, null);
+            if (preview) {
+                applyReadOnly();
+            }
+        };
+        if (st.split == 1) {
+            repository.getScheduledSplits(st.id, parts -> {
+                b.parts = new ArrayList<>();
+                if (parts != null) {
+                    for (de.spahr.ausgaben.db.ScheduledSplit p : parts) {
+                        b.parts.add(new BookingSplit(0, p.category, p.amountCents));
+                    }
+                }
+                bind.run();
+            });
+        } else {
+            bind.run();
+        }
+    }
+
+    /** Baut aus einer Planung + Fälligkeit ein {@link Booking} (ohne Split-Teile – die kommen asynchron). */
+    private Booking bookingFromSchedule(de.spahr.ausgaben.db.ScheduledTransaction st, long dueMs) {
+        Booking b = new Booking();
         b.id = -1;
         b.createdAt = dueMs;
         b.amountCents = st.amountCents;
@@ -556,27 +618,7 @@ public class BookingEditActivity extends LocalizedActivity {
         } else {
             b.category = st.counterparty;
         }
-        booking = b;
-        origIsTransfer = b.isTransfer;
-        origPlaceManaged = false;
-        openedFromExistingBooking = true;
-        selectedDate.setTimeInMillis(dueMs);
-        updateDateField();
-        if (st.split == 1) {
-            repository.getScheduledSplits(st.id, parts -> {
-                b.parts = new ArrayList<>();
-                if (parts != null) {
-                    for (de.spahr.ausgaben.db.ScheduledSplit p : parts) {
-                        b.parts.add(new BookingSplit(0, p.category, p.amountCents));
-                    }
-                }
-                populateFrom(b, null);
-                applyReadOnly();
-            });
-        } else {
-            populateFrom(b, null);
-            applyReadOnly();
-        }
+        return b;
     }
 
     /** Reine Ansicht: Titel setzen, alle Felder sperren, Aktionsknöpfe ausblenden. */

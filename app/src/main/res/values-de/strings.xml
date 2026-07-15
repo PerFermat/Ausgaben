@@ -230,6 +230,11 @@
     <string name="data_section">Daten</string>
     <string name="appearance_section">Darstellung</string>
     <string name="dark_mode">Dunkles Design</string>
+    <string name="reminder_scheduled">Erinnerung an fällige Buchungen</string>
+    <string name="reminder_channel">Fällige geplante Buchungen</string>
+    <string name="reminder_title">Geplante Buchungen</string>
+    <string name="reminder_due">%d geplante Buchungen heute fällig</string>
+    <string name="reminder_no_permission">Ohne Benachrichtigungs-Berechtigung ist keine Erinnerung möglich.</string>
 
     <!-- App-Sperre (Biometrie) -->
     <string name="security_section">Sicherheit</string>

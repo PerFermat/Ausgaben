@@ -363,7 +363,17 @@ bullets([
   "<b>transfer</b> from the cash account into the security – not an expense.",
   "A <b>tap on a row</b> opens the transaction in the <b>familiar detail view</b> (read-only, exactly like a "
   "real account movement – including the categories of a split transaction and the balance before/after).",
+  "<b>Book now</b>: a <b>long press</b> on a row opens the booking editor as a <b>new booking</b>, prefilled "
+  "from the schedule (date = due date, amount, payee, account, categories resp. from/to). Check it, adjust "
+  "if needed and save with «New booking» – it lands in the account and (with a place chosen) in the "
+  "holdings. The schedule itself is untouched; it comes from KMyMoney and is never written back by the app. "
+  "Tap = view, long press = book – just like in the booking list.",
 ])
+h2("Reminder for due transactions")
+p("If you want, the app reports once a day when something is due <b>today</b> («3 scheduled transactions due "
+  "today»); tapping the notification opens this page. The switch <b>«Remind me of due transactions»</b> is in "
+  "the settings and is <b>off by default</b>; when switching it on the app asks once for the notification "
+  "permission. If nothing is due, no notification appears.")
 h2("Balance strip (cycling)")
 p("At the top – like in the normal account view – a <b>balance strip</b> (label on the left, amount on the "
   "right) that always reflects the <b>currently set filter</b>. Each <b>tap</b> cycles the display:")

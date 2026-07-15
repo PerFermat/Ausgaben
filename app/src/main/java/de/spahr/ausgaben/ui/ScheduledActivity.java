@@ -444,6 +444,15 @@ public class ScheduledActivity extends LocalizedActivity {
             i.putExtra(BookingEditActivity.EXTRA_SCHEDULED_DUE_MS, o.dueMs);
             startActivity(i);
         });
+        // Langer Druck → „jetzt buchen": Editor als NEUE Buchung vorbefüllt (wie in der Buchungsliste:
+        // kurzer Tipp = ansehen, langer Druck = handeln).
+        row.setOnLongClickListener(v -> {
+            Intent i = new Intent(this, BookingEditActivity.class);
+            i.putExtra(BookingEditActivity.EXTRA_SCHEDULED_BOOK_ID, st.id);
+            i.putExtra(BookingEditActivity.EXTRA_SCHEDULED_DUE_MS, o.dueMs);
+            startActivity(i);
+            return true;
+        });
 
         return row;
     }

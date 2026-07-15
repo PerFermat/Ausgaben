@@ -173,7 +173,10 @@ Mikrofon-Berechtigung ist davon unberührt). Hinweise zur F-Droid-Paketierung in
   eine **Konto-Spalte** (bei Umbuchung beide Konten untereinander) und rechts der Betrag. Die Buchungsart wird
   **streng** aus KMyMoney übernommen (ein **Aktien-/ETF-Kauf** ist eine Umbuchung, keine Ausgabe). Ein **Tipp
   auf eine Zeile** öffnet die Buchung in der **gewohnten Detail-Maske** (schreibgeschützt, inkl. Split-Kategorien
-  und Kontostand vorher/nachher). Oben ein durchschaltbarer **Saldo-Streifen** (Überschuss/Fehlbetrag → Summe
+  und Kontostand vorher/nachher); ein **langer Druck** öffnet sie als **neue Buchung vorbefüllt** („jetzt
+  buchen" – Datum = Fälligkeit, inkl. Splits/Umbuchung), die Planung selbst bleibt unberührt. Optional
+  erinnert die App **einmal täglich** an heute fällige Buchungen (Schalter in den Einstellungen,
+  **standardmäßig aus**). Oben ein durchschaltbarer **Saldo-Streifen** (Überschuss/Fehlbetrag → Summe
   Einzahlungen → Summe Rechnungen → **Umbuchungen**), ein **Filter** (Buchungsart, Konto, Name bzw. Empfänger,
   Zeitraum) und ein **Grafik-Knopf** (grüne/rote Balken + Entwicklungslinie ab heute bei 0, Sicht Gesamt/Konto,
   Tag/Woche/Monat, zoom- und verschiebbar; eine Umbuchung senkt das Quellkonto (rot) und hebt das Zielkonto

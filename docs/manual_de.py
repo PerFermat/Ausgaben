@@ -382,7 +382,18 @@ bullets([
   "eine <b>Umbuchung</b> vom Geldkonto ins Wertpapier – nicht eine Ausgabe.",
   "Ein <b>Tipp auf eine Zeile</b> öffnet die Buchung in der <b>gewohnten Detail-Maske</b> (schreibgeschützt, "
   "genau wie eine echte Kontobewegung – inkl. Kategorien einer Splitbuchung und Kontostand vorher/nachher).",
+  "<b>Jetzt buchen</b>: Ein <b>langer Druck</b> auf eine Zeile öffnet den Buchungs-Editor als <b>neue "
+  "Buchung</b>, vorbefüllt aus der Planung (Datum = Fälligkeit, Betrag, Empfänger, Konto, Kategorien bzw. "
+  "Von/Nach). Sie prüfen, ändern bei Bedarf und speichern mit «Neue Buchung» – die Buchung landet im Konto "
+  "und (bei gewähltem Ort) in den Beständen. Die Planung selbst bleibt unberührt; sie stammt aus KMyMoney "
+  "und wird von der App nicht zurückgeschrieben. Kurzer Tipp = ansehen, langer Druck = buchen – wie in der "
+  "Buchungsliste.",
 ])
+h2("Erinnerung an fällige Buchungen")
+p("Auf Wunsch meldet sich die App einmal täglich, wenn <b>heute</b> etwas fällig ist («3 geplante Buchungen "
+  "heute fällig»); ein Tipp auf die Meldung öffnet diese Seite. Der Schalter <b>«Erinnerung an fällige "
+  "Buchungen»</b> steht in den Einstellungen und ist <b>standardmäßig aus</b>; beim Einschalten fragt die App "
+  "einmalig die Benachrichtigungs-Berechtigung. Gibt es nichts Fälliges, kommt auch keine Meldung.")
 h2("Saldo-Streifen (durchschaltbar)")
 p("Oben – wie in der normalen Kontoansicht – ein <b>Saldo-Streifen</b> (Bezeichnung links, Betrag rechts), "
   "der sich immer auf den <b>aktuell gesetzten Filter</b> bezieht. Jeder <b>Tipp</b> schaltet die Anzeige weiter:")

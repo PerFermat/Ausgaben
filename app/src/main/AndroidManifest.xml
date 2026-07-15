@@ -8,6 +8,9 @@
     <uses-permission android:name="android.permission.ACCESS_COARSE_LOCATION" />
     <!-- osmdroid empfiehlt Netzwerkstatus für das Nachladen der Kartenkacheln. -->
     <uses-permission android:name="android.permission.ACCESS_NETWORK_STATE" />
+    <!-- Nur für die (standardmäßig ausgeschaltete) Erinnerung an fällige geplante Buchungen. -->
+    <uses-permission android:name="android.permission.POST_NOTIFICATIONS" />
+    <uses-permission android:name="android.permission.RECEIVE_BOOT_COMPLETED" />
 
     <application
         android:name=".AusgabenApp"
@@ -119,6 +122,16 @@
             android:excludeFromRecents="true"
             android:taskAffinity=""
             android:theme="@style/Theme.Ausgaben.Transparent" />
+
+        <!-- Tageswecker der Erinnerung an fällige geplante Buchungen; BOOT_COMPLETED stellt ihn nach
+             einem Neustart neu (Wecker überleben den Neustart nicht). -->
+        <receiver
+            android:name=".notify.ScheduledReminderReceiver"
+            android:exported="false">
+            <intent-filter>
+                <action android:name="android.intent.action.BOOT_COMPLETED" />
+            </intent-filter>
+        </receiver>
 
         <!-- Homescreen-Widgets (drei Größen: klein/mittel/groß). -->
         <receiver

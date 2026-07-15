@@ -11,10 +11,11 @@
         android:paddingHorizontal="24dp"
         android:paddingTop="8dp">
 
+        <!-- Sucht in Empfänger, Notiz und Kategorie; die Vorschläge bleiben die Empfängernamen. -->
         <com.google.android.material.textfield.TextInputLayout
             android:layout_width="match_parent"
             android:layout_height="wrap_content"
-            android:hint="@string/payee_hint">
+            android:hint="@string/filter_search_hint">
 
             <com.google.android.material.textfield.MaterialAutoCompleteTextView
                 android:id="@+id/filterPayee"

@@ -126,6 +126,8 @@ public class MainActivity extends LocalizedActivity {
     public static final String EXTRA_SELECT_ACCOUNT = "select_account";
     /** Extra: nach dem Start sofort den Export/Sync ausführen (z. B. aus dem Depot-Menü). */
     public static final String EXTRA_RUN_EXPORT = "run_export";
+    /** Extra: Launcher-Shortcut „Neue Ausgabe" – öffnet direkt den Buchungs-Editor (siehe xml/shortcuts.xml). */
+    public static final String EXTRA_NEW_BOOKING = "de.spahr.ausgaben.NEW_BOOKING";
     /** Extra: aus dem Homescreen-Widget angeforderte Aktion (Werte {@code WIDGET_ACTION_*}). */
     public static final String EXTRA_WIDGET_ACTION = "widget_action";
     public static final String WIDGET_ACTION_NEW = "new";
@@ -143,6 +145,7 @@ public class MainActivity extends LocalizedActivity {
     private ActivityResultLauncher<Uri> exportTreeLauncher;
     private ActivityResultLauncher<String[]> importLauncher;
     private ActivityResultLauncher<Intent> voiceLauncher;
+    private ActivityResultLauncher<Intent> editLauncher;
     private ActivityResultLauncher<String> locationPermissionLauncher;
 
     /** Aktueller Standort für die Betrag-only-Auflösung (rein lokal, nur Koordinaten). */
@@ -243,10 +246,11 @@ public class MainActivity extends LocalizedActivity {
 
             @Override
             public void onLongClick(Booking b) {
-                // Langer Druck: Buchung bearbeiten.
+                // Langer Druck: Buchung bearbeiten. Über den Launcher, damit nach einem Löschen
+                // „Rückgängig" angeboten werden kann.
                 Intent i = new Intent(MainActivity.this, BookingEditActivity.class);
                 i.putExtra(BookingEditActivity.EXTRA_BOOKING_ID, b.id);
-                startActivity(i);
+                editLauncher.launch(i);
             }
         });
         recycler.setAdapter(adapter);
@@ -312,6 +316,13 @@ public class MainActivity extends LocalizedActivity {
                         doImportLocal(uri);
                     }
                 });
+        // Buchungs-Editor: liefert nach dem Löschen die Daten für „Rückgängig" zurück.
+        editLauncher = registerForActivityResult(
+                new ActivityResultContracts.StartActivityForResult(), result -> {
+                    if (result.getResultCode() == RESULT_OK) {
+                        showUndoDelete(result.getData());
+                    }
+                });
         voiceLauncher = registerForActivityResult(
                 new ActivityResultContracts.StartActivityForResult(), result -> {
                     if (result.getResultCode() == RESULT_OK && result.getData() != null) {
@@ -340,9 +351,72 @@ public class MainActivity extends LocalizedActivity {
         });
     }
 
+    /**
+     * Zeigt nach dem Löschen „Rückgängig" an und legt die Buchung auf Wunsch wieder an. Sie bekommt dabei
+     * eine neue id, und im Ort-Journal bleiben Löschung und Wiederanlage als Bewegungen stehen – so
+     * arbeitet das Journal ohnehin (die Historie bleibt erhalten, der Saldo stimmt).
+     */
+    private void showUndoDelete(Intent data) {
+        final Bundle u = data == null ? null : data.getBundleExtra(BookingEditActivity.EXTRA_UNDO_BOOKING);
+        if (u == null) {
+            return;
+        }
+        com.google.android.material.snackbar.Snackbar
+                .make(findViewById(android.R.id.content), R.string.booking_deleted,
+                        com.google.android.material.snackbar.Snackbar.LENGTH_LONG)
+                .setAction(R.string.undo, v -> restoreBooking(u))
+                .show();
+    }
+
+    private void restoreBooking(Bundle u) {
+        Booking b = new Booking();
+        b.payee = u.getString("payee", "");
+        b.account = u.getString("account", "");
+        b.category = u.getString("category", "");
+        b.note = u.getString("note", "");
+        b.amountCents = u.getLong("amount");
+        b.isIncome = u.getBoolean("income");
+        b.createdAt = u.getLong("created");
+        b.exported = u.getBoolean("exported");
+        final String place = u.getString("place", "");
+        final Runnable done = () -> {
+            refreshBookings();
+            Toast.makeText(this, R.string.booking_restored, Toast.LENGTH_SHORT).show();
+        };
+        java.util.ArrayList<String> cats = u.getStringArrayList("splitCats");
+        long[] amounts = u.getLongArray("splitAmounts");
+        if (cats != null && amounts != null && cats.size() >= 2 && amounts.length == cats.size()) {
+            List<de.spahr.ausgaben.db.BookingSplit> parts = new ArrayList<>();
+            for (int i = 0; i < cats.size(); i++) {
+                parts.add(new de.spahr.ausgaben.db.BookingSplit(0, cats.get(i), amounts[i]));
+            }
+            repository.saveSplitBooking(b, parts, place, done);
+        } else {
+            repository.saveBookingWithPlace(b, place, done);
+        }
+    }
+
+    /**
+     * Launcher-Shortcut „Neue Ausgabe": Der Shortcut zielt auf diese (exportierte) Activity – die
+     * BookingEditActivity ist nicht exportiert und dürfte vom Launcher nicht direkt gestartet werden.
+     * Das Extra wird nach dem Öffnen entfernt, damit der Editor bei jedem Zurück nicht erneut aufgeht.
+     */
+    private void handleShortcutIntent() {
+        if (getIntent() == null || !getIntent().getBooleanExtra(EXTRA_NEW_BOOKING, false)) {
+            return;
+        }
+        getIntent().removeExtra(EXTRA_NEW_BOOKING);
+        Intent i = new Intent(this, BookingEditActivity.class);
+        if (!selectedAccount.isEmpty()) {
+            i.putExtra(BookingEditActivity.EXTRA_PRESET_ACCOUNT, selectedAccount);
+        }
+        startActivity(i);
+    }
+
     @Override
     protected void onResume() {
         super.onResume();
+        handleShortcutIntent();
         androidx.core.content.ContextCompat.registerReceiver(this, bookingsChangedReceiver,
                 new android.content.IntentFilter(
                         de.spahr.ausgaben.wear.WearBridge.ACTION_BOOKINGS_CHANGED),
@@ -702,8 +776,8 @@ public class MainActivity extends LocalizedActivity {
         if (!selectedAccount.isEmpty() && !b.account.equalsIgnoreCase(selectedAccount)) {
             return false;
         }
-        if (!filterPayee.isEmpty()
-                && !b.payee.toLowerCase(Locale.GERMANY).contains(filterPayee.toLowerCase(Locale.GERMANY))) {
+        // Suchfeld: Empfänger, Notiz oder Kategorie (gemeinsame Logik mit der Auswertung).
+        if (!de.spahr.ausgaben.db.BookingSearch.matches(b, filterPayee)) {
             return false;
         }
         if (!filterCategory.isEmpty() && !categoryMatchesBooking(b)) {

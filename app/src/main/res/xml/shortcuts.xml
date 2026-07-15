@@ -1,0 +1,23 @@
+<?xml version="1.0" encoding="utf-8"?>
+<!--
+  Langdruck auf das App-Symbol → „Neue Ausgabe". Das Ziel ist bewusst MainActivity (exportiert) mit einem
+  Extra, das den Editor öffnet: BookingEditActivity ist nicht exportiert und dürfte vom Launcher nicht
+  direkt gestartet werden.
+-->
+<shortcuts xmlns:android="http://schemas.android.com/apk/res/android">
+    <shortcut
+        android:shortcutId="new_expense"
+        android:enabled="true"
+        android:icon="@drawable/ic_add"
+        android:shortcutShortLabel="@string/shortcut_new_expense_short"
+        android:shortcutLongLabel="@string/shortcut_new_expense_long">
+        <intent
+            android:action="android.intent.action.MAIN"
+            android:targetPackage="de.spahr.ausgaben"
+            android:targetClass="de.spahr.ausgaben.ui.MainActivity">
+            <extra
+                android:name="de.spahr.ausgaben.NEW_BOOKING"
+                android:value="true" />
+        </intent>
+    </shortcut>
+</shortcuts>

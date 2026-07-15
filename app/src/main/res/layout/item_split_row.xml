@@ -51,6 +51,7 @@
         android:layout_marginStart="8dp"
         android:hint="@string/split_partial_hint">
 
+        <!-- Wie das Gesamtfeld: Ziffernblock mit Rechenzeichen (siehe activity_edit_booking.xml). -->
         <com.google.android.material.textfield.TextInputEditText
             android:id="@+id/splitAmount"
             android:layout_width="match_parent"
@@ -60,7 +61,8 @@
             android:paddingStart="12dp"
             android:paddingEnd="12dp"
             android:textSize="18sp"
-            android:inputType="numberDecimal|numberSigned" />
+            android:digits="0123456789.,+-*/()"
+            android:inputType="phone" />
     </com.google.android.material.textfield.TextInputLayout>
 
 </LinearLayout>

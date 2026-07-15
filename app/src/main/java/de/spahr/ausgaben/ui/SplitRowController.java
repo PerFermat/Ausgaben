@@ -293,18 +293,15 @@ class SplitRowController {
         return de.spahr.ausgaben.settings.MoneyFormat.plain(cents);
     }
 
+    /** Teilbetrag in Cent; akzeptiert wie das Gesamtfeld auch eine kleine Rechnung (z. B. {@code 12,50+3,20}). */
     private static Long parseCents(String raw) {
-        if (raw == null) {
-            return null;
-        }
-        String normalized = raw.trim().replace(" ", "").replace(",", ".");
-        if (normalized.isEmpty()) {
+        BigDecimal value = de.spahr.ausgaben.settings.AmountExpression.evaluate(raw);
+        if (value == null) {
             return null;
         }
         try {
-            return new BigDecimal(normalized).movePointRight(2)
-                    .setScale(0, RoundingMode.HALF_UP).longValueExact();
-        } catch (ArithmeticException | NumberFormatException e) {
+            return value.movePointRight(2).setScale(0, RoundingMode.HALF_UP).longValueExact();
+        } catch (ArithmeticException e) {
             return null;
         }
     }

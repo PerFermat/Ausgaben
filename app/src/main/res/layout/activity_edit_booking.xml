@@ -108,11 +108,16 @@
                 android:layout_marginTop="12dp"
                 android:hint="@string/amount_hint">
 
+                <!-- „phone" statt „numberDecimal": ein Ziffernblock, der auch + − * / anbietet, damit sich
+                     kleine Rechnungen (12,50+3,20) eintippen lassen. android:digits filtert alles andere
+                     (N/P/W usw.) heraus; da beides im XML steht, bleibt die Tastatur der Ziffernblock –
+                     ein KeyListener im Code würde stattdessen eine Volltastatur erzwingen. -->
                 <com.google.android.material.textfield.TextInputEditText
                     android:id="@+id/editAmount"
                     android:layout_width="match_parent"
                     android:layout_height="wrap_content"
-                    android:inputType="numberDecimal" />
+                    android:digits="0123456789.,+-*/()"
+                    android:inputType="phone" />
             </com.google.android.material.textfield.TextInputLayout>
 
             <com.google.android.material.textfield.TextInputLayout

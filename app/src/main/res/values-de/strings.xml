@@ -210,6 +210,8 @@
     <string name="delete_confirm_message">Diese Buchung wird dauerhaft entfernt.</string>
     <string name="booking_updated">Buchung aktualisiert</string>
     <string name="booking_deleted">Buchung gelöscht</string>
+    <string name="undo">Rückgängig</string>
+    <string name="booking_restored">Buchung wiederhergestellt</string>
 
     <!-- Saldo -->
     <string name="balance">Saldo: %1$s</string>
@@ -230,6 +232,9 @@
     <string name="data_section">Daten</string>
     <string name="appearance_section">Darstellung</string>
     <string name="dark_mode">Dunkles Design</string>
+    <string name="filter_search_hint">Suche (Empfänger, Notiz, Kategorie)</string>
+    <string name="shortcut_new_expense_short">Neue Buchung</string>
+    <string name="shortcut_new_expense_long">Neue Buchung erfassen</string>
     <string name="action_categories">Kategorien</string>
     <string name="category_chart_title">Wofür geht mein Geld?</string>
     <string name="category_chart_empty">Keine Ausgaben im gewählten Zeitraum.</string>

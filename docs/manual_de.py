@@ -242,6 +242,12 @@ bullets([
 h1("6. Eine Buchung erfassen")
 p("Tippen Sie auf den runden <b>✚</b>-Knopf. Es öffnet sich der Buchungs-Editor.")
 shot("Ausgaben.png", "Buchungs-Editor mit Typ-Umschalter, Betrag, Empfänger und Konto")
+h2("Rechnen im Betragsfeld")
+p("Das <b>Betragsfeld</b> nimmt auch eine kleine <b>Rechnung</b> entgegen – praktisch, wenn Sie eine "
+  "Rechnung teilen oder mehrere Posten zusammenzählen: <i>12,50+3,20</i> ergibt 15,70, <i>3*4,50</i> ergibt "
+  "13,50. Erlaubt sind <b>+ − * /</b> und Klammern; eine reine Zahl verhält sich unverändert. Dasselbe gilt "
+  "für die <b>Teilbeträge</b> einer Splitbuchung. Steht dort etwas Unvollständiges, bleibt der Betrag "
+  "einfach leer.")
 h2("Felder und Bedienelemente")
 bullets([
   "<b>Typ-Umschalter</b>: <font color='#b00020'>Ausgabe</font> · <b>Umbuchung</b> · "
@@ -311,10 +317,16 @@ bullets([
   "das nicht verfügbar – dort aktualisiert man ein Konto über das Kontenmenü (langer Druck auf das Konto in "
   "der Schublade).",
   "Markierungen: «Split», → / ← (Umbuchung), «exportiert»; Farben rot/grün.",
-  "<b>Filter</b> (Trichter ▽): nach Empfänger, Kategorie (als Baum), Betrag (Schieberegler) und "
-  "<b>Datum von–bis</b> (Schieberegler in Monatsschritten; ein taggenaues Datum geben Sie direkt im Feld "
-  "ein). Der Filter wirkt auf Liste und Auswertung. Bei Kategorie-Filter zeigt eine Splitbuchung nur den "
-  "Teilbetrag der gewählten Kategorie.",
+  "<b>Filter</b> (Trichter ▽): mit einem <b>Suchfeld</b>, das <b>Empfänger, Notiz und Kategorie</b> "
+  "durchsucht (Teilstring, Groß-/Kleinschreibung egal – so finden Sie auch eine Buchung über ihre Notiz); "
+  "dazu Kategorie (als Baum), Betrag (Schieberegler) und <b>Datum von–bis</b> (Schieberegler in "
+  "Monatsschritten; ein taggenaues Datum geben Sie direkt im Feld ein). Der Filter wirkt auf Liste und "
+  "Auswertung. Bei Kategorie-Filter zeigt eine Splitbuchung nur den Teilbetrag der gewählten Kategorie.",
+  "<b>Rückgängig</b>: Nach dem Löschen einer Buchung erscheint unten kurz «Rückgängig» – ein Tipp legt sie "
+  "wieder an. Sie erhält dabei eine neue interne Nummer; im Ort-Journal bleiben Löschung und Wiederanlage "
+  "als Bewegungen sichtbar (die Historie bleibt erhalten, der Saldo stimmt). Bei Umbuchungen gibt es kein "
+  "Rückgängig.",
+  "<b>Langdruck auf das App-Symbol</b> (Startbildschirm): «Neue Buchung» öffnet den Editor direkt.",
 ])
 
 # ---------------------------------------------------------------- 9 Auswertung

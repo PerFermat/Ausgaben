@@ -135,9 +135,16 @@ permission is unaffected). F-Droid packaging notes are in [`fdroid/`](fdroid/).
   ignores the place when the booking had none before and is already exported, and saves it (with balancing
   movements) when it had a place before. In the plain view the field stays hidden; **transfers** have a
   from-/to-place with a movement on both accounts.
-- **Filter** by payee, category (as a tree), amount (slider) and **date from–to** (slider in whole-month
-  steps; for an exact day type it into the field). The filter applies to the list **and** the analysis. With
-  a category filter, a split booking shows only the partial amount of the chosen category.
+- **Filter** with a **search field across payee, note and category** (substring, case-insensitive – so a
+  booking can be found by its note as well), plus category (as a tree), amount (slider) and **date from–to**
+  (slider in whole-month steps; for an exact day type it into the field). The filter applies to the list
+  **and** the analysis (shared search logic, so the two cannot drift apart). With a category filter, a split
+  booking shows only the partial amount of the chosen category.
+- **Arithmetic in the amount field**: `12,50+3,20` → 15.70, `3*4,50` → 13.50; `+ − * /` and brackets are
+  allowed, also in the partial amounts of a split booking. Plain numbers behave exactly as before.
+- **Undo after deleting**: an “Undo” snackbar recreates the booking (new internal id; in the place journal
+  the deletion and recreation remain as history). Not offered for transfers.
+- **Launcher shortcut**: long-press the app icon → **“New booking”**.
 - **Analysis** (day/week/month/year) as a bar + line chart with account, place and total views; zoomable by
   gesture (horizontal = number of bars, vertical = Y axis).
 - **Budget** (own menu page) puts the **actual** value against a per-category **target**. The target is

@@ -140,10 +140,16 @@ Mikrofon-Berechtigung ist davon unberührt). Hinweise zur F-Droid-Paketierung in
   ignoriert den Ort, wenn die Buchung vorher keinen Ort hatte und bereits exportiert ist, und speichert ihn
   (mit Ausgleichs-Bewegung), wenn vorher ein Ort vorhanden war. In der reinen Ansicht bleibt das Feld
   ausgeblendet; bei **Umbuchungen** gibt es Von-/Nach-Ort mit Bewegung auf beiden Konten.
-- **Filter** nach Empfänger, Kategorie (als Baum), Betrag (Schieberegler) und **Datum von–bis**
-  (Schieberegler in Monatsschritten; für ein taggenaues Datum tippt man es direkt ins Feld). Der Filter
-  wirkt auf Liste **und** Auswertung. Bei Kategorie-Filter zeigt eine Splitbuchung nur den Teilbetrag der
-  gewählten Kategorie.
+- **Filter** mit **Suchfeld über Empfänger, Notiz und Kategorie** (Teilstring, Groß-/Kleinschreibung egal –
+  eine Buchung lässt sich damit auch über ihre Notiz finden), dazu Kategorie (als Baum), Betrag
+  (Schieberegler) und **Datum von–bis** (Schieberegler in Monatsschritten; für ein taggenaues Datum tippt man
+  es direkt ins Feld). Der Filter wirkt auf Liste **und** Auswertung (gemeinsame Suchlogik, damit beide nicht
+  auseinanderlaufen). Bei Kategorie-Filter zeigt eine Splitbuchung nur den Teilbetrag der gewählten Kategorie.
+- **Rechnen im Betragsfeld**: `12,50+3,20` → 15,70, `3*4,50` → 13,50; erlaubt sind `+ − * /` und Klammern,
+  auch in den Teilbeträgen einer Splitbuchung. Reine Zahlen verhalten sich unverändert.
+- **Rückgängig nach dem Löschen**: Snackbar „Rückgängig" legt die Buchung wieder an (neue interne Nummer; im
+  Ort-Journal bleiben Löschung und Wiederanlage als Historie stehen). Bei Umbuchungen nicht angeboten.
+- **Launcher-Shortcut**: Langdruck auf das App-Symbol → **„Neue Buchung"**.
 - **Auswertung** (Tag/Woche/Monat/Jahr) als Balken- + Linien-Diagramm mit Konto-, Orts- und
   Gesamt-Sichten; per Fingergeste zoombar (horizontal = Balkenanzahl, vertikal = Y-Achse).
 - **Budget** (eigene Menüseite) stellt je Kategorie das **Ist** dem **Soll** gegenüber. Das Soll wird aus

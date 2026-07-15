@@ -231,6 +231,11 @@ bullets([
 h1("6. Recording a booking")
 p("Tap the round <b>✚</b> button. The booking editor opens.")
 shot("Ausgaben.png", "Booking editor with type switch, amount, payee and account")
+h2("Arithmetic in the amount field")
+p("The <b>amount field</b> also accepts a small <b>calculation</b> – handy when splitting a bill or adding "
+  "up several items: <i>12,50+3,20</i> gives 15.70, <i>3*4,50</i> gives 13.50. Allowed are <b>+ − * /</b> "
+  "and brackets; a plain number behaves exactly as before. The same applies to the <b>partial amounts</b> of "
+  "a split transaction. If the entry is incomplete, the amount simply stays empty.")
 h2("Fields and controls")
 bullets([
   "<b>Type switch</b>: <font color='#b00020'>Expense</font> · <b>Transfer</b> · <font color='#2e7d32'>Income</font>. "
@@ -296,9 +301,15 @@ bullets([
   "and that account or portfolio is refreshed. In the <b>CSV variant</b> this is not available – there you "
   "refresh an account via the account menu (long-press the account in the drawer).",
   "Markers: «Split», → / ← (transfer), «exported»; colours red/green.",
-  "<b>Filter</b> (funnel ▽): by payee, category (as a tree), amount (slider) and <b>date from–to</b> "
-  "(slider in whole-month steps; type an exact day into the field). The filter applies to the list and the "
-  "analysis. With a category filter a split booking shows only the partial amount of the chosen category.",
+  "<b>Filter</b> (funnel ▽): with a <b>search field</b> that searches <b>payee, note and category</b> "
+  "(substring, case-insensitive – so you can find a booking by its note as well); plus category (as a tree), "
+  "amount (slider) and <b>date from–to</b> (slider in whole-month steps; type an exact day into the field). "
+  "The filter applies to the list and the analysis. With a category filter a split booking shows only the "
+  "partial amount of the chosen category.",
+  "<b>Undo</b>: after deleting a booking, «Undo» appears briefly at the bottom – one tap recreates it. It "
+  "gets a new internal number; in the place journal the deletion and the recreation stay visible as "
+  "movements (the history is preserved, the balance is correct). Transfers have no undo.",
+  "<b>Long press on the app icon</b> (home screen): «New booking» opens the editor directly.",
 ])
 
 # ---------------------------------------------------------------- 9

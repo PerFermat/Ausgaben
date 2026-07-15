@@ -282,8 +282,8 @@ public class AnalysisActivity extends LocalizedActivity {
     }
 
     private boolean matchesFilter(Booking b) {
-        if (!filterPayee.isEmpty()
-                && !b.payee.toLowerCase(Locale.GERMANY).contains(filterPayee.toLowerCase(Locale.GERMANY))) {
+        // Suchfeld: Empfänger, Notiz oder Kategorie (gemeinsame Logik mit der Buchungsliste).
+        if (!de.spahr.ausgaben.db.BookingSearch.matches(b, filterPayee)) {
             return false;
         }
         if (!filterCategory.isEmpty() && !categoryMatchesBooking(b)) {

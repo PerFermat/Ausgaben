@@ -210,6 +210,8 @@
     <string name="delete_confirm_message">This booking will be permanently removed.</string>
     <string name="booking_updated">Booking updated</string>
     <string name="booking_deleted">Booking deleted</string>
+    <string name="undo">Undo</string>
+    <string name="booking_restored">Booking restored</string>
 
     <!-- Balance -->
     <string name="balance">Balance: %1$s</string>
@@ -230,6 +232,9 @@
     <string name="data_section">Data</string>
     <string name="appearance_section">Appearance</string>
     <string name="dark_mode">Dark theme</string>
+    <string name="filter_search_hint">Search (payee, note, category)</string>
+    <string name="shortcut_new_expense_short">New booking</string>
+    <string name="shortcut_new_expense_long">Record a new booking</string>
     <string name="action_categories">Categories</string>
     <string name="category_chart_title">Where does my money go?</string>
     <string name="category_chart_empty">No expenses in the selected period.</string>

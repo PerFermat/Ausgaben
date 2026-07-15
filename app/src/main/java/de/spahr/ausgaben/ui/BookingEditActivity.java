@@ -2,6 +2,7 @@ package de.spahr.ausgaben.ui;
 
 import android.Manifest;
 import android.app.DatePickerDialog;
+import android.content.Intent;
 import android.content.pm.PackageManager;
 import android.os.Bundle;
 import android.view.View;
@@ -62,6 +63,11 @@ public class BookingEditActivity extends LocalizedActivity {
     public static final String EXTRA_PRESET_PLACE = "preset_place";
     /** Öffnet eine bestehende Buchung nur zur Ansicht (keine Änderung möglich). */
     public static final String EXTRA_READ_ONLY = "read_only";
+    /**
+     * Ergebnis-Extra nach dem Löschen einer normalen Buchung: {@link Bundle} mit allem zum Wiederanlegen –
+     * die Buchungsliste bietet damit „Rückgängig" an. Bei Umbuchungen nicht gesetzt.
+     */
+    public static final String EXTRA_UNDO_BOOKING = "undo_booking";
     /** Öffnet eine geplante Buchung ({@link de.spahr.ausgaben.db.ScheduledTransaction}) nur zur Ansicht. */
     public static final String EXTRA_SCHEDULED_ID = "scheduled_id";
     /** Öffnet eine geplante Buchung als NEUE Buchung vorbefüllt („jetzt buchen"); nicht schreibgeschützt. */
@@ -150,7 +156,8 @@ public class BookingEditActivity extends LocalizedActivity {
         textBalanceAfter = findViewById(R.id.textBalanceAfter);
         btnNoteMap = findViewById(R.id.btnNoteMap);
         editAmount = findViewById(R.id.editAmount);
-        editAmount.setKeyListener(android.text.method.DigitsKeyListener.getInstance("0123456789.,"));
+        // Erlaubte Zeichen inkl. Rechenzeichen stehen im Layout (android:digits) – ein KeyListener hier
+        // würde den Ziffernblock durch eine Volltastatur ersetzen.
         payeeLayout = findViewById(R.id.payeeLayout);
         editPayee = findViewById(R.id.editPayee);
         accountLayout = findViewById(R.id.accountLayout);
@@ -1153,8 +1160,17 @@ public class BookingEditActivity extends LocalizedActivity {
                 .setTitle(R.string.delete_confirm_title)
                 .setMessage(R.string.delete_confirm_message)
                 .setPositiveButton(R.string.delete, (d, w) -> {
+                    // Umbuchungen (zwei Seiten + Gruppe) lassen sich so nicht sauber wiederherstellen –
+                    // dort bleibt es wie bisher beim Löschen ohne „Rückgängig".
+                    final Bundle undo = origIsTransfer ? null : undoBundle();
                     Runnable done = () -> {
-                        Toast.makeText(this, R.string.booking_deleted, Toast.LENGTH_SHORT).show();
+                        if (undo != null) {
+                            Intent res = new Intent();
+                            res.putExtra(EXTRA_UNDO_BOOKING, undo);
+                            setResult(RESULT_OK, res);   // die Liste bietet „Rückgängig" an
+                        } else {
+                            Toast.makeText(this, R.string.booking_deleted, Toast.LENGTH_SHORT).show();
+                        }
                         finish();
                     };
                     if (origIsTransfer) {
@@ -1165,6 +1181,34 @@ public class BookingEditActivity extends LocalizedActivity {
                 })
                 .setNegativeButton(R.string.cancel, null)
                 .show();
+    }
+
+    /** Alles, was zum Wiederanlegen der gelöschten Buchung nötig ist (Werte wie gespeichert). */
+    private Bundle undoBundle() {
+        Bundle b = new Bundle();
+        b.putString("payee", booking.payee);
+        b.putString("account", booking.account);
+        b.putString("category", booking.category);
+        b.putString("note", booking.note);
+        b.putLong("amount", booking.amountCents);
+        b.putBoolean("income", booking.isIncome);
+        b.putLong("created", booking.createdAt);
+        b.putBoolean("exported", booking.exported);
+        // Ort nur, wenn die Buchung ort-verknüpft war (importierte haben keine Verknüpfung).
+        b.putString("place", booking.placeManaged ? booking.place : "");
+        b.putBoolean("placeManaged", booking.placeManaged);
+        List<SplitRowController.Part> parts = splitCtl.collectParts();
+        if (parts.size() >= 2) {
+            ArrayList<String> cats = new ArrayList<>();
+            long[] amounts = new long[parts.size()];
+            for (int i = 0; i < parts.size(); i++) {
+                cats.add(parts.get(i).category);
+                amounts[i] = parts.get(i).cents;
+            }
+            b.putStringArrayList("splitCats", cats);
+            b.putLongArray("splitAmounts", amounts);
+        }
+        return b;
     }
 
     /** Validiert die gemeinsamen Felder (ohne Kategorie) und schreibt sie in {@code target}. */
@@ -1218,18 +1262,15 @@ public class BookingEditActivity extends LocalizedActivity {
         return de.spahr.ausgaben.settings.MoneyFormat.plain(cents);
     }
 
+    /** Betrag in Cent; akzeptiert auch eine kleine Rechnung wie {@code 12,50+3,20}. */
     private Long parseAmountToCents(String raw) {
-        if (raw == null) {
-            return null;
-        }
-        String normalized = raw.trim().replace(" ", "").replace(",", ".");
-        if (normalized.isEmpty()) {
+        BigDecimal value = de.spahr.ausgaben.settings.AmountExpression.evaluate(raw);
+        if (value == null) {
             return null;
         }
         try {
-            return new BigDecimal(normalized).movePointRight(2)
-                    .setScale(0, RoundingMode.HALF_UP).longValueExact();
-        } catch (ArithmeticException | NumberFormatException e) {
+            return value.movePointRight(2).setScale(0, RoundingMode.HALF_UP).longValueExact();
+        } catch (ArithmeticException e) {
             return null;
         }
     }

@@ -64,6 +64,9 @@ public class WearMainActivity extends WearLocalizedActivity {
     private final StringBuilder amountInput = new StringBuilder();
     private boolean numberEntryActive;
 
+    /** Zuletzt geprüfte Erreichbarkeit des Phones; optimistisch, bis die Abfrage antwortet. */
+    private boolean phoneConnected = true;
+
     private String pendingType = WearPaths.TYPE_EXPENSE;
     private String confirmEntryId;
     private CountDownTimer confirmTimer;
@@ -76,6 +79,7 @@ public class WearMainActivity extends WearLocalizedActivity {
         @Override
         public void onReceive(Context context, Intent intent) {
             updateStatus();
+            updateBalance();   // Grund bzw. Saldo folgt der Warteschlange
         }
     };
 
@@ -352,6 +356,13 @@ public class WearMainActivity extends WearLocalizedActivity {
             new PendingStore(app).updateGps(id, coords == null ? "" : coords,
                     System.currentTimeMillis());
             WearSync.syncPending(app);
+            // Der Grund wechselt jetzt von „Warten auf GPS" auf den Übertragungszustand.
+            runOnUiThread(() -> {
+                if (!isFinishing() && !isDestroyed()) {
+                    refreshPhoneConnection();
+                    updateBalance();
+                }
+            });
         });
     }
 
@@ -448,6 +459,7 @@ public class WearMainActivity extends WearLocalizedActivity {
                 new IntentFilter(WearPaths.ACTION_BALANCE_CHANGED), ContextCompat.RECEIVER_NOT_EXPORTED);
         updateBalance();
         refreshBalanceFromDataLayer();
+        refreshPhoneConnection();
         if (location != null && hasLocationPermission()) {
             location.start();
         }
@@ -495,9 +507,16 @@ public class WearMainActivity extends WearLocalizedActivity {
         }
     }
 
-    /** Aktuellen Konto/Ort-Saldo vom Phone anzeigen; leer → ausblenden. Wechsel-Knopf nur ab 2 Positionen. */
+    /**
+     * Zeigt den Konto/Ort-Saldo vom Phone; gibt es noch nicht übertragene Einträge, steht hier
+     * stattdessen der <b>Grund</b> dafür (die Anzahl nennt weiterhin die Statuszeile darunter).
+     * Leer → ausblenden. Wechsel-Knopf nur ab 2 Positionen.
+     */
     private void updateBalance() {
-        String text = BalanceStore.get(this);
+        String text = pendingReason();
+        if (text == null) {
+            text = BalanceStore.get(this);
+        }
         if (text != null && !text.isEmpty()) {
             balanceView.setText(text);
             balanceView.setVisibility(View.VISIBLE);
@@ -505,6 +524,48 @@ public class WearMainActivity extends WearLocalizedActivity {
             balanceView.setVisibility(View.GONE);
         }
         btnCycle.setVisibility(BalanceStore.count(this) >= 2 ? View.VISIBLE : View.GONE);
+    }
+
+    /**
+     * Warum sind Einträge noch nicht übertragen? {@code null} = nichts offen.
+     * <ul>
+     *   <li>{@code readyAt} in der Zukunft und noch keine Koordinaten → der Standort wird noch aufgelöst.</li>
+     *   <li>Kein verbundener Knoten → das Phone ist nicht erreichbar.</li>
+     *   <li>Sonst liegt der Eintrag im Data Layer und wird gerade übertragen.</li>
+     * </ul>
+     */
+    private String pendingReason() {
+        java.util.List<PendingEntry> pending = store.getPending();
+        if (pending.isEmpty()) {
+            return null;
+        }
+        long now = System.currentTimeMillis();
+        for (PendingEntry e : pending) {
+            if (e.readyAt > now && e.gps.isEmpty()) {
+                return getString(R.string.wear_reason_gps);
+            }
+        }
+        if (!phoneConnected) {
+            return getString(R.string.wear_reason_no_phone);
+        }
+        return getString(R.string.wear_reason_sending);
+    }
+
+    /** Ist das Phone erreichbar? Ergebnis kommt asynchron und aktualisiert die Anzeige. */
+    private void refreshPhoneConnection() {
+        try {
+            com.google.android.gms.wearable.Wearable.getNodeClient(this).getConnectedNodes()
+                    .addOnSuccessListener(nodes -> {
+                        phoneConnected = nodes != null && !nodes.isEmpty();
+                        updateBalance();
+                    })
+                    .addOnFailureListener(e -> {
+                        phoneConnected = false;
+                        updateBalance();
+                    });
+        } catch (Exception ignored) {
+            // Ohne Play-Services bleibt die letzte Annahme stehen.
+        }
     }
 
     /** Auf die nächste Konto/Ort-Position schalten und den Auto-Rücksprung (Timeout) neu planen. */

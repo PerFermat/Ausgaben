@@ -46,6 +46,9 @@ public final class LocaleManager {
             {"wear_no_mic", "Mikrofon-Berechtigung nötig", "Microphone permission needed"},
             {"wear_no_recognizer", "Keine Spracherkennung verfügbar", "No speech recognition available"},
             {"wear_pending", "%d Buchungen noch nicht übertragen", "%d bookings not yet transferred"},
+            {"wear_reason_gps", "Warten auf GPS", "Waiting for GPS"},
+            {"wear_reason_no_phone", "Keine Verbindung zum Handy", "No connection to phone"},
+            {"wear_reason_sending", "Wird übertragen…", "Transferring…"},
     };
 
     private static final ExecutorService EXEC = Executors.newSingleThreadExecutor();

@@ -542,6 +542,9 @@ bullets([
   "as «Place: balance» (e.g. «Wallet: 70.00 €»). The phone sends the value only when it changes; the watch "
   "reads it on start and reacts via push – no polling, no noticeable battery drain. No default place set → "
   "line hidden.",
+  "<b>Reason instead of balance</b>: while bookings are <b>not yet transferred</b>, this line shows the "
+  "<b>reason</b> instead of the balance – «Waiting for GPS» (the location is still being resolved), «No "
+  "connection to phone» or «Transferring…». The line below still states the count.",
   "<b>Switch account/place</b>: above «Record booking» (centred), a grey switch button – in the app and the "
   "tile – cycles through the shown account and its places; the next booking (phone widget and watch) then "
   "targets the chosen account/place. For a transfer the chosen account is the from-account; the to-account is "

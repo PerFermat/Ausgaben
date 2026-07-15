@@ -12,5 +12,8 @@
     <string name="wear_no_mic">Microphone permission needed</string>
     <string name="wear_no_recognizer">No speech recognition available</string>
     <string name="wear_pending">%d bookings not yet transferred</string>
+    <string name="wear_reason_gps">Waiting for GPS</string>
+    <string name="wear_reason_no_phone">No connection to phone</string>
+    <string name="wear_reason_sending">Transferring…</string>
     <string name="number_entry">Enter amount by digits</string>
 </resources>

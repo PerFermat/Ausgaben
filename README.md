@@ -274,6 +274,10 @@ booking creation happen on the phone.
   seconds with “Cancel” and — unless cancelled — processed without further action. The type is transmitted
   along and enforced on the phone. If the phone is offline, “x bookings not yet transmitted” is shown under
   the buttons.
+- **Reason instead of balance**: while bookings are **not yet transferred**, the watch app's balance line
+  shows the **reason** instead of the balance — “Waiting for GPS” (the location is still being resolved),
+  “No connection to phone” or “Transferring…”; the line below still states the count. The font size matches
+  the tile (12sp).
 - **Default-place balance on the watch**: below the buttons, the app **and** the tile show the balance of
   the default place (default account → default place) as “Place: balance”, e.g. “Wallet: 70.00 €”. The phone
   sends the ready-made text as a `/balance` DataItem only when it **changes**; the watch reads it from the

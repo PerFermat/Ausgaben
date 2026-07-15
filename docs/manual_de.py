@@ -573,6 +573,9 @@ bullets([
   "«Ort: Saldo» (z. B. «Geldbeutel: 70,00 €»). Das Handy sendet den Wert nur bei Änderung; die Uhr liest "
   "ihn beim Start und reagiert per Push – ohne Polling und ohne merklichen Akku-Mehrverbrauch. Kein "
   "Standardort gesetzt → Zeile ausgeblendet.",
+  "<b>Grund statt Saldo</b>: Sind noch Buchungen <b>nicht übertragen</b>, steht an dieser Stelle statt des "
+  "Saldos der <b>Grund</b> dafür – «Warten auf GPS» (der Standort wird noch aufgelöst), «Keine Verbindung "
+  "zum Handy» oder «Wird übertragen…». Die Zeile darunter nennt weiterhin die Anzahl.",
   "<b>Konto/Ort wechseln</b>: Oberhalb von «Buchung erfassen» (mittig) schaltet ein grauer Wechsel-Knopf – "
   "in App und Tile – das angezeigte Konto bzw. dessen Orte durch; die nächste Buchung (Handy-Widget und Uhr) "
   "betrifft dann das gewählte Konto/den gewählten Ort. Bei einer Umbuchung ist das gewählte Konto das "

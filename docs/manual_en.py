@@ -329,9 +329,10 @@ p("The <b>Categories</b> page (menu <b>⋮ → Categories</b>) shows the <b>expe
   "which only shows the development over time per account/place.")
 bullets([
   "<b>Month/Year</b> toggle: current month resp. current year.",
-  "In the <b>month view</b> you page through the months by <b>swiping</b> – just like in the budget "
-  "(right = previous month, left = next month); the header shows the displayed month centred and bold, with "
-  "the previous and next one in grey to the left and right (tapping pages as well).",
+  "In both views you page through the periods by <b>swiping</b> – just like in the budget "
+  "(right = back, left = forward); the header shows the displayed month resp. year centred and bold, with "
+  "the previous and next one in grey to the left and right (tapping pages as well). Paging stops before the "
+  "first booking period and after the current one.",
   "The chart uses the <b>full width</b> and at most <b>half the screen height</b>; the list below scrolls on "
   "its own while the chart stays visible.",
   "The slices are unlabelled; a <b>tap</b> shows category and amount in the centre, without a selection the "
@@ -340,6 +341,22 @@ bullets([
   "– the same data source as the budget page.",
   "The analysis covers <b>all accounts</b> and lists only categories with expenses.",
 ])
+h2("Include scheduled transactions (calendar icon)")
+p("The <b>calendar toggle</b> at the top right adds the <b>scheduled expenses due</b> in the period "
+  "(chapter 8) to the ones already made. Then:")
+bullets([
+  "The <b>sum per category</b> grows by the scheduled share; the list sorts by the new sum.",
+  "In the chart the <b>already paid</b> share appears in the category's strong colour, the <b>scheduled</b> "
+  "share next to it in the <b>same, lighter</b> shade.",
+  "Rows with a scheduled share can be <b>expanded</b> (arrow on the right), showing «Already paid» and "
+  "«Scheduled» separately.",
+  "With the toggle on, the slider also pages into <b>future</b> months/years – which then show only "
+  "scheduled values – up to the last scheduled occurrence.",
+])
+h2("Set colours (palette icon)")
+p("Each category has a <b>fixed colour</b> – regardless of its current position in the list. The "
+  "<b>palette icon</b> at the top right opens the colour list: tapping a category opens the picker; "
+  "«Default» restores the automatic colour. The assignment takes effect immediately in the chart and list.")
 
 h1("11. Budget")
 p("The <b>Budget</b> page (menu <b>⋮ → Budget</b>) puts the <b>actual</b> value against a per-category "

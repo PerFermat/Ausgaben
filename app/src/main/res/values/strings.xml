@@ -240,6 +240,13 @@
     <string name="action_categories">Categories</string>
     <string name="category_chart_title">Where does my money go?</string>
     <string name="category_chart_empty">No expenses in the selected period.</string>
+    <string name="category_include_planned">Include scheduled transactions</string>
+    <string name="category_colors_title">Colors</string>
+    <string name="category_paid">Already paid</string>
+    <string name="category_planned">Scheduled</string>
+    <string name="category_planned_suffix">(scheduled)</string>
+    <string name="category_color_default">Default</string>
+    <string name="category_color_pick">Pick colour</string>
     <string name="reminder_scheduled">Remind me of due transactions</string>
     <string name="reminder_channel">Due scheduled transactions</string>
     <string name="reminder_title">Scheduled transactions</string>

@@ -346,9 +346,10 @@ p("Die Seite <b>Kategorien</b> (Menü <b>⋮ → Kategorien</b>) zeigt die <b>Au
   "(Kapitel 9), die nur den zeitlichen Verlauf je Konto/Ort zeigt.")
 bullets([
   "Umschalter <b>Monat/Jahr</b>: laufender Monat bzw. laufendes Jahr.",
-  "In der <b>Monatssicht</b> blättern Sie – wie im Budget – per <b>Wischgeste</b> durch die Monate "
-  "(nach rechts = Vormonat, nach links = Folgemonat); die Kopfzeile zeigt mittig fett den angezeigten "
-  "Monat, links und rechts grau den vorigen bzw. nächsten (Tippen blättert ebenfalls).",
+  "In beiden Sichten blättern Sie – wie im Budget – per <b>Wischgeste</b> durch die Zeiträume "
+  "(nach rechts = zurück, nach links = vor); die Kopfzeile zeigt mittig fett den angezeigten "
+  "Monat bzw. das Jahr, links und rechts grau den vorigen bzw. nächsten (Tippen blättert ebenfalls). "
+  "Vor den ersten Buchungszeitraum und hinter den aktuellen wird nicht geblättert.",
   "Das Diagramm nutzt die <b>volle Breite</b> und höchstens die <b>halbe Bildschirmhöhe</b>; die Liste "
   "darunter scrollt für sich, das Diagramm bleibt dabei sichtbar.",
   "Die Segmente sind unbeschriftet; ein <b>Tipp</b> zeigt in der Mitte Kategorie und Betrag, ohne Auswahl "
@@ -357,6 +358,23 @@ bullets([
   "– dieselbe Datenbasis wie die Budget-Seite.",
   "Die Auswertung gilt über <b>alle Konten</b> und zeigt nur Kategorien mit Ausgaben.",
 ])
+h2("Geplante Buchungen einbeziehen (Kalender-Symbol)")
+p("Der <b>Kalender-Schalter</b> oben rechts rechnet die im Zeitraum <b>fälligen geplanten Auszahlungen</b> "
+  "(Kapitel 8) zu den bereits getätigten hinzu. Dann gilt:")
+bullets([
+  "Die <b>Summe je Kategorie</b> steigt um den geplanten Anteil; die Liste sortiert nach der neuen Summe.",
+  "Im Diagramm erscheint der <b>bereits gezahlte</b> Anteil in der kräftigen Farbe der Kategorie, der "
+  "<b>geplante</b> Anteil daneben im <b>selben, helleren</b> Ton.",
+  "Zeilen mit geplantem Anteil lassen sich <b>aufklappen</b> (Pfeil rechts) und zeigen «Bereits gezahlt» "
+  "und «Geplant» getrennt.",
+  "Mit eingeschaltetem Schalter blättert der Slider auch in <b>zukünftige</b> Monate/Jahre, die dann nur "
+  "geplante Werte zeigen – bis zum letzten geplanten Termin.",
+])
+h2("Farben festlegen (Paletten-Symbol)")
+p("Jede Kategorie hat eine <b>feste Farbe</b> – unabhängig davon, auf welchem Listenplatz sie gerade steht. "
+  "Das <b>Paletten-Symbol</b> oben rechts öffnet die Farbliste: Ein Tipp auf eine Kategorie öffnet die "
+  "Auswahl; «Standard» setzt die automatische Farbe wieder ein. Die Zuordnung gilt sofort im Diagramm und "
+  "in der Liste.")
 
 h1("11. Budget")
 p("Die <b>Budget</b>-Seite (Menü <b>⋮ → Budget</b>) stellt je Kategorie das <b>Ist</b> dem <b>Soll</b> "

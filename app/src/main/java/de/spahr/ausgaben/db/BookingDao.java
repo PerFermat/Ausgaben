@@ -128,6 +128,13 @@ public interface BookingDao {
     @Query("DELETE FROM booking")
     void deleteAll();
 
+    /** Frühester bzw. spätester Buchungszeitpunkt (ms); {@code null} bei leerer Tabelle. */
+    @Query("SELECT MIN(created_at) FROM booking")
+    Long getFirstBookingMs();
+
+    @Query("SELECT MAX(created_at) FROM booking")
+    Long getLastBookingMs();
+
     /** Gesamtsaldo aller Buchungen (Einnahmen − Ausgaben). */
     @Query("SELECT COALESCE(SUM(CASE WHEN is_income THEN amount_cents ELSE -amount_cents END), 0) FROM booking")
     long getTotalBalance();

@@ -173,9 +173,13 @@ Mikrofon-Berechtigung ist davon unberührt). Hinweise zur F-Droid-Paketierung in
   Geld?" – die **Ausgaben je Kategorie** als **Kreisdiagramm** (volle Breite, max. halbe Bildschirmhöhe,
   unbeschriftete Segmente, Tipp zeigt Kategorie und Betrag in der Mitte) plus **absteigend sortierte Liste**
   mit Anteil in Prozent, die für sich scrollt – das Diagramm bleibt dabei sichtbar. Umschaltbar
-  **Monat/Jahr**; in der Monatssicht blättert eine **Wischgeste** (wie im Budget) durch die Monate, mit
-  Kopfzeile Vormonat | **aktueller Monat** | Folgemonat. Splitbuchungen zählen über ihre Teilbeträge,
-  Umbuchungen bleiben außen vor (dieselbe Datenbasis wie das Budget); gilt über **alle Konten**.
+  **Monat/Jahr**; in **beiden** Sichten blättert eine **Wischgeste** (wie im Budget) durch die Zeiträume,
+  mit Kopfzeile vorheriger | **aktueller** | nächster (Monat bzw. Jahr) – begrenzt auf Zeiträume mit Daten.
+  Splitbuchungen zählen über ihre Teilbeträge, Umbuchungen bleiben außen vor (dieselbe Datenbasis wie das
+  Budget); gilt über **alle Konten**. Ein **Kalender-Schalter** rechnet optional die im Zeitraum fälligen
+  **geplanten Auszahlungen** hinzu (Ist in der Grundfarbe, Plan im helleren Ton daneben; Zeilen aufklappbar
+  in „Bereits gezahlt"/„Geplant"; der Slider reicht dann bis zum letzten geplanten Termin in die Zukunft).
+  Jede Kategorie hat eine **feste Farbe**, die über ein **Paletten-Symbol** manuell festgelegt werden kann.
 - **Geplante Buchungen** (eigene Menüseite, **nur im `.kmy`-Modus** sichtbar): importiert die in KMyMoney
   angelegten Daueraufträge/Planungen und zeigt sie als **eine chronologische Liste** nach Fälligkeit. Jede
   wiederkehrende Planung wird in ihre **Einzeltermine aufgefaltet** (z. B. wöchentlicher Bäcker mehrfach),

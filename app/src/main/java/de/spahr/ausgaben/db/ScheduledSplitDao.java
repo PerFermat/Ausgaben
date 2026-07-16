@@ -18,4 +18,8 @@ public interface ScheduledSplitDao {
 
     @Query("SELECT * FROM scheduled_split WHERE scheduled_id = :scheduledId")
     List<ScheduledSplit> getForScheduled(long scheduledId);
+
+    /** Alle Split-Teile auf einmal (für die Kategorien-Auswertung; in einer Abfrage statt je Planung). */
+    @Query("SELECT * FROM scheduled_split")
+    List<ScheduledSplit> getAll();
 }

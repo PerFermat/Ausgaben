@@ -240,6 +240,13 @@
     <string name="action_categories">Kategorien</string>
     <string name="category_chart_title">Wofür geht mein Geld?</string>
     <string name="category_chart_empty">Keine Ausgaben im gewählten Zeitraum.</string>
+    <string name="category_include_planned">Geplante Buchungen einbeziehen</string>
+    <string name="category_colors_title">Farben</string>
+    <string name="category_paid">Bereits gezahlt</string>
+    <string name="category_planned">Geplant</string>
+    <string name="category_planned_suffix">(geplant)</string>
+    <string name="category_color_default">Standard</string>
+    <string name="category_color_pick">Farbe wählen</string>
     <string name="reminder_scheduled">Erinnerung an fällige Buchungen</string>
     <string name="reminder_channel">Fällige geplante Buchungen</string>
     <string name="reminder_title">Geplante Buchungen</string>

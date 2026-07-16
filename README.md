@@ -165,10 +165,14 @@ permission is unaffected). F-Droid packaging notes are in [`fdroid/`](fdroid/).
 - **Categories** (menu **⋮ → Categories**, also reachable from the portfolio): answers “Where does my money
   go?” – the **expenses per category** as a **pie chart** (full width, at most half the screen height,
   unlabelled slices, a tap shows category and amount in the centre) plus a **descending list** with the share
-  in percent that scrolls on its own – the chart stays visible. Switchable **month/year**; in the month view
-  a **swipe** pages through the months (like in the budget), with a header showing previous | **current
-  month** | next. Split transactions count through their partial amounts, transfers are left out (same data
-  source as the budget); covers **all accounts**.
+  in percent that scrolls on its own – the chart stays visible. Switchable **month/year**; in **both** views
+  a **swipe** pages through the periods (like in the budget), with a header showing previous | **current** |
+  next (month resp. year) – limited to periods with data. Split transactions count through their partial
+  amounts, transfers are left out (same data source as the budget); covers **all accounts**. A **calendar
+  toggle** optionally adds the **scheduled expenses** due in the period (actual in the base colour, scheduled
+  next to it in a lighter shade; rows expand into “already paid”/“scheduled”; the slider then reaches into
+  the future up to the last scheduled occurrence). Each category has a **fixed colour** that can be set
+  manually via a **palette icon**.
 - **Scheduled transactions** (own menu page, shown **only in `.kmy` mode**): imports the standing orders /
   schedules set up in KMyMoney and shows them as **one chronological list** by due date. Each recurring
   schedule is **expanded into its individual occurrences** (e.g. a weekly bakery appears several times), from

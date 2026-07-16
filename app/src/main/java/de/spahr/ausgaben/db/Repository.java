@@ -175,6 +175,24 @@ public class Repository {
         });
     }
 
+    /** Alle Kategorie-Teile geplanter Splitbuchungen auf einmal (für die Kategorien-Auswertung). */
+    public void getAllScheduledSplits(final Callback<List<ScheduledSplit>> callback) {
+        executor.execute(() -> {
+            final List<ScheduledSplit> result = scheduledSplitDao.getAll();
+            mainHandler.post(() -> callback.onResult(result));
+        });
+    }
+
+    /** Frühester und spätester Buchungszeitpunkt als {@code {min, max}} (0/0 bei leerer DB). */
+    public void getBookingDateRange(final Callback<long[]> callback) {
+        executor.execute(() -> {
+            final Long min = bookingDao.getFirstBookingMs();
+            final Long max = bookingDao.getLastBookingMs();
+            final long[] result = {min == null ? 0L : min, max == null ? 0L : max};
+            mainHandler.post(() -> callback.onResult(result));
+        });
+    }
+
     /** Aktive Konten in Anlage/Verbindlichkeit getrennt – für Schublade und Bestände. */
     public void getAccountsGrouped(final Callback<AccountGroups> callback) {
         executor.execute(() -> {

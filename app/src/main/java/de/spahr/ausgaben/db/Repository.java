@@ -36,6 +36,7 @@ public class Repository {
     private final CategoryTypeDao categoryTypeDao;
     private final ScheduledTransactionDao scheduledTransactionDao;
     private final ScheduledSplitDao scheduledSplitDao;
+    private final AnalysisExtraDao analysisExtraDao;
     private final Context appContext;
     private final ExecutorService executor = Executors.newSingleThreadExecutor();
     private final Handler mainHandler = new Handler(Looper.getMainLooper());
@@ -60,6 +61,7 @@ public class Repository {
         this.categoryTypeDao = db.categoryTypeDao();
         this.scheduledTransactionDao = db.scheduledTransactionDao();
         this.scheduledSplitDao = db.scheduledSplitDao();
+        this.analysisExtraDao = db.analysisExtraDao();
         this.budgetRepo = new BudgetRepository(bookingDao, budgetDao, categoryTypeDao, executor, mainHandler);
         this.depotRepo = new DepotRepository(securityDao, appContext, executor, mainHandler);
         this.aliasResolver = new AliasResolver(bookingDao, correctionDao, accountDao, executor, mainHandler);
@@ -799,6 +801,7 @@ public class Repository {
             if (account != null && !account.trim().isEmpty()) {
                 bookingDao.deleteSplitsForExportedAccount(account.trim());
                 bookingDao.deleteExportedByAccount(account.trim());
+                analysisExtraDao.deleteByAccount(account.trim());
             }
             for (Booking b : bookings) {
                 insertImported(b);
@@ -819,6 +822,11 @@ public class Repository {
             for (BookingSplit p : b.parts) {
                 p.bookingId = id;
                 bookingDao.insertSplit(p);
+            }
+        }
+        if (b.analysisExtras != null) {
+            for (AnalysisExtra ex : b.analysisExtras) {
+                analysisExtraDao.insert(ex);
             }
         }
     }
@@ -854,6 +862,7 @@ public class Repository {
                     if (account != null && !account.trim().isEmpty()) {
                         bookingDao.deleteSplitsForExportedAccount(account.trim());
                         bookingDao.deleteExportedByAccount(account.trim());
+                        analysisExtraDao.deleteByAccount(account.trim());
                         accountDao.insertIfAbsent(new Account(account.trim()));
                     }
                     for (Booking b : e.getValue()) {
@@ -878,6 +887,7 @@ public class Repository {
             if (account != null && !account.trim().isEmpty()) {
                 bookingDao.deleteSplitsForAccount(account.trim());
                 bookingDao.deleteAllByAccount(account.trim());
+                analysisExtraDao.deleteByAccount(account.trim());
                 placeEntryDao.deleteByAccount(account.trim());
                 accountDao.deleteByName(account.trim());
             }
@@ -892,6 +902,7 @@ public class Repository {
         executor.execute(() -> {
             bookingDao.deleteAllSplits();
             bookingDao.deleteAll();
+            analysisExtraDao.deleteAll();
             accountDao.deleteAll();
             payeeDao.deleteAll();
             correctionDao.deleteAll();

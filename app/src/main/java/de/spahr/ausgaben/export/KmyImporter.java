@@ -18,6 +18,7 @@ import java.util.Locale;
 import java.util.HashMap;
 import java.util.Map;
 
+import de.spahr.ausgaben.db.AnalysisExtra;
 import de.spahr.ausgaben.db.Booking;
 import de.spahr.ausgaben.db.BookingSplit;
 import de.spahr.ausgaben.db.ScheduledSplit;
@@ -448,6 +449,19 @@ public class KmyImporter {
             b.category = "";
             String payeeId = !own[2].isEmpty() ? own[2] : stockSplit[2];
             b.payee = payeeId.isEmpty() ? "" : orEmpty(doc.payeeName(payeeId));
+            // In der Umbuchung versteckte Ausgaben/Einnahmen (Gebühr/Steuer): separat sichern, damit sie in
+            // den Kategorien-Auswertungen auftauchen, ohne die Umbuchung/Buchungsliste zu verändern.
+            for (String[] cs : categorySplits) {
+                long catValue = valueToCents(cs[1]);   // Ausgabe-Kategorie in kMyMoney: > 0
+                if (catValue == 0) {
+                    continue;
+                }
+                if (b.analysisExtras == null) {
+                    b.analysisExtras = new ArrayList<>();
+                }
+                b.analysisExtras.add(new AnalysisExtra(accountName, orEmpty(doc.categoryPath(cs[0])),
+                        Math.abs(catValue), catValue < 0, b.createdAt));
+            }
             return b;
         }
 
@@ -471,7 +485,16 @@ public class KmyImporter {
                 long partial = b.isIncome ? -catValue : catValue;
                 b.parts.add(new BookingSplit(0, orEmpty(doc.categoryPath(cs[0])), partial));
             }
-            b.category = b.parts.isEmpty() ? "" : b.parts.get(0).category;
+            // Kopf-Kategorie = betragsmäßig größter Teil (nicht einfach der erste). Sonst bekäme z. B. eine
+            // Dividende mit kleiner Gebühr fälschlich „Bankgebühren" als Haupt-Kategorie, wenn der
+            // Gebühren-Split in der Datei zuerst steht.
+            BookingSplit main = null;
+            for (BookingSplit p : b.parts) {
+                if (main == null || Math.abs(p.amountCents) > Math.abs(main.amountCents)) {
+                    main = p;
+                }
+            }
+            b.category = main == null ? "" : main.category;
             b.payee = resolveImportPayee(own, categorySplits.get(0), splits);
             return b;
         }

@@ -83,6 +83,13 @@ public class Booking {
     @Ignore
     public List<BookingSplit> parts;
 
+    /**
+     * Transient: in einer Umbuchung versteckte Ausgaben/Einnahmen (z. B. Wertpapier-Gebühren) – landen in
+     * {@link AnalysisExtra}, nicht in dieser Tabelle, und nur für die Kategorien-Auswertungen.
+     */
+    @Ignore
+    public List<AnalysisExtra> analysisExtras;
+
     public Booking() {
     }
 }

@@ -62,7 +62,12 @@ public interface BookingDao {
             + "        (CASE WHEN b.is_income THEN bs.amount_cents ELSE -bs.amount_cents END) AS signed "
             + "   FROM booking_split bs JOIN booking b ON bs.booking_id = b.id "
             + "   WHERE bs.category != '' AND b.is_transfer = 0 "
-            + "     AND b.created_at >= :fromMs AND b.created_at < :toMs) "
+            + "     AND b.created_at >= :fromMs AND b.created_at < :toMs "
+            + " UNION ALL "
+            + " SELECT category AS cat, "
+            + "        (CASE WHEN is_income THEN amount_cents ELSE -amount_cents END) AS signed "
+            + "   FROM analysis_extra "
+            + "   WHERE category != '' AND created_at >= :fromMs AND created_at < :toMs) "
             + "GROUP BY cat")
     List<CategorySum> getCategoryActuals(long fromMs, long toMs);
 
@@ -82,7 +87,12 @@ public interface BookingDao {
             + "        CAST(strftime('%d', b.created_at/1000, 'unixepoch', 'localtime') AS INTEGER) AS bucket, "
             + "        ABS(bs.amount_cents) AS amt "
             + "   FROM booking_split bs JOIN booking b ON bs.booking_id = b.id "
-            + "   WHERE bs.category != '' AND b.is_transfer = 0) "
+            + "   WHERE bs.category != '' AND b.is_transfer = 0 "
+            + " UNION ALL "
+            + " SELECT category AS cat, "
+            + "        CAST(strftime('%d', created_at/1000, 'unixepoch', 'localtime') AS INTEGER) AS bucket, "
+            + "        ABS(amount_cents) AS amt "
+            + "   FROM analysis_extra WHERE category != '') "
             + "GROUP BY cat, bucket")
     List<CategoryBucket> getDayOfMonthHistogram();
 
@@ -102,7 +112,12 @@ public interface BookingDao {
             + "        CAST(strftime('%m', b.created_at/1000, 'unixepoch', 'localtime') AS INTEGER) AS bucket, "
             + "        ABS(bs.amount_cents) AS amt "
             + "   FROM booking_split bs JOIN booking b ON bs.booking_id = b.id "
-            + "   WHERE bs.category != '' AND b.is_transfer = 0) "
+            + "   WHERE bs.category != '' AND b.is_transfer = 0 "
+            + " UNION ALL "
+            + " SELECT category AS cat, "
+            + "        CAST(strftime('%m', created_at/1000, 'unixepoch', 'localtime') AS INTEGER) AS bucket, "
+            + "        ABS(amount_cents) AS amt "
+            + "   FROM analysis_extra WHERE category != '') "
             + "GROUP BY cat, bucket")
     List<CategoryBucket> getMonthOfYearHistogram();
 

@@ -223,9 +223,10 @@ Holdings directly. The widget refreshes when the app is opened and at regular in
   file and are now read from that part only — three passes over every booking are gone.
 - **KMyMoney `.kmy` mode**: writes new bookings straight into the `.kmy` (gzip XML) and imports
   accounts/bookings from it — including splits and transfers. **Securities buys/sells** (account ↔
-  stock/ETF) are imported as a **transfer** into/out of the security — even when a small fee category is
-  attached (the fee is folded into the transfer); dividends stay income. Import replaces the already-exported
-  bookings per account. Before every write-back a **timestamped backup** of the `.kmy`
+  stock/ETF) are imported as a **transfer** into/out of the security. Any **fee/tax** on it does not appear
+  in the booking list and changes no balances, but is counted as an expense in the **category evaluations**
+  (Categories page, Budget) via a separate, hidden store; dividends stay income. Import replaces the
+  already-exported bookings per account. Before every write-back a **timestamped backup** of the `.kmy`
   (`file.kmy.bak-YYYYMMDD-HHMMSS`) is placed in the **`Backup` subfolder** next to the original; the folder
   is created automatically if needed.
 - **Protection against overwriting**: the app remembers the state of the `.kmy` when downloading and only

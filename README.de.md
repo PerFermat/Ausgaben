@@ -233,9 +233,10 @@ regelmäßigen Abständen.
   Buchungen entfallen damit.
 - **kMyMoney-`.kmy`-Modus**: schreibt neue Buchungen direkt in die `.kmy` (gzip-XML) und importiert
   Konten/Buchungen daraus – inkl. Splitbuchungen und Umbuchungen. **Wertpapierkäufe/-verkäufe** (Konto ↔
-  Aktie/ETF) werden als **Umbuchung** ins bzw. aus dem Wertpapier eingelesen – auch wenn eine kleine
-  Gebühren-Kategorie mitläuft (die Gebühr fließt in die Umbuchung ein); Dividenden bleiben Einnahmen. Import
-  ersetzt je Konto die bereits exportierten Buchungen. Vor jedem Rückschreiben wird eine **zeitgestempelte Sicherung** der `.kmy`
+  Aktie/ETF) werden als **Umbuchung** ins bzw. aus dem Wertpapier eingelesen. Eine dabei anfallende
+  **Gebühr/Steuer** erscheint nicht in der Buchungsliste und ändert keine Salden, wird aber in den
+  **Kategorien-Auswertungen** (Kategorien-Seite, Budget) als Ausgabe geführt (eigene, unsichtbare
+  Datenhaltung); Dividenden bleiben Einnahmen. Import ersetzt je Konto die bereits exportierten Buchungen. Vor jedem Rückschreiben wird eine **zeitgestempelte Sicherung** der `.kmy`
   (`datei.kmy.bak-JJJJMMTT-HHMMSS`) im **Unterordner `Backup`** neben dem Original abgelegt; der Ordner wird
   bei Bedarf automatisch angelegt.
 - **Schutz vor Überschreiben**: Die App merkt sich beim Herunterladen den Stand der `.kmy` und schreibt nur,

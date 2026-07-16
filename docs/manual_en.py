@@ -541,10 +541,11 @@ bullets([
   "prices – also in the background with the yellow progress banner.",
 ])
 p("<b>Securities buys and sells</b> (money from the account into a security or back) are imported as a "
-  "<b>transfer</b> into/out of the security – even when the transaction carries a small fee category (the fee "
-  "is folded into the transfer). This keeps the full purchase amount from wrongly counting as «bank fees». "
-  "<b>Dividends</b> stay normal income. To convert old, already-imported buys, re-import the affected account "
-  "once.")
+  "<b>transfer</b> into/out of the security. This keeps the full purchase amount from wrongly counting as "
+  "«bank fees». The actual small <b>fee</b> (or tax) inside the transaction does <b>not</b> appear in the "
+  "booking list and changes no balances – but it is counted as a small expense in the <b>category "
+  "evaluations</b> (chapter «Where does my money go?» and Budget). <b>Dividends</b> stay normal income. To "
+  "convert old, already-imported buys, re-import the affected account once.")
 p("An import replaces the already-exported bookings per account (no duplicates). The import runs <b>in the "
   "background</b> – the UI stays usable; a <b>yellow banner</b> at the top of the booking list («Importing "
   "account …») with a moving gradient, status text and percentage shows the progress and disappears when done. "

@@ -11,8 +11,9 @@ import androidx.sqlite.db.SupportSQLiteDatabase;
 
 @Database(entities = {Booking.class, BookingSplit.class, Account.class, Payee.class, PlaceEntry.class,
         PayeeCorrection.class, Translation.class, Language.class, Security.class, SecurityTx.class,
-        Budget.class, CategoryType.class, ScheduledTransaction.class, ScheduledSplit.class},
-        version = 30, exportSchema = false)
+        Budget.class, CategoryType.class, ScheduledTransaction.class, ScheduledSplit.class,
+        AnalysisExtra.class},
+        version = 31, exportSchema = false)
 public abstract class AppDatabase extends RoomDatabase {
 
     /** v1 → v2: Notiz-Spalte ergänzen (bestehende Buchungen bleiben erhalten). */
@@ -336,6 +337,20 @@ public abstract class AppDatabase extends RoomDatabase {
         }
     };
 
+    /** v30 → v31: eigene Tabelle für in Umbuchungen versteckte Ausgaben/Einnahmen (z. B. Wertpapier-Gebühren). */
+    static final Migration MIGRATION_30_31 = new Migration(30, 31) {
+        @Override
+        public void migrate(@NonNull SupportSQLiteDatabase db) {
+            db.execSQL("CREATE TABLE IF NOT EXISTS analysis_extra ("
+                    + "id INTEGER PRIMARY KEY AUTOINCREMENT NOT NULL, "
+                    + "account TEXT NOT NULL, "
+                    + "category TEXT NOT NULL, "
+                    + "amount_cents INTEGER NOT NULL, "
+                    + "is_income INTEGER NOT NULL, "
+                    + "created_at INTEGER NOT NULL)");
+        }
+    };
+
     public abstract BookingDao bookingDao();
 
     public abstract AccountDao accountDao();
@@ -358,6 +373,8 @@ public abstract class AppDatabase extends RoomDatabase {
 
     public abstract ScheduledSplitDao scheduledSplitDao();
 
+    public abstract AnalysisExtraDao analysisExtraDao();
+
     private static volatile AppDatabase instance;
 
     public static AppDatabase getInstance(Context context) {
@@ -376,7 +393,7 @@ public abstract class AppDatabase extends RoomDatabase {
                                     MIGRATION_19_20, MIGRATION_20_21, MIGRATION_21_22,
                                     MIGRATION_22_23, MIGRATION_23_24, MIGRATION_24_25,
                                     MIGRATION_25_26, MIGRATION_26_27, MIGRATION_27_28,
-                                    MIGRATION_28_29, MIGRATION_29_30)
+                                    MIGRATION_28_29, MIGRATION_29_30, MIGRATION_30_31)
                             .build();
                 }
             }

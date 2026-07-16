@@ -347,7 +347,8 @@ p("The <b>calendar toggle</b> at the top right adds the <b>scheduled expenses du
 bullets([
   "The <b>sum per category</b> grows by the scheduled share; the list sorts by the new sum.",
   "In the chart the <b>already paid</b> share appears in the category's strong colour, the <b>scheduled</b> "
-  "share next to it in the <b>same, lighter</b> shade.",
+  "share right next to it in the <b>same, lighter</b> shade – together they form <b>one continuous "
+  "sector</b> with no separator between them.",
   "Rows with a scheduled share can be <b>expanded</b> (arrow on the right), showing «Already paid» and "
   "«Scheduled» separately.",
   "With the toggle on, the slider also pages into <b>future</b> months/years – which then show only "

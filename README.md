@@ -170,7 +170,8 @@ permission is unaffected). F-Droid packaging notes are in [`fdroid/`](fdroid/).
   next (month resp. year) – limited to periods with data. Split transactions count through their partial
   amounts, transfers are left out (same data source as the budget); covers **all accounts**. A **calendar
   toggle** optionally adds the **scheduled expenses** due in the period (actual in the base colour, scheduled
-  next to it in a lighter shade; rows expand into “already paid”/“scheduled”; the slider then reaches into
+  right next to it in a lighter shade as one continuous sector with no separator; rows expand into “already
+  paid”/“scheduled”; the slider then reaches into
   the future up to the last scheduled occurrence). Each category has a **fixed colour** that can be set
   manually via a **palette icon**.
 - **Scheduled transactions** (own menu page, shown **only in `.kmy` mode**): imports the standing orders /

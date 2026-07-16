@@ -364,7 +364,8 @@ p("Der <b>Kalender-Schalter</b> oben rechts rechnet die im Zeitraum <b>fälligen
 bullets([
   "Die <b>Summe je Kategorie</b> steigt um den geplanten Anteil; die Liste sortiert nach der neuen Summe.",
   "Im Diagramm erscheint der <b>bereits gezahlte</b> Anteil in der kräftigen Farbe der Kategorie, der "
-  "<b>geplante</b> Anteil daneben im <b>selben, helleren</b> Ton.",
+  "<b>geplante</b> Anteil direkt daneben im <b>selben, helleren</b> Ton – beide bilden <b>einen "
+  "durchgehenden Kreisausschnitt</b> ohne Trennstrich dazwischen.",
   "Zeilen mit geplantem Anteil lassen sich <b>aufklappen</b> (Pfeil rechts) und zeigen «Bereits gezahlt» "
   "und «Geplant» getrennt.",
   "Mit eingeschaltetem Schalter blättert der Slider auch in <b>zukünftige</b> Monate/Jahre, die dann nur "

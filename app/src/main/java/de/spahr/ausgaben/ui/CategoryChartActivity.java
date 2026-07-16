@@ -477,7 +477,9 @@ public class CategoryChartActivity extends LocalizedActivity {
 
         PieDataSet set = new PieDataSet(entries, "");
         set.setColors(pieColors);
-        set.setSliceSpace(2f);
+        // Kein Abstand zwischen den Segmenten: Ist- und Plan-Anteil einer Kategorie bilden so einen
+        // durchgehenden Kreisausschnitt (nur zweifarbig), ohne schwarzen Trennstrich dazwischen.
+        set.setSliceSpace(0f);
         set.setDrawValues(false);
 
         pie.setData(new PieData(set));

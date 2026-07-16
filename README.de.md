@@ -177,7 +177,8 @@ Mikrofon-Berechtigung ist davon unberührt). Hinweise zur F-Droid-Paketierung in
   mit Kopfzeile vorheriger | **aktueller** | nächster (Monat bzw. Jahr) – begrenzt auf Zeiträume mit Daten.
   Splitbuchungen zählen über ihre Teilbeträge, Umbuchungen bleiben außen vor (dieselbe Datenbasis wie das
   Budget); gilt über **alle Konten**. Ein **Kalender-Schalter** rechnet optional die im Zeitraum fälligen
-  **geplanten Auszahlungen** hinzu (Ist in der Grundfarbe, Plan im helleren Ton daneben; Zeilen aufklappbar
+  **geplanten Auszahlungen** hinzu (Ist in der Grundfarbe, Plan im helleren Ton direkt daneben als ein
+  durchgehender Kreisausschnitt ohne Trennstrich; Zeilen aufklappbar
   in „Bereits gezahlt"/„Geplant"; der Slider reicht dann bis zum letzten geplanten Termin in die Zukunft).
   Jede Kategorie hat eine **feste Farbe**, die über ein **Paletten-Symbol** manuell festgelegt werden kann.
 - **Geplante Buchungen** (eigene Menüseite, **nur im `.kmy`-Modus** sichtbar): importiert die in KMyMoney

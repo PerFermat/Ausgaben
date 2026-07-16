@@ -516,9 +516,9 @@ public class CategoryChartActivity extends LocalizedActivity {
         pie.invalidate();
     }
 
-    /** Aufhellen für den Plan-Anteil: Grundfarbe Richtung Weiß mischen. */
+    /** Aufhellen für den Plan-Anteil: Grundfarbe nur leicht Richtung Weiß mischen (kleiner Unterschied). */
     private static int lighten(int color) {
-        return ColorUtils.blendARGB(color, 0xFFFFFFFF, 0.45f);
+        return ColorUtils.blendARGB(color, 0xFFFFFFFF, 0.20f);
     }
 
     /**

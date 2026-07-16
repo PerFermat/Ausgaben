@@ -429,10 +429,29 @@ public class KmyImporter {
             }
         }
 
-        // Umbuchung: genau ein Nicht-Kategorie-Gegenkonto, keine Kategorien. Ein Aktien-/ETF-Kauf
-        // (Konto → Wertpapier, Typ 15) zählt ebenfalls als Umbuchung – der Aktien-Split liegt bereits in
-        // nonCatCounters. Gemischte Fälle (Aktie + Gebühren-Kategorie) bleiben durch die leere
-        // categorySplits-Bedingung normale Buchungen.
+        // Wertpapierkauf/-verkauf: Ein Aktien-/ETF-Split (Typ 15) mit echtem Wert bedeutet, dass Geld
+        // zwischen diesem Konto und dem Wertpapier fließt – das ist eine Umbuchung, auch wenn zusätzlich
+        // eine kleine Gebühren-Kategorie (z. B. „Sonstiges:Bankgebühren") mitläuft. Ohne diese Regel würde
+        // der komplette Kaufbetrag fälschlich als Gebühr/Ausgabe (bzw. beim Verkauf als Einnahme) gezählt.
+        // Die Gebühr fließt in die Umbuchung ein (kein separater Ausgabe-Eintrag). Dividenden haben einen
+        // Wertpapier-Split mit Wert 0 und bleiben dadurch normale Einnahmen.
+        String[] stockSplit = null;
+        for (String[] s : nonCatCounters) {
+            if (doc.accountTypeOf(s[0]) == 15 && valueToCents(s[1]) != 0) {
+                stockSplit = s;
+                break;
+            }
+        }
+        if (stockSplit != null) {
+            b.isTransfer = true;
+            b.transferAccount = orEmpty(doc.accountNameById(stockSplit[0])).trim();
+            b.category = "";
+            String payeeId = !own[2].isEmpty() ? own[2] : stockSplit[2];
+            b.payee = payeeId.isEmpty() ? "" : orEmpty(doc.payeeName(payeeId));
+            return b;
+        }
+
+        // Umbuchung zwischen zwei Konten: genau ein Nicht-Kategorie-Gegenkonto, keine Kategorien.
         if (categorySplits.isEmpty() && nonCatCounters.size() == 1) {
             String[] counterSplit = nonCatCounters.get(0);
             b.isTransfer = true;

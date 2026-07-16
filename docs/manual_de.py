@@ -571,6 +571,11 @@ bullets([
   "<b>Langer Druck auf das Depot</b> (oder Herunterziehen in der Depot-Ansicht): aktualisiert Wertpapiere "
   "und Kurse – ebenfalls im Hintergrund mit dem gelben Fortschrittsbanner.",
 ])
+p("<b>Wertpapierkäufe und -verkäufe</b> (Geld vom Konto ins Wertpapier bzw. zurück) werden beim Import als "
+  "<b>Umbuchung</b> ins bzw. aus dem Wertpapier eingelesen – auch wenn zur Buchung eine kleine "
+  "Gebühren-Kategorie gehört (die Gebühr wird in die Umbuchung eingerechnet). So zählt nicht der ganze "
+  "Kaufbetrag fälschlich als «Bankgebühren». <b>Dividenden</b> bleiben normale Einnahmen. Damit alte, bereits "
+  "importierte Käufe umgestellt werden, das betroffene Konto einmal neu importieren.")
 p("Ein Import ersetzt je Konto die bereits exportierten Buchungen (keine Dubletten). Der Import läuft "
   "<b>im Hintergrund</b> – die Oberfläche bleibt bedienbar; oben in der Buchungsliste zeigt ein <b>gelber "
   "Banner</b> («Konto wird importiert …») mit wanderndem Verlauf, Status und Prozentanzeige den Fortschritt "

@@ -14,8 +14,6 @@ import com.google.android.material.dialog.MaterialAlertDialogBuilder;
 import com.google.android.material.floatingactionbutton.FloatingActionButton;
 import com.google.android.material.textfield.TextInputEditText;
 
-import java.math.BigDecimal;
-import java.math.RoundingMode;
 import java.text.SimpleDateFormat;
 import java.util.Calendar;
 import java.util.Date;
@@ -150,6 +148,8 @@ public class PlaceHistoryActivity extends LocalizedActivity {
             cal.set(Calendar.DAY_OF_MONTH, d);
             dateField.setText(dateFormat.format(cal.getTime()));
         }, cal.get(Calendar.YEAR), cal.get(Calendar.MONTH), cal.get(Calendar.DAY_OF_MONTH)).show());
+        // Betrag über die eigene Rechentastatur (vorzeichenbehaftet: Bewegungen dürfen negativ sein).
+        CalcKeyboardView.installToggling(amountField, (android.widget.LinearLayout) view, true);
 
         MaterialAlertDialogBuilder b = new MaterialAlertDialogBuilder(this,
                 R.style.ThemeOverlay_Ausgaben_Dialog)
@@ -195,20 +195,9 @@ public class PlaceHistoryActivity extends LocalizedActivity {
         return e.getText() == null ? "" : e.getText().toString().trim();
     }
 
-    /** Parst einen vorzeichenbehafteten Betrag („-20", „5,50") in Cent; leer/ungültig → {@code null}. */
+    /** Parst einen vorzeichenbehafteten Betrag bzw. eine kleine Rechnung („-20", „5,50", „30-5") in Cent. */
     private Long parseSignedCents(String raw) {
-        if (raw == null) {
-            return null;
-        }
-        String s = raw.trim().replace(" ", "").replace(",", ".");
-        if (s.isEmpty() || s.equals("-") || s.equals("+")) {
-            return null;
-        }
-        try {
-            return new BigDecimal(s).movePointRight(2).setScale(0, RoundingMode.HALF_UP).longValueExact();
-        } catch (ArithmeticException | NumberFormatException e) {
-            return null;
-        }
+        return de.spahr.ausgaben.settings.AmountExpression.toCents(raw);
     }
 
     private String formatSigned(long signedCents) {

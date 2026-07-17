@@ -18,8 +18,6 @@ import com.google.android.material.dialog.MaterialAlertDialogBuilder;
 import com.google.android.material.textfield.MaterialAutoCompleteTextView;
 import com.google.android.material.textfield.TextInputEditText;
 
-import java.math.BigDecimal;
-import java.math.RoundingMode;
 import java.util.ArrayList;
 import java.util.LinkedHashMap;
 import java.util.List;
@@ -339,7 +337,7 @@ public class BalanceActivity extends LocalizedActivity {
         MaterialAutoCompleteTextView from = view.findViewById(R.id.transferFrom);
         MaterialAutoCompleteTextView to = view.findViewById(R.id.transferTo);
         TextInputEditText amount = view.findViewById(R.id.transferAmount);
-        amount.setKeyListener(android.text.method.DigitsKeyListener.getInstance("0123456789.,"));
+        CalcKeyboardView.installToggling(amount, (android.widget.LinearLayout) view, false);
 
         accountField.setAdapter(new ArrayAdapter<>(this, android.R.layout.simple_list_item_1, accountsOrder));
         final String[] account = {startAccount()};
@@ -398,7 +396,7 @@ public class BalanceActivity extends LocalizedActivity {
         TextInputEditText amount = view.findViewById(R.id.reconcileAmount);
         com.google.android.material.checkbox.MaterialCheckBox createBooking =
                 view.findViewById(R.id.reconcileCreateBooking);
-        amount.setKeyListener(android.text.method.DigitsKeyListener.getInstance("0123456789.,"));
+        CalcKeyboardView.installToggling(amount, (android.widget.LinearLayout) view, false);
 
         accountField.setAdapter(new ArrayAdapter<>(this, android.R.layout.simple_list_item_1, accountsOrder));
         final String[] account = {startAccount()};
@@ -451,18 +449,7 @@ public class BalanceActivity extends LocalizedActivity {
     }
 
     private Long parseCents(String raw) {
-        if (raw == null) {
-            return null;
-        }
-        String s = raw.trim().replace(" ", "").replace(",", ".");
-        if (s.isEmpty()) {
-            return null;
-        }
-        try {
-            return new BigDecimal(s).movePointRight(2).setScale(0, RoundingMode.HALF_UP).longValueExact();
-        } catch (ArithmeticException | NumberFormatException e) {
-            return null;
-        }
+        return de.spahr.ausgaben.settings.AmountExpression.toCents(raw);
     }
 
     private String formatEuro(long signedCents, String currency) {

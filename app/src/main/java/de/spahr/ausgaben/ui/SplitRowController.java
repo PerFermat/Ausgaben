@@ -45,6 +45,12 @@ class SplitRowController {
     private CategoryFilterAdapter categoryAdapter;
     private boolean suppressSplitEvents;
     private boolean syncingAmounts;
+    private AmountFieldBinder amountBinder;
+
+    /** Hängt ein Teilbetrag-Feld an die gemeinsame Rechentastatur (von der Activity gesetzt). */
+    interface AmountFieldBinder {
+        void bind(TextInputEditText field);
+    }
 
     SplitRowController(LinearLayout container, TextInputEditText totalField, LayoutInflater inflater,
                        boolean readOnly, Runnable onChanged) {
@@ -53,6 +59,11 @@ class SplitRowController {
         this.inflater = inflater;
         this.readOnly = readOnly;
         this.onChanged = onChanged;
+    }
+
+    /** Setzt den Binder, mit dem jedes Teilbetrag-Feld an die Rechentastatur gebunden wird. */
+    void setAmountBinder(AmountFieldBinder binder) {
+        this.amountBinder = binder;
     }
 
     /** Setzt den (gruppierten) Kategorie-Adapter und wendet ihn auf bestehende Zeilen an. */
@@ -105,6 +116,9 @@ class SplitRowController {
         }
         cat.addTextChangedListener(new SimpleWatcher(() -> onSplitCategoryChanged(row)));
         amt.addTextChangedListener(new SimpleWatcher(() -> onPartialChanged(row)));
+        if (amountBinder != null) {
+            amountBinder.bind(amt);   // Teilbetrag-Feld an die Rechentastatur binden
+        }
         remove.setOnClickListener(v -> {
             container.removeView(row);
             ensureTrailingRow();

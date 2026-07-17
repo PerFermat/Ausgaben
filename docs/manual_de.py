@@ -244,16 +244,18 @@ p("Tippen Sie auf den runden <b>✚</b>-Knopf. Es öffnet sich der Buchungs-Edit
 shot("Ausgaben.png", "Buchungs-Editor mit Typ-Umschalter, Betrag, Empfänger und Konto")
 h2("Rechnen im Betragsfeld")
 p("Das <b>Betragsfeld</b> öffnet eine <b>app-eigene Rechentastatur</b> (Ziffern, <b>⌫</b>, Dezimaltaste, "
-  "<b>*</b>, <b>+</b>, <b>OK</b>) statt der System-Tastatur und nimmt so auch eine kleine <b>Rechnung</b> "
-  "entgegen – praktisch, wenn Sie eine Rechnung teilen oder mehrere Posten zusammenzählen: <i>10+20*3</i> "
-  "ergibt 70, <i>100,50*2+25</i> ergibt 226. Erlaubt sind bewusst nur <b>Addition (+)</b> und "
-  "<b>Multiplikation (*)</b> mit üblicher Priorität (Punkt vor Strich) sowie ein Dezimaltrennzeichen je "
-  "Zahl; Minus, Geteilt, Klammern und Funktionen sind <b>nicht</b> möglich. Ungültige Zeichen lassen sich "
-  "gar nicht erst eintippen. <b>⌫</b> löscht das letzte Zeichen (langer Druck leert das Feld); <b>OK</b> "
-  "wertet die Rechnung aus und ersetzt sie durch das Ergebnis, eine ungültige Rechnung wird mit einer "
-  "Meldung quittiert. Dasselbe gilt für die <b>Teilbeträge</b> einer Splitbuchung und die Wert-Direkteingabe "
-  "im Hauptmenü. Steht dort etwas Unvollständiges, bleibt der Betrag "
-  "einfach leer.")
+  "<b>×</b>, <b>−</b>, <b>+</b>, <b>OK</b>) statt der System-Tastatur und nimmt so auch eine kleine "
+  "<b>Rechnung</b> entgegen – praktisch, wenn Sie eine Rechnung teilen oder mehrere Posten verrechnen: "
+  "<i>10+20*3</i> ergibt 70, <i>100,50*2+25</i> ergibt 226, <i>30-5</i> ergibt 25. Erlaubt sind "
+  "<b>Addition (+)</b>, <b>Subtraktion (−)</b> und <b>Multiplikation (×)</b> mit üblicher Priorität (Punkt "
+  "vor Strich) sowie ein Dezimaltrennzeichen je Zahl; das Minus wirkt auch als <b>Vorzeichen</b> "
+  "(<i>-5</i>, <i>3*-2</i>). Division, Klammern und Funktionen sind <b>nicht</b> möglich; ungültige Zeichen "
+  "lassen sich gar nicht erst eintippen. <b>⌫</b> löscht das letzte Zeichen (langer Druck leert das Feld); "
+  "<b>OK</b> wertet die Rechnung aus und ersetzt sie durch das Ergebnis, eine ungültige Rechnung wird mit "
+  "einer Meldung quittiert. Dieselbe Tastatur erscheint überall, wo Sie einen Betrag eingeben – bei den "
+  "<b>Teilbeträgen</b> einer Splitbuchung, der Wert-Direkteingabe im Hauptmenü, bei <b>Beständen</b> "
+  "(dort auch mit Minus für Abgänge), im <b>Budget</b>, beim Umbuchen und beim Kassensturz. Steht etwas "
+  "Unvollständiges, bleibt der Betrag einfach leer.")
 h2("Felder und Bedienelemente")
 bullets([
   "<b>Typ-Umschalter</b>: <font color='#b00020'>Ausgabe</font> · <b>Umbuchung</b> · "

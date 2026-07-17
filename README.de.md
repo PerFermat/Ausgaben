@@ -146,13 +146,14 @@ Mikrofon-Berechtigung ist davon unberührt). Hinweise zur F-Droid-Paketierung in
   es direkt ins Feld). Der Filter wirkt auf Liste **und** Auswertung (gemeinsame Suchlogik, damit beide nicht
   auseinanderlaufen). Bei Kategorie-Filter zeigt eine Splitbuchung nur den Teilbetrag der gewählten Kategorie.
 - **Rechnen im Betragsfeld über die eigene Tastatur**: Das Betragsfeld öffnet eine **app-eigene
-  Rechentastatur** (Ziffern, `⌫`, Dezimaltaste, `*`, `+`, `OK`) statt der System-Tastatur. `10+20*3` → 70,
-  `100,50*2+25` → 226; erlaubt sind nur **Addition (`+`) und Multiplikation (`*`)** mit üblicher Priorität
-  (Punkt vor Strich) sowie ein Dezimaltrennzeichen je Zahl. Subtraktion, Division, Klammern und Funktionen
-  sind **nicht** möglich; ungültige Zeichen lassen sich gar nicht erst eintippen. `⌫` löscht das letzte
-  Zeichen (langer Druck leert das Feld), **`OK`** wertet die Rechnung aus und ersetzt sie durch das Ergebnis;
-  eine ungültige Rechnung wird mit einer Meldung quittiert. Gilt auch für die Teilbeträge einer Splitbuchung
-  und die Wert-Direkteingabe im Hauptmenü.
+  Rechentastatur** (Ziffern, `⌫`, Dezimaltaste, `×`, `−`, `+`, `OK`) statt der System-Tastatur. `10+20*3` →
+  70, `100,50*2+25` → 226, `30-5` → 25; erlaubt sind **Addition (`+`), Subtraktion (`−`) und Multiplikation
+  (`×`)** mit üblicher Priorität (Punkt vor Strich) sowie ein Dezimaltrennzeichen je Zahl; das Minus wirkt
+  auch als **Vorzeichen** (`-5`, `3*-2`). Division, Klammern und Funktionen sind **nicht** möglich; ungültige
+  Zeichen lassen sich gar nicht erst eintippen. `⌫` löscht das letzte Zeichen (langer Druck leert das Feld),
+  **`OK`** wertet die Rechnung aus und ersetzt sie durch das Ergebnis. Dieselbe Tastatur erscheint **überall**
+  bei der Betragseingabe – Teilbeträge einer Splitbuchung, Wert-Direkteingabe, **Bestände** (mit Minus für
+  Abgänge), **Budget**, Umbuchen und Kassensturz.
 - **Rückgängig nach dem Löschen**: Snackbar „Rückgängig" legt die Buchung wieder an (neue interne Nummer; im
   Ort-Journal bleiben Löschung und Wiederanlage als Historie stehen). Bei Umbuchungen nicht angeboten.
 - **Launcher-Shortcut**: Langdruck auf das App-Symbol → **„Neue Buchung"**.

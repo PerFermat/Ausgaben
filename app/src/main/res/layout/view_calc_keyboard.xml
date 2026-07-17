@@ -1,8 +1,8 @@
 <?xml version="1.0" encoding="utf-8"?>
-<!-- Inhalt der CalcKeyboardView (eigene Rechentastatur). Vier Zeilen; die „0" ist doppelt breit.
-     Alle Tasten sind nicht fokussierbar, damit das Betragsfeld beim Tippen den Fokus behält. -->
-<merge xmlns:android="http://schemas.android.com/apk/res/android"
-    xmlns:app="http://schemas.android.com/apk/res-auto">
+<!-- Inhalt der CalcKeyboardView (eigene Rechentastatur). Fünf Zeilen; die „0" ist doppelt breit, „OK" volle
+     Breite. Minus dient als Vorzeichen und als Subtraktion. Alle Tasten sind nicht fokussierbar, damit das
+     Betragsfeld beim Tippen den Fokus behält. -->
+<merge xmlns:android="http://schemas.android.com/apk/res/android">
 
     <LinearLayout
         android:layout_width="match_parent"
@@ -23,7 +23,7 @@
         <com.google.android.material.button.MaterialButton android:id="@+id/key4" style="@style/CalcKey" android:text="4" android:tag="4" />
         <com.google.android.material.button.MaterialButton android:id="@+id/key5" style="@style/CalcKey" android:text="5" android:tag="5" />
         <com.google.android.material.button.MaterialButton android:id="@+id/key6" style="@style/CalcKey" android:text="6" android:tag="6" />
-        <com.google.android.material.button.MaterialButton android:id="@+id/keyMul" style="@style/CalcKey.Action" android:text="*" android:tag="*" />
+        <com.google.android.material.button.MaterialButton android:id="@+id/keyMul" style="@style/CalcKey.Action" android:text="×" android:tag="*" />
     </LinearLayout>
 
     <LinearLayout
@@ -34,7 +34,7 @@
         <com.google.android.material.button.MaterialButton android:id="@+id/key1" style="@style/CalcKey" android:text="1" android:tag="1" />
         <com.google.android.material.button.MaterialButton android:id="@+id/key2" style="@style/CalcKey" android:text="2" android:tag="2" />
         <com.google.android.material.button.MaterialButton android:id="@+id/key3" style="@style/CalcKey" android:text="3" android:tag="3" />
-        <com.google.android.material.button.MaterialButton android:id="@+id/keyAdd" style="@style/CalcKey.Action" android:text="+" android:tag="+" />
+        <com.google.android.material.button.MaterialButton android:id="@+id/keyMinus" style="@style/CalcKey.Action" android:text="−" android:tag="-" />
     </LinearLayout>
 
     <LinearLayout
@@ -44,6 +44,14 @@
 
         <com.google.android.material.button.MaterialButton android:id="@+id/key0" style="@style/CalcKey" android:layout_weight="2" android:text="0" android:tag="0" />
         <com.google.android.material.button.MaterialButton android:id="@+id/keyDot" style="@style/CalcKey" android:text="," />
+        <com.google.android.material.button.MaterialButton android:id="@+id/keyAdd" style="@style/CalcKey.Action" android:text="+" android:tag="+" />
+    </LinearLayout>
+
+    <LinearLayout
+        android:layout_width="match_parent"
+        android:layout_height="wrap_content"
+        android:orientation="horizontal">
+
         <com.google.android.material.button.MaterialButton android:id="@+id/keyOk" style="@style/CalcKey.Ok" android:text="@string/calc_ok" />
     </LinearLayout>
 </merge>

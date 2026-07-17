@@ -233,15 +233,17 @@ p("Tap the round <b>✚</b> button. The booking editor opens.")
 shot("Ausgaben.png", "Booking editor with type switch, amount, payee and account")
 h2("Arithmetic in the amount field")
 p("The <b>amount field</b> opens an <b>app-own calculator keypad</b> (digits, <b>⌫</b>, decimal key, "
-  "<b>*</b>, <b>+</b>, <b>OK</b>) instead of the system keyboard and so also accepts a small "
-  "<b>calculation</b> – handy when splitting a bill or adding up several items: <i>10+20*3</i> gives 70, "
-  "<i>100,50*2+25</i> gives 226. Only <b>addition (+)</b> and <b>multiplication (*)</b> are allowed, with "
-  "the usual precedence (× before +) and one decimal mark per number; minus, division, brackets and "
-  "functions are <b>not</b> possible. Invalid characters cannot even be typed. <b>⌫</b> deletes the last "
-  "character (long-press clears the field); <b>OK</b> evaluates the calculation and replaces it with the "
-  "result, an invalid one flagged with a message. The same applies to the <b>partial amounts</b> of a split "
-  "transaction and the value quick-entry from the main menu. If the entry is incomplete, the amount simply "
-  "stays empty.")
+  "<b>×</b>, <b>−</b>, <b>+</b>, <b>OK</b>) instead of the system keyboard and so also accepts a small "
+  "<b>calculation</b> – handy when splitting a bill or offsetting several items: <i>10+20*3</i> gives 70, "
+  "<i>100,50*2+25</i> gives 226, <i>30-5</i> gives 25. <b>Addition (+)</b>, <b>subtraction (−)</b> and "
+  "<b>multiplication (×)</b> are allowed, with the usual precedence (× before +/−) and one decimal mark per "
+  "number; the minus also acts as a <b>sign</b> (<i>-5</i>, <i>3*-2</i>). Division, brackets and functions "
+  "are <b>not</b> possible; invalid characters cannot even be typed. <b>⌫</b> deletes the last character "
+  "(long-press clears the field); <b>OK</b> evaluates the calculation and replaces it with the result, an "
+  "invalid one flagged with a message. The same keypad appears everywhere you enter an amount – the "
+  "<b>partial amounts</b> of a split transaction, the value quick-entry from the main menu, <b>balances</b> "
+  "(there also with minus for outflows), the <b>budget</b>, transfers and the cash count. If the entry is "
+  "incomplete, the amount simply stays empty.")
 h2("Fields and controls")
 bullets([
   "<b>Type switch</b>: <font color='#b00020'>Expense</font> · <b>Transfer</b> · <font color='#2e7d32'>Income</font>. "

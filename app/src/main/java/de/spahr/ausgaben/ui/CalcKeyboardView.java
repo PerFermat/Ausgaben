@@ -38,6 +38,7 @@ public class CalcKeyboardView extends LinearLayout {
 
     private EditText target;
     private OnOk onOk;
+    private boolean allowNegative = false;   // z. B. Bestände-Bewegungen dürfen negativ sein
 
     public CalcKeyboardView(Context context) {
         super(context);
@@ -54,7 +55,8 @@ public class CalcKeyboardView extends LinearLayout {
         LayoutInflater.from(context).inflate(R.layout.view_calc_keyboard, this, true);
 
         int[] valueKeys = {R.id.key0, R.id.key1, R.id.key2, R.id.key3, R.id.key4,
-                R.id.key5, R.id.key6, R.id.key7, R.id.key8, R.id.key9, R.id.keyAdd, R.id.keyMul};
+                R.id.key5, R.id.key6, R.id.key7, R.id.key8, R.id.key9,
+                R.id.keyAdd, R.id.keyMul, R.id.keyMinus};
         for (int id : valueKeys) {
             findViewById(id).setOnClickListener(v -> insert(v.getTag().toString()));
         }
@@ -85,6 +87,42 @@ public class CalcKeyboardView extends LinearLayout {
 
     public void setOnOk(OnOk listener) {
         this.onOk = listener;
+    }
+
+    /** Erlaubt negative Ergebnisse (z. B. für vorzeichenbehaftete Bestände-Bewegungen). */
+    public void setAllowNegative(boolean allow) {
+        this.allowNegative = allow;
+    }
+
+    /**
+     * Bindet die eigene Tastatur an ein Betrags-Feld in einem Dialog: Eingabefilter setzen, System-Tastatur
+     * für dieses Feld unterdrücken, Tastatur unten in {@code container} einhängen und <b>nur bei Fokus</b> des
+     * Feldes einblenden (andere Felder – z. B. eine Notiz – behalten so ihre System-Tastatur). Beim Verlassen
+     * bzw. „OK" wird die Rechnung ausgewertet und durch das Ergebnis ersetzt.
+     */
+    public static CalcKeyboardView installToggling(EditText field, LinearLayout container,
+                                                   boolean allowNegative) {
+        field.setFilters(new android.text.InputFilter[]{new CalcInputFilter()});
+        CalcKeyboardView kb = new CalcKeyboardView(container.getContext());
+        kb.setAllowNegative(allowNegative);
+        kb.attachTo(field);
+        kb.setVisibility(GONE);
+        container.addView(kb);
+        field.setOnFocusChangeListener((v, hasFocus) -> {
+            if (hasFocus) {
+                kb.attachTo(field);
+                kb.setVisibility(VISIBLE);
+            } else {
+                kb.setVisibility(GONE);
+                kb.evaluateAndReplace();
+            }
+        });
+        kb.setOnOk(valid -> {
+            if (valid) {
+                field.clearFocus();
+            }
+        });
+        return kb;
     }
 
     private void insert(String ch) {
@@ -125,22 +163,33 @@ public class CalcKeyboardView extends LinearLayout {
     }
 
     private void evaluate() {
+        boolean ok = evaluateAndReplace();
+        if (onOk != null) {
+            onOk.onOk(ok);
+        }
+    }
+
+    /**
+     * Wertet die Rechnung aus und ersetzt den Feldinhalt durch das Ergebnis. Leeres Feld gilt als gültig
+     * (nichts zu tun). Gibt {@code false} bei ungültiger Rechnung (oder unerlaubt negativem Ergebnis) zurück.
+     */
+    boolean evaluateAndReplace() {
         if (target == null) {
-            return;
+            return false;
         }
         String raw = target.getText() == null ? "" : target.getText().toString().trim();
+        if (raw.isEmpty()) {
+            return true;
+        }
         Long cents = AmountExpression.toCents(raw);
-        if (cents == null || cents < 0) {
-            if (onOk != null) {
-                onOk.onOk(false);
-            }
-            return;
+        if (cents == null || (!allowNegative && cents < 0)) {
+            return false;
         }
         String result = MoneyFormat.plain(cents);
-        target.setText(result);
-        target.setSelection(result.length());
-        if (onOk != null) {
-            onOk.onOk(true);
+        if (!result.equals(raw)) {
+            target.setText(result);
+            target.setSelection(result.length());
         }
+        return true;
     }
 }

@@ -17,8 +17,6 @@ import com.google.android.material.dialog.MaterialAlertDialogBuilder;
 import com.google.android.material.textfield.TextInputEditText;
 import com.google.android.material.textfield.TextInputLayout;
 
-import java.math.BigDecimal;
-import java.math.RoundingMode;
 import java.text.SimpleDateFormat;
 import java.util.ArrayList;
 import java.util.Calendar;
@@ -605,25 +603,30 @@ public class BudgetActivity extends LocalizedActivity {
             }
         }
 
+        android.widget.LinearLayout box = new android.widget.LinearLayout(this);
+        box.setOrientation(android.widget.LinearLayout.VERTICAL);
         TextInputLayout til = new TextInputLayout(this);
         til.setHint(getString(R.string.budget_edit_hint));
         til.setBoxBackgroundMode(TextInputLayout.BOX_BACKGROUND_OUTLINE);
         TextInputEditText input = new TextInputEditText(til.getContext());
-        input.setInputType(android.text.InputType.TYPE_CLASS_NUMBER
-                | android.text.InputType.TYPE_NUMBER_FLAG_DECIMAL);
+        input.setInputType(android.text.InputType.TYPE_CLASS_PHONE);
         if (current > 0) {
             input.setText(MoneyFormat.plain(current));
         }
         til.addView(input);
         int pad = dp(16);
-        til.setPadding(pad, 0, pad, 0);
+        box.setPadding(pad, 0, pad, 0);
+        box.addView(til);
+        // Eigene Rechentastatur statt der System-Tastatur (erscheint bei Fokus des Betragsfelds).
+        CalcKeyboardView.installToggling(input, box, false);
+        input.requestFocus();
 
         new MaterialAlertDialogBuilder(this)
                 .setTitle(getString(R.string.budget_edit_title, category))
-                .setView(til)
+                .setView(box)
                 .setPositiveButton(android.R.string.ok, (d, w) -> {
                     Long cents = parseCents(input.getText() == null ? "" : input.getText().toString());
-                    if (cents == null) {
+                    if (cents == null || cents < 0) {
                         Toast.makeText(this, R.string.budget_invalid_amount, Toast.LENGTH_SHORT).show();
                         return;
                     }
@@ -634,15 +637,7 @@ public class BudgetActivity extends LocalizedActivity {
     }
 
     private Long parseCents(String s) {
-        String t = s.trim().replace(',', '.');
-        if (t.isEmpty()) {
-            return null;
-        }
-        try {
-            return new BigDecimal(t).movePointRight(2).setScale(0, RoundingMode.HALF_UP).longValueExact();
-        } catch (ArithmeticException | NumberFormatException e) {
-            return null;
-        }
+        return de.spahr.ausgaben.settings.AmountExpression.toCents(s);
     }
 
     private int dp(int v) {

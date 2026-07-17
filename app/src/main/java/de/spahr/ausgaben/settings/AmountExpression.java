@@ -5,10 +5,10 @@ import java.math.RoundingMode;
 
 /**
  * Rechnet einen eingetippten Betrag aus – auch als kleine Rechnung, z. B. {@code 12,50+3,20} (geteilte
- * Restaurantrechnung) oder {@code 3*4,50}. Bewusst <b>eingeschränkt</b>: erlaubt sind nur Zahlen mit
- * Dezimaltrennung (Komma oder Punkt), <b>Addition ({@code +})</b> und <b>Multiplikation ({@code *})</b> –
- * mit üblicher Priorität (Punkt vor Strich). Subtraktion, Division, Klammern und Funktionen sind
- * <b>nicht</b> zulässig. Eine reine Zahl verhält sich wie vorher.
+ * Restaurantrechnung) oder {@code 3*4,50}. Erlaubt sind Zahlen mit Dezimaltrennung (Komma oder Punkt),
+ * <b>Addition ({@code +})</b>, <b>Subtraktion ({@code -})</b> und <b>Multiplikation ({@code *})</b> – mit
+ * üblicher Priorität (Punkt vor Strich); ein Minus wirkt auch als <b>Vorzeichen</b> ({@code -5}, {@code 3*-2}).
+ * Division, Klammern und Funktionen sind <b>nicht</b> zulässig. Eine reine Zahl verhält sich wie vorher.
  *
  * <p>Rechnet durchgängig mit {@link BigDecimal} (kein {@code double}), damit Geldbeträge nicht durch
  * Binärbrüche verfälscht werden. Ungültige Eingaben ergeben {@code null} – nie eine Ausnahme.</p>
@@ -30,9 +30,10 @@ public final class AmountExpression {
         if (raw == null) {
             return null;
         }
-        // Komma → Punkt; „×"/„·" als bequeme Multiplikations-Varianten. Alles andere (− / ( ) …) bleibt
-        // stehen und lässt die Auswertung scheitern → null.
-        String t = raw.trim().replace(" ", "").replace(",", ".").replace("×", "*").replace("·", "*");
+        // Komma → Punkt; „×"/„·" als Multiplikation, das Minuszeichen „−" (U+2212) als „-". Division/Klammern
+        // bleiben stehen und lassen die Auswertung scheitern → null.
+        String t = raw.trim().replace(" ", "").replace(",", ".").replace("×", "*").replace("·", "*")
+                .replace("−", "-");
         if (t.isEmpty()) {
             return null;
         }
@@ -61,24 +62,38 @@ public final class AmountExpression {
         }
     }
 
-    /** Summe: Produkt ('+' Produkt)* */
+    /** Summe: Produkt (('+'|'-') Produkt)* */
     private BigDecimal sum() {
         BigDecimal v = product();
-        while (pos < s.length() && s.charAt(pos) == '+') {
-            pos++;
-            v = v.add(product());
+        while (pos < s.length() && (s.charAt(pos) == '+' || s.charAt(pos) == '-')) {
+            char op = s.charAt(pos++);
+            BigDecimal r = product();
+            v = op == '+' ? v.add(r) : v.subtract(r);
         }
         return v;
     }
 
-    /** Produkt: Zahl ('*' Zahl)* */
+    /** Produkt: Faktor ('*' Faktor)* */
     private BigDecimal product() {
-        BigDecimal v = number();
+        BigDecimal v = factor();
         while (pos < s.length() && s.charAt(pos) == '*') {
             pos++;
-            v = v.multiply(number());
+            v = v.multiply(factor());
         }
         return v;
+    }
+
+    /** Faktor: ('+'|'-')? Faktor | Zahl – erlaubt Vorzeichen ({@code -5}, {@code 3*-2}). */
+    private BigDecimal factor() {
+        if (pos < s.length() && s.charAt(pos) == '+') {
+            pos++;
+            return factor();
+        }
+        if (pos < s.length() && s.charAt(pos) == '-') {
+            pos++;
+            return factor().negate();
+        }
+        return number();
     }
 
     /** Zahl: Ziffern mit höchstens einem Dezimalpunkt (kein Vorzeichen, keine Klammer). */

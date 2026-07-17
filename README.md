@@ -141,12 +141,13 @@ permission is unaffected). F-Droid packaging notes are in [`fdroid/`](fdroid/).
   **and** the analysis (shared search logic, so the two cannot drift apart). With a category filter, a split
   booking shows only the partial amount of the chosen category.
 - **Arithmetic via the built-in keypad**: the amount field opens an **app-own calculator keypad** (digits,
-  `⌫`, decimal key, `*`, `+`, `OK`) instead of the system keyboard. `10+20*3` → 70, `100,50*2+25` → 226;
-  only **addition (`+`) and multiplication (`*`)** are allowed, with usual precedence (× before +) and one
-  decimal mark per number. Subtraction, division, brackets and functions are **not** possible; invalid
-  characters cannot even be typed. `⌫` deletes the last character (long-press clears the field), **`OK`**
-  evaluates the calculation and replaces it with the result; an invalid one is flagged with a message.
-  Applies to the partial amounts of a split booking and the value quick-entry from the main menu too.
+  `⌫`, decimal key, `×`, `−`, `+`, `OK`) instead of the system keyboard. `10+20*3` → 70, `100,50*2+25` → 226,
+  `30-5` → 25; **addition (`+`), subtraction (`−`) and multiplication (`×`)** are allowed, with usual
+  precedence (× before +/−) and one decimal mark per number; the minus also acts as a **sign** (`-5`, `3*-2`).
+  Division, brackets and functions are **not** possible; invalid characters cannot even be typed. `⌫` deletes
+  the last character (long-press clears the field), **`OK`** evaluates the calculation and replaces it with
+  the result. The same keypad appears **everywhere** you enter an amount – split partial amounts, the value
+  quick-entry, **balances** (with minus for outflows), the **budget**, transfers and the cash count.
 - **Undo after deleting**: an “Undo” snackbar recreates the booking (new internal id; in the place journal
   the deletion and recreation remain as history). Not offered for transfers.
 - **Launcher shortcut**: long-press the app icon → **“New booking”**.

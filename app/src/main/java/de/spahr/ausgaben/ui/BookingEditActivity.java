@@ -158,27 +158,8 @@ public class BookingEditActivity extends LocalizedActivity {
         editAmount = findViewById(R.id.editAmount);
         amountLayout = findViewById(R.id.amountLayout);
         calcKeyboard = findViewById(R.id.calcKeyboard);
-        // Nur Zahlen, ein Dezimaltrennzeichen, + und * zulassen (schon beim Tippen).
-        editAmount.setFilters(new android.text.InputFilter[]{new CalcInputFilter()});
-        // Eigene Rechentastatur: System-Tastatur unterdrücken, bei Fokus ein-/ausblenden.
-        calcKeyboard.attachTo(editAmount);
-        calcKeyboard.setOnOk(valid -> {
-            if (valid) {
-                amountLayout.setError(null);
-                editAmount.clearFocus();   // blendet die Tastatur aus (Fokus-Listener)
-            } else {
-                amountLayout.setError(getString(R.string.error_amount_calc));
-            }
-        });
-        editAmount.setOnFocusChangeListener((v, hasFocus) -> {
-            if (hasFocus && !readOnly) {
-                calcKeyboard.setVisibility(View.VISIBLE);
-            } else {
-                calcKeyboard.setVisibility(View.GONE);
-                evaluateAmountField();     // „=": beim Verlassen auswerten und ersetzen
-            }
-        });
-        editAmount.addTextChangedListener(new SimpleWatcher(() -> amountLayout.setError(null)));
+        // Haupt-Betragsfeld an die eigene Rechentastatur binden (Teilbeträge folgen unten über den Binder).
+        wireCalcField(editAmount, amountLayout);
         payeeLayout = findViewById(R.id.payeeLayout);
         editPayee = findViewById(R.id.editPayee);
         accountLayout = findViewById(R.id.accountLayout);
@@ -197,6 +178,7 @@ public class BookingEditActivity extends LocalizedActivity {
                 || getIntent().getLongExtra(EXTRA_SCHEDULED_ID, -1) >= 0;
         splitCtl = new SplitRowController(splitContainer, editAmount, getLayoutInflater(),
                 readOnly, this::updateSaveEnabled);
+        splitCtl.setAmountBinder(field -> wireCalcField(field, null));   // Teilbeträge an die Rechentastatur
         editNote = findViewById(R.id.editNote);
         editDate = findViewById(R.id.editDate);
         switchExported = findViewById(R.id.switchExported);
@@ -1289,27 +1271,62 @@ public class BookingEditActivity extends LocalizedActivity {
     }
 
     /**
-     * Wertet die im Betragsfeld stehende Rechnung aus und ersetzt sie durch das Ergebnis (Wirkung der
-     * „="-Taste). Leeres Feld bleibt leer; eine ungültige Rechnung wird mit einer Fehlermeldung quittiert.
+     * Bindet ein Betragsfeld an die gemeinsame Rechentastatur: Eingabefilter, System-Tastatur unterdrücken,
+     * bei Fokus die Tastatur zeigen (arbeitet auf dem fokussierten Feld) und beim Verlassen/„OK" auswerten.
+     * {@code layout} darf {@code null} sein (Teilbeträge zeigen keinen Feld-Fehler).
      */
-    private void evaluateAmountField() {
+    void wireCalcField(final TextInputEditText field, final TextInputLayout layout) {
+        field.setFilters(new android.text.InputFilter[]{new CalcInputFilter()});
+        field.setShowSoftInputOnFocus(false);
+        field.setOnFocusChangeListener((v, hasFocus) -> {
+            if (hasFocus && !readOnly) {
+                calcKeyboard.attachTo(field);
+                calcKeyboard.setOnOk(valid -> {
+                    if (valid) {
+                        if (layout != null) {
+                            layout.setError(null);
+                        }
+                        field.clearFocus();   // blendet die Tastatur aus (Fokus-Listener)
+                    } else if (layout != null) {
+                        layout.setError(getString(R.string.error_amount_calc));
+                    }
+                });
+                calcKeyboard.setVisibility(View.VISIBLE);
+            } else {
+                calcKeyboard.setVisibility(View.GONE);
+                evaluateCalcField(field, layout);   // „=": beim Verlassen auswerten und ersetzen
+            }
+        });
+        if (layout != null) {
+            field.addTextChangedListener(new SimpleWatcher(() -> layout.setError(null)));
+        }
+    }
+
+    /** Wertet die Rechnung im Feld aus und ersetzt sie durch das Ergebnis; ungültig → Fehlermeldung (falls Layout). */
+    private void evaluateCalcField(TextInputEditText field, TextInputLayout layout) {
         if (readOnly) {
             return;
         }
-        String raw = textOf(editAmount).trim();
+        String raw = textOf(field).trim();
         if (raw.isEmpty()) {
-            amountLayout.setError(null);
+            if (layout != null) {
+                layout.setError(null);
+            }
             return;
         }
         Long cents = parseAmountToCents(raw);
         if (cents == null || cents < 0) {
-            amountLayout.setError(getString(R.string.error_amount_calc));
+            if (layout != null) {
+                layout.setError(getString(R.string.error_amount_calc));
+            }
             return;
         }
-        amountLayout.setError(null);
+        if (layout != null) {
+            layout.setError(null);
+        }
         String result = formatCents(cents);
         if (!result.equals(raw)) {
-            editAmount.setText(result);   // Feldinhalt durch das Ergebnis ersetzen
+            field.setText(result);   // Feldinhalt durch das Ergebnis ersetzen
         }
     }
 

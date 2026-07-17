@@ -145,12 +145,14 @@ Mikrofon-Berechtigung ist davon unberührt). Hinweise zur F-Droid-Paketierung in
   (Schieberegler) und **Datum von–bis** (Schieberegler in Monatsschritten; für ein taggenaues Datum tippt man
   es direkt ins Feld). Der Filter wirkt auf Liste **und** Auswertung (gemeinsame Suchlogik, damit beide nicht
   auseinanderlaufen). Bei Kategorie-Filter zeigt eine Splitbuchung nur den Teilbetrag der gewählten Kategorie.
-- **Rechnen im Betragsfeld**: `10+20*3` → 70, `100,50*2+25` → 226; erlaubt sind nur **Addition (`+`) und
-  Multiplikation (`*`)** mit üblicher Priorität (Punkt vor Strich) sowie ein Dezimaltrennzeichen je Zahl.
-  Subtraktion, Division, Klammern und Funktionen sind **nicht** möglich; ungültige Zeichen lassen sich gar
-  nicht erst eintippen, unvollständige/ungültige Rechnungen werden mit einer Meldung quittiert. Das Feld
-  wertet beim Verlassen aus und zeigt das Ergebnis. Gilt auch für die Teilbeträge einer Splitbuchung und die
-  Wert-Direkteingabe im Hauptmenü.
+- **Rechnen im Betragsfeld über die eigene Tastatur**: Das Betragsfeld öffnet eine **app-eigene
+  Rechentastatur** (Ziffern, `⌫`, Dezimaltaste, `*`, `+`, `OK`) statt der System-Tastatur. `10+20*3` → 70,
+  `100,50*2+25` → 226; erlaubt sind nur **Addition (`+`) und Multiplikation (`*`)** mit üblicher Priorität
+  (Punkt vor Strich) sowie ein Dezimaltrennzeichen je Zahl. Subtraktion, Division, Klammern und Funktionen
+  sind **nicht** möglich; ungültige Zeichen lassen sich gar nicht erst eintippen. `⌫` löscht das letzte
+  Zeichen (langer Druck leert das Feld), **`OK`** wertet die Rechnung aus und ersetzt sie durch das Ergebnis;
+  eine ungültige Rechnung wird mit einer Meldung quittiert. Gilt auch für die Teilbeträge einer Splitbuchung
+  und die Wert-Direkteingabe im Hauptmenü.
 - **Rückgängig nach dem Löschen**: Snackbar „Rückgängig" legt die Buchung wieder an (neue interne Nummer; im
   Ort-Journal bleiben Löschung und Wiederanlage als Historie stehen). Bei Umbuchungen nicht angeboten.
 - **Launcher-Shortcut**: Langdruck auf das App-Symbol → **„Neue Buchung"**.

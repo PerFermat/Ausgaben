@@ -65,6 +65,9 @@
     <string name="transfer_saved">Umbuchung gespeichert</string>
     <string name="amount_hint">Betrag</string>
     <string name="amount_calc_help">z. B. 10+20*3 – erlaubt sind nur + und *</string>
+    <string name="calc_ok">OK</string>
+    <string name="calc_delete">Löschen</string>
+    <string name="calc_decimal_key">,</string>
     <string name="payee_hint">Geldempfänger</string>
     <string name="account_hint">Konto</string>
     <string name="note_hint">Notiz (optional)</string>

@@ -243,14 +243,16 @@ h1("6. Eine Buchung erfassen")
 p("Tippen Sie auf den runden <b>✚</b>-Knopf. Es öffnet sich der Buchungs-Editor.")
 shot("Ausgaben.png", "Buchungs-Editor mit Typ-Umschalter, Betrag, Empfänger und Konto")
 h2("Rechnen im Betragsfeld")
-p("Das <b>Betragsfeld</b> nimmt auch eine kleine <b>Rechnung</b> entgegen – praktisch, wenn Sie eine "
-  "Rechnung teilen oder mehrere Posten zusammenzählen: <i>10+20*3</i> ergibt 70, <i>100,50*2+25</i> ergibt "
-  "226. Erlaubt sind bewusst nur <b>Addition (+)</b> und <b>Multiplikation (*)</b> mit üblicher Priorität "
-  "(Punkt vor Strich) sowie ein Dezimaltrennzeichen je Zahl; Minus, Geteilt, Klammern und Funktionen sind "
-  "<b>nicht</b> möglich. Ungültige Zeichen lassen sich gar nicht erst eintippen; beim Verlassen des Feldes "
-  "wird die Rechnung ausgewertet und durch das Ergebnis ersetzt, eine ungültige Rechnung mit einer Meldung "
-  "quittiert. Dasselbe gilt für die <b>Teilbeträge</b> einer Splitbuchung und die Wert-Direkteingabe im "
-  "Hauptmenü. Steht dort etwas Unvollständiges, bleibt der Betrag "
+p("Das <b>Betragsfeld</b> öffnet eine <b>app-eigene Rechentastatur</b> (Ziffern, <b>⌫</b>, Dezimaltaste, "
+  "<b>*</b>, <b>+</b>, <b>OK</b>) statt der System-Tastatur und nimmt so auch eine kleine <b>Rechnung</b> "
+  "entgegen – praktisch, wenn Sie eine Rechnung teilen oder mehrere Posten zusammenzählen: <i>10+20*3</i> "
+  "ergibt 70, <i>100,50*2+25</i> ergibt 226. Erlaubt sind bewusst nur <b>Addition (+)</b> und "
+  "<b>Multiplikation (*)</b> mit üblicher Priorität (Punkt vor Strich) sowie ein Dezimaltrennzeichen je "
+  "Zahl; Minus, Geteilt, Klammern und Funktionen sind <b>nicht</b> möglich. Ungültige Zeichen lassen sich "
+  "gar nicht erst eintippen. <b>⌫</b> löscht das letzte Zeichen (langer Druck leert das Feld); <b>OK</b> "
+  "wertet die Rechnung aus und ersetzt sie durch das Ergebnis, eine ungültige Rechnung wird mit einer "
+  "Meldung quittiert. Dasselbe gilt für die <b>Teilbeträge</b> einer Splitbuchung und die Wert-Direkteingabe "
+  "im Hauptmenü. Steht dort etwas Unvollständiges, bleibt der Betrag "
   "einfach leer.")
 h2("Felder und Bedienelemente")
 bullets([

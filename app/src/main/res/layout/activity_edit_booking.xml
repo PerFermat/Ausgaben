@@ -17,7 +17,8 @@
 
     <ScrollView
         android:layout_width="match_parent"
-        android:layout_height="match_parent">
+        android:layout_height="0dp"
+        android:layout_weight="1">
 
         <LinearLayout
             android:layout_width="match_parent"
@@ -327,4 +328,13 @@
 
         </LinearLayout>
     </ScrollView>
+
+    <!-- Eigene Rechentastatur; nur sichtbar, wenn das Betragsfeld aktiv ist. -->
+    <de.spahr.ausgaben.ui.CalcKeyboardView
+        android:id="@+id/calcKeyboard"
+        android:layout_width="match_parent"
+        android:layout_height="wrap_content"
+        android:paddingHorizontal="6dp"
+        android:paddingBottom="6dp"
+        android:visibility="gone" />
 </LinearLayout>

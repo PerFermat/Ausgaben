@@ -98,6 +98,7 @@ public class BookingEditActivity extends LocalizedActivity {
     private android.widget.ImageButton btnNoteMap;
     private TextInputEditText editAmount;
     private TextInputLayout amountLayout;
+    private CalcKeyboardView calcKeyboard;
     private TextInputLayout payeeLayout;
     private MaterialAutoCompleteTextView editPayee;
     private TextInputLayout accountLayout;
@@ -156,12 +157,25 @@ public class BookingEditActivity extends LocalizedActivity {
         btnNoteMap = findViewById(R.id.btnNoteMap);
         editAmount = findViewById(R.id.editAmount);
         amountLayout = findViewById(R.id.amountLayout);
-        // Nur Zahlen, ein Dezimaltrennzeichen, + und * zulassen (schon beim Tippen); der Ziffernblock bleibt.
+        calcKeyboard = findViewById(R.id.calcKeyboard);
+        // Nur Zahlen, ein Dezimaltrennzeichen, + und * zulassen (schon beim Tippen).
         editAmount.setFilters(new android.text.InputFilter[]{new CalcInputFilter()});
-        // „=": beim Verlassen des Feldes die Rechnung auswerten und durch das Ergebnis ersetzen.
+        // Eigene Rechentastatur: System-Tastatur unterdrücken, bei Fokus ein-/ausblenden.
+        calcKeyboard.attachTo(editAmount);
+        calcKeyboard.setOnOk(valid -> {
+            if (valid) {
+                amountLayout.setError(null);
+                editAmount.clearFocus();   // blendet die Tastatur aus (Fokus-Listener)
+            } else {
+                amountLayout.setError(getString(R.string.error_amount_calc));
+            }
+        });
         editAmount.setOnFocusChangeListener((v, hasFocus) -> {
-            if (!hasFocus) {
-                evaluateAmountField();
+            if (hasFocus && !readOnly) {
+                calcKeyboard.setVisibility(View.VISIBLE);
+            } else {
+                calcKeyboard.setVisibility(View.GONE);
+                evaluateAmountField();     // „=": beim Verlassen auswerten und ersetzen
             }
         });
         editAmount.addTextChangedListener(new SimpleWatcher(() -> amountLayout.setError(null)));

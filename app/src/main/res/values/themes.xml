@@ -30,4 +30,31 @@
     <style name="ThemeOverlay.Ausgaben.Dialog" parent="ThemeOverlay.Material3.MaterialAlertDialog">
         <item name="colorPrimary">@color/button_accent</item>
     </style>
+
+    <!-- Tasten der eigenen Rechentastatur (CalcKeyboardView). -->
+    <style name="CalcKey" parent="Widget.Material3.Button.TonalButton">
+        <item name="android:layout_width">0dp</item>
+        <item name="android:layout_height">54dp</item>
+        <item name="android:layout_weight">1</item>
+        <item name="android:layout_margin">3dp</item>
+        <item name="android:textSize">22sp</item>
+        <item name="android:insetTop">0dp</item>
+        <item name="android:insetBottom">0dp</item>
+        <item name="android:focusable">false</item>
+        <item name="android:focusableInTouchMode">false</item>
+        <item name="cornerRadius">10dp</item>
+    </style>
+
+    <!-- Operator-/Löschtasten (⌫ * +): abgesetzt in Grün. -->
+    <style name="CalcKey.Action" parent="CalcKey">
+        <item name="backgroundTint">@color/green_primary</item>
+        <item name="android:textColor">@color/white</item>
+    </style>
+
+    <!-- OK-Taste: auswerten und Ergebnis übernehmen. -->
+    <style name="CalcKey.Ok" parent="CalcKey">
+        <item name="backgroundTint">@color/green_dark</item>
+        <item name="android:textColor">@color/white</item>
+        <item name="android:textStyle">bold</item>
+    </style>
 </resources>

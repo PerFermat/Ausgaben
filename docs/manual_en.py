@@ -518,10 +518,23 @@ p("After importing a KMyMoney investment account, the <b>portfolio</b> appears i
   "<b>movements full-screen</b> (buys green, sells red, dividends neutral) with the same figures for that "
   "security plus a <b>filter by buys/sells/dividends</b> and a date slider (start date = first purchase). "
   "The portfolio value is kept separate and also appears as «Net worth» in the main screen's balance line.")
-p("The <b>«Analysis»</b> menu opens a <b>pie chart</b> of the securities (share of the portfolio value). The "
-  "slices are unlabelled; a tap shows the <b>name and amount</b> of the security in the centre, and with "
-  "nothing selected the centre reads «Total: &lt;portfolio value&gt;». The <b>Export</b> in the portfolio menu "
-  "runs right in the portfolio (no switch to the cash view).")
+p("The <b>«Analysis»</b> menu opens a <b>pie chart</b> of the securities – styled like the Categories page "
+  "(continuous ring, a fixed colour per security, at most half the screen height, with its own scrollable "
+  "list below). The slices are unlabelled; a tap shows the <b>name and amount</b> of the security in the "
+  "centre, with nothing selected it reads «Total». Chart and list are <b>always</b> sorted descending by the "
+  "current value of the period.")
+p("At the top a <b>toggle</b> picks the view: <b>Current value</b> (default) · <b>Net deposits</b> · "
+  "<b>Total dividends</b>. Below it a <b>period filter</b> narrows the analysis – a monthly range slider "
+  "(first portfolio transaction to today) plus two <b>From/To</b> date fields for any date. Any change to the "
+  "view or period updates chart and list immediately.")
+bullets([
+  "<b>Current value:</b> today's value (current price) of the <b>positions built</b> in the period – i.e. "
+  "the shares bought within the period that are still held. Over the full period this equals the current "
+  "portfolio value (shares sold again within the period do not count negative).",
+  "<b>Net deposits:</b> buys − sells − dividends within the period.",
+  "<b>Total dividends:</b> all dividends received within the period (gross/net per the setting).",
+])
+p("The <b>Export</b> in the portfolio menu runs right in the portfolio (no switch to the cash view).")
 p("<b>Dividends gross/net:</b> the settings let you choose whether dividends are shown gross (declared "
   "dividend) or net (cash received after tax) and used in the balance line (dividends, net invested, "
   "gain/loss). The net value is captured on portfolio import – for existing data a one-time re-import is "

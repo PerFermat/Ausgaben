@@ -15,20 +15,134 @@
         app:title="@string/depot_chart_title"
         app:titleTextColor="@color/white" />
 
+    <!-- Ansicht: Aktueller Wert / Netto-Einzahlungen / Summe Dividenden. -->
+    <com.google.android.material.button.MaterialButtonToggleGroup
+        android:id="@+id/toggleView"
+        android:layout_width="match_parent"
+        android:layout_height="wrap_content"
+        android:layout_marginHorizontal="12dp"
+        android:layout_marginTop="8dp"
+        app:selectionRequired="true"
+        app:singleSelection="true">
+
+        <com.google.android.material.button.MaterialButton
+            android:id="@+id/btnViewValue"
+            style="?attr/materialButtonOutlinedStyle"
+            android:layout_width="0dp"
+            android:layout_height="wrap_content"
+            android:layout_weight="1"
+            android:textSize="12sp"
+            android:text="@string/depot_view_value" />
+
+        <com.google.android.material.button.MaterialButton
+            android:id="@+id/btnViewNetto"
+            style="?attr/materialButtonOutlinedStyle"
+            android:layout_width="0dp"
+            android:layout_height="wrap_content"
+            android:layout_weight="1"
+            android:textSize="12sp"
+            android:text="@string/depot_view_netto" />
+
+        <com.google.android.material.button.MaterialButton
+            android:id="@+id/btnViewDividend"
+            style="?attr/materialButtonOutlinedStyle"
+            android:layout_width="0dp"
+            android:layout_height="wrap_content"
+            android:layout_weight="1"
+            android:textSize="12sp"
+            android:text="@string/depot_view_dividend" />
+    </com.google.android.material.button.MaterialButtonToggleGroup>
+
+    <!-- Zeitraumfilter: monatlicher Bereichsslider + Von/Bis-Datumsfelder (Tipp öffnet Datumsauswahl).
+         Grenzen/Werte/Schrittweite werden im Code gesetzt (erste Buchung bis heute). -->
+    <com.google.android.material.slider.RangeSlider
+        android:id="@+id/periodSlider"
+        android:layout_width="match_parent"
+        android:layout_height="wrap_content"
+        android:layout_marginHorizontal="12dp"
+        android:layout_marginTop="4dp" />
+
+    <LinearLayout
+        android:layout_width="match_parent"
+        android:layout_height="wrap_content"
+        android:layout_marginHorizontal="12dp"
+        android:orientation="horizontal">
+
+        <com.google.android.material.textfield.TextInputLayout
+            android:id="@+id/dateFromLayout"
+            style="@style/Widget.Material3.TextInputLayout.OutlinedBox"
+            android:layout_width="0dp"
+            android:layout_height="wrap_content"
+            android:layout_weight="1"
+            android:layout_marginEnd="6dp"
+            android:hint="@string/depot_period_from">
+
+            <com.google.android.material.textfield.TextInputEditText
+                android:id="@+id/dateFrom"
+                android:layout_width="match_parent"
+                android:layout_height="wrap_content"
+                android:focusable="false"
+                android:clickable="true"
+                android:cursorVisible="false"
+                android:inputType="none" />
+        </com.google.android.material.textfield.TextInputLayout>
+
+        <com.google.android.material.textfield.TextInputLayout
+            android:id="@+id/dateToLayout"
+            style="@style/Widget.Material3.TextInputLayout.OutlinedBox"
+            android:layout_width="0dp"
+            android:layout_height="wrap_content"
+            android:layout_weight="1"
+            android:layout_marginStart="6dp"
+            android:hint="@string/depot_period_to">
+
+            <com.google.android.material.textfield.TextInputEditText
+                android:id="@+id/dateTo"
+                android:layout_width="match_parent"
+                android:layout_height="wrap_content"
+                android:focusable="false"
+                android:clickable="true"
+                android:cursorVisible="false"
+                android:inputType="none" />
+        </com.google.android.material.textfield.TextInputLayout>
+    </LinearLayout>
+
+    <!-- Volle Breite; die Höhe setzt die Activity auf höchstens 50 % der Bildschirmhöhe.
+         Bewusst NICHT in der ScrollView: das Diagramm bleibt beim Blättern der Liste sichtbar. -->
     <com.github.mikephil.charting.charts.PieChart
         android:id="@+id/depotPie"
         android:layout_width="match_parent"
-        android:layout_height="0dp"
-        android:layout_weight="1"
-        android:layout_margin="12dp" />
+        android:layout_height="260dp"
+        android:layout_marginTop="4dp" />
 
-    <TextView
-        android:id="@+id/depotChartEmpty"
+    <ScrollView
         android:layout_width="match_parent"
         android:layout_height="0dp"
         android:layout_weight="1"
-        android:gravity="center"
-        android:text="@string/depot_empty"
-        android:visibility="gone" />
+        android:fillViewport="true">
+
+        <LinearLayout
+            android:layout_width="match_parent"
+            android:layout_height="wrap_content"
+            android:orientation="vertical">
+
+            <LinearLayout
+                android:id="@+id/depotList"
+                android:layout_width="match_parent"
+                android:layout_height="wrap_content"
+                android:orientation="vertical"
+                android:paddingHorizontal="16dp"
+                android:paddingBottom="24dp" />
+
+            <TextView
+                android:id="@+id/depotChartEmpty"
+                android:layout_width="match_parent"
+                android:layout_height="wrap_content"
+                android:layout_marginTop="32dp"
+                android:gravity="center"
+                android:text="@string/depot_empty"
+                android:visibility="gone" />
+        </LinearLayout>
+    </ScrollView>
 
 </LinearLayout>

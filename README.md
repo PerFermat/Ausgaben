@@ -256,9 +256,14 @@ Holdings directly. The widget refreshes when the app is opened and at regular in
   → **gain/loss** (coloured, with percentage). The **portfolio filter** narrows the securities by name and
   **value (slider)**. A tap on a security opens its **movements full-screen** with the same figures for that
   security plus a **filter by buys/sells/dividends** and a **date slider** (start date = first purchase). The
-  **“Analysis”** menu opens a **pie chart** of the securities (share of the portfolio value): the slices are
-  unlabelled; a tap shows the **name + amount** of that security in the centre, and with nothing selected the
-  centre reads **“Total: <portfolio value>”**. The **Export** in the portfolio menu runs right there, without
+  **“Analysis”** menu opens a **pie chart** of the securities styled like the **Categories page** (continuous
+  ring, a fixed colour per security, at most half the screen height, with its own scrollable list below). A
+  top **toggle** switches between **Current value** (default), **Net deposits** (buys − sells − dividends) and
+  **Total dividends**; a **period filter** (monthly range slider from the first portfolio transaction + From/To
+  date fields) narrows the period and updates chart and list immediately. “Current value” is today's value of
+  the **positions built** in the period (full period = current portfolio value). Chart and list are **always**
+  sorted descending by current value; a tap shows the **name + amount**, with nothing selected **“Total”**. The
+  **Export** in the portfolio menu runs right there, without
   switching to the cash view. The portfolio value is kept **separate** (not mixed into account
   balances/analysis); the buy costs/dividends still appear on the respective cash account. The main screen's
   balance line additionally offers **“Net worth”** = all accounts + portfolio value.

@@ -385,6 +385,11 @@
     <string name="depot_value_label">Portfolio value</string>
     <string name="depot_chart_title">Portfolio chart</string>
     <string name="depot_net_invested">Net invested</string>
+    <string name="depot_view_value">Current value</string>
+    <string name="depot_view_netto">Net deposits</string>
+    <string name="depot_view_dividend">Total dividends</string>
+    <string name="depot_period_from">From</string>
+    <string name="depot_period_to">To</string>
     <string name="depot_gain">Gain</string>
     <string name="depot_loss">Loss</string>
     <string name="depot_buys">Buys</string>

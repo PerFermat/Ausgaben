@@ -547,10 +547,23 @@ p("Nach dem Import eines KMyMoney-Investmentkontos erscheint das <b>Depot</b> in
   "<b>Filter nach Käufen/Verkäufen/Dividenden</b> sowie einem Datums-Slider (Startdatum = erster Kauf). Der "
   "Depotwert wird getrennt geführt und erscheint zusätzlich als «Gesamtvermögen» in der Saldenzeile des "
   "Hauptbildschirms.")
-p("Das Menü <b>«Auswertung»</b> öffnet ein <b>Kreisdiagramm</b> der Wertpapiere (Anteil am Depotwert). Die "
-  "Segmente sind unbeschriftet; ein Tipp zeigt in der Mitte <b>Name und Betrag</b> des Papiers, ohne Auswahl "
-  "steht dort «Gesamt: &lt;Depotwert&gt;». Der <b>Export</b> im Depot-Menü läuft direkt im Depot (ohne Wechsel "
-  "zur Bargeld-Ansicht).")
+p("Das Menü <b>«Auswertung»</b> öffnet ein <b>Kreisdiagramm</b> der Wertpapiere – im Design der Kategorien-"
+  "Seite (durchgehender Ring, feste Farbe je Wertpapier, höchstens halbe Bildschirmhöhe, darunter eine eigene "
+  "scrollbare Liste). Die Segmente sind unbeschriftet; ein Tipp zeigt in der Mitte <b>Name und Betrag</b> des "
+  "Papiers, ohne Auswahl steht dort «Gesamt». Grafik und Liste sind <b>immer</b> absteigend nach dem "
+  "aktuellen Wert des Zeitraums sortiert.")
+p("Oben wählt ein <b>Umschalter</b> die Ansicht: <b>Aktueller Wert</b> (Standard) · <b>Netto-Einzahlungen</b> "
+  "· <b>Summe Dividenden</b>. Darunter grenzt ein <b>Zeitraumfilter</b> die Auswertung ein – ein monatlicher "
+  "Bereichsslider (erste Depot-Buchung bis heute) sowie zwei Datumsfelder <b>Von/Bis</b> für ein beliebiges "
+  "Datum. Jede Änderung an Ansicht oder Zeitraum aktualisiert Grafik und Liste sofort.")
+bullets([
+  "<b>Aktueller Wert:</b> heutiger Wert (aktueller Kurs) der im Zeitraum <b>aufgebauten Positionen</b> – "
+  "also der im Zeitraum gekauften, noch gehaltenen Stücke. Bei vollem Zeitraum entspricht das dem aktuellen "
+  "Depotwert (im Zeitraum wieder verkaufte Stücke zählen nicht negativ).",
+  "<b>Netto-Einzahlungen:</b> Käufe − Verkäufe − Dividenden innerhalb des Zeitraums.",
+  "<b>Summe Dividenden:</b> alle im Zeitraum erhaltenen Dividenden (brutto/netto laut Einstellung).",
+])
+p("Der <b>Export</b> im Depot-Menü läuft direkt im Depot (ohne Wechsel zur Bargeld-Ansicht).")
 p("<b>Dividenden brutto/netto:</b> In den Einstellungen wählbar, ob Dividenden brutto (deklarierte Dividende) "
   "oder netto (gutgeschriebenes Geld nach Steuer) angezeigt und in der Saldenzeile (Dividenden, Nettoeinsatz, "
   "Gewinn/Verlust) verrechnet werden. Der Netto-Wert wird beim Depot-Import erfasst – für bestehende Daten ist "

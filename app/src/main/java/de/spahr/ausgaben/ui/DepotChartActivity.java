@@ -1,7 +1,11 @@
 package de.spahr.ausgaben.ui;
 
+import android.app.DatePickerDialog;
+import android.graphics.Typeface;
 import android.os.Bundle;
+import android.view.Gravity;
 import android.view.View;
+import android.widget.LinearLayout;
 import android.widget.TextView;
 
 import com.github.mikephil.charting.charts.PieChart;
@@ -12,32 +16,62 @@ import com.github.mikephil.charting.data.PieEntry;
 import com.github.mikephil.charting.highlight.Highlight;
 import com.github.mikephil.charting.listener.OnChartValueSelectedListener;
 import com.google.android.material.appbar.MaterialToolbar;
+import com.google.android.material.button.MaterialButtonToggleGroup;
+import com.google.android.material.slider.RangeSlider;
+import com.google.android.material.textfield.TextInputEditText;
 
+import java.text.SimpleDateFormat;
 import java.util.ArrayList;
+import java.util.Calendar;
+import java.util.Collections;
 import java.util.List;
+import java.util.Locale;
 
 import de.spahr.ausgaben.R;
 import de.spahr.ausgaben.db.Repository;
+import de.spahr.ausgaben.settings.CategoryColorStore;
 import de.spahr.ausgaben.settings.Currencies;
 import de.spahr.ausgaben.settings.MoneyFormat;
 
 /**
- * Kreisdiagramm der Wertpapiere eines Depots (Anteil am Depotwert). Eigene Seite (Menü „Auswertung" im
- * Depot). Die Segmente sind unbeschriftet; ein Tipp zeigt in der Mitte Name + Betrag des Wertpapiers, ohne
- * Auswahl steht dort „Gesamt: <Depotwert>".
+ * Kreisdiagramm der Wertpapiere eines Depots – im Design der Kategorien-Seite. Ein Umschalter oben wählt die
+ * <b>Ansicht</b> (Aktueller Wert / Netto-Einzahlungen / Summe Dividenden), ein monatlicher Zeitraumfilter
+ * (Bereichsslider + Von/Bis-Datumsfelder) grenzt die Auswertung ein. Darunter, in einer eigenen Scroll-Liste,
+ * die Wertpapiere. Grafik und Liste sind <b>immer</b> absteigend nach dem aktuellen Wert des Zeitraums
+ * sortiert; die Segmente sind unbeschriftet (Tipp zeigt Name + Betrag, ohne Auswahl „Gesamt").
  */
 public class DepotChartActivity extends LocalizedActivity {
 
     public static final String EXTRA_DEPOT = "depot";
 
-    /** Farbpalette für die Segmente (kontrastreich, in Hell und Dunkel lesbar). */
-    private static final int[] PIE_COLORS = {
-            0xFF42A5F5, 0xFF66BB6A, 0xFFFFA726, 0xFFEF5350, 0xFFAB47BC,
-            0xFF26C6DA, 0xFFFFCA28, 0xFF8D6E63, 0xFF5C6BC0, 0xFFEC407A,
-            0xFF9CCC65, 0xFF29B6F6, 0xFFFF7043, 0xFF78909C, 0xFF7E57C2};
+    private static final int VIEW_VALUE = 0;
+    private static final int VIEW_NETTO = 1;
+    private static final int VIEW_DIVIDEND = 2;
 
+    private static final long DAY_MS = 24L * 60 * 60 * 1000;
+
+    private Repository repository;
     private PieChart pie;
+    private LinearLayout list;
     private TextView empty;
+    private RangeSlider periodSlider;
+    private TextInputEditText dateFrom;
+    private TextInputEditText dateTo;
+
+    private final SimpleDateFormat df = new SimpleDateFormat("dd.MM.yyyy", Locale.getDefault());
+
+    private String depot = "";
+    private int view = VIEW_VALUE;
+    private long firstTxMs = 0;
+    private final Calendar firstMonth = Calendar.getInstance();
+    private int monthCount = 0;
+    private long fromMs;
+    private long toMsExcl;   // exklusives Ende ([from, to))
+    private boolean ready = false;
+    private boolean sliderSyncing = false;
+    private int reloadSeq = 0;   // gegen veraltete Ergebnisse bei schnellen Zeitraum-Änderungen
+
+    private List<Repository.DepotChartRow> rows = new ArrayList<>();
     private String totalText = "";
 
     @Override
@@ -46,50 +80,264 @@ public class DepotChartActivity extends LocalizedActivity {
         setContentView(R.layout.activity_depot_chart);
         MaterialToolbar toolbar = findViewById(R.id.toolbar);
         toolbar.setNavigationOnClickListener(v -> finish());
-        pie = findViewById(R.id.depotPie);
-        empty = findViewById(R.id.depotChartEmpty);
 
-        String depot = getIntent().getStringExtra(EXTRA_DEPOT);
-        if (depot != null && !depot.isEmpty()) {
-            toolbar.setTitle(depot);
-            new Repository(this).getDepotHoldings(depot, this::render);
+        repository = new Repository(this);
+        pie = findViewById(R.id.depotPie);
+        list = findViewById(R.id.depotList);
+        empty = findViewById(R.id.depotChartEmpty);
+        periodSlider = findViewById(R.id.periodSlider);
+        dateFrom = findViewById(R.id.dateFrom);
+        dateTo = findViewById(R.id.dateTo);
+
+        // Diagramm höchstens halb so hoch wie der Bildschirm; die Liste darunter bleibt scrollbar.
+        pie.getLayoutParams().height = getResources().getDisplayMetrics().heightPixels / 2;
+
+        MaterialButtonToggleGroup toggle = findViewById(R.id.toggleView);
+        toggle.check(R.id.btnViewValue);
+        toggle.addOnButtonCheckedListener((group, checkedId, isChecked) -> {
+            if (!isChecked) {
+                return;
+            }
+            if (checkedId == R.id.btnViewValue) {
+                view = VIEW_VALUE;
+            } else if (checkedId == R.id.btnViewNetto) {
+                view = VIEW_NETTO;
+            } else {
+                view = VIEW_DIVIDEND;
+            }
+            render();   // aus dem Cache – kein Neuladen nötig
+        });
+
+        periodSlider.addOnChangeListener((s, val, fromUser) -> {
+            if (!sliderSyncing) {
+                onSliderChanged();
+            }
+        });
+        dateFrom.setOnClickListener(v -> pickDate(true));
+        dateTo.setOnClickListener(v -> pickDate(false));
+
+        depot = getIntent().getStringExtra(EXTRA_DEPOT);
+        if (depot == null || depot.isEmpty()) {
+            finish();
+            return;
         }
+        toolbar.setTitle(depot);
+        repository.getDepotFirstTx(depot, first -> {
+            firstTxMs = first;
+            setupPeriod();
+            ready = true;
+            reload();
+        });
     }
 
-    private void render(List<Repository.DepotHolding> holdings) {
-        List<PieEntry> entries = new ArrayList<>();
-        List<Integer> colors = new ArrayList<>();
-        long total = 0;
-        int i = 0;
-        for (Repository.DepotHolding h : holdings) {
-            if (h.valueCents <= 0 || Math.abs(h.shares) < 1e-6) {
-                continue;
-            }
-            PieEntry e = new PieEntry(h.valueCents / 100f, h.name);
-            e.setData(h.valueCents);
-            entries.add(e);
-            colors.add(PIE_COLORS[i % PIE_COLORS.length]);
-            total += h.valueCents;
-            i++;
+    // ---- Zeitraum ----
+
+    private void setupPeriod() {
+        long base = firstTxMs > 0 ? firstTxMs : System.currentTimeMillis();
+        firstMonth.setTimeInMillis(base);
+        toStartOfMonth(firstMonth);
+        Calendar cur = Calendar.getInstance();
+        toStartOfMonth(cur);
+        monthCount = (cur.get(Calendar.YEAR) - firstMonth.get(Calendar.YEAR)) * 12
+                + (cur.get(Calendar.MONTH) - firstMonth.get(Calendar.MONTH));
+        if (monthCount < 0) {
+            monthCount = 0;
         }
-        if (entries.isEmpty()) {
+        // Standard: voller Zeitraum – erste Buchung bis heute.
+        fromMs = firstMonth.getTimeInMillis();
+        toMsExcl = startOfTomorrow();
+
+        sliderSyncing = true;
+        periodSlider.setValueFrom(0f);
+        periodSlider.setValueTo(Math.max(1, monthCount));
+        periodSlider.setStepSize(1f);
+        periodSlider.setValues(0f, (float) Math.max(1, monthCount));
+        periodSlider.setEnabled(monthCount >= 1);
+        sliderSyncing = false;
+        updateDateFields();
+    }
+
+    private void onSliderChanged() {
+        List<Float> vals = periodSlider.getValues();
+        int fromIdx = Math.round(vals.get(0));
+        int toIdx = Math.round(vals.get(1));
+        fromMs = monthStart(fromIdx);
+        toMsExcl = toIdx >= monthCount ? startOfTomorrow() : monthStart(toIdx + 1);
+        updateDateFields();
+        reload();
+    }
+
+    private void pickDate(boolean isFrom) {
+        Calendar c = Calendar.getInstance();
+        c.setTimeInMillis(isFrom ? fromMs : toMsExcl - DAY_MS);
+        new DatePickerDialog(this, (dp, y, m, d) -> {
+            Calendar sel = Calendar.getInstance();
+            sel.set(y, m, d, 0, 0, 0);
+            sel.set(Calendar.MILLISECOND, 0);
+            if (isFrom) {
+                fromMs = sel.getTimeInMillis();
+            } else {
+                toMsExcl = sel.getTimeInMillis() + DAY_MS;   // gewählter Tag ist inklusive
+            }
+            if (fromMs >= toMsExcl) {   // Von hinter Bis → gleicher Tag
+                if (isFrom) {
+                    toMsExcl = fromMs + DAY_MS;
+                } else {
+                    fromMs = toMsExcl - DAY_MS;
+                }
+            }
+            syncSliderToDates();
+            updateDateFields();
+            reload();
+        }, c.get(Calendar.YEAR), c.get(Calendar.MONTH), c.get(Calendar.DAY_OF_MONTH)).show();
+    }
+
+    private void syncSliderToDates() {
+        if (monthCount < 1) {
+            return;
+        }
+        int fi = clampIdx(monthIndexOf(fromMs));
+        int ti = clampIdx(monthIndexOf(toMsExcl - DAY_MS));
+        if (fi > ti) {
+            ti = fi;
+        }
+        sliderSyncing = true;
+        periodSlider.setValues((float) fi, (float) ti);
+        sliderSyncing = false;
+    }
+
+    private void updateDateFields() {
+        dateFrom.setText(df.format(fromMs));
+        dateTo.setText(df.format(toMsExcl - DAY_MS));   // inklusiver letzter Tag
+    }
+
+    private long monthStart(int idx) {
+        Calendar c = (Calendar) firstMonth.clone();
+        c.add(Calendar.MONTH, idx);
+        return c.getTimeInMillis();
+    }
+
+    private int monthIndexOf(long ms) {
+        Calendar c = Calendar.getInstance();
+        c.setTimeInMillis(ms);
+        return (c.get(Calendar.YEAR) - firstMonth.get(Calendar.YEAR)) * 12
+                + (c.get(Calendar.MONTH) - firstMonth.get(Calendar.MONTH));
+    }
+
+    private int clampIdx(int idx) {
+        return Math.max(0, Math.min(monthCount, idx));
+    }
+
+    private static void toStartOfMonth(Calendar c) {
+        c.set(Calendar.DAY_OF_MONTH, 1);
+        c.set(Calendar.HOUR_OF_DAY, 0);
+        c.set(Calendar.MINUTE, 0);
+        c.set(Calendar.SECOND, 0);
+        c.set(Calendar.MILLISECOND, 0);
+    }
+
+    private static long startOfTomorrow() {
+        Calendar c = Calendar.getInstance();
+        c.set(Calendar.HOUR_OF_DAY, 0);
+        c.set(Calendar.MINUTE, 0);
+        c.set(Calendar.SECOND, 0);
+        c.set(Calendar.MILLISECOND, 0);
+        c.add(Calendar.DAY_OF_MONTH, 1);
+        return c.getTimeInMillis();
+    }
+
+    // ---- Laden / Rendern ----
+
+    private void reload() {
+        if (!ready) {
+            return;
+        }
+        boolean whole = fromMs <= firstTxMs && toMsExcl > System.currentTimeMillis();
+        final long from = fromMs;
+        final long to = toMsExcl;
+        final int seq = ++reloadSeq;
+        repository.getDepotChartRows(depot, from, to, whole, r -> {
+            if (seq != reloadSeq) {
+                return;   // ein neuerer Zeitraum wurde inzwischen angefordert → dieses Ergebnis verwerfen
+            }
+            rows = r != null ? r : new ArrayList<>();
+            render();
+        });
+    }
+
+    private long displayValue(Repository.DepotChartRow r) {
+        if (view == VIEW_NETTO) {
+            return r.netDepositsCents;
+        }
+        if (view == VIEW_DIVIDEND) {
+            return r.dividendCents;
+        }
+        return r.currentValueCents;
+    }
+
+    private void render() {
+        // Immer absteigend nach aktuellem Wert des Zeitraums; Gleichstand → nach angezeigtem Wert.
+        List<Repository.DepotChartRow> sorted = new ArrayList<>(rows);
+        Collections.sort(sorted, (a, b) -> {
+            int c = Long.compare(b.currentValueCents, a.currentValueCents);
+            return c != 0 ? c : Long.compare(displayValue(b), displayValue(a));
+        });
+
+        long total = 0;
+        for (Repository.DepotChartRow r : sorted) {
+            long v = displayValue(r);
+            if (v > 0) {
+                total += v;
+            }
+        }
+
+        list.removeAllViews();
+        boolean any = false;
+        for (Repository.DepotChartRow r : sorted) {
+            if (displayValue(r) != 0) {
+                any = true;
+                break;
+            }
+        }
+        if (!any) {
             pie.setVisibility(View.GONE);
             empty.setVisibility(View.VISIBLE);
             return;
         }
-        int textColor = getColor(R.color.chart_text);
+        buildPie(sorted, total);
+        for (Repository.DepotChartRow r : sorted) {
+            if (displayValue(r) != 0) {
+                list.addView(buildRow(r, total));
+            }
+        }
+        pie.setVisibility(View.VISIBLE);
+        empty.setVisibility(View.GONE);
+    }
+
+    private void buildPie(List<Repository.DepotChartRow> sorted, long total) {
+        List<PieEntry> entries = new ArrayList<>();
+        List<Integer> pieColors = new ArrayList<>();
+        for (Repository.DepotChartRow r : sorted) {
+            long v = displayValue(r);
+            if (v <= 0) {
+                continue;   // Kreissegmente nur für positive Werte
+            }
+            PieEntry e = new PieEntry(v / 100f, r.name);
+            e.setData(v);
+            entries.add(e);
+            pieColors.add(CategoryColorStore.defaultColor(r.name));
+        }
         totalText = getString(R.string.saldo_total) + ":\n" + money(total);
 
         PieDataSet set = new PieDataSet(entries, "");
-        set.setColors(colors);
-        set.setSliceSpace(2f);
-        set.setDrawValues(false); // keine Werte/Namen auf den Segmenten
-        PieData data = new PieData(set);
+        set.setColors(pieColors);
+        set.setSliceSpace(0f);   // durchgehender Ring wie bei den Kategorien
+        set.setDrawValues(false);
 
-        pie.setData(data);
+        pie.setData(new PieData(set));
         pie.getDescription().setEnabled(false);
         pie.getLegend().setEnabled(false);
-        pie.setDrawEntryLabels(false); // keine Namen an den Segmenten
+        pie.setDrawEntryLabels(false);
         pie.setUsePercentValues(false);
         pie.setDrawHoleEnabled(true);
         pie.setHoleColor(0x00000000);
@@ -98,7 +346,7 @@ public class DepotChartActivity extends LocalizedActivity {
         pie.setDrawCenterText(true);
         pie.setCenterText(totalText);
         pie.setCenterTextSize(16f);
-        pie.setCenterTextColor(textColor);
+        pie.setCenterTextColor(getColor(R.color.chart_text));
         pie.setRotationEnabled(false);
         pie.setHighlightPerTapEnabled(true);
         pie.setExtraOffsets(8f, 8f, 8f, 8f);
@@ -115,12 +363,50 @@ public class DepotChartActivity extends LocalizedActivity {
                 pie.setCenterText(totalText);
             }
         });
-        pie.setVisibility(View.VISIBLE);
-        empty.setVisibility(View.GONE);
         pie.invalidate();
+    }
+
+    /** Listenzeile: Farbpunkt · Name · Anteil in Prozent · Wert der gewählten Ansicht (rechts). */
+    private View buildRow(Repository.DepotChartRow r, long total) {
+        long v = displayValue(r);
+        LinearLayout row = new LinearLayout(this);
+        row.setOrientation(LinearLayout.HORIZONTAL);
+        row.setGravity(Gravity.CENTER_VERTICAL);
+        row.setPadding(0, dp(8), 0, dp(8));
+
+        View dot = new View(this);
+        dot.setBackgroundColor(CategoryColorStore.defaultColor(r.name));
+        LinearLayout.LayoutParams dotLp = new LinearLayout.LayoutParams(dp(10), dp(10));
+        dotLp.setMarginEnd(dp(10));
+        row.addView(dot, dotLp);
+
+        TextView name = new TextView(this);
+        name.setText(r.name);
+        row.addView(name, new LinearLayout.LayoutParams(0, LinearLayout.LayoutParams.WRAP_CONTENT, 1f));
+
+        TextView pct = new TextView(this);
+        pct.setText(total > 0 && v > 0 ? Math.round(100.0 * v / total) + " %" : "");
+        pct.setTextSize(12);
+        pct.setTextColor(0xFF9E9E9E);
+        LinearLayout.LayoutParams pctLp = new LinearLayout.LayoutParams(
+                LinearLayout.LayoutParams.WRAP_CONTENT, LinearLayout.LayoutParams.WRAP_CONTENT);
+        pctLp.setMarginEnd(dp(10));
+        row.addView(pct, pctLp);
+
+        TextView amount = new TextView(this);
+        amount.setText(money(v));
+        amount.setGravity(Gravity.END);
+        amount.setTypeface(amount.getTypeface(), Typeface.BOLD);
+        row.addView(amount, new LinearLayout.LayoutParams(
+                LinearLayout.LayoutParams.WRAP_CONTENT, LinearLayout.LayoutParams.WRAP_CONTENT));
+        return row;
     }
 
     private String money(long cents) {
         return MoneyFormat.display(cents, Currencies.getDefault());
+    }
+
+    private int dp(int v) {
+        return Math.round(v * getResources().getDisplayMetrics().density);
     }
 }

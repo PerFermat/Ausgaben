@@ -123,6 +123,69 @@ class DepotRepository {
         });
     }
 
+    /** Frühester Bewegungszeitpunkt eines Depots (0 wenn leer). */
+    void getDepotFirstTx(final String depot, final Callback<Long> callback) {
+        executor.execute(() -> {
+            final Long first = securityDao.getFirstTxMs(depot);
+            final long result = first == null ? 0L : first;
+            mainHandler.post(() -> callback.onResult(result));
+        });
+    }
+
+    /**
+     * Zeitraumbezogene Auswertungszeilen je Wertpapier. Aktueller Wert = im Zeitraum gekaufte Stücke ×
+     * heutiger Kurs (bei vollem Zeitraum stattdessen der aktuelle Depotstand aus Netto-Stück × Kurs).
+     */
+    void getDepotChartRows(final String depot, final long fromMs, final long toMs,
+                           final boolean wholePeriod, final Callback<List<Repository.DepotChartRow>> callback) {
+        executor.execute(() -> {
+            final boolean gross = dividendsGross();
+            // Kurs + Anzeigename je Wertpapier-ID.
+            Map<String, Security> secById = new HashMap<>();
+            for (Security s : securityDao.getSecurities(depot)) {
+                secById.put(s.kmyId, s);
+            }
+            // Netto-Stück über alles (für den aktuellen Wert bei vollem Zeitraum).
+            Map<String, Double> netShares = new HashMap<>();
+            for (SecurityDao.ShareSum ss : securityDao.getShareSums(depot)) {
+                netShares.put(ss.kmyId, ss.shares);
+            }
+            // Zeitraum-Summen je Wertpapier zusammenfassen.
+            Map<String, double[]> boughtShares = new HashMap<>();   // Stück aus buy/reinvest im Zeitraum
+            Map<String, long[]> buyAmt = new HashMap<>();
+            Map<String, long[]> sellAmt = new HashMap<>();
+            Map<String, long[]> divAmt = new HashMap<>();
+            for (SecurityDao.PeriodSum ps : securityDao.getPeriodSums(depot, fromMs, toMs)) {
+                String a = ps.action == null ? "" : ps.action;
+                if ("buy".equals(a) || "reinvest".equals(a)) {
+                    boughtShares.computeIfAbsent(ps.kmyId, k -> new double[1])[0] += ps.shares;
+                    buyAmt.computeIfAbsent(ps.kmyId, k -> new long[1])[0] += ps.amount;
+                } else if ("sell".equals(a)) {
+                    sellAmt.computeIfAbsent(ps.kmyId, k -> new long[1])[0] += ps.amount;
+                } else if ("dividend".equals(a)) {
+                    divAmt.computeIfAbsent(ps.kmyId, k -> new long[1])[0] += gross ? ps.amount : ps.net;
+                }
+            }
+            List<Repository.DepotChartRow> result = new ArrayList<>();
+            for (Security s : securityDao.getSecurities(depot)) {
+                String id = s.kmyId;
+                long div = divAmt.containsKey(id) ? divAmt.get(id)[0] : 0;
+                long buy = buyAmt.containsKey(id) ? buyAmt.get(id)[0] : 0;
+                long sell = sellAmt.containsKey(id) ? sellAmt.get(id)[0] : 0;
+                double sharesForValue = wholePeriod
+                        ? (netShares.containsKey(id) ? netShares.get(id) : 0.0)
+                        : (boughtShares.containsKey(id) ? boughtShares.get(id)[0] : 0.0);
+                if (sharesForValue < 0) {
+                    sharesForValue = 0;   // im Zeitraum netto verkauft → keine aufgebaute Position (kein negativer Wert)
+                }
+                long value = Math.round(sharesForValue * s.price * 100.0);
+                long netDeposits = buy - sell - div;
+                result.add(new Repository.DepotChartRow(s.name, value, netDeposits, div));
+            }
+            mainHandler.post(() -> callback.onResult(result));
+        });
+    }
+
     private static DepotMetrics metricsFrom(long valueCents, List<SecurityDao.ActionSum> sums,
                                             boolean grossDividends) {
         long buy = 0, sell = 0, dividend = 0;

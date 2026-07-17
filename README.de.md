@@ -269,9 +269,15 @@ regelmäßigen Abständen.
   Prozent). Der **Depot-Filter** grenzt die Wertpapiere nach Name und **Wert (Schieberegler)** ein. Ein
   Tipp auf ein Wertpapier öffnet seine **Bewegungen im Vollbild** mit denselben Kennzahlen für dieses
   Papier und einem **Filter nach Käufen/Verkäufen/Dividenden** sowie einem **Datums-Slider** (Startdatum =
-  erster Kauf). Über das Menü **„Auswertung"** öffnet sich ein **Kreisdiagramm** der Wertpapiere (Anteil am
-  Depotwert): die Segmente sind unbeschriftet; ein Tipp zeigt in der Mitte **Name + Betrag** des Papiers,
-  ohne Auswahl steht dort **„Gesamt: <Depotwert>"**. Der **Export** im Depot-Menü läuft direkt hier, ohne in
+  erster Kauf). Über das Menü **„Auswertung"** öffnet sich ein **Kreisdiagramm** der Wertpapiere im **Design
+  der Kategorien-Seite** (durchgehender Ring, feste Farbe je Wertpapier, max. halbe Bildschirmhöhe, darunter
+  eine eigene scrollbare Liste). Oben schaltet ein **Umschalter** zwischen **Aktueller Wert** (Standard),
+  **Netto-Einzahlungen** (Käufe − Verkäufe − Dividenden) und **Summe Dividenden**; ein **Zeitraumfilter**
+  (monatlicher Bereichsslider ab der ersten Depot-Buchung + Von/Bis-Datumsfelder) grenzt den Zeitraum ein und
+  aktualisiert Grafik und Liste sofort. „Aktueller Wert" ist der heutige Wert der im Zeitraum **aufgebauten
+  Positionen** (voller Zeitraum = aktueller Depotwert). Grafik und Liste sind **immer** absteigend nach
+  aktuellem Wert sortiert; ein Tipp zeigt in der Mitte **Name + Betrag**, ohne Auswahl **„Gesamt"**. Der
+  **Export** im Depot-Menü läuft direkt hier, ohne in
   die Bargeld-Ansicht zu wechseln. Der Depotwert wird **getrennt** geführt (nicht in Konto-Salden/Auswertung
   gemischt); die Kaufkosten/Dividenden erscheinen wie gehabt auf dem jeweiligen Geldkonto. In der Saldenzeile
   der Hauptansicht gibt es zusätzlich **„Gesamtvermögen"** = alle Konten + Depotwert.

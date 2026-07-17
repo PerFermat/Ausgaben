@@ -385,6 +385,11 @@
     <string name="depot_value_label">Depotwert</string>
     <string name="depot_chart_title">Depot-Diagramm</string>
     <string name="depot_net_invested">Nettoeinsatz</string>
+    <string name="depot_view_value">Aktueller Wert</string>
+    <string name="depot_view_netto">Netto-Einzahlungen</string>
+    <string name="depot_view_dividend">Summe Dividenden</string>
+    <string name="depot_period_from">Von</string>
+    <string name="depot_period_to">Bis</string>
     <string name="depot_gain">Gewinn</string>
     <string name="depot_loss">Verlust</string>
     <string name="depot_buys">Käufe</string>

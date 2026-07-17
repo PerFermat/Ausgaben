@@ -1154,6 +1154,39 @@ public class Repository {
         depotRepo.getSecurityMetrics(depot, kmyId, callback);
     }
 
+    /** Frühester Bewegungszeitpunkt eines Depots (ms; 0 wenn leer) – Untergrenze des Zeitraumfilters. */
+    public void getDepotFirstTx(String depot, Callback<Long> callback) {
+        depotRepo.getDepotFirstTx(depot, callback);
+    }
+
+    /**
+     * Zeitraumbezogene Auswertungszeilen je Wertpapier (aktueller Wert / Netto-Einzahlungen / Dividenden im
+     * Zeitraum). Bei {@code wholePeriod} kommt der aktuelle Wert direkt aus dem Depotstand.
+     */
+    public void getDepotChartRows(String depot, long fromMs, long toMs, boolean wholePeriod,
+                                  Callback<List<DepotChartRow>> callback) {
+        depotRepo.getDepotChartRows(depot, fromMs, toMs, wholePeriod, callback);
+    }
+
+    /** Eine Auswertungszeile der Depot-Kreisgrafik: je Wertpapier alle drei Kennzahlen des Zeitraums. */
+    public static final class DepotChartRow {
+        public final String name;
+        /** Heutiger Wert der im Zeitraum aufgebauten Position (bzw. Depotstand bei vollem Zeitraum). */
+        public final long currentValueCents;
+        /** Netto-Einzahlungen im Zeitraum = Käufe − Verkäufe − Dividenden. */
+        public final long netDepositsCents;
+        /** Summe der Dividenden im Zeitraum (brutto/netto laut Einstellung). */
+        public final long dividendCents;
+
+        public DepotChartRow(String name, long currentValueCents, long netDepositsCents,
+                             long dividendCents) {
+            this.name = name;
+            this.currentValueCents = currentValueCents;
+            this.netDepositsCents = netDepositsCents;
+            this.dividendCents = dividendCents;
+        }
+    }
+
     /** Stellt sicher, dass ein Kontoname als Auswahlwert existiert (z. B. Standardkonto). */
     public void ensureAccount(final String name) {
         if (name == null || name.trim().isEmpty()) {

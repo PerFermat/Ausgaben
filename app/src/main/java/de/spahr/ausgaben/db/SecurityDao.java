@@ -42,6 +42,21 @@ public interface SecurityDao {
             + "WHERE depot = :depot AND security_kmy_id = :kmyId GROUP BY action")
     List<ActionSum> getActionSumsBySecurity(String depot, String kmyId);
 
+    /** Frühester Bewegungszeitpunkt des Depots (ms); {@code null} bei leerem Depot – Untergrenze des Zeitraums. */
+    @Query("SELECT MIN(date) FROM security_tx WHERE depot = :depot")
+    Long getFirstTxMs(String depot);
+
+    /**
+     * Zeitraum-Summen je Wertpapier und Bewegungsart: Netto-Stückzahl (Käufe − als Kauf gebuchte Verkäufe),
+     * Brutto- und Netto-Betrag im Fenster {@code [fromMs, toMs)}. Grundlage der zeitraumbezogenen
+     * Depot-Auswertung.
+     */
+    @Query("SELECT security_kmy_id AS kmyId, action, SUM(shares) AS shares, "
+            + "SUM(amount_cents) AS amount, SUM(net_cents) AS net FROM security_tx "
+            + "WHERE depot = :depot AND date >= :fromMs AND date < :toMs "
+            + "GROUP BY security_kmy_id, action")
+    List<PeriodSum> getPeriodSums(String depot, long fromMs, long toMs);
+
     @Query("DELETE FROM security WHERE depot = :depot")
     void deleteSecurities(String depot);
 
@@ -57,6 +72,15 @@ public interface SecurityDao {
     /** Projektion für die Betragssummen je Bewegungsart (Brutto {@code amount} + Netto {@code net}). */
     class ActionSum {
         public String action;
+        public long amount;
+        public long net;
+    }
+
+    /** Projektion für die Zeitraum-Summen je Wertpapier + Bewegungsart. */
+    class PeriodSum {
+        public String kmyId;
+        public String action;
+        public double shares;
         public long amount;
         public long net;
     }

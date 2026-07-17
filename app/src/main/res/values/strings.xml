@@ -64,6 +64,7 @@
     <string name="error_split_sum">Sum of the partial amounts must equal the total</string>
     <string name="transfer_saved">Transfer saved</string>
     <string name="amount_hint">Amount</string>
+    <string name="amount_calc_help">e.g. 10+20*3 – only + and * are allowed</string>
     <string name="payee_hint">Payee</string>
     <string name="account_hint">Account</string>
     <string name="note_hint">Note (optional)</string>
@@ -427,6 +428,7 @@
 
     <!-- Messages -->
     <string name="error_amount">Please enter a valid amount > 0</string>
+    <string name="error_amount_calc">Invalid calculation – allowed are numbers, one decimal mark per number, + and *</string>
     <string name="error_payee">Please enter a payee</string>
     <string name="error_account">Please enter an account</string>
     <string name="booking_saved">Booking saved</string>

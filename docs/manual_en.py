@@ -233,9 +233,12 @@ p("Tap the round <b>✚</b> button. The booking editor opens.")
 shot("Ausgaben.png", "Booking editor with type switch, amount, payee and account")
 h2("Arithmetic in the amount field")
 p("The <b>amount field</b> also accepts a small <b>calculation</b> – handy when splitting a bill or adding "
-  "up several items: <i>12,50+3,20</i> gives 15.70, <i>3*4,50</i> gives 13.50. Allowed are <b>+ − * /</b> "
-  "and brackets; a plain number behaves exactly as before. The same applies to the <b>partial amounts</b> of "
-  "a split transaction. If the entry is incomplete, the amount simply stays empty.")
+  "up several items: <i>10+20*3</i> gives 70, <i>100,50*2+25</i> gives 226. Only <b>addition (+)</b> and "
+  "<b>multiplication (*)</b> are allowed, with the usual precedence (× before +) and one decimal mark per "
+  "number; minus, division, brackets and functions are <b>not</b> possible. Invalid characters cannot even "
+  "be typed; when you leave the field the calculation is evaluated and replaced by its result, an invalid "
+  "one flagged with a message. The same applies to the <b>partial amounts</b> of a split transaction and the "
+  "value quick-entry from the main menu. If the entry is incomplete, the amount simply stays empty.")
 h2("Fields and controls")
 bullets([
   "<b>Type switch</b>: <font color='#b00020'>Expense</font> · <b>Transfer</b> · <font color='#2e7d32'>Income</font>. "

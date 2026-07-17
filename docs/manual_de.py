@@ -244,9 +244,13 @@ p("Tippen Sie auf den runden <b>✚</b>-Knopf. Es öffnet sich der Buchungs-Edit
 shot("Ausgaben.png", "Buchungs-Editor mit Typ-Umschalter, Betrag, Empfänger und Konto")
 h2("Rechnen im Betragsfeld")
 p("Das <b>Betragsfeld</b> nimmt auch eine kleine <b>Rechnung</b> entgegen – praktisch, wenn Sie eine "
-  "Rechnung teilen oder mehrere Posten zusammenzählen: <i>12,50+3,20</i> ergibt 15,70, <i>3*4,50</i> ergibt "
-  "13,50. Erlaubt sind <b>+ − * /</b> und Klammern; eine reine Zahl verhält sich unverändert. Dasselbe gilt "
-  "für die <b>Teilbeträge</b> einer Splitbuchung. Steht dort etwas Unvollständiges, bleibt der Betrag "
+  "Rechnung teilen oder mehrere Posten zusammenzählen: <i>10+20*3</i> ergibt 70, <i>100,50*2+25</i> ergibt "
+  "226. Erlaubt sind bewusst nur <b>Addition (+)</b> und <b>Multiplikation (*)</b> mit üblicher Priorität "
+  "(Punkt vor Strich) sowie ein Dezimaltrennzeichen je Zahl; Minus, Geteilt, Klammern und Funktionen sind "
+  "<b>nicht</b> möglich. Ungültige Zeichen lassen sich gar nicht erst eintippen; beim Verlassen des Feldes "
+  "wird die Rechnung ausgewertet und durch das Ergebnis ersetzt, eine ungültige Rechnung mit einer Meldung "
+  "quittiert. Dasselbe gilt für die <b>Teilbeträge</b> einer Splitbuchung und die Wert-Direkteingabe im "
+  "Hauptmenü. Steht dort etwas Unvollständiges, bleibt der Betrag "
   "einfach leer.")
 h2("Felder und Bedienelemente")
 bullets([

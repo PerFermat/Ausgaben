@@ -145,8 +145,12 @@ Mikrofon-Berechtigung ist davon unberührt). Hinweise zur F-Droid-Paketierung in
   (Schieberegler) und **Datum von–bis** (Schieberegler in Monatsschritten; für ein taggenaues Datum tippt man
   es direkt ins Feld). Der Filter wirkt auf Liste **und** Auswertung (gemeinsame Suchlogik, damit beide nicht
   auseinanderlaufen). Bei Kategorie-Filter zeigt eine Splitbuchung nur den Teilbetrag der gewählten Kategorie.
-- **Rechnen im Betragsfeld**: `12,50+3,20` → 15,70, `3*4,50` → 13,50; erlaubt sind `+ − * /` und Klammern,
-  auch in den Teilbeträgen einer Splitbuchung. Reine Zahlen verhalten sich unverändert.
+- **Rechnen im Betragsfeld**: `10+20*3` → 70, `100,50*2+25` → 226; erlaubt sind nur **Addition (`+`) und
+  Multiplikation (`*`)** mit üblicher Priorität (Punkt vor Strich) sowie ein Dezimaltrennzeichen je Zahl.
+  Subtraktion, Division, Klammern und Funktionen sind **nicht** möglich; ungültige Zeichen lassen sich gar
+  nicht erst eintippen, unvollständige/ungültige Rechnungen werden mit einer Meldung quittiert. Das Feld
+  wertet beim Verlassen aus und zeigt das Ergebnis. Gilt auch für die Teilbeträge einer Splitbuchung und die
+  Wert-Direkteingabe im Hauptmenü.
 - **Rückgängig nach dem Löschen**: Snackbar „Rückgängig" legt die Buchung wieder an (neue interne Nummer; im
   Ort-Journal bleiben Löschung und Wiederanlage als Historie stehen). Bei Umbuchungen nicht angeboten.
 - **Launcher-Shortcut**: Langdruck auf das App-Symbol → **„Neue Buchung"**.

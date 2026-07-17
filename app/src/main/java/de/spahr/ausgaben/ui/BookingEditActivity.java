@@ -22,8 +22,6 @@ import com.google.android.material.textfield.MaterialAutoCompleteTextView;
 import com.google.android.material.textfield.TextInputEditText;
 import com.google.android.material.textfield.TextInputLayout;
 
-import java.math.BigDecimal;
-import java.math.RoundingMode;
 import java.text.SimpleDateFormat;
 import java.util.ArrayList;
 import java.util.Calendar;
@@ -99,6 +97,7 @@ public class BookingEditActivity extends LocalizedActivity {
     private android.widget.TextView textBalanceAfter;
     private android.widget.ImageButton btnNoteMap;
     private TextInputEditText editAmount;
+    private TextInputLayout amountLayout;
     private TextInputLayout payeeLayout;
     private MaterialAutoCompleteTextView editPayee;
     private TextInputLayout accountLayout;
@@ -156,8 +155,16 @@ public class BookingEditActivity extends LocalizedActivity {
         textBalanceAfter = findViewById(R.id.textBalanceAfter);
         btnNoteMap = findViewById(R.id.btnNoteMap);
         editAmount = findViewById(R.id.editAmount);
-        // Erlaubte Zeichen inkl. Rechenzeichen stehen im Layout (android:digits) – ein KeyListener hier
-        // würde den Ziffernblock durch eine Volltastatur ersetzen.
+        amountLayout = findViewById(R.id.amountLayout);
+        // Nur Zahlen, ein Dezimaltrennzeichen, + und * zulassen (schon beim Tippen); der Ziffernblock bleibt.
+        editAmount.setFilters(new android.text.InputFilter[]{new CalcInputFilter()});
+        // „=": beim Verlassen des Feldes die Rechnung auswerten und durch das Ergebnis ersetzen.
+        editAmount.setOnFocusChangeListener((v, hasFocus) -> {
+            if (!hasFocus) {
+                evaluateAmountField();
+            }
+        });
+        editAmount.addTextChangedListener(new SimpleWatcher(() -> amountLayout.setError(null)));
         payeeLayout = findViewById(R.id.payeeLayout);
         editPayee = findViewById(R.id.editPayee);
         accountLayout = findViewById(R.id.accountLayout);
@@ -1262,16 +1269,33 @@ public class BookingEditActivity extends LocalizedActivity {
         return de.spahr.ausgaben.settings.MoneyFormat.plain(cents);
     }
 
-    /** Betrag in Cent; akzeptiert auch eine kleine Rechnung wie {@code 12,50+3,20}. */
+    /** Betrag in Cent; akzeptiert auch eine kleine Rechnung wie {@code 12,50+3,20} (nur {@code + *}). */
     private Long parseAmountToCents(String raw) {
-        BigDecimal value = de.spahr.ausgaben.settings.AmountExpression.evaluate(raw);
-        if (value == null) {
-            return null;
+        return de.spahr.ausgaben.settings.AmountExpression.toCents(raw);
+    }
+
+    /**
+     * Wertet die im Betragsfeld stehende Rechnung aus und ersetzt sie durch das Ergebnis (Wirkung der
+     * „="-Taste). Leeres Feld bleibt leer; eine ungültige Rechnung wird mit einer Fehlermeldung quittiert.
+     */
+    private void evaluateAmountField() {
+        if (readOnly) {
+            return;
         }
-        try {
-            return value.movePointRight(2).setScale(0, RoundingMode.HALF_UP).longValueExact();
-        } catch (ArithmeticException e) {
-            return null;
+        String raw = textOf(editAmount).trim();
+        if (raw.isEmpty()) {
+            amountLayout.setError(null);
+            return;
+        }
+        Long cents = parseAmountToCents(raw);
+        if (cents == null || cents < 0) {
+            amountLayout.setError(getString(R.string.error_amount_calc));
+            return;
+        }
+        amountLayout.setError(null);
+        String result = formatCents(cents);
+        if (!result.equals(raw)) {
+            editAmount.setText(result);   // Feldinhalt durch das Ergebnis ersetzen
         }
     }
 

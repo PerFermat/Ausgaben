@@ -588,8 +588,10 @@ public class MainActivity extends LocalizedActivity {
         final com.google.android.material.textfield.TextInputEditText field =
                 new com.google.android.material.textfield.TextInputEditText(this);
         field.setHint(R.string.amount_hint);
-        field.setInputType(android.text.InputType.TYPE_CLASS_NUMBER
-                | android.text.InputType.TYPE_NUMBER_FLAG_DECIMAL);
+        // Ziffernblock, der auch + und * anbietet (kleine Rechnung wie 10+20*3); erlaubte Zeichen/Struktur
+        // regelt der CalcInputFilter. Ausgewertet wird beim Speichern über AmountExpression.
+        field.setInputType(android.text.InputType.TYPE_CLASS_PHONE);
+        field.setFilters(new android.text.InputFilter[]{new CalcInputFilter()});
 
         final android.widget.TextView payeeView = new android.widget.TextView(this);
         payeeView.setText(getString(R.string.voice_payee_resolved, "—"));
@@ -631,13 +633,19 @@ public class MainActivity extends LocalizedActivity {
                     }
                 })
                 .setPositiveButton(R.string.save, (d, w) -> {
-                    String amt = field.getText() == null ? "" : field.getText().toString().trim();
-                    if (amt.isEmpty()) {
+                    String raw = field.getText() == null ? "" : field.getText().toString().trim();
+                    if (raw.isEmpty()) {
                         return;
                     }
-                    // Bereits ermittelten Empfänger wiederverwenden (konsistent mit der Anzeige).
-                    Long cents = lastRes[0] != null ? VoiceInput.parse(amt).amountCents : null;
-                    if (cents != null && cents > 0) {
+                    // Rechnung auswerten (nur + und *); ungültig → Meldung, nicht weiter.
+                    Long cents = de.spahr.ausgaben.settings.AmountExpression.toCents(raw);
+                    if (cents == null || cents <= 0) {
+                        Toast.makeText(this, R.string.error_amount_calc, Toast.LENGTH_SHORT).show();
+                        return;
+                    }
+                    String amt = de.spahr.ausgaben.settings.MoneyFormat.plain(cents);
+                    if (lastRes[0] != null) {
+                        // Bereits per Standort ermittelten Empfänger wiederverwenden (konsistent mit Anzeige).
                         openVoiceEditor(lastRes[0], cents, "");
                     } else {
                         handleVoiceResult(amt); // payee leer + Betrag → Betrag-only-Pfad

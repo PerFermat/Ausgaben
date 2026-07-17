@@ -61,7 +61,7 @@
             android:paddingStart="12dp"
             android:paddingEnd="12dp"
             android:textSize="18sp"
-            android:digits="0123456789.,+-*/()"
+            android:digits="0123456789.,+*"
             android:inputType="phone" />
     </com.google.android.material.textfield.TextInputLayout>
 

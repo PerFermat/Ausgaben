@@ -103,20 +103,22 @@
             </LinearLayout>
 
             <com.google.android.material.textfield.TextInputLayout
+                android:id="@+id/amountLayout"
                 android:layout_width="match_parent"
                 android:layout_height="wrap_content"
                 android:layout_marginTop="12dp"
-                android:hint="@string/amount_hint">
+                android:hint="@string/amount_hint"
+                app:helperTextEnabled="true"
+                app:helperText="@string/amount_calc_help">
 
-                <!-- „phone" statt „numberDecimal": ein Ziffernblock, der auch + − * / anbietet, damit sich
-                     kleine Rechnungen (12,50+3,20) eintippen lassen. android:digits filtert alles andere
-                     (N/P/W usw.) heraus; da beides im XML steht, bleibt die Tastatur der Ziffernblock –
-                     ein KeyListener im Code würde stattdessen eine Volltastatur erzwingen. -->
+                <!-- „phone" statt „numberDecimal": ein Ziffernblock, der auch + und * anbietet, damit sich
+                     kleine Rechnungen (10+20*3) eintippen lassen. Erlaubte Zeichen und Struktur regelt der
+                     CalcInputFilter im Code (kein android:digits/KeyListener – die Tastatur bleibt so der
+                     Ziffernblock). -->
                 <com.google.android.material.textfield.TextInputEditText
                     android:id="@+id/editAmount"
                     android:layout_width="match_parent"
                     android:layout_height="wrap_content"
-                    android:digits="0123456789.,+-*/()"
                     android:inputType="phone" />
             </com.google.android.material.textfield.TextInputLayout>
 

@@ -64,6 +64,7 @@
     <string name="error_split_sum">Summe der Teilbeträge muss dem Gesamtbetrag entsprechen</string>
     <string name="transfer_saved">Umbuchung gespeichert</string>
     <string name="amount_hint">Betrag</string>
+    <string name="amount_calc_help">z. B. 10+20*3 – erlaubt sind nur + und *</string>
     <string name="payee_hint">Geldempfänger</string>
     <string name="account_hint">Konto</string>
     <string name="note_hint">Notiz (optional)</string>
@@ -427,6 +428,7 @@
 
     <!-- Meldungen -->
     <string name="error_amount">Bitte einen gültigen Betrag > 0 eingeben</string>
+    <string name="error_amount_calc">Ungültige Rechnung – erlaubt sind Zahlen, ein Komma je Zahl, + und *</string>
     <string name="error_payee">Bitte einen Empfänger eingeben</string>
     <string name="error_account">Bitte ein Konto eingeben</string>
     <string name="booking_saved">Buchung gespeichert</string>

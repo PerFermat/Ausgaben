@@ -1,21 +1,19 @@
 package de.spahr.ausgaben.settings;
 
 import java.math.BigDecimal;
-import java.math.MathContext;
 import java.math.RoundingMode;
 
 /**
  * Rechnet einen eingetippten Betrag aus – auch als kleine Rechnung, z. B. {@code 12,50+3,20} (geteilte
- * Restaurantrechnung) oder {@code 3*4,50}. Erlaubt sind {@code + − * / ( )} und Dezimaltrennung mit Komma
- * oder Punkt; eine reine Zahl verhält sich exakt wie vorher.
+ * Restaurantrechnung) oder {@code 3*4,50}. Bewusst <b>eingeschränkt</b>: erlaubt sind nur Zahlen mit
+ * Dezimaltrennung (Komma oder Punkt), <b>Addition ({@code +})</b> und <b>Multiplikation ({@code *})</b> –
+ * mit üblicher Priorität (Punkt vor Strich). Subtraktion, Division, Klammern und Funktionen sind
+ * <b>nicht</b> zulässig. Eine reine Zahl verhält sich wie vorher.
  *
  * <p>Rechnet durchgängig mit {@link BigDecimal} (kein {@code double}), damit Geldbeträge nicht durch
  * Binärbrüche verfälscht werden. Ungültige Eingaben ergeben {@code null} – nie eine Ausnahme.</p>
  */
 public final class AmountExpression {
-
-    /** Teilung mit ausreichender Genauigkeit; das Ergebnis wird erst beim Aufrufer auf Cent gerundet. */
-    private static final MathContext MC = new MathContext(20, RoundingMode.HALF_UP);
 
     private final String s;
     private int pos;
@@ -26,14 +24,15 @@ public final class AmountExpression {
 
     /**
      * Wertet {@code raw} aus. {@code null}, wenn die Eingabe leer oder keine gültige Rechnung ist.
-     * Komma = Dezimaltrennzeichen; Leerzeichen werden ignoriert.
+     * Komma = Dezimaltrennzeichen; Leerzeichen werden ignoriert. Nur {@code +} und {@code *} sind erlaubt.
      */
     public static BigDecimal evaluate(String raw) {
         if (raw == null) {
             return null;
         }
-        String t = raw.trim().replace(" ", "").replace(",", ".").replace("−", "-").replace("×", "*")
-                .replace("·", "*").replace("÷", "/");
+        // Komma → Punkt; „×"/„·" als bequeme Multiplikations-Varianten. Alles andere (− / ( ) …) bleibt
+        // stehen und lässt die Auswertung scheitern → null.
+        String t = raw.trim().replace(" ", "").replace(",", ".").replace("×", "*").replace("·", "*");
         if (t.isEmpty()) {
             return null;
         }
@@ -46,58 +45,44 @@ public final class AmountExpression {
         }
     }
 
-    /** Summe: Produkt (('+'|'-') Produkt)* */
+    /**
+     * Wertet {@code raw} aus und rundet auf Cent (kaufmännisch). {@code null}, wenn die Eingabe keine gültige
+     * Rechnung ist oder das Ergebnis nicht in einen {@code long}-Centbetrag passt.
+     */
+    public static Long toCents(String raw) {
+        BigDecimal value = evaluate(raw);
+        if (value == null) {
+            return null;
+        }
+        try {
+            return value.movePointRight(2).setScale(0, RoundingMode.HALF_UP).longValueExact();
+        } catch (ArithmeticException e) {
+            return null;
+        }
+    }
+
+    /** Summe: Produkt ('+' Produkt)* */
     private BigDecimal sum() {
         BigDecimal v = product();
-        while (pos < s.length() && (s.charAt(pos) == '+' || s.charAt(pos) == '-')) {
-            char op = s.charAt(pos++);
-            BigDecimal r = product();
-            v = op == '+' ? v.add(r) : v.subtract(r);
+        while (pos < s.length() && s.charAt(pos) == '+') {
+            pos++;
+            v = v.add(product());
         }
         return v;
     }
 
-    /** Produkt: Faktor (('*'|'/') Faktor)* */
+    /** Produkt: Zahl ('*' Zahl)* */
     private BigDecimal product() {
-        BigDecimal v = factor();
-        while (pos < s.length() && (s.charAt(pos) == '*' || s.charAt(pos) == '/')) {
-            char op = s.charAt(pos++);
-            BigDecimal r = factor();
-            if (op == '*') {
-                v = v.multiply(r);
-            } else {
-                if (r.signum() == 0) {
-                    throw new ArithmeticException("Division durch 0");
-                }
-                v = v.divide(r, MC);
-            }
+        BigDecimal v = number();
+        while (pos < s.length() && s.charAt(pos) == '*') {
+            pos++;
+            v = v.multiply(number());
         }
         return v;
     }
 
-    /** Faktor: ('+'|'-')? ( '(' Summe ')' | Zahl ) */
-    private BigDecimal factor() {
-        if (pos >= s.length()) {
-            throw new IllegalArgumentException("unerwartetes Ende");
-        }
-        char c = s.charAt(pos);
-        if (c == '+') {
-            pos++;
-            return factor();
-        }
-        if (c == '-') {
-            pos++;
-            return factor().negate();
-        }
-        if (c == '(') {
-            pos++;
-            BigDecimal v = sum();
-            if (pos >= s.length() || s.charAt(pos) != ')') {
-                throw new IllegalArgumentException("Klammer nicht geschlossen");
-            }
-            pos++;
-            return v;
-        }
+    /** Zahl: Ziffern mit höchstens einem Dezimalpunkt (kein Vorzeichen, keine Klammer). */
+    private BigDecimal number() {
         int start = pos;
         while (pos < s.length() && (Character.isDigit(s.charAt(pos)) || s.charAt(pos) == '.')) {
             pos++;

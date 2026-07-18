@@ -136,35 +136,14 @@ bullets([
   "<b>«Import accounts»</b>: the same selection dialog as «Add account», right here in the assistant.",
   "<b>«More settings»</b> opens the full settings; <b>«Done»</b> closes the assistant.",
 ])
-p("All of the settings below are reached later, any time, via the <b>⋮ menu</b> at the top right – the "
-  "<b>«Settings»</b> entry sits <b>at the very bottom</b> there.")
-shot("Einstellungen.png", "Settings: language, server connection (SMB/WebDAV) and export mode", width=6.0*cm)
-h2("Language")
-p("On first launch the language follows your phone (German → German, otherwise English). It can be "
-  "changed any time under <i>Settings → Language</i> (at the very top).")
-h2("Number format")
-p("Also in the language section you can pick the <b>number format</b>: «1.234,56» (grouping dot, comma), "
-  "«1,234.56» (grouping comma, point) or «1234,56»/«1234.56» without grouping; plus a <b>«Show currency "
-  "symbol»</b> toggle. The choice applies to all amounts in the app and on the watch. Amount entry still "
-  "accepts comma and point; the CSV/kMy export keeps a stable format.")
-h2("Set up the connection to your server (SMB or WebDAV/Nextcloud)")
-p("<b>This is the most important setup step.</b> For the app to exchange data with KMyMoney, it needs "
-  "access to the folder that holds your shared <b>.kmy</b> file (or the export folder). Open the settings "
-  "and choose the <b>server type</b>:")
-bullets([
-  "<b>SMB/Samba</b>: for a Windows/NAS share on your home network («smb://host/share»).",
-  "<b>WebDAV (generic)</b> or <b>Nextcloud</b>: for a (cloud) WebDAV server.",
-])
-p("Then enter URL/share, user name and password and verify with <b>«Test connection»</b>. Also choose the "
-  "export mode (<b>.kmy</b> or CSV) and – in .kmy mode – pick the file via <b>«Choose .kmy»</b>. Full "
-  "details are in Chapter 14.")
-h2("Create accounts – required first")
-p("Next, create at least one <b>account</b>: in the account drawer (☰ top left) via <b>«Add account»</b>; "
-  "in .kmy mode the accounts can be imported directly from the KMyMoney file. <b>Important:</b> the "
-  "<b>default account</b> and the settings below it that depend on it (e.g. places per account) can only "
-  "be set <b>once accounts already exist</b>.")
-h2("App lock (optional)")
-p("In the settings you can enable the biometric app lock (fingerprint, face, PIN …).")
+p("<b>Important – an account first:</b> create at least one <b>account</b> – in the assistant via "
+  "<b>«Import accounts»</b> or later in the account drawer (☰ top left) via <b>«Add account»</b>. The "
+  "<b>default account</b> and the options that depend on it (e.g. places per account) can only be set "
+  "<b>once accounts already exist</b>.")
+p("All settings in detail – language, number format, currency, server connection, export mode, default "
+  "account, alias names, app lock, backup and more – are explained in the <b>«Settings»</b> chapter at the "
+  "end of the manual (Chapter 16). They are reachable any time via the <b>⋮ menu</b> at the top right, "
+  "entry <b>«Settings»</b> at the very bottom.")
 
 # ---------------------------------------------------------------- 3
 h1("3. The main screen")
@@ -621,36 +600,8 @@ p("If the file changed in the meantime, the <b>export aborts and writes nothing<
   "state, the app writes unchecked as before – the export never fails because of this.")
 
 # ---------------------------------------------------------------- 12
-h1("15. Setting up synchronization (Settings)")
-p("Before synchronizing for the first time, store server, access and export mode once in the settings "
-  "(shown in Chapter 2).")
-h2("Server type and access")
-bullets([
-  "<b>Nextcloud</b>: base URL of the server + app password (Nextcloud → Security → App password).",
-  "<b>WebDAV (generic)</b>: full DAV root URL, auth via HTTP basic.",
-  "<b>SMB/Samba</b>: «smb://host/share»; empty user = guest, a domain as DOMAIN\\user. SMB2/3.",
-  "<b>«Test connection»</b> checks the credentials; in .kmy mode <b>«Choose .kmy»</b> opens a file browser "
-  "with subfolders and .kmy files – descend into subfolders and go back up with «..».",
-])
-h2("Export mode")
-bullets([
-  "<b>.kmy mode</b>: writes new bookings straight into the KMyMoney file (including splits and transfers) "
-  "and imports accounts/bookings as well as the portfolio from it.",
-  "<b>CSV mode</b>: exports one CSV file per account; each booking is exported only once.",
-  "<b>Portfolio import</b>: reads securities, buys/sells/dividends and the latest price.",
-])
-p("Without a configured sync target, export goes locally into a folder you choose.")
-
-# ---------------------------------------------------------------- 13
-h1("16. Managing alias names")
-p("Under <b>Settings → Alias names</b>: the automatic prompt can be turned off (existing aliases still "
-  "apply). Via <b>«Manage alias names»</b> you create, edit and delete aliases by hand – with spoken term, "
-  "real payee, booking type, account, categories and location (settable via <b>«Open map»</b> on an "
-  "OpenStreetMap map). The <b>«prefer»</b> toggle (★) puts an alias ahead of the booking search. The same "
-  "spoken term may point to several payees, which are then distinguished by location.")
-
-# ---------------------------------------------------------------- 14
-h1("17. Wear OS (watch)")
+# ---------------------------------------------------------------- 15 Wear OS
+h1("15. Wear OS (watch)")
 shot("UhranlagemitAlias.png", "Recording on the watch", width=6.0*cm)
 p("With the watch app you record an expense by voice right on your wrist. The watch only captures the text; "
   "processing and creating the booking happen on the phone (the same parser).")
@@ -681,19 +632,81 @@ bullets([
 p("Requirement: the phone and watch apps share the same signature (same key).")
 
 # ---------------------------------------------------------------- 15
-h1("18. Security, privacy & settings")
+# ---------------------------------------------------------------- 16 Settings (complete reference)
+h1("16. Settings (complete reference)")
+p("The settings are reached via the <b>⋮ menu</b> at the top right – entry <b>«Settings»</b> at the very "
+  "bottom. On first start the welcome assistant (Chapter 2) already sets the essentials; here all fields are "
+  "described in screen order. Changes take effect on <b>«Save»</b> (language and dark mode immediately).")
+shot("Einstellungen.png", "Settings: language, server connection (SMB/WebDAV) and export mode", width=6.0*cm)
+h2("Language, number format and currency")
+bullets([
+  "<b>Language</b>: German/English (more via a language file). Pre-selected from the phone on first start; "
+  "the choice takes effect immediately. Via <b>«Export/upload language template»</b> you can maintain your "
+  "own translation as a file.",
+  "<b>Currency</b>: default currency symbol for accounts without their own currency (taken per account from "
+  "the file on .kmy import).",
+  "<b>Number format</b>: «1.234,56», «1,234.56» or «1234,56»/«1234.56» without grouping; plus the <b>«Show "
+  "currency symbol»</b> toggle. Applies to all amounts in the app and on the watch; entry still accepts comma "
+  "and point, the export keeps a stable format.",
+  "<b>Dividends gross/net</b>: whether portfolio dividends are settled gross (declared) or net.",
+  "<b>Budget in-app</b>: compute the budget actuals from history instead of importing from KMyMoney "
+  "(see Chapter 11).",
+])
+h2("Connection to your server (SMB / WebDAV / Nextcloud)")
+p("<b>The most important setup step</b>, so the app can exchange data with KMyMoney. Choose the <b>server "
+  "type</b> and enter the access:")
+bullets([
+  "<b>Nextcloud</b>: base URL of the server + app password (Nextcloud → Security → App password).",
+  "<b>WebDAV (generic)</b>: full DAV root URL, auth via HTTP basic.",
+  "<b>SMB/Samba</b>: «smb://host/share» on your home network; empty user = guest, a domain as DOMAIN\\user. SMB2/3.",
+  "<b>«Test connection»</b> checks the credentials.",
+])
+h2("Export mode")
+bullets([
+  "<b>.kmy mode</b>: writes new bookings straight into the KMyMoney file (including splits and transfers) "
+  "and imports accounts/bookings as well as the portfolio from it. <b>«Choose .kmy»</b> opens a file browser "
+  "(subfolders, «..» to go back).",
+  "<b>CSV mode</b>: exports one CSV file per account (each booking only once); the target folder and import "
+  "folder are set here.",
+])
+p("Without a configured sync target, export goes locally into a folder you choose. How the sync runs is in "
+  "Chapter 14.")
+h2("Default account and places")
+bullets([
+  "<b>Default account</b>: pre-selection for new bookings (also for widget and watch). Selectable only once "
+  "accounts exist.",
+  "<b>Places per account</b>: per account you can create cash <b>places</b> and set a <b>default place</b> "
+  "(see Chapter 13).",
+])
+h2("Alias names")
+p("The <b>«Prompt»</b> toggle controls whether the app offers to learn an unknown payee as an alias after "
+  "you speak (existing aliases still apply). Via <b>«Manage alias names»</b> you create, edit and delete "
+  "aliases by hand – with spoken term, real payee, booking type, account, categories and location (via "
+  "<b>«Open map»</b> on an OpenStreetMap map). The <b>«prefer»</b> toggle (★) puts an alias ahead of the "
+  "booking search; the same term may point to several payees distinguished by location.")
+h2("Appearance")
+bullets([
+  "<b>Dark mode</b>: light/dark (takes effect immediately).",
+  "<b>Reminder for scheduled bookings</b>: reminds once a day of scheduled bookings due today (off by "
+  "default; see Chapter 12).",
+])
+h2("Security & privacy")
 bullets([
   "<b>App lock</b>: optional via biometrics/device credential (fingerprint, face, PIN, pattern, password) – "
   "on start and when returning from the background.",
   "<b>Location (GPS)</b> switch (default <b>off</b>): controls all location use. Off = no permission prompt, "
-  "no GPS note, no amount-only entry, no alias location. The position is used locally only, never sent to a service.",
-  "<b>Currency symbol</b>: default; taken per account from the file on .kmy import.",
-  "<b>Theme</b>: light/dark. <b>Backup/restore</b> of the database.",
-  "<b>Delete/close account</b>: a <b>multi-select</b> lists all accounts with status (Active/Closed). The "
-  "bottom row has <b>Delete</b> and (context-dependent) <b>Close/Reopen</b> before <b>Cancel</b>; <b>Close</b> "
-  "appears only when all selected accounts have a balance of 0, <b>Reopen</b> when all selected are closed – so "
-  "several accounts can be closed, reopened or deleted at once. A closed account no longer appears anywhere – "
-  "only in the total analysis view does its historical balance still count.",
+  "no GPS note, no amount-only entry, no alias location. The position is used locally only, never sent to a "
+  "service.",
+])
+h2("Data")
+bullets([
+  "<b>Export all</b> and <b>Backup/restore</b> of the database.",
+  "<b>Manage accounts (delete/close)</b>: a <b>multi-select</b> lists all accounts with status "
+  "(Active/Closed). The bottom row has <b>Delete</b> and (context-dependent) <b>Close/Reopen</b> before "
+  "<b>Cancel</b>; <b>Close</b> only at balance 0, <b>Reopen</b> only for closed accounts. A closed account "
+  "no longer appears anywhere – only in the total analysis view does its historical balance still count.",
+  "<b>Reset data</b>: deletes the local database (a fresh start like the first time – the welcome assistant "
+  "appears again afterwards).",
 ])
 h2("Disclaimer")
 p("This app is provided as-is, with no warranty. In particular, there is no guarantee that the .kmy file "
@@ -701,7 +714,7 @@ p("This app is provided as-is, with no warranty. In particular, there is no guar
   "always have a fallback. Keep your own regular backups as well.")
 
 # ---------------------------------------------------------------- 16
-h1("19. CSV format (export)")
+h1("17. CSV format (export)")
 p("German locale: column separator «;», decimal separator «,», date DD.MM.YYYY, UTF-8. Split bookings are "
   "written as one line per category.")
 code = ("Datum;Empfänger;Konto;Typ;Betrag;Notiz;Kategorie<br/>"

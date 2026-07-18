@@ -141,35 +141,14 @@ bullets([
   "<b>«Weitere Einstellungen»</b> öffnet die vollständigen Einstellungen; <b>«Fertig»</b> schließt den "
   "Assistenten.",
 ])
-p("Alle folgenden Einstellungen erreichen Sie später jederzeit über das <b>Menü ⋮</b> oben rechts – der "
-  "Eintrag <b>«Einstellungen»</b> steht dort <b>ganz unten</b>.")
-shot("Einstellungen.png", "Einstellungen: Sprache, Server-Verbindung (SMB/WebDAV) und Export-Modus", width=6.0*cm)
-h2("Sprache")
-p("Beim ersten Start richtet sich die Sprache nach dem Handy (Deutsch → Deutsch, sonst Englisch). "
-  "Änderbar jederzeit unter <i>Einstellungen → Sprache</i> (ganz oben).")
-h2("Zahlenformat")
-p("Ebenfalls im Sprache-Bereich lässt sich das <b>Zahlenformat</b> wählen: «1.234,56» (Tausenderpunkt, "
-  "Komma), «1,234.56» (Tausenderkomma, Punkt) oder «1234,56»/«1234.56» ohne Tausendertrennung; dazu ein "
-  "Schalter <b>«Währungskennzeichen anzeigen»</b>. Die Wahl gilt für alle Beträge in der App und auf der "
-  "Uhr. Die Betragseingabe akzeptiert weiterhin Komma und Punkt; der CSV-/kMy-Export bleibt formatstabil.")
-h2("Verbindung zu Ihrem Server einrichten (SMB oder WebDAV/Nextcloud)")
-p("<b>Dies ist der wichtigste Einrichtungsschritt.</b> Damit die App mit KMyMoney Daten austauschen kann, "
-  "muss sie auf den Ordner zugreifen, in dem Ihre gemeinsame <b>.kmy</b>-Datei (oder der Export-Ordner) "
-  "liegt. Öffnen Sie die Einstellungen und wählen Sie den <b>Server-Typ</b>:")
-bullets([
-  "<b>SMB/Samba</b>: für eine Windows-/NAS-Freigabe im Heimnetz («smb://Host/Freigabe»).",
-  "<b>WebDAV (generisch)</b> oder <b>Nextcloud</b>: für einen (Cloud-)WebDAV-Server.",
-])
-p("Tragen Sie dann URL/Freigabe, Benutzer und Passwort ein und prüfen Sie mit <b>«Verbindung testen»</b>. "
-  "Wählen Sie außerdem den Export-Modus (<b>.kmy</b> oder CSV) und – im .kmy-Modus – über <b>«.kmy "
-  "auswählen»</b> die Datei. Die vollständigen Details stehen in Kapitel 14.")
-h2("Konten anlegen – zuerst erforderlich")
-p("Legen Sie danach mindestens ein <b>Konto</b> an: in der Kontenschublade (☰ oben links) unten über "
-  "<b>«Konto hinzufügen»</b>; im .kmy-Modus lassen sich die Konten direkt aus der KMyMoney-Datei "
-  "importieren. <b>Wichtig:</b> Das <b>Standardkonto</b> und die davon abhängigen Einstellungen darunter "
-  "(z. B. die Orte je Konto) lassen sich erst festlegen, <b>wenn bereits Konten vorhanden sind</b>.")
-h2("App-Sperre (optional)")
-p("In den Einstellungen können Sie die biometrische App-Sperre aktivieren (Fingerabdruck, Gesicht, PIN …).")
+p("<b>Wichtig – zuerst ein Konto:</b> Legen Sie mindestens ein <b>Konto</b> an – im Assistenten über "
+  "<b>«Konten importieren»</b> oder später in der Kontenschublade (☰ oben links) über "
+  "<b>«Konto hinzufügen»</b>. Das <b>Standardkonto</b> und die davon abhängigen Optionen (z. B. die Orte je "
+  "Konto) lassen sich erst festlegen, <b>wenn bereits Konten vorhanden sind</b>.")
+p("Alle Einstellungen im Detail – Sprache, Zahlenformat, Währung, Server-Verbindung, Export-Modus, "
+  "Standardkonto, Alias-Namen, App-Sperre, Sicherung u. v. m. – erklärt das Kapitel <b>«Einstellungen»</b> "
+  "am Ende des Handbuchs (Kapitel 16). Erreichbar sind sie jederzeit über das <b>Menü ⋮</b> oben rechts, "
+  "Eintrag <b>«Einstellungen»</b> ganz unten.")
 
 # ---------------------------------------------------------------- 3 Hauptbildschirm
 h1("3. Der Hauptbildschirm")
@@ -657,37 +636,8 @@ p("Wurde die Datei zwischenzeitlich geändert, <b>bricht der Export ab und schre
   "Liefert der Server keinen Stand, wird wie bisher ungeprüft geschrieben – der Export scheitert daran nicht.")
 
 # ---------------------------------------------------------------- 12 Sync einrichten
-h1("15. Synchronisation einrichten (Einstellungen)")
-p("Bevor Sie zum ersten Mal synchronisieren, hinterlegen Sie einmalig Server, Zugang und Export-Modus "
-  "in den Einstellungen (abgebildet in Kapitel 2).")
-h2("Server-Typ und Zugang")
-bullets([
-  "<b>Nextcloud</b>: Basis-URL des Servers + App-Passwort (Nextcloud → Sicherheit → App-Passwort).",
-  "<b>WebDAV (generisch)</b>: vollständige DAV-Wurzel-URL, Auth per HTTP-Basic.",
-  "<b>SMB/Samba</b>: «smb://Host/Freigabe»; leerer Benutzer = Gast, Domäne als DOMÄNE\\Benutzer. SMB2/3.",
-  "<b>«Verbindung testen»</b> prüft die Zugangsdaten; im .kmy-Modus öffnet <b>«.kmy auswählen»</b> einen "
-  "Datei-Browser mit Unterordnern und .kmy-Dateien – man navigiert in Unterordner und mit «..» zurück.",
-])
-h2("Export-Modus")
-bullets([
-  "<b>.kmy-Modus</b>: schreibt neue Buchungen direkt in die KMyMoney-Datei (inkl. Splits und Umbuchungen) "
-  "und importiert Konten/Buchungen sowie das Depot daraus.",
-  "<b>CSV-Modus</b>: exportiert pro Konto eine CSV-Datei; jede Buchung wird nur einmal exportiert.",
-  "<b>Depot-Import</b>: liest Wertpapiere, Käufe/Verkäufe/Dividenden und den letzten Kurs.",
-])
-p("Ohne konfiguriertes Sync-Ziel wird lokal in einen selbst gewählten Ordner exportiert.")
-
-# ---------------------------------------------------------------- 13 Alias-Verwaltung
-h1("16. Alias-Namen verwalten")
-p("Unter <b>Einstellungen → Alias-Namen</b>: Die automatische Nachfrage lässt sich abschalten (bestehende "
-  "Aliase gelten weiter). Über <b>«Alias-Namen verwalten»</b> legen Sie Aliase manuell an, ändern und "
-  "löschen sie – mit gesprochenem Begriff, echtem Empfänger, Buchungsart, Konto, Kategorien und Standort "
-  "(per <b>«Karte öffnen»</b> auf einer OpenStreetMap-Karte setzbar). Der Schalter <b>«bevorzugen»</b> "
-  "(★) stellt einen Alias vor die Buchungssuche. Derselbe gesprochene Begriff darf auf mehrere Empfänger "
-  "zeigen, die dann per Standort unterschieden werden.")
-
-# ---------------------------------------------------------------- 13 Wear OS
-h1("17. Wear OS (Uhr)")
+# ---------------------------------------------------------------- 15 Wear OS
+h1("15. Wear OS (Uhr)")
 shot("UhranlagemitAlias.png", "Erfassung auf der Uhr", width=6.0*cm)
 p("Mit der Uhren-App erfassen Sie eine Ausgabe per Sprache direkt am Handgelenk. Die Uhr nimmt nur den "
   "Text auf; die Verarbeitung und das Anlegen der Buchung passieren auf dem Handy (derselbe Parser).")
@@ -719,21 +669,84 @@ bullets([
 ])
 p("Voraussetzung: Handy- und Uhren-App haben dieselbe Signatur (gleicher Schlüssel).", )
 
-# ---------------------------------------------------------------- 14 Sicherheit
-h1("18. Sicherheit, Datenschutz & Einstellungen")
+# ---------------------------------------------------------------- 16 Einstellungen (vollstaendige Referenz)
+h1("16. Einstellungen (vollständige Referenz)")
+p("Die Einstellungen erreichen Sie über das <b>Menü ⋮</b> oben rechts – Eintrag <b>«Einstellungen»</b> ganz "
+  "unten. Beim ersten Start setzt der Willkommen-Assistent (Kapitel 2) bereits die wichtigsten Punkte; hier "
+  "sind alle Felder in der Reihenfolge des Bildschirms beschrieben. Änderungen wirken mit <b>«Speichern»</b> "
+  "(Sprache und Dunkelmodus sofort).")
+shot("Einstellungen.png", "Einstellungen: Sprache, Server-Verbindung (SMB/WebDAV) und Export-Modus", width=6.0*cm)
+h2("Sprache, Zahlenformat und Währung")
+bullets([
+  "<b>Sprache</b>: Deutsch/Englisch (weitere per Sprachdatei). Beim ersten Start nach dem Handy vorbelegt; "
+  "die Wahl wirkt sofort. Über <b>«Sprachvorlage exportieren/hochladen»</b> lässt sich eine eigene "
+  "Übersetzung als Datei pflegen.",
+  "<b>Währung</b>: Standard-Währungskennzeichen für Konten ohne eigene Währung (beim .kmy-Import je Konto "
+  "aus der Datei übernommen).",
+  "<b>Zahlenformat</b>: «1.234,56», «1,234.56» oder «1234,56»/«1234.56» ohne Tausendertrennung; dazu der "
+  "Schalter <b>«Währungskennzeichen anzeigen»</b>. Gilt für alle Beträge in App und Uhr; die Eingabe "
+  "akzeptiert weiter Komma und Punkt, der Export bleibt formatstabil.",
+  "<b>Dividenden brutto/netto</b>: ob Depot-Dividenden brutto (deklariert) oder netto verrechnet werden.",
+  "<b>Budget app-intern</b>: das Budget-Ist aus dem Verlauf berechnen statt aus KMyMoney importieren "
+  "(siehe Kapitel 11).",
+])
+h2("Verbindung zu Ihrem Server (SMB / WebDAV / Nextcloud)")
+p("<b>Der wichtigste Einrichtungsschritt</b>, damit die App mit KMyMoney Daten austauscht. Wählen Sie den "
+  "<b>Server-Typ</b> und tragen Sie den Zugang ein:")
+bullets([
+  "<b>Nextcloud</b>: Basis-URL des Servers + App-Passwort (Nextcloud → Sicherheit → App-Passwort).",
+  "<b>WebDAV (generisch)</b>: vollständige DAV-Wurzel-URL, Auth per HTTP-Basic.",
+  "<b>SMB/Samba</b>: «smb://Host/Freigabe» im Heimnetz; leerer Benutzer = Gast, Domäne als DOMÄNE\\Benutzer. SMB2/3.",
+  "<b>«Verbindung testen»</b> prüft die Zugangsdaten.",
+])
+h2("Export-Modus")
+bullets([
+  "<b>.kmy-Modus</b>: schreibt neue Buchungen direkt in die KMyMoney-Datei (inkl. Splits und Umbuchungen) "
+  "und importiert Konten/Buchungen sowie das Depot daraus. Über <b>«.kmy auswählen»</b> öffnet sich ein "
+  "Datei-Browser (Unterordner, «..» zurück).",
+  "<b>CSV-Modus</b>: exportiert je Konto eine CSV-Datei (jede Buchung nur einmal); Zielordner und "
+  "Import-Ordner werden hier gesetzt.",
+])
+p("Ohne konfiguriertes Sync-Ziel wird lokal in einen selbst gewählten Ordner exportiert. Wie der Abgleich "
+  "abläuft, steht in Kapitel 14.")
+h2("Standardkonto und Orte")
+bullets([
+  "<b>Standardkonto</b>: Vorauswahl für neue Buchungen (auch für Widget und Uhr). Erst wählbar, wenn Konten "
+  "vorhanden sind.",
+  "<b>Orte je Konto</b>: pro Konto lassen sich Bargeld-<b>Orte</b> anlegen und ein <b>Standardort</b> "
+  "festlegen (siehe Kapitel 13).",
+])
+h2("Alias-Namen")
+p("Der Schalter <b>«Nachfrage»</b> steuert, ob die App nach dem Sprechen einen unbekannten Empfänger als "
+  "Alias lernen möchte (bestehende Aliase gelten weiter). Über <b>«Alias-Namen verwalten»</b> legen Sie "
+  "Aliase manuell an, ändern und löschen sie – mit gesprochenem Begriff, echtem Empfänger, Buchungsart, "
+  "Konto, Kategorien und Standort (per <b>«Karte öffnen»</b> auf einer OpenStreetMap-Karte). Der Schalter "
+  "<b>«bevorzugen»</b> (★) stellt einen Alias vor die Buchungssuche; derselbe Begriff darf auf mehrere per "
+  "Standort unterschiedene Empfänger zeigen.")
+h2("Darstellung")
+bullets([
+  "<b>Dunkelmodus</b>: Hell/Dunkel (wirkt sofort).",
+  "<b>Erinnerung an geplante Buchungen</b>: erinnert einmal täglich an heute fällige geplante Buchungen "
+  "(standardmäßig aus; siehe Kapitel 12).",
+])
+h2("Sicherheit & Datenschutz")
 bullets([
   "<b>App-Sperre</b>: optional per Fingerabdruck, Gesicht, PIN, Muster oder Passwort – beim Start und bei "
   "Rückkehr aus dem Hintergrund.",
   "<b>Standort (GPS)</b>: standardmäßig <b>aus</b>. Aus = keine Berechtigungsabfrage, keine GPS-Notiz, keine "
-  "Betrag-only-Erfassung, kein Alias-Standort. Die Position wird nur lokal genutzt, nie an einen Dienst gesendet.",
-  "<b>Währungskennzeichen</b>: Standard; beim .kmy-Import je Konto aus der Datei übernommen.",
-  "<b>Design</b>: Hell/Dunkel. <b>Backup/Restore</b> der Datenbank.",
-  "<b>Konto löschen/schließen</b>: Eine <b>Mehrfachauswahl</b> listet alle Konten mit Status (Aktiv/"
-  "Geschlossen). In der unteren Zeile stehen <b>Löschen</b> und (kontextabhängig) <b>Schließen/Öffnen</b> vor "
-  "<b>Abbrechen</b>; <b>Schließen</b> erscheint nur, wenn alle ausgewählten Konten Saldo 0 haben, <b>Öffnen</b>, "
-  "wenn alle ausgewählten geschlossen sind. So lassen sich mehrere Konten auf einmal schließen, öffnen oder "
-  "löschen. Ein geschlossenes Konto erscheint nirgends mehr – nur in der Auswertung-Gesamtsicht zählt sein "
-  "historischer Saldo weiter.",
+  "Betrag-only-Erfassung, kein Alias-Standort. Die Position wird nur lokal genutzt, nie an einen Dienst "
+  "gesendet.",
+])
+h2("Daten")
+bullets([
+  "<b>Alles exportieren</b> sowie <b>Backup/Restore</b> der Datenbank.",
+  "<b>Konten verwalten (löschen/schließen)</b>: Eine <b>Mehrfachauswahl</b> listet alle Konten mit Status "
+  "(Aktiv/Geschlossen). Unten stehen <b>Löschen</b> und (kontextabhängig) <b>Schließen/Öffnen</b> vor "
+  "<b>Abbrechen</b>; <b>Schließen</b> nur bei Saldo 0, <b>Öffnen</b> nur bei geschlossenen Konten. Ein "
+  "geschlossenes Konto erscheint nirgends mehr – nur in der Auswertung-Gesamtsicht zählt sein historischer "
+  "Saldo weiter.",
+  "<b>Daten zurücksetzen</b>: löscht die lokale Datenbank (Neustart wie beim ersten Mal – danach erscheint "
+  "wieder der Willkommen-Assistent).",
 ])
 h2("Haftungsausschluss")
 p("Diese App wird ohne Gewähr bereitgestellt. Insbesondere gibt es keine Garantie, dass die .kmy-Datei "
@@ -741,7 +754,7 @@ p("Diese App wird ohne Gewähr bereitgestellt. Insbesondere gibt es keine Garant
   "jedoch stets einen Fallback. Bewahren Sie zusätzlich eigene, regelmäßige Backups auf.", )
 
 # CSV-Format Kurzreferenz
-h1("19. CSV-Format (Export)")
+h1("17. CSV-Format (Export)")
 p("Deutsch: Spaltentrenner «;», Dezimaltrennzeichen «,», Datum TT.MM.JJJJ, UTF-8. Splitbuchungen werden je "
   "Kategorie als eigene Zeile geschrieben.")
 code = ("Datum;Empfänger;Konto;Typ;Betrag;Notiz;Kategorie<br/>"

@@ -1177,13 +1177,16 @@ public class Repository {
         public final long netDepositsCents;
         /** Summe der Dividenden im Zeitraum (brutto/netto laut Einstellung). */
         public final long dividendCents;
+        /** Einstandspreis im Zeitraum = Summe der Käufe (Nenner für die Rendite). */
+        public final long investedCents;
 
         public DepotChartRow(String name, long currentValueCents, long netDepositsCents,
-                             long dividendCents) {
+                             long dividendCents, long investedCents) {
             this.name = name;
             this.currentValueCents = currentValueCents;
             this.netDepositsCents = netDepositsCents;
             this.dividendCents = dividendCents;
+            this.investedCents = investedCents;
         }
     }
 

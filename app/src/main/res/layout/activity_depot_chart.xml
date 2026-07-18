@@ -15,7 +15,8 @@
         app:title="@string/depot_chart_title"
         app:titleTextColor="@color/white" />
 
-    <!-- Ansicht: Aktueller Wert / Netto-Einzahlungen / Summe Dividenden. -->
+    <!-- Ansicht (Symbole): Aktueller Wert / Netto-Einzahlungen / Summe Dividenden / Gewinn-Verlust.
+         Die gewählte Ansicht steht als Titel in der Toolbar. -->
     <com.google.android.material.button.MaterialButtonToggleGroup
         android:id="@+id/toggleView"
         android:layout_width="match_parent"
@@ -31,8 +32,13 @@
             android:layout_width="0dp"
             android:layout_height="wrap_content"
             android:layout_weight="1"
-            android:textSize="12sp"
-            android:text="@string/depot_view_value" />
+            android:insetTop="0dp"
+            android:insetBottom="0dp"
+            android:paddingHorizontal="0dp"
+            android:contentDescription="@string/depot_view_value"
+            app:icon="@drawable/ic_depot_value"
+            app:iconGravity="textStart"
+            app:iconPadding="0dp" />
 
         <com.google.android.material.button.MaterialButton
             android:id="@+id/btnViewNetto"
@@ -40,8 +46,13 @@
             android:layout_width="0dp"
             android:layout_height="wrap_content"
             android:layout_weight="1"
-            android:textSize="12sp"
-            android:text="@string/depot_view_netto" />
+            android:insetTop="0dp"
+            android:insetBottom="0dp"
+            android:paddingHorizontal="0dp"
+            android:contentDescription="@string/depot_view_netto"
+            app:icon="@drawable/ic_depot_netto"
+            app:iconGravity="textStart"
+            app:iconPadding="0dp" />
 
         <com.google.android.material.button.MaterialButton
             android:id="@+id/btnViewDividend"
@@ -49,8 +60,27 @@
             android:layout_width="0dp"
             android:layout_height="wrap_content"
             android:layout_weight="1"
-            android:textSize="12sp"
-            android:text="@string/depot_view_dividend" />
+            android:insetTop="0dp"
+            android:insetBottom="0dp"
+            android:paddingHorizontal="0dp"
+            android:contentDescription="@string/depot_view_dividend"
+            app:icon="@drawable/ic_depot_dividend"
+            app:iconGravity="textStart"
+            app:iconPadding="0dp" />
+
+        <com.google.android.material.button.MaterialButton
+            android:id="@+id/btnViewGain"
+            style="?attr/materialButtonOutlinedStyle"
+            android:layout_width="0dp"
+            android:layout_height="wrap_content"
+            android:layout_weight="1"
+            android:insetTop="0dp"
+            android:insetBottom="0dp"
+            android:paddingHorizontal="0dp"
+            android:contentDescription="@string/depot_view_gain"
+            app:icon="@drawable/ic_depot_gain"
+            app:iconGravity="textStart"
+            app:iconPadding="0dp" />
     </com.google.android.material.button.MaterialButtonToggleGroup>
 
     <!-- Zeitraumfilter: monatlicher Bereichsslider + Von/Bis-Datumsfelder (Tipp öffnet Datumsauswahl).

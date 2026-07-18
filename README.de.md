@@ -294,8 +294,10 @@ regelmäßigen Abständen.
   Papier und einem **Filter nach Käufen/Verkäufen/Dividenden** sowie einem **Datums-Slider** (Startdatum =
   erster Kauf). Über das Menü **„Auswertung"** öffnet sich ein **Kreisdiagramm** der Wertpapiere im **Design
   der Kategorien-Seite** (durchgehender Ring, feste Farbe je Wertpapier, max. halbe Bildschirmhöhe, darunter
-  eine eigene scrollbare Liste). Oben schaltet ein **Umschalter** zwischen **Aktueller Wert** (Standard),
-  **Netto-Einzahlungen** (Käufe − Verkäufe − Dividenden) und **Summe Dividenden**; ein **Zeitraumfilter**
+  eine eigene scrollbare Liste). Oben schaltet ein **Symbol-Umschalter** zwischen **Aktueller Wert** (Standard),
+  **Netto-Einzahlungen** (Käufe − Verkäufe − Dividenden), **Summe Dividenden** und **Gewinn/Verlust**
+  (Aktueller Wert − Netto-Einzahlungen, als €-Betrag und als %-Rendite bezogen auf den Einstandspreis, in der
+  Liste grün/rot gefärbt); die aktuelle Auswahl steht als **Titel im Menüstreifen**. Ein **Zeitraumfilter**
   (monatlicher Bereichsslider ab der ersten Depot-Buchung + Von/Bis-Datumsfelder) grenzt den Zeitraum ein und
   aktualisiert Grafik und Liste sofort. „Aktueller Wert" ist der heutige Wert der im Zeitraum **aufgebauten
   Positionen** (voller Zeitraum = aktueller Depotwert). Grafik und Liste sind **immer** absteigend nach

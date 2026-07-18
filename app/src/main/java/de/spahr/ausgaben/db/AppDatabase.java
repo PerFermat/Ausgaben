@@ -13,7 +13,7 @@ import androidx.sqlite.db.SupportSQLiteDatabase;
         PayeeCorrection.class, Translation.class, Language.class, Security.class, SecurityTx.class,
         Budget.class, CategoryType.class, ScheduledTransaction.class, ScheduledSplit.class,
         AnalysisExtra.class},
-        version = 31, exportSchema = false)
+        version = 32, exportSchema = false)
 public abstract class AppDatabase extends RoomDatabase {
 
     /** v1 → v2: Notiz-Spalte ergänzen (bestehende Buchungen bleiben erhalten). */
@@ -351,6 +351,18 @@ public abstract class AppDatabase extends RoomDatabase {
         }
     };
 
+    /**
+     * Korrigiert Verkäufe, die aus KMyMoney-Dateien mit leerer Action fälschlich als Kauf gespeichert wurden.
+     * Ein echter Kauf hat nie eine negative Stückzahl – solche Zeilen sind in Wahrheit Verkäufe. Ohne diese
+     * Korrektur würde der Verkaufserlös zum Einstand addiert (Gewinn/Verlust falsch, z. B. −100 %).
+     */
+    static final Migration MIGRATION_31_32 = new Migration(31, 32) {
+        @Override
+        public void migrate(@NonNull SupportSQLiteDatabase db) {
+            db.execSQL("UPDATE security_tx SET action = 'sell' WHERE action = 'buy' AND shares < 0");
+        }
+    };
+
     public abstract BookingDao bookingDao();
 
     public abstract AccountDao accountDao();
@@ -393,7 +405,8 @@ public abstract class AppDatabase extends RoomDatabase {
                                     MIGRATION_19_20, MIGRATION_20_21, MIGRATION_21_22,
                                     MIGRATION_22_23, MIGRATION_23_24, MIGRATION_24_25,
                                     MIGRATION_25_26, MIGRATION_26_27, MIGRATION_27_28,
-                                    MIGRATION_28_29, MIGRATION_29_30, MIGRATION_30_31)
+                                    MIGRATION_28_29, MIGRATION_29_30, MIGRATION_30_31,
+                                    MIGRATION_31_32)
                             .build();
                 }
             }

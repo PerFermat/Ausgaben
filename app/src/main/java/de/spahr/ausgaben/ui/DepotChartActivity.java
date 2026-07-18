@@ -47,10 +47,12 @@ public class DepotChartActivity extends LocalizedActivity {
     private static final int VIEW_VALUE = 0;
     private static final int VIEW_NETTO = 1;
     private static final int VIEW_DIVIDEND = 2;
+    private static final int VIEW_GAIN = 3;
 
     private static final long DAY_MS = 24L * 60 * 60 * 1000;
 
     private Repository repository;
+    private MaterialToolbar toolbar;
     private PieChart pie;
     private LinearLayout list;
     private TextView empty;
@@ -78,7 +80,7 @@ public class DepotChartActivity extends LocalizedActivity {
     protected void onCreate(Bundle savedInstanceState) {
         super.onCreate(savedInstanceState);
         setContentView(R.layout.activity_depot_chart);
-        MaterialToolbar toolbar = findViewById(R.id.toolbar);
+        toolbar = findViewById(R.id.toolbar);
         toolbar.setNavigationOnClickListener(v -> finish());
 
         repository = new Repository(this);
@@ -102,9 +104,12 @@ public class DepotChartActivity extends LocalizedActivity {
                 view = VIEW_VALUE;
             } else if (checkedId == R.id.btnViewNetto) {
                 view = VIEW_NETTO;
-            } else {
+            } else if (checkedId == R.id.btnViewDividend) {
                 view = VIEW_DIVIDEND;
+            } else {
+                view = VIEW_GAIN;
             }
+            updateTitle();
             render();   // aus dem Cache – kein Neuladen nötig
         });
 
@@ -121,7 +126,7 @@ public class DepotChartActivity extends LocalizedActivity {
             finish();
             return;
         }
-        toolbar.setTitle(depot);
+        updateTitle();   // Titel = gewählte Ansicht (statt Depotname)
         repository.getDepotFirstTx(depot, first -> {
             firstTxMs = first;
             setupPeriod();
@@ -272,7 +277,35 @@ public class DepotChartActivity extends LocalizedActivity {
         if (view == VIEW_DIVIDEND) {
             return r.dividendCents;
         }
+        if (view == VIEW_GAIN) {
+            return gainOf(r);
+        }
         return r.currentValueCents;
+    }
+
+    /** Gewinn/Verlust eines Wertpapiers = aktueller Wert − Netto-Einzahlungen (vorzeichenbehaftet). */
+    private long gainOf(Repository.DepotChartRow r) {
+        return r.currentValueCents - r.netDepositsCents;
+    }
+
+    /** Titel der gewählten Ansicht (steht in der Toolbar). */
+    private String viewLabel() {
+        switch (view) {
+            case VIEW_NETTO:
+                return getString(R.string.depot_view_netto);
+            case VIEW_DIVIDEND:
+                return getString(R.string.depot_view_dividend);
+            case VIEW_GAIN:
+                return getString(R.string.depot_view_gain);
+            default:
+                return getString(R.string.depot_view_value);
+        }
+    }
+
+    private void updateTitle() {
+        if (toolbar != null) {
+            toolbar.setTitle(viewLabel());
+        }
     }
 
     private void render() {
@@ -282,14 +315,6 @@ public class DepotChartActivity extends LocalizedActivity {
             int c = Long.compare(b.currentValueCents, a.currentValueCents);
             return c != 0 ? c : Long.compare(displayValue(b), displayValue(a));
         });
-
-        long total = 0;
-        for (Repository.DepotChartRow r : sorted) {
-            long v = displayValue(r);
-            if (v > 0) {
-                total += v;
-            }
-        }
 
         list.removeAllViews();
         boolean any = false;
@@ -304,10 +329,33 @@ public class DepotChartActivity extends LocalizedActivity {
             empty.setVisibility(View.VISIBLE);
             return;
         }
-        buildPie(sorted, total);
-        for (Repository.DepotChartRow r : sorted) {
-            if (displayValue(r) != 0) {
-                list.addView(buildRow(r, total));
+
+        if (view == VIEW_GAIN) {
+            long totalGain = 0;
+            long totalInvested = 0;
+            for (Repository.DepotChartRow r : sorted) {
+                totalGain += gainOf(r);
+                totalInvested += r.investedCents;   // Einstandspreis als Rendite-Nenner
+            }
+            buildPieGain(sorted, totalGain, totalInvested);
+            for (Repository.DepotChartRow r : sorted) {
+                if (gainOf(r) != 0) {
+                    list.addView(buildRowGain(r));
+                }
+            }
+        } else {
+            long total = 0;
+            for (Repository.DepotChartRow r : sorted) {
+                long v = displayValue(r);
+                if (v > 0) {
+                    total += v;
+                }
+            }
+            buildPie(sorted, total);
+            for (Repository.DepotChartRow r : sorted) {
+                if (displayValue(r) != 0) {
+                    list.addView(buildRow(r, total));
+                }
             }
         }
         pie.setVisibility(View.VISIBLE);
@@ -396,6 +444,111 @@ public class DepotChartActivity extends LocalizedActivity {
         TextView amount = new TextView(this);
         amount.setText(money(v));
         amount.setGravity(Gravity.END);
+        amount.setTypeface(amount.getTypeface(), Typeface.BOLD);
+        row.addView(amount, new LinearLayout.LayoutParams(
+                LinearLayout.LayoutParams.WRAP_CONTENT, LinearLayout.LayoutParams.WRAP_CONTENT));
+        return row;
+    }
+
+    /** Kreisdiagramm der Gewinn/Verlust-Ansicht: Segmente nach |Gewinn|, grün = Gewinn, rot = Verlust. */
+    private void buildPieGain(List<Repository.DepotChartRow> sorted, long totalGain, long totalNet) {
+        List<PieEntry> entries = new ArrayList<>();
+        List<Integer> pieColors = new ArrayList<>();
+        for (Repository.DepotChartRow r : sorted) {
+            long g = gainOf(r);
+            if (g == 0) {
+                continue;
+            }
+            PieEntry e = new PieEntry(Math.abs(g) / 100f, r.name);
+            e.setData(g);
+            entries.add(e);
+            // Segmente wie bei den anderen Ansichten in den Kategorie-Farben (nicht grün/rot).
+            pieColors.add(CategoryColorStore.defaultColor(r.name));
+        }
+        final int centerColor = getColor(R.color.chart_text);
+        totalText = gainText(totalGain, totalNet);
+
+        PieDataSet set = new PieDataSet(entries, "");
+        set.setColors(pieColors);
+        set.setSliceSpace(0f);
+        set.setDrawValues(false);
+
+        pie.setData(new PieData(set));
+        pie.getDescription().setEnabled(false);
+        pie.getLegend().setEnabled(false);
+        pie.setDrawEntryLabels(false);
+        pie.setUsePercentValues(false);
+        pie.setDrawHoleEnabled(true);
+        pie.setHoleColor(0x00000000);
+        pie.setHoleRadius(62f);
+        pie.setTransparentCircleAlpha(0);
+        pie.setDrawCenterText(true);
+        pie.setCenterText(totalText);
+        pie.setCenterTextSize(16f);
+        pie.setCenterTextColor(centerColor);
+        pie.setRotationEnabled(false);
+        pie.setHighlightPerTapEnabled(true);
+        pie.setExtraOffsets(8f, 8f, 8f, 8f);
+        pie.setOnChartValueSelectedListener(new OnChartValueSelectedListener() {
+            @Override
+            public void onValueSelected(Entry e, Highlight h) {
+                String name = e instanceof PieEntry ? ((PieEntry) e).getLabel() : "";
+                long g = e.getData() instanceof Long ? (Long) e.getData() : 0L;
+                pie.setCenterText(name + "\n" + money(g));
+            }
+
+            @Override
+            public void onNothingSelected() {
+                pie.setCenterText(totalText);
+                pie.setCenterTextColor(centerColor);
+            }
+        });
+        pie.invalidate();
+    }
+
+    /** Mittiger Text der Gewinn/Verlust-Ansicht: „Gewinn/Verlust (x %)\nBetrag" – %-Basis = Einstandspreis. */
+    private String gainText(long totalGain, long totalInvested) {
+        String pct = totalInvested > 0
+                ? " (" + String.format(Locale.GERMANY, "%.2f", 100.0 * totalGain / totalInvested) + " %)"
+                : "";
+        String label = getString(totalGain >= 0 ? R.string.depot_gain : R.string.depot_loss);
+        return label + pct + "\n" + money(totalGain);
+    }
+
+    /** Listenzeile der Gewinn/Verlust-Ansicht: Farbpunkt · Name · Rendite-% · Gewinn/Verlust (grün/rot). */
+    private View buildRowGain(Repository.DepotChartRow r) {
+        long g = gainOf(r);
+        int signColor = getColor(g >= 0 ? R.color.income_green : R.color.expense_red);
+        LinearLayout row = new LinearLayout(this);
+        row.setOrientation(LinearLayout.HORIZONTAL);
+        row.setGravity(Gravity.CENTER_VERTICAL);
+        row.setPadding(0, dp(8), 0, dp(8));
+
+        View dot = new View(this);
+        dot.setBackgroundColor(CategoryColorStore.defaultColor(r.name));   // Farbpunkt wie im Kreis
+        LinearLayout.LayoutParams dotLp = new LinearLayout.LayoutParams(dp(10), dp(10));
+        dotLp.setMarginEnd(dp(10));
+        row.addView(dot, dotLp);
+
+        TextView name = new TextView(this);
+        name.setText(r.name);
+        row.addView(name, new LinearLayout.LayoutParams(0, LinearLayout.LayoutParams.WRAP_CONTENT, 1f));
+
+        TextView pct = new TextView(this);
+        // Rendite = Gewinn/Verlust im Verhältnis zum Einstandspreis (Käufe), auch bei verkauften Papieren.
+        pct.setText(r.investedCents > 0
+                ? String.format(Locale.GERMANY, "%.1f", 100.0 * g / r.investedCents) + " %" : "");
+        pct.setTextSize(12);
+        pct.setTextColor(signColor);
+        LinearLayout.LayoutParams pctLp = new LinearLayout.LayoutParams(
+                LinearLayout.LayoutParams.WRAP_CONTENT, LinearLayout.LayoutParams.WRAP_CONTENT);
+        pctLp.setMarginEnd(dp(10));
+        row.addView(pct, pctLp);
+
+        TextView amount = new TextView(this);
+        amount.setText(money(g));
+        amount.setGravity(Gravity.END);
+        amount.setTextColor(signColor);
         amount.setTypeface(amount.getTypeface(), Typeface.BOLD);
         row.addView(amount, new LinearLayout.LayoutParams(
                 LinearLayout.LayoutParams.WRAP_CONTENT, LinearLayout.LayoutParams.WRAP_CONTENT));

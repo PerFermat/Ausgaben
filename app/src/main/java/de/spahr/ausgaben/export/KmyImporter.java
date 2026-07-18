@@ -158,8 +158,8 @@ public class KmyImporter {
             return null; // Transaktion betrifft kein Wertpapier dieses Depots
         }
         String[] sec = stockAccounts.get(stock[0]);
-        String action = normalizeAction(stock[2]);
         double shares = de.spahr.ausgaben.export.KmyDocument.fractionToDouble(stock[3]);
+        String action = normalizeAction(stock[2], shares);
         if ("dividend".equals(action)) {
             long gross = dividendGross(splits);
             long net = dividendNet(splits);
@@ -211,18 +211,27 @@ public class KmyImporter {
         return 0;
     }
 
-    private static String normalizeAction(String a) {
+    private static String normalizeAction(String a, double shares) {
         String x = a == null ? "" : a.trim().toLowerCase(Locale.US);
         switch (x) {
-            case "buy":
-            case "sell":
             case "dividend":
             case "add":
             case "remove":
             case "reinvest":
                 return x;
+            case "buy":
+            case "sell":
+                // KMyMoney beschriftet Verkäufe teils fälschlich als "Buy" (oder lässt die Action leer).
+                // Zuverlässig ist nur das Vorzeichen der Stückzahl: negativ = Verkauf, positiv = Kauf.
+                // Ohne diese Regel würde ein Verkauf als Kauf gezählt und der Erlös zum Einstand addiert.
+                return shares < 0 ? "sell" : "buy";
             default:
-                return x.isEmpty() ? "buy" : x;
+                // Unbekannte Action: nur bei echter Stückbewegung als Kauf/Verkauf einordnen (leere Action).
+                // Erträge ohne Stückzahl (z. B. Zins/Yield) bleiben unverändert und werden nicht mitgezählt.
+                if (shares != 0) {
+                    return shares < 0 ? "sell" : "buy";
+                }
+                return x;
         }
     }
 

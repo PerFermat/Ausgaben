@@ -409,6 +409,7 @@
     <string name="depot_view_value">Current value</string>
     <string name="depot_view_netto">Net deposits</string>
     <string name="depot_view_dividend">Total dividends</string>
+    <string name="depot_view_gain">Gain/Loss</string>
     <string name="depot_period_from">From</string>
     <string name="depot_period_to">To</string>
     <string name="depot_gain">Gain</string>

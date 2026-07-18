@@ -180,7 +180,7 @@ class DepotRepository {
                 }
                 long value = Math.round(sharesForValue * s.price * 100.0);
                 long netDeposits = buy - sell - div;
-                result.add(new Repository.DepotChartRow(s.name, value, netDeposits, div));
+                result.add(new Repository.DepotChartRow(s.name, value, netDeposits, div, buy));
             }
             mainHandler.post(() -> callback.onResult(result));
         });

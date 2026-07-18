@@ -281,8 +281,10 @@ Holdings directly. The widget refreshes when the app is opened and at regular in
   security plus a **filter by buys/sells/dividends** and a **date slider** (start date = first purchase). The
   **“Analysis”** menu opens a **pie chart** of the securities styled like the **Categories page** (continuous
   ring, a fixed colour per security, at most half the screen height, with its own scrollable list below). A
-  top **toggle** switches between **Current value** (default), **Net deposits** (buys − sells − dividends) and
-  **Total dividends**; a **period filter** (monthly range slider from the first portfolio transaction + From/To
+  top **icon toggle** switches between **Current value** (default), **Net deposits** (buys − sells − dividends),
+  **Total dividends** and **Gain/Loss** (current value − net deposits, shown as a € amount and as a % return on
+  cost basis, coloured green/red in the list); the current selection appears as the **toolbar title**. A
+  **period filter** (monthly range slider from the first portfolio transaction + From/To
   date fields) narrows the period and updates chart and list immediately. “Current value” is today's value of
   the **positions built** in the period (full period = current portfolio value). Chart and list are **always**
   sorted descending by current value; a tap shows the **name + amount**, with nothing selected **“Total”**. The

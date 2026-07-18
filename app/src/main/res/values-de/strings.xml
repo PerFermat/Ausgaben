@@ -409,6 +409,7 @@
     <string name="depot_view_value">Aktueller Wert</string>
     <string name="depot_view_netto">Netto-Einzahlungen</string>
     <string name="depot_view_dividend">Summe Dividenden</string>
+    <string name="depot_view_gain">Gewinn/Verlust</string>
     <string name="depot_period_from">Von</string>
     <string name="depot_period_to">Bis</string>
     <string name="depot_gain">Gewinn</string>

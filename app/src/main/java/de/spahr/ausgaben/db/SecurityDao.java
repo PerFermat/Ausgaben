@@ -23,6 +23,11 @@ public interface SecurityDao {
             + "WHERE depot = :depot GROUP BY security_kmy_id")
     List<ShareSum> getShareSums(String depot);
 
+    /** Gehaltene Stückzahl je Wertpapier bis zu einem Stichtag (exklusiv) – für „komplett verkauft am Ende". */
+    @Query("SELECT security_kmy_id AS kmyId, SUM(shares) AS shares FROM security_tx "
+            + "WHERE depot = :depot AND date < :toMs GROUP BY security_kmy_id")
+    List<ShareSum> getShareSumsUntil(String depot, long toMs);
+
     /** Bewegungen eines Wertpapiers (neueste zuerst). */
     @Query("SELECT * FROM security_tx WHERE depot = :depot AND security_kmy_id = :kmyId "
             + "ORDER BY date DESC, id DESC")

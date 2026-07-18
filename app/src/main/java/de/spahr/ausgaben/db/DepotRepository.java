@@ -150,6 +150,11 @@ class DepotRepository {
             for (SecurityDao.ShareSum ss : securityDao.getShareSums(depot)) {
                 netShares.put(ss.kmyId, ss.shares);
             }
+            // Netto-Stück bis zum Zeitraumende (exklusiv) – für „komplett verkauft am Ende des Zeitraums".
+            Map<String, Double> netSharesAtEnd = new HashMap<>();
+            for (SecurityDao.ShareSum ss : securityDao.getShareSumsUntil(depot, toMs)) {
+                netSharesAtEnd.put(ss.kmyId, ss.shares);
+            }
             // Zeitraum-Summen je Wertpapier zusammenfassen.
             Map<String, double[]> boughtShares = new HashMap<>();   // Stück aus buy/reinvest im Zeitraum
             Map<String, long[]> buyAmt = new HashMap<>();
@@ -180,7 +185,10 @@ class DepotRepository {
                 }
                 long value = Math.round(sharesForValue * s.price * 100.0);
                 long netDeposits = buy - sell - div;
-                result.add(new Repository.DepotChartRow(s.name, value, netDeposits, div, buy));
+                // Komplett verkauft = Netto-Bestand am Ende des Zeitraums ~ 0 (spätere Verkäufe zählen noch nicht).
+                double netHeldAtEnd = netSharesAtEnd.containsKey(id) ? netSharesAtEnd.get(id) : 0.0;
+                boolean fullySold = Math.abs(netHeldAtEnd) < 1e-6;
+                result.add(new Repository.DepotChartRow(s.name, value, netDeposits, div, buy, fullySold));
             }
             mainHandler.post(() -> callback.onResult(result));
         });

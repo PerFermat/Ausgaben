@@ -70,6 +70,7 @@ public class DepotChartActivity extends LocalizedActivity {
     private long fromMs;
     private long toMsExcl;   // exklusives Ende ([from, to))
     private boolean ready = false;
+    private boolean showSold = false;   // komplett verkaufte Wertpapiere standardmäßig ausblenden
     private boolean sliderSyncing = false;
     private int reloadSeq = 0;   // gegen veraltete Ergebnisse bei schnellen Zeitraum-Änderungen
 
@@ -82,6 +83,20 @@ public class DepotChartActivity extends LocalizedActivity {
         setContentView(R.layout.activity_depot_chart);
         toolbar = findViewById(R.id.toolbar);
         toolbar.setNavigationOnClickListener(v -> finish());
+        toolbar.inflateMenu(R.menu.depot_chart);
+        android.view.MenuItem sold = toolbar.getMenu().findItem(R.id.action_show_sold);
+        sold.setChecked(showSold);
+        updateSoldIcon(sold);
+        toolbar.setOnMenuItemClickListener(item -> {
+            if (item.getItemId() == R.id.action_show_sold) {
+                showSold = !showSold;
+                item.setChecked(showSold);
+                updateSoldIcon(item);
+                render();   // aus dem Cache – kein Neuladen nötig
+                return true;
+            }
+            return false;
+        });
 
         repository = new Repository(this);
         pie = findViewById(R.id.depotPie);
@@ -308,9 +323,20 @@ public class DepotChartActivity extends LocalizedActivity {
         }
     }
 
+    /** Zustand des Umschalters sichtbar machen: volles Icon = verkaufte eingeblendet, gedimmt = ausgeblendet. */
+    private void updateSoldIcon(android.view.MenuItem item) {
+        if (item.getIcon() != null) {
+            item.getIcon().setAlpha(showSold ? 255 : 90);
+        }
+    }
+
     private void render() {
         // Immer absteigend nach aktuellem Wert des Zeitraums; Gleichstand → nach angezeigtem Wert.
         List<Repository.DepotChartRow> sorted = new ArrayList<>(rows);
+        if (!showSold) {
+            // Am Ende des Zeitraums komplett verkaufte Wertpapiere ausblenden (Standard).
+            sorted.removeIf(r -> r.fullySold);
+        }
         Collections.sort(sorted, (a, b) -> {
             int c = Long.compare(b.currentValueCents, a.currentValueCents);
             return c != 0 ? c : Long.compare(displayValue(b), displayValue(a));

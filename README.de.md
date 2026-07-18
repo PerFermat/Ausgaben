@@ -301,7 +301,10 @@ regelmäßigen Abständen.
   (monatlicher Bereichsslider ab der ersten Depot-Buchung + Von/Bis-Datumsfelder) grenzt den Zeitraum ein und
   aktualisiert Grafik und Liste sofort. „Aktueller Wert" ist der heutige Wert der im Zeitraum **aufgebauten
   Positionen** (voller Zeitraum = aktueller Depotwert). Grafik und Liste sind **immer** absteigend nach
-  aktuellem Wert sortiert; ein Tipp zeigt in der Mitte **Name + Betrag**, ohne Auswahl **„Gesamt"**. Der
+  aktuellem Wert sortiert; ein Tipp zeigt in der Mitte **Name + Betrag**, ohne Auswahl **„Gesamt"**. Über das
+  **Überlaufmenü** lassen sich **komplett verkaufte Wertpapiere einblenden** (Standard: ausgeblendet);
+  maßgeblich ist der Netto-Bestand **am Ende des Betrachtungszeitraums** (ein Verkauf nach dem Zeitraumende
+  zählt also noch nicht). Der
   **Export** im Depot-Menü läuft direkt hier, ohne in
   die Bargeld-Ansicht zu wechseln. Der Depotwert wird **getrennt** geführt (nicht in Konto-Salden/Auswertung
   gemischt); die Kaufkosten/Dividenden erscheinen wie gehabt auf dem jeweiligen Geldkonto. In der Saldenzeile

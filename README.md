@@ -288,6 +288,8 @@ Holdings directly. The widget refreshes when the app is opened and at regular in
   date fields) narrows the period and updates chart and list immediately. “Current value” is today's value of
   the **positions built** in the period (full period = current portfolio value). Chart and list are **always**
   sorted descending by current value; a tap shows the **name + amount**, with nothing selected **“Total”**. The
+  **overflow menu** can **show fully sold securities** (hidden by default); what counts is the net holding **at
+  the end of the viewing period** (a sale after the period end does not count yet). The
   **Export** in the portfolio menu runs right there, without
   switching to the cash view. The portfolio value is kept **separate** (not mixed into account
   balances/analysis); the buy costs/dividends still appear on the respective cash account. The main screen's

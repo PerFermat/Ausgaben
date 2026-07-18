@@ -1179,14 +1179,17 @@ public class Repository {
         public final long dividendCents;
         /** Einstandspreis im Zeitraum = Summe der Käufe (Nenner für die Rendite). */
         public final long investedCents;
+        /** Aktueller Netto-Bestand = 0 (komplett verkauft), unabhängig vom Zeitraumfilter. */
+        public final boolean fullySold;
 
         public DepotChartRow(String name, long currentValueCents, long netDepositsCents,
-                             long dividendCents, long investedCents) {
+                             long dividendCents, long investedCents, boolean fullySold) {
             this.name = name;
             this.currentValueCents = currentValueCents;
             this.netDepositsCents = netDepositsCents;
             this.dividendCents = dividendCents;
             this.investedCents = investedCents;
+            this.fullySold = fullySold;
         }
     }
 

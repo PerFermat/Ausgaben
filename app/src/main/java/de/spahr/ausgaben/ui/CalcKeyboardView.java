@@ -85,6 +85,23 @@ public class CalcKeyboardView extends LinearLayout {
         }
     }
 
+    /**
+     * Blendet die System-Tastatur für dieses Feld aus. Nötig beim Fokuswechsel von einem normalen Textfeld
+     * (System-Tastatur offen) auf ein Betragsfeld: {@code setShowSoftInputOnFocus(false)} verhindert nur das
+     * erneute Öffnen, schließt aber die bereits offene Tastatur nicht. Per {@code post()} nach dem
+     * Fokuswechsel, damit ein noch anstehendes „Anzeigen" der IME sicher überschrieben wird.
+     */
+    public static void hideSystemKeyboard(final View field) {
+        field.post(() -> {
+            android.view.inputmethod.InputMethodManager imm =
+                    (android.view.inputmethod.InputMethodManager)
+                            field.getContext().getSystemService(Context.INPUT_METHOD_SERVICE);
+            if (imm != null) {
+                imm.hideSoftInputFromWindow(field.getWindowToken(), 0);
+            }
+        });
+    }
+
     public void setOnOk(OnOk listener) {
         this.onOk = listener;
     }
@@ -112,6 +129,7 @@ public class CalcKeyboardView extends LinearLayout {
             if (hasFocus) {
                 kb.attachTo(field);
                 kb.setVisibility(VISIBLE);
+                hideSystemKeyboard(field);   // ggf. noch offene System-Tastatur des Vorfelds schließen
             } else {
                 kb.setVisibility(GONE);
                 kb.evaluateAndReplace();

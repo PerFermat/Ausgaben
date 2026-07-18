@@ -1292,6 +1292,7 @@ public class BookingEditActivity extends LocalizedActivity {
                     }
                 });
                 calcKeyboard.setVisibility(View.VISIBLE);
+                CalcKeyboardView.hideSystemKeyboard(field);   // ggf. offene System-Tastatur des Vorfelds schließen
             } else {
                 calcKeyboard.setVisibility(View.GONE);
                 evaluateCalcField(field, layout);   // „=": beim Verlassen auswerten und ersetzen

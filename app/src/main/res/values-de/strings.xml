@@ -473,4 +473,17 @@
     <string name="csv_col_amount">Betrag</string>
     <string name="csv_col_note">Notiz</string>
     <string name="csv_col_category">Kategorie</string>
+
+    <!-- On-Boarding (erster Start, noch keine Konten) -->
+    <string name="onboarding_title">Willkommen</string>
+    <string name="onboarding_intro">Richte die wichtigsten Punkte für den Start ein. Alles Weitere kannst du später in den Einstellungen ändern.</string>
+    <string name="onboarding_language_section">Sprache</string>
+    <string name="onboarding_format_section">Import-/Export-Format</string>
+    <string name="onboarding_sync_section">Synchronisierung</string>
+    <string name="onboarding_import_accounts">Konten importieren</string>
+    <string name="onboarding_importing">Import läuft…</string>
+    <string name="onboarding_import_done">%1$d Konto/Konten importiert</string>
+    <string name="onboarding_more_settings">Weitere Einstellungen</string>
+    <string name="onboarding_note">Weitere Einstellungen kannst du jederzeit über das Menü vornehmen (im Aufklappmenü ganz unten).</string>
+    <string name="onboarding_done">Fertig</string>
 </resources>

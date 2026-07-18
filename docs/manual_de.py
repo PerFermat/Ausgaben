@@ -126,7 +126,23 @@ bullets([
 
 # ---------------------------------------------------------------- 2 Erste Schritte
 h1("2. Erste Schritte")
-p("Alle folgenden Einstellungen erreichen Sie über das Zahnrad ⚙ oben rechts.")
+h2("Willkommen-Assistent beim ersten Start")
+p("Solange noch <b>kein Konto</b> angelegt ist, erscheint beim Start der App automatisch ein schlanker "
+  "<b>Willkommen-Assistent</b>. Er bündelt die wichtigsten Startpunkte an einer Stelle und lässt sich "
+  "nur automatisch aufrufen (kein Menüeintrag).")
+shot("Onboarding.png", "Willkommen-Assistent beim ersten Start: Sprache, Format, Sync und Konten importieren", width=6.0*cm)
+bullets([
+  "<b>Sprache</b> wählen (wirkt sofort).",
+  "<b>Import-/Export-Format</b>: CSV oder KMyMoney-Datei (.kmy).",
+  "<b>Synchronisierung</b>: Server-Typ, URL, Benutzer, Passwort – mit <b>«Verbindung testen»</b>; im "
+  ".kmy-Modus zusätzlich <b>«.kmy auswählen»</b>.",
+  "<b>«Konten importieren»</b>: derselbe Auswahldialog wie bei «Konto hinzufügen», direkt hier im "
+  "Assistenten.",
+  "<b>«Weitere Einstellungen»</b> öffnet die vollständigen Einstellungen; <b>«Fertig»</b> schließt den "
+  "Assistenten.",
+])
+p("Alle folgenden Einstellungen erreichen Sie später jederzeit über das <b>Menü ⋮</b> oben rechts – der "
+  "Eintrag <b>«Einstellungen»</b> steht dort <b>ganz unten</b>.")
 shot("Einstellungen.png", "Einstellungen: Sprache, Server-Verbindung (SMB/WebDAV) und Export-Modus", width=6.0*cm)
 h2("Sprache")
 p("Beim ersten Start richtet sich die Sprache nach dem Handy (Deutsch → Deutsch, sonst Englisch). "
@@ -194,8 +210,7 @@ sym_rows = [
   ("⬇", "Export / Synchronisieren", "Titelleisten-Symbol (Pfeil nach unten, Download-Stil). Startet den Abgleich: schreibt neue Buchungen in die .kmy bzw. lädt sie zum Sync-Ziel."),
   ("▽", "Filter", "Trichter-Symbol. Öffnet den Filter nach Empfänger, Kategorie und Betrag."),
   ("▮▮", "Auswertung", "Balkendiagramm-Symbol. Öffnet die grafische Auswertung."),
-  ("⚙", "Einstellungen", "Zahnrad. Öffnet die Einstellungen."),
-  ("⋮", "Weitere Menüpunkte", "Drei Punkte (Überlauf). Enthält u. a. «Bestände»."),
+  ("⋮", "Weitere Menüpunkte", "Drei Punkte (Überlauf). Enthält «Kategorien», «Bestände», «Budget», «Geplante Buchungen» und – <b>ganz unten</b> – «Einstellungen»."),
   ("✚", "Neue Buchung", "Runder Knopf unten rechts. Kurz tippen: neue Buchung erfassen. <b>Langer Druck: Spracheingabe.</b>"),
   ("⊞", "Stille Betragserfassung", "Ziffernblock-Symbol (nur bei eingeschaltetem Standort). Nur den Betrag eintippen; der Empfänger wird über den Standort ermittelt."),
   ("↑", "Nach oben", "Kleiner Pfeil. Springt an den Anfang der Buchungsliste."),

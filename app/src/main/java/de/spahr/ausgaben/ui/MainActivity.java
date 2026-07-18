@@ -97,6 +97,8 @@ public class MainActivity extends LocalizedActivity {
     /** true, wenn Depotdaten importiert wurden (steuert das „Depot"-Menü). */
     private boolean hasDepot = false;
     private boolean accountInitialized = false;
+    /** true, sobald das On-Boarding in dieser App-Sitzung einmal automatisch gezeigt wurde. */
+    private boolean onboardingShown = false;
     private long selectedAccountBalance = 0;
     /** Aktuell in der App vorhandene Konten (für „Alle Konten aktualisieren"). */
     private final List<String> appAccounts = new ArrayList<>();
@@ -731,6 +733,11 @@ public class MainActivity extends LocalizedActivity {
             accountInitialized = true;
         }
         updateAccountUi();
+        // On-Boarding automatisch anstoßen, solange noch keine Konten existieren (nur einmal je Sitzung).
+        if (!onboardingShown && (names == null || names.isEmpty())) {
+            onboardingShown = true;
+            startActivity(new Intent(this, OnboardingActivity.class));
+        }
     }
 
     private void selectAccount(String name) {

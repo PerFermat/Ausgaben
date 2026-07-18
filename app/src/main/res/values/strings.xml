@@ -473,4 +473,17 @@
     <string name="csv_col_amount">Amount</string>
     <string name="csv_col_note">Note</string>
     <string name="csv_col_category">Category</string>
+
+    <!-- On-boarding (first start, no accounts yet) -->
+    <string name="onboarding_title">Welcome</string>
+    <string name="onboarding_intro">Set up the essentials to get started. You can change everything later in the settings.</string>
+    <string name="onboarding_language_section">Language</string>
+    <string name="onboarding_format_section">Import/export format</string>
+    <string name="onboarding_sync_section">Sync connection</string>
+    <string name="onboarding_import_accounts">Import accounts</string>
+    <string name="onboarding_importing">Importing…</string>
+    <string name="onboarding_import_done">%1$d account(s) imported</string>
+    <string name="onboarding_more_settings">More settings</string>
+    <string name="onboarding_note">You can adjust further settings anytime via the menu (bottom of the overflow menu).</string>
+    <string name="onboarding_done">Done</string>
 </resources>

@@ -31,6 +31,7 @@ instead of typing everything in by hand later.
   <img src="screenshots/Kontenmenü.png" width="150">
   <img src="screenshots/Ausgaben.png" width="150">
   <img src="screenshots/Grafik.png" width="150">
+  <img src="screenshots/Onboarding.png" width="150">
   <img src="screenshots/Einstellungen.png" width="150">
   <img src="screenshots/UhranlagemitAlias.png" width="150">
 </p>
@@ -61,6 +62,16 @@ The Wear OS app (`:wear`) needs the Google Wear Data Layer and is therefore **Gi
 permission is unaffected). F-Droid packaging notes are in [`fdroid/`](fdroid/).
 
 ## Features
+
+### Welcome assistant (first start)
+- As long as **no account** exists yet, a slim **welcome assistant** appears automatically on app start –
+  automatically only, with no menu entry.
+- It bundles the core steps in one place: **language**, **import/export format** (CSV/`.kmy`),
+  **synchronisation** (server type, URL, user, password) with **"Test connection"** and – in `.kmy` mode –
+  **"Choose .kmy"**, plus **"Import accounts"** via the same selection dialog as "Add account" (right in the
+  assistant).
+- **"More settings"** opens the full settings. These are reachable later any time via the **⋮ menu** at the
+  top right – the **"Settings"** entry sits **at the very bottom** there.
 
 ### Recording bookings
 - Type switch **Expense / Transfer / Income**, amount, payee, account (chosen from existing accounts), note

@@ -29,6 +29,7 @@ nach KMyMoney, statt alles später von Hand nachzutragen.
   <img src="screenshots/Kontenmenü.png" width="150">
   <img src="screenshots/Ausgaben.png" width="150">
   <img src="screenshots/Grafik.png" width="150">
+  <img src="screenshots/Onboarding.png" width="150">
   <img src="screenshots/Einstellungen.png" width="150">
   <img src="screenshots/UhranlagemitAlias.png" width="150">
 </p>
@@ -59,6 +60,16 @@ Die Wear-OS-App (`:wear`) benötigt den Google Wear Data Layer und bleibt daher 
 Mikrofon-Berechtigung ist davon unberührt). Hinweise zur F-Droid-Paketierung in [`fdroid/`](fdroid/).
 
 ## Funktionen
+
+### Willkommen-Assistent (erster Start)
+- Solange **noch kein Konto** angelegt ist, erscheint beim App-Start automatisch ein schlanker
+  **Willkommen-Assistent** – nur automatisch, ohne Menüeintrag.
+- Bündelt die Kernpunkte an einer Stelle: **Sprache**, **Import-/Export-Format** (CSV/`.kmy`),
+  **Synchronisierung** (Server-Typ, URL, Benutzer, Passwort) mit **„Verbindung testen"** und – im
+  `.kmy`-Modus – **„.kmy auswählen"**, sowie **„Konten importieren"** über denselben Auswahldialog wie
+  „Konto hinzufügen" (direkt im Assistenten).
+- **„Weitere Einstellungen"** öffnet die vollständigen Einstellungen. Diese sind später jederzeit über das
+  **Menü ⋮** oben rechts erreichbar – der Eintrag **„Einstellungen"** steht dort **ganz unten**.
 
 ### Buchungen erfassen
 - Typ-Umschalter **Ausgabe / Umbuchung / Einnahme**, Betrag, Geldempfänger, Konto (Auswahl aus

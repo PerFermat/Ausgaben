@@ -40,6 +40,12 @@
             android:parentActivityName=".ui.MainActivity" />
 
         <activity
+            android:name=".ui.OnboardingActivity"
+            android:exported="false"
+            android:label="@string/onboarding_title"
+            android:parentActivityName=".ui.MainActivity" />
+
+        <activity
             android:name=".ui.BookingEditActivity"
             android:exported="false"
             android:label="@string/edit_title"

@@ -123,7 +123,21 @@ bullets([
 
 # ---------------------------------------------------------------- 2
 h1("2. Getting started")
-p("All of the settings below are reached via the gear icon ⚙ at the top right.")
+h2("Welcome assistant on first start")
+p("As long as <b>no account</b> exists yet, a slim <b>welcome assistant</b> appears automatically when the "
+  "app starts. It bundles the most important starting points in one place and can only be opened "
+  "automatically (no menu entry).")
+shot("Onboarding.png", "Welcome assistant on first start: language, format, sync and import accounts", width=6.0*cm)
+bullets([
+  "Choose the <b>language</b> (takes effect immediately).",
+  "<b>Import/export format</b>: CSV or KMyMoney file (.kmy).",
+  "<b>Synchronisation</b>: server type, URL, user, password – with <b>«Test connection»</b>; in .kmy mode "
+  "also <b>«Choose .kmy»</b>.",
+  "<b>«Import accounts»</b>: the same selection dialog as «Add account», right here in the assistant.",
+  "<b>«More settings»</b> opens the full settings; <b>«Done»</b> closes the assistant.",
+])
+p("All of the settings below are reached later, any time, via the <b>⋮ menu</b> at the top right – the "
+  "<b>«Settings»</b> entry sits <b>at the very bottom</b> there.")
 shot("Einstellungen.png", "Settings: language, server connection (SMB/WebDAV) and export mode", width=6.0*cm)
 h2("Language")
 p("On first launch the language follows your phone (German → German, otherwise English). It can be "
@@ -188,8 +202,7 @@ sym_rows = [
   ("⬇", "Export / synchronize", "Title-bar symbol (down arrow, download style). Starts the sync: writes new bookings into the .kmy or uploads them to the sync target."),
   ("▽", "Filter", "Funnel symbol. Opens the filter by payee, category and amount."),
   ("▮▮", "Analysis", "Bar-chart symbol. Opens the graphical analysis."),
-  ("⚙", "Settings", "Gear. Opens the settings."),
-  ("⋮", "More items", "Three dots (overflow). Contains «Holdings», among others."),
+  ("⋮", "More items", "Three dots (overflow). Contains «Categories», «Holdings», «Budget», «Scheduled» and – <b>at the very bottom</b> – «Settings»."),
   ("✚", "New booking", "Round button at the bottom right. Short tap: record a booking. <b>Long press: voice input.</b>"),
   ("⊞", "Silent amount entry", "Keypad symbol (only when location is enabled). Type just the amount; the payee is resolved via your location."),
   ("↑", "To top", "Small arrow. Jumps to the top of the booking list."),

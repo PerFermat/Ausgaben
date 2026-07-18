@@ -1,0 +1,7 @@
+<?xml version="1.0" encoding="utf-8"?>
+<paths>
+    <!-- App-privates Belegfoto-Verzeichnis (getExternalFilesDir("belege")). -->
+    <external-files-path name="belege" path="belege/" />
+    <!-- Fallback, falls kein externer app-privater Speicher verfügbar ist (getFilesDir()/belege). -->
+    <files-path name="belege_internal" path="belege/" />
+</paths>

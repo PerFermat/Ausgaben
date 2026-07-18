@@ -261,6 +261,27 @@
     <string name="security_section">Security</string>
     <string name="app_lock_switch">Protect app with biometrics</string>
     <string name="gps_switch">Use location (GPS)</string>
+
+    <!-- Receipt photos -->
+    <string name="receipt_switch">Receipt photos (capture &amp; sync)</string>
+    <string name="receipt_add">Receipt</string>
+    <string name="receipt_attached">Receipt ✓</string>
+    <string name="receipt_source_camera">Take photo</string>
+    <string name="receipt_source_gallery">Choose from gallery</string>
+    <string name="receipt_remove">Remove receipt</string>
+    <string name="receipt_view_title">Receipt</string>
+    <string name="receipt_opening">Opening receipt…</string>
+    <string name="receipt_not_found">Receipt not found</string>
+    <string name="receipt_no_viewer">No image viewer found</string>
+    <string name="receipt_error">Could not process the image</string>
+    <string name="gps_row_label">GPS: %1$s</string>
+    <string name="compass_n">N</string>
+    <string name="compass_s">S</string>
+    <string name="compass_e">E</string>
+    <string name="compass_w">W</string>
+    <string name="receipt_row_label">Receipt: %1$s</string>
+    <string name="receipt_new">new</string>
+    <string name="receipt_none">—</string>
     <string name="lock_title">Unlock Ausgaben</string>
     <string name="lock_subtitle">Please authenticate to continue</string>
     <string name="lock_retry">Try again</string>

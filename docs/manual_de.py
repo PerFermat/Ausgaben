@@ -293,6 +293,20 @@ h2("Nur den Betrag erfassen (Ziffernblock ⊞)")
 p("Bei eingeschaltetem Standort erscheint unten das Ziffernblock-Symbol. Tippen Sie nur einen Betrag ein: "
   "Die App sucht am aktuellen Standort (100 m) eine passende Vorlage und zeigt den gefundenen Empfänger "
   "bereits vor dem Speichern an.")
+h2("Belegfotos")
+p("Im Buchungseditor können Sie über den Knopf <b>«Beleg»</b> ein Foto des Belegs <b>aufnehmen</b> oder eines "
+  "<b>aus der Galerie</b> wählen (ein Foto je Buchung; abschaltbar unter <i>Einstellungen → Belegfotos</i>). "
+  "Das Bild wird privat auf dem Handy gespeichert und <b>im Hintergrund</b> in den Ordner «Belege», darunter je "
+  "Jahr ein Unterordner, Ihres konfigurierten Sync-Ordners (WebDAV/Nextcloud oder SMB) hochgeladen – offline "
+  "aufgenommene Fotos folgen beim nächsten App-Start mit Verbindung.")
+p("Der Verweis auf das Bild wird – wie die GPS-Koordinaten – als Kürzel <b>«BELEG: …»</b> in der Notiz "
+  "hinterlegt. Da die Notiz beim Export/Import mit KMyMoney erhalten bleibt, findet die App das Foto <b>auch "
+  "nach einem Neu-Import</b> wieder. Im Editor zeigt das Notizfeld nur den freien Text; <b>GPS und Beleg stehen "
+  "als zwei eigene, nicht änderbare Zeilen darunter</b> – je mit Symbol: das Karten-Symbol öffnet den Standort, "
+  "das Beleg-Symbol das Foto (Ansicht) bzw. die Kamera/Galerie-Auswahl (Bearbeiten).")
+p("Beim <b>Kopieren</b> einer Buchung (Sprach-/Vorlage-Erfassung oder «Als neue speichern») werden die "
+  "gespeicherten Werte <b>nicht</b> übernommen: die GPS-Koordinaten werden aktuell bestimmt und ein Beleg nur "
+  "übernommen, wenn ein neues Bild angehängt wird.")
 h2("Alias-Namen (gelernte Zuordnungen)")
 p("Ändern Sie beim Speichern den erkannten Empfänger, fragt die App, ob sie sich die Zuordnung als Alias "
   "merken soll – samt Konto, Kategorie und <b>Ort</b> (bei Umbuchungen Von-/Nach-Konto und Von-/Nach-Ort). "

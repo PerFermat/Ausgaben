@@ -277,6 +277,20 @@ p("If there are several payees with the same name (e.g. «REWE location 1» and 
 h2("Amount-only entry (keypad ⊞)")
 p("With location enabled, the keypad symbol appears at the bottom. Type just an amount: the app looks for a "
   "matching template at your current location (100 m) and shows the resolved payee before you even save.")
+h2("Receipt photos")
+p("In the booking editor the <b>«Receipt»</b> button lets you <b>take a photo</b> of the receipt or <b>pick "
+  "one from the gallery</b> (one photo per booking; can be turned off under <i>Settings → Receipt photos</i>). "
+  "The image is stored privately on the phone and uploaded <b>in the background</b> to a «Belege» folder – with "
+  "a sub-folder per year – inside your configured sync folder (WebDAV/Nextcloud or SMB); photos taken offline "
+  "upload on the next app start with a connection.")
+p("The reference to the image is stored in the note as a <b>«BELEG: …»</b> tag, just like the GPS coordinates. "
+  "Because the note survives export/import with KMyMoney, the app finds the photo again <b>even after a "
+  "re-import</b>. In the editor the note field shows only your free text; <b>GPS and the receipt appear as two "
+  "separate read-only rows below it</b>, each with an icon – the map icon opens the location, the receipt icon "
+  "opens the photo (view) or the camera/gallery chooser (edit).")
+p("When you <b>copy</b> a booking (voice/template quick-entry or «Save as new»), the stored values are <b>not</b> "
+  "carried over: the GPS coordinates are taken from the current location, and a receipt is attached only if you "
+  "add a new photo.")
 h2("Alias names (learned mappings)")
 p("If you change the recognized payee while saving, the app asks whether to remember the mapping as an "
   "alias – together with account, category and <b>place</b> (for transfers the from/to accounts and "

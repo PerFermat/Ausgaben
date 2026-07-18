@@ -204,6 +204,18 @@
                 android:resource="@xml/widget_type_info" />
         </receiver>
 
+        <!-- Belegfotos: FileProvider, um app-private Bilder an die Kamera-App und den System-Bildbetrachter
+             zu übergeben (content://…). Keine CAMERA-/Storage-Berechtigung nötig. -->
+        <provider
+            android:name="androidx.core.content.FileProvider"
+            android:authorities="${applicationId}.fileprovider"
+            android:exported="false"
+            android:grantUriPermissions="true">
+            <meta-data
+                android:name="android.support.FILE_PROVIDER_PATHS"
+                android:resource="@xml/file_paths" />
+        </provider>
+
         <!-- Der Wear-Data-Layer-Listener (Google Play Services) wird nur im „full"-Flavor registriert:
              siehe app/src/full/AndroidManifest.xml. Der „foss"-Flavor (F-Droid) enthält kein GMS. -->
 

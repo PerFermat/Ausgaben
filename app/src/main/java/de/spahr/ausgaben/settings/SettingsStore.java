@@ -28,6 +28,7 @@ public class SettingsStore {
     private static final String KEY_KMY_PATH = "kmy_path";
     private static final String KEY_APP_LOCK = "app_lock";
     private static final String KEY_GPS_ENABLED = "gps_enabled";
+    private static final String KEY_RECEIPT_ENABLED = "receipt_enabled";
     private static final String KEY_SCHEDULED_REMINDER = "scheduled_reminder";
     private static final String KEY_SERVER_TYPE = "server_type";
     private static final String KEY_ALIAS_PROMPT = "alias_prompt";
@@ -245,6 +246,15 @@ public class SettingsStore {
 
     public void setGpsEnabled(boolean enabled) {
         prefs.edit().putBoolean(KEY_GPS_ENABLED, enabled).apply();
+    }
+
+    /** Belegfotos je Buchung aufnehmen und ins Netzlaufwerk synchronisieren (Standard: an). */
+    public boolean isReceiptEnabled() {
+        return prefs.getBoolean(KEY_RECEIPT_ENABLED, true);
+    }
+
+    public void setReceiptEnabled(boolean enabled) {
+        prefs.edit().putBoolean(KEY_RECEIPT_ENABLED, enabled).apply();
     }
 
     /** Nachfrage, ob ein geänderter Empfänger als Alias gemerkt werden soll (Standard: an). */

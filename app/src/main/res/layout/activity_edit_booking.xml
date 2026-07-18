@@ -261,16 +261,68 @@
                     android:inputType="textCapSentences|textMultiLine" />
             </com.google.android.material.textfield.TextInputLayout>
 
-            <!-- Nur in der reinen Ansicht: Ortssymbol, wenn die Notiz GPS-Koordinaten enthält. -->
-            <ImageButton
-                android:id="@+id/btnNoteMap"
-                android:layout_width="48dp"
-                android:layout_height="48dp"
+            <!-- GPS-Koordinaten als eigene, nicht editierbare Ausgabezeile (Wert + Karten-Icon). -->
+            <LinearLayout
+                android:id="@+id/rowGps"
+                android:layout_width="match_parent"
+                android:layout_height="wrap_content"
                 android:layout_marginTop="4dp"
-                android:background="?attr/selectableItemBackgroundBorderless"
-                android:src="@android:drawable/ic_menu_mylocation"
-                android:contentDescription="@string/alias_map"
-                android:visibility="gone" />
+                android:gravity="center_vertical"
+                android:orientation="horizontal"
+                android:visibility="gone">
+
+                <TextView
+                    android:id="@+id/textGps"
+                    android:layout_width="0dp"
+                    android:layout_height="wrap_content"
+                    android:layout_weight="1"
+                    android:textColor="?android:attr/textColorSecondary"
+                    android:textSize="14sp" />
+
+                <ImageButton
+                    android:id="@+id/btnNoteMap"
+                    android:layout_width="48dp"
+                    android:layout_height="48dp"
+                    android:background="?attr/selectableItemBackgroundBorderless"
+                    android:src="@android:drawable/ic_menu_mylocation"
+                    android:contentDescription="@string/alias_map" />
+            </LinearLayout>
+
+            <!-- Beleg-Dateiname als eigene Ausgabezeile (Wert + Bild-/Kamera-Icon). -->
+            <LinearLayout
+                android:id="@+id/rowReceipt"
+                android:layout_width="match_parent"
+                android:layout_height="wrap_content"
+                android:layout_marginTop="2dp"
+                android:gravity="center_vertical"
+                android:orientation="horizontal"
+                android:visibility="gone">
+
+                <TextView
+                    android:id="@+id/textReceipt"
+                    android:layout_width="0dp"
+                    android:layout_height="wrap_content"
+                    android:layout_weight="1"
+                    android:textColor="?android:attr/textColorSecondary"
+                    android:textSize="14sp" />
+
+                <ImageButton
+                    android:id="@+id/btnReceiptDelete"
+                    android:layout_width="48dp"
+                    android:layout_height="48dp"
+                    android:background="?attr/selectableItemBackgroundBorderless"
+                    android:src="@android:drawable/ic_menu_delete"
+                    android:contentDescription="@string/receipt_remove"
+                    android:visibility="gone" />
+
+                <ImageButton
+                    android:id="@+id/btnReceipt"
+                    android:layout_width="48dp"
+                    android:layout_height="48dp"
+                    android:background="?attr/selectableItemBackgroundBorderless"
+                    android:src="@android:drawable/ic_menu_camera"
+                    android:contentDescription="@string/receipt_view_title" />
+            </LinearLayout>
 
             <com.google.android.material.materialswitch.MaterialSwitch
                 android:id="@+id/switchExported"

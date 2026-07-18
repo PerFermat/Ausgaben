@@ -34,6 +34,10 @@ import de.spahr.ausgaben.db.BookingSplit;
 import de.spahr.ausgaben.db.PayeeCorrection;
 import de.spahr.ausgaben.db.Repository;
 import de.spahr.ausgaben.location.LocationTagger;
+import de.spahr.ausgaben.receipt.NoteReceipt;
+import de.spahr.ausgaben.receipt.ReceiptImage;
+import de.spahr.ausgaben.receipt.ReceiptSync;
+import de.spahr.ausgaben.receipt.Receipts;
 import de.spahr.ausgaben.settings.PlacesStore;
 import de.spahr.ausgaben.settings.SettingsStore;
 
@@ -122,6 +126,30 @@ public class BookingEditActivity extends LocalizedActivity {
     /** GPS-Anhang an die Notiz – nur im Neu-Modus aktiv (bei bestehenden Buchungen bleibt der Ort unberührt). */
     private LocationTagger locationTagger;
     private ActivityResultLauncher<String> locationPermissionLauncher;
+
+    // ---- GPS-/Beleg-Ausgabezeilen ----
+    private android.view.View rowGps;
+    private android.view.View rowReceipt;
+    private android.widget.TextView textGps;
+    private android.widget.TextView textReceipt;
+    private android.widget.ImageButton btnReceipt;   // btnNoteMap ist ein eigenes Feld
+    private android.widget.ImageButton btnReceiptDelete;
+    private boolean receiptEnabled;
+    /** Zu speichernde Koordinaten „lat, lon" (aus Standort bzw. bestehender Buchung); null = keine. */
+    private String gpsRowCoords;
+    /** Dateiname eines bereits verknüpften Belegs; null = keiner. */
+    private String receiptFileName;
+    /** Bereits komprimiertes Beleg-Temp, das beim Speichern final benannt und verlinkt wird. */
+    private java.io.File pendingReceiptFile;
+    /** Nutzer will den vorhandenen Beleg beim Speichern entfernen. */
+    private boolean removeReceipt;
+    private android.net.Uri cameraTempUri;
+    private java.io.File cameraTempFile;
+    private ActivityResultLauncher<android.net.Uri> takePictureLauncher;
+    private ActivityResultLauncher<String> pickImageLauncher;
+
+    private static final java.util.regex.Pattern GPS_PAIR = java.util.regex.Pattern.compile(
+            "GPS:\\s*(-?\\d+(?:\\.\\d+)?\\s*,\\s*-?\\d+(?:\\.\\d+)?)", java.util.regex.Pattern.CASE_INSENSITIVE);
 
     /** Ursprünglich gesprochener Empfänger (aus der Sprach-Erfassung) – für die Korrektur-Nachfrage. */
     private String voiceSpokenPayee;
@@ -242,6 +270,37 @@ public class BookingEditActivity extends LocalizedActivity {
         btnUpdate.setOnClickListener(v -> update());
         btnDelete.setOnClickListener(v -> confirmDelete());
 
+        // Beleg-Foto: Launcher (vor STARTED registrieren) + Knöpfe.
+        takePictureLauncher = registerForActivityResult(
+                new ActivityResultContracts.TakePicture(), success -> {
+                    if (Boolean.TRUE.equals(success) && cameraTempUri != null) {
+                        ingestReceipt(cameraTempUri, cameraTempFile);
+                    } else if (cameraTempFile != null) {
+                        cameraTempFile.delete();
+                    }
+                    cameraTempUri = null;
+                    cameraTempFile = null;
+                });
+        pickImageLauncher = registerForActivityResult(
+                new ActivityResultContracts.GetContent(), uri -> {
+                    if (uri != null) {
+                        ingestReceipt(uri, null);
+                    }
+                });
+        rowGps = findViewById(R.id.rowGps);
+        rowReceipt = findViewById(R.id.rowReceipt);
+        textGps = findViewById(R.id.textGps);
+        textReceipt = findViewById(R.id.textReceipt);
+        btnReceipt = findViewById(R.id.btnReceipt);
+        btnReceiptDelete = findViewById(R.id.btnReceiptDelete);
+        btnReceiptDelete.setOnClickListener(v -> {
+            clearPendingReceipt();
+            removeReceipt = true;
+            updateNoteTagRows();
+        });
+        receiptEnabled = settings.isReceiptEnabled();
+        // Klick-Verhalten (Karte / Bild öffnen bzw. Kamera) wird je nach Modus in updateNoteTagRows() gesetzt.
+
         long templateId = getIntent().getLongExtra(EXTRA_TEMPLATE_BOOKING_ID, -1);
         long id = getIntent().getLongExtra(EXTRA_BOOKING_ID, -1);
         long scheduledId = getIntent().getLongExtra(EXTRA_SCHEDULED_ID, -1);
@@ -252,7 +311,10 @@ public class BookingEditActivity extends LocalizedActivity {
         // Nur bei NEUEN Buchungen und aktivem GPS: Standort vorwärmen und ggf. Berechtigung anfragen,
         // damit beim Speichern Koordinaten an die Notiz angehängt werden können. Bei einer geplanten
         // Buchung ist der Empfänger bekannt – dort wären Koordinaten nur Rauschen.
-        if (id < 0 && scheduledId < 0 && scheduledBookId < 0 && settings.isGpsEnabled()) {
+        // Standort vorwärmen, wenn GPS aktiv ist und die Buchung bearbeitbar ist (nicht in der reinen Ansicht/
+        // Vorschau). So kann auch „Als neue speichern" aus einer bestehenden Buchung aktuelle Koordinaten
+        // anhängen. Die Berechtigung wird nur bei einer echten Neu-/Vorlage-Buchung aktiv angefragt.
+        if (settings.isGpsEnabled() && !readOnly && scheduledId < 0) {
             locationTagger = new LocationTagger(this);
             locationTagger.setOnLocationUpdate(this::refreshNoteLocation);
             locationPermissionLauncher = registerForActivityResult(
@@ -262,9 +324,10 @@ public class BookingEditActivity extends LocalizedActivity {
                             refreshNoteLocation();
                         }
                     });
+            boolean pureNew = id < 0 && scheduledBookId < 0;
             if (hasLocationPermission()) {
                 locationTagger.start();
-            } else {
+            } else if (pureNew) {
                 locationPermissionLauncher.launch(Manifest.permission.ACCESS_FINE_LOCATION);
             }
         }
@@ -335,6 +398,12 @@ public class BookingEditActivity extends LocalizedActivity {
         }
     }
 
+    @Override
+    protected void onDestroy() {
+        super.onDestroy();
+        clearPendingReceipt(); // nicht gespeichertes Beleg-Temp aufräumen
+    }
+
     private boolean hasLocationPermission() {
         return ContextCompat.checkSelfPermission(this, Manifest.permission.ACCESS_FINE_LOCATION)
                 == PackageManager.PERMISSION_GRANTED
@@ -348,19 +417,18 @@ public class BookingEditActivity extends LocalizedActivity {
      * Während der Nutzer im Feld tippt (Fokus), wird nicht überschrieben; ohne Standort passiert nichts.
      */
     private void refreshNoteLocation() {
-        if (locationTagger == null || editNote == null || editNote.hasFocus()) {
+        // Nur im Neu-/Vorlage-Modus (booking == null) die GPS-Zeile live mit der aktuellen Position füllen;
+        // beim Bearbeiten bleiben die gespeicherten Koordinaten stehen (der Tagger läuft nur, damit „Als neue
+        // speichern" aktuelle Koordinaten holen kann).
+        if (locationTagger == null || booking != null) {
             return;
         }
         String coords = locationTagger.currentCoordinates();
         if (coords == null) {
             return;
         }
-        String current = textOf(editNote);
-        String base = current.replaceAll("\\s*GPS:.*$", "").replaceAll("\\s+$", "");
-        String updated = base.isEmpty() ? "GPS: " + coords : base + " GPS: " + coords;
-        if (!updated.equals(current)) {
-            editNote.setText(updated);
-        }
+        gpsRowCoords = coords;
+        updateNoteTagRows();
     }
 
     /**
@@ -438,8 +506,8 @@ public class BookingEditActivity extends LocalizedActivity {
                 a.catExpense2 = c2;
             }
         }
-        // Standort der Buchung (aus der Notiz) übernehmen → Alias per GPS auffindbar (Betrag-only).
-        double[] ll = de.spahr.ausgaben.location.Geo.parse(textOf(editNote));
+        // Standort der Buchung (aus der GPS-Zeile) übernehmen → Alias per GPS auffindbar (Betrag-only).
+        double[] ll = de.spahr.ausgaben.location.Geo.parse(gpsRowCoords);
         if (ll != null) {
             a.lat = ll[0];
             a.lon = ll[1];
@@ -496,6 +564,8 @@ public class BookingEditActivity extends LocalizedActivity {
 
     private void setupNewMode() {
         booking = null;
+        gpsRowCoords = null;
+        receiptFileName = null;
         origIsTransfer = false;
         origTransferGroup = "";
         origPlaceManaged = true; // neue Buchung ist immer ort-verknüpft (Standardort)
@@ -538,7 +608,11 @@ public class BookingEditActivity extends LocalizedActivity {
         switchExported.setChecked(b.exported);
         btnUpdate.setVisibility(View.VISIBLE);
         btnDelete.setVisibility(View.VISIBLE);
+        // Bestehende Buchung: GPS/Beleg aus der Notiz in die zwei Zeilen (bleiben beim Aktualisieren erhalten).
+        gpsRowCoords = parseGpsCoords(b.note);
+        receiptFileName = NoteReceipt.fileName(b.note);
         populateFrom(b, null);
+        updateNoteTagRows();
         if (readOnly) {
             applyReadOnly();
         }
@@ -676,20 +750,10 @@ public class BookingEditActivity extends LocalizedActivity {
         // Kontostand vor/nach dieser Buchung auf dem Konto der Buchung.
         showBalances();
 
-        // Ortssymbol, wenn die Notiz GPS-Koordinaten enthält → Karte mit der Position öffnen.
-        final double[] coords = de.spahr.ausgaben.location.Geo.parse(booking.note);
-        if (coords != null) {
-            btnNoteMap.setVisibility(View.VISIBLE);
-            btnNoteMap.setOnClickListener(v -> {
-                android.content.Intent i = new android.content.Intent(this, MapPickerActivity.class);
-                i.putExtra(MapPickerActivity.EXTRA_LAT, coords[0]);
-                i.putExtra(MapPickerActivity.EXTRA_LON, coords[1]);
-                i.putExtra(MapPickerActivity.EXTRA_VIEW_ONLY, true);
-                startActivity(i);
-            });
-        } else {
-            btnNoteMap.setVisibility(View.GONE);
-        }
+        // GPS-/Beleg-Ausgabezeilen (Werte aus der Notiz; nicht editierbar, mit Karten- bzw. Bild-Icon).
+        gpsRowCoords = parseGpsCoords(booking.note);
+        receiptFileName = NoteReceipt.fileName(booking.note);
+        updateNoteTagRows();
     }
 
     /** Zeigt „Kontostand vor/nach der Buchung" für das Konto dieser Buchung. */
@@ -728,6 +792,9 @@ public class BookingEditActivity extends LocalizedActivity {
             return;
         }
         booking = null; // Neu-Modus → Speichern legt eine neue Buchung an
+        // Kopie aus einer Vorlage: GPS/Beleg NICHT übernehmen (GPS wird frisch bestimmt, Beleg nur bei neuem Bild).
+        gpsRowCoords = null;
+        receiptFileName = null;
         origIsTransfer = false;
         origTransferGroup = "";
         origPlaceManaged = true;
@@ -748,7 +815,8 @@ public class BookingEditActivity extends LocalizedActivity {
      */
     private void populateFrom(Booking b, Long overrideAmountCents) {
         final long total = overrideAmountCents != null ? overrideAmountCents : b.amountCents;
-        editNote.setText(b.note);
+        // Nur der freie Text ins Notizfeld – GPS/Beleg stehen in den zwei Ausgabezeilen darunter.
+        editNote.setText(stripTags(b.note));
 
         if (b.isTransfer) {
             toggleType.check(R.id.btnTransfer);
@@ -858,6 +926,8 @@ public class BookingEditActivity extends LocalizedActivity {
         splitSection.setVisibility(transfer ? View.GONE : View.VISIBLE);
         accountLayout.setHint(getString(transfer ? R.string.transfer_from : R.string.account_hint));
         payeeLayout.setHint(getString(transfer ? R.string.transfer_payee_hint : R.string.payee_hint));
+        // GPS-/Beleg-Ausgabezeilen aktualisieren (Beleg-Zeile z. B. bei Umbuchung ausblenden).
+        updateNoteTagRows();
         updateSaveEnabled();
     }
 
@@ -995,7 +1065,7 @@ public class BookingEditActivity extends LocalizedActivity {
             Toast.makeText(this, R.string.error_transfer_accounts, Toast.LENGTH_SHORT).show();
             return;
         }
-        final String note = textOf(editNote).trim();
+        final String note = composeNoteForSave(true);
         final String payee = textOf(editPayee).trim();
         final String fromPlace = selectedPlace();
         final String toPlace = selectedPlaceTo();
@@ -1014,11 +1084,15 @@ public class BookingEditActivity extends LocalizedActivity {
             Toast.makeText(this, R.string.booking_saved, Toast.LENGTH_SHORT).show();
             finish();
         };
-        if (parts.size() >= 2) {
-            repository.saveSplitBooking(b, toSplits(parts), fp, done);
-        } else {
-            repository.saveBookingWithPlace(b, fp, done);
-        }
+        // Neue Buchung: Notiz = freier Text + aktuelle GPS-Position; Beleg nur, wenn neu angehängt.
+        b.note = composeNoteForSave(true);
+        attachReceipt(b, true, () -> {
+            if (parts.size() >= 2) {
+                repository.saveSplitBooking(b, toSplits(parts), fp, done);
+            } else {
+                repository.saveBookingWithPlace(b, fp, done);
+            }
+        });
     }
 
     /** Ausgewählter Ort normalisiert: „ohne Ort" bzw. leer → {@code ""}, sonst der echte Ortsname. */
@@ -1026,6 +1100,264 @@ public class BookingEditActivity extends LocalizedActivity {
         String sel = textOf(editPlace);
         return (sel != null && !sel.trim().isEmpty() && !sel.equals(PlacesStore.NO_PLACE))
                 ? sel.trim() : "";
+    }
+
+    // ---- GPS-/Beleg-Ausgabezeilen ----
+
+    /** Freier Notiztext ohne die technischen {@code GPS:}- und {@code BELEG:}-Tags. */
+    private String stripTags(String note) {
+        if (note == null) {
+            return "";
+        }
+        String s = note.replaceAll("\\s*GPS:\\s*-?\\d+(?:\\.\\d+)?\\s*,\\s*-?\\d+(?:\\.\\d+)?", "");
+        s = NoteReceipt.strip(s);
+        return s.trim();
+    }
+
+    /** Die „lat, lon" hinter einem {@code GPS:}-Tag (exakt wie gespeichert), sonst {@code null}. */
+    private String parseGpsCoords(String note) {
+        if (note == null) {
+            return null;
+        }
+        java.util.regex.Matcher m = GPS_PAIR.matcher(note);
+        return m.find() ? m.group(1).replaceAll("\\s+", "") : null;
+    }
+
+    /** Aktualisiert die zwei Ausgabezeilen (GPS + Beleg) je nach Ansicht-/Bearbeiten-Modus. */
+    private void updateNoteTagRows() {
+        if (rowGps == null) {
+            return; // Views noch nicht gebunden
+        }
+        // GPS-Zeile
+        double[] ll = de.spahr.ausgaben.location.Geo.parse(gpsRowCoords);
+        if (ll != null) {
+            textGps.setText(getString(R.string.gps_row_label, gpsDisplay(gpsRowCoords)));
+            final double lat = ll[0];
+            final double lon = ll[1];
+            btnNoteMap.setOnClickListener(v -> openMapAt(lat, lon));
+            rowGps.setVisibility(View.VISIBLE);
+        } else {
+            rowGps.setVisibility(View.GONE);
+        }
+        // Beleg-Zeile
+        btnReceiptDelete.setVisibility(View.GONE);
+        if (readOnly) {
+            if (receiptFileName != null) {
+                textReceipt.setText(getString(R.string.receipt_row_label, receiptFileName));
+                btnReceipt.setImageResource(android.R.drawable.ic_menu_gallery);
+                final String f = receiptFileName;
+                btnReceipt.setOnClickListener(v -> openReceipt(f));
+                rowReceipt.setVisibility(View.VISIBLE);
+            } else {
+                rowReceipt.setVisibility(View.GONE);
+            }
+        } else if (receiptEnabled && !isTransferType()) {
+            boolean hasReceipt = !removeReceipt && (pendingReceiptFile != null || receiptFileName != null);
+            String name;
+            if (removeReceipt) {
+                name = getString(R.string.receipt_none);
+            } else if (pendingReceiptFile != null) {
+                name = getString(R.string.receipt_new);
+            } else {
+                name = receiptFileName != null ? receiptFileName : getString(R.string.receipt_none);
+            }
+            textReceipt.setText(getString(R.string.receipt_row_label, name));
+            btnReceipt.setImageResource(android.R.drawable.ic_menu_camera);
+            btnReceipt.setOnClickListener(v -> showReceiptSourceDialog());
+            // Lösch-Knopf nur, wenn ein Beleg vorhanden/angehängt ist.
+            btnReceiptDelete.setVisibility(hasReceipt ? View.VISIBLE : View.GONE);
+            rowReceipt.setVisibility(View.VISIBLE);
+        } else {
+            rowReceipt.setVisibility(View.GONE);
+        }
+    }
+
+    /** Anzeigeform der Koordinaten, z. B. „50.1109° N, 8.6821° O". */
+    private String gpsDisplay(String coords) {
+        double[] ll = de.spahr.ausgaben.location.Geo.parse(coords);
+        if (ll == null) {
+            return coords == null ? "" : coords;
+        }
+        String ns = getString(ll[0] >= 0 ? R.string.compass_n : R.string.compass_s);
+        String ew = getString(ll[1] >= 0 ? R.string.compass_e : R.string.compass_w);
+        return String.format(java.util.Locale.US, "%.4f° %s, %.4f° %s",
+                Math.abs(ll[0]), ns, Math.abs(ll[1]), ew);
+    }
+
+    private void openMapAt(double lat, double lon) {
+        Intent i = new Intent(this, MapPickerActivity.class);
+        i.putExtra(MapPickerActivity.EXTRA_LAT, lat);
+        i.putExtra(MapPickerActivity.EXTRA_LON, lon);
+        i.putExtra(MapPickerActivity.EXTRA_VIEW_ONLY, true);
+        startActivity(i);
+    }
+
+    /** Freier Text + (je nach Kopie/Update) GPS-Tag. Der BELEG:-Tag kommt in {@link #attachReceipt}. */
+    private String composeNoteForSave(boolean asNew) {
+        String free = textOf(editNote).trim();
+        String coords;
+        if (asNew) {
+            // Neu/Vorlage (booking == null): der Zeilenwert ist bereits die aktuelle Position.
+            // „Als neue speichern" aus einer bestehenden Buchung: frische Position vom Tagger holen.
+            coords = (booking == null) ? gpsRowCoords
+                    : (locationTagger != null ? locationTagger.currentCoordinates() : null);
+        } else {
+            coords = gpsRowCoords;
+        }
+        if (coords != null && !coords.trim().isEmpty()) {
+            free = free.isEmpty() ? "GPS: " + coords : free + " GPS: " + coords;
+        }
+        return free;
+    }
+
+    // ---- Beleg-Foto ----
+
+    private void showReceiptSourceDialog() {
+        CharSequence[] items = {
+                getString(R.string.receipt_source_camera),
+                getString(R.string.receipt_source_gallery)
+        };
+        new MaterialAlertDialogBuilder(this, R.style.ThemeOverlay_Ausgaben_Dialog)
+                .setTitle(R.string.receipt_add)
+                .setItems(items, (d, which) -> {
+                    if (which == 0) {
+                        startReceiptCamera();
+                    } else {
+                        pickImageLauncher.launch("image/*");
+                    }
+                })
+                .show();
+    }
+
+    private void startReceiptCamera() {
+        try {
+            cameraTempFile = new java.io.File(Receipts.dir(this), "cam_" + System.currentTimeMillis() + ".jpg");
+            cameraTempUri = androidx.core.content.FileProvider.getUriForFile(
+                    this, getPackageName() + ".fileprovider", cameraTempFile);
+            takePictureLauncher.launch(cameraTempUri);
+        } catch (Exception e) {
+            Toast.makeText(this, R.string.receipt_error, Toast.LENGTH_SHORT).show();
+        }
+    }
+
+    /** Komprimiert die Quelle sofort in ein Temp (Berechtigung ist jetzt gültig); Finalisierung erst beim Speichern. */
+    private void ingestReceipt(android.net.Uri src, java.io.File cleanup) {
+        final java.io.File tmp = new java.io.File(Receipts.dir(this),
+                "pend_" + java.util.UUID.randomUUID() + ".jpg");
+        new Thread(() -> {
+            boolean ok;
+            try {
+                ReceiptImage.saveScaledJpeg(this, src, tmp, 2000, 75);
+                ok = tmp.exists() && tmp.length() > 0;
+            } catch (Exception e) {
+                ok = false;
+            }
+            if (cleanup != null) {
+                cleanup.delete();
+            }
+            final boolean fok = ok;
+            runOnUiThread(() -> {
+                if (fok) {
+                    clearPendingReceipt();
+                    pendingReceiptFile = tmp;
+                    removeReceipt = false;
+                    updateNoteTagRows();
+                    Toast.makeText(this, R.string.receipt_attached, Toast.LENGTH_SHORT).show();
+                } else {
+                    tmp.delete();
+                    Toast.makeText(this, R.string.receipt_error, Toast.LENGTH_SHORT).show();
+                }
+            });
+        }).start();
+    }
+
+    private void clearPendingReceipt() {
+        if (pendingReceiptFile != null) {
+            pendingReceiptFile.delete();
+            pendingReceiptFile = null;
+        }
+    }
+
+    /**
+     * Hängt den {@code BELEG:}-Tag an die (bereits aus freiem Text + GPS gebaute) Notiz an und finalisiert das
+     * Bild. Bei {@code asNew} (Kopie/Neu) wird ein <b>bestehender</b> Beleg NICHT übernommen – nur ein neu
+     * angehängtes Bild verlinkt. Danach {@code then} (der eigentliche Speichervorgang).
+     */
+    private void attachReceipt(Booking b, boolean asNew, Runnable then) {
+        if (asNew) {
+            if (pendingReceiptFile != null && pendingReceiptFile.exists()) {
+                String file = NoteReceipt.newFileName(yearFromMillis(b.createdAt));
+                if (pendingReceiptFile.renameTo(Receipts.localFile(this, file))) {
+                    b.note = NoteReceipt.withFileName(b.note, file);
+                    Receipts.addPending(this, file);
+                    ReceiptSync.syncPending(this);
+                }
+                pendingReceiptFile = null;
+            }
+            then.run();
+            return;
+        }
+        // Update einer bestehenden Buchung.
+        if (removeReceipt) {
+            if (receiptFileName != null) {
+                Receipts.localFile(this, receiptFileName).delete();
+                Receipts.removePending(this, receiptFileName);
+            }
+            receiptFileName = null;
+            removeReceipt = false;
+        }
+        if (pendingReceiptFile != null && pendingReceiptFile.exists()) {
+            String old = receiptFileName;
+            String file = NoteReceipt.newFileName(yearFromMillis(b.createdAt));
+            if (pendingReceiptFile.renameTo(Receipts.localFile(this, file))) {
+                b.note = NoteReceipt.withFileName(b.note, file);
+                Receipts.addPending(this, file);
+                if (old != null && !old.equals(file)) {
+                    Receipts.localFile(this, old).delete();
+                    Receipts.removePending(this, old);
+                }
+                receiptFileName = file;
+                ReceiptSync.syncPending(this);
+            }
+            pendingReceiptFile = null;
+        } else if (receiptFileName != null) {
+            // Beleg unverändert → Tag wieder anhängen (die Notiz wurde aus dem freien Text neu gebaut).
+            b.note = NoteReceipt.withFileName(b.note, receiptFileName);
+        }
+        then.run();
+    }
+
+    private int yearFromMillis(long ms) {
+        Calendar c = Calendar.getInstance();
+        c.setTimeInMillis(ms);
+        return c.get(Calendar.YEAR);
+    }
+
+    /** Öffnet den Beleg im System-Bildbetrachter (lädt ihn bei Bedarf zuerst vom Netzlaufwerk nach). */
+    private void openReceipt(String file) {
+        Toast.makeText(this, R.string.receipt_opening, Toast.LENGTH_SHORT).show();
+        new Thread(() -> {
+            java.io.File f = ReceiptSync.ensureLocal(this, file);
+            final java.io.File ready = f;
+            runOnUiThread(() -> {
+                if (ready == null || !ready.exists()) {
+                    Toast.makeText(this, R.string.receipt_not_found, Toast.LENGTH_SHORT).show();
+                    return;
+                }
+                try {
+                    android.net.Uri uri = androidx.core.content.FileProvider.getUriForFile(
+                            this, getPackageName() + ".fileprovider", ready);
+                    Intent i = new Intent(Intent.ACTION_VIEW)
+                            .setDataAndType(uri, "image/jpeg")
+                            .addFlags(Intent.FLAG_GRANT_READ_URI_PERMISSION);
+                    startActivity(i);
+                } catch (android.content.ActivityNotFoundException e) {
+                    Toast.makeText(this, R.string.receipt_no_viewer, Toast.LENGTH_SHORT).show();
+                } catch (Exception e) {
+                    Toast.makeText(this, R.string.receipt_error, Toast.LENGTH_SHORT).show();
+                }
+            });
+        }).start();
     }
 
     // ---- Aktualisieren (bestehende Buchung) ----
@@ -1066,13 +1398,17 @@ public class BookingEditActivity extends LocalizedActivity {
                 Toast.makeText(this, R.string.booking_updated, Toast.LENGTH_SHORT).show();
                 finish();
             };
-            if (!ignorePlace) {
-                // Ort-verknüpfte Buchung: Ort-Journal per Ausgleichs-Bewegung nachziehen (Betrag/Ort/Löschung).
-                repository.updateBookingWithPlace(booking, place, splits, done);
-            } else {
-                // Bereits exportierte Buchung ohne Ort-Verknüpfung: Ort ignorieren, Ort-Journal unberührt lassen.
-                repository.updateSplitBooking(booking, splits, done);
-            }
+            // Aktualisieren: gespeicherte GPS/Beleg behalten (Notiz aus freiem Text + gespeichertem GPS neu bauen).
+            booking.note = composeNoteForSave(false);
+            attachReceipt(booking, false, () -> {
+                if (!ignorePlace) {
+                    // Ort-verknüpfte Buchung: Ort-Journal per Ausgleichs-Bewegung nachziehen.
+                    repository.updateBookingWithPlace(booking, place, splits, done);
+                } else {
+                    // Exportierte Buchung ohne Ort-Verknüpfung: Ort ignorieren, Ort-Journal unberührt lassen.
+                    repository.updateSplitBooking(booking, splits, done);
+                }
+            });
         });
     }
 
@@ -1088,7 +1424,7 @@ public class BookingEditActivity extends LocalizedActivity {
             Toast.makeText(this, R.string.error_transfer_accounts, Toast.LENGTH_SHORT).show();
             return;
         }
-        final String note = textOf(editNote).trim();
+        final String note = composeNoteForSave(false);
         final String payee = textOf(editPayee).trim();
         final String fromPlace = selectedPlace();
         final String toPlace = selectedPlaceTo();
@@ -1112,7 +1448,7 @@ public class BookingEditActivity extends LocalizedActivity {
             Toast.makeText(this, R.string.error_transfer_accounts, Toast.LENGTH_SHORT).show();
             return;
         }
-        final String note = textOf(editNote).trim();
+        final String note = composeNoteForSave(true);
         final String payee = textOf(editPayee).trim();
         final String fromPlace = selectedPlace();
         final String toPlace = selectedPlaceTo();
@@ -1147,11 +1483,14 @@ public class BookingEditActivity extends LocalizedActivity {
                 Toast.makeText(this, R.string.booking_updated, Toast.LENGTH_SHORT).show();
                 finish();
             };
-            if (parts.size() >= 2) {
-                repository.saveSplitBooking(nb, toSplits(parts), fp, done);
-            } else {
-                repository.saveBookingWithPlace(nb, fp, done);
-            }
+            nb.note = composeNoteForSave(true);
+            attachReceipt(nb, true, () -> {
+                if (parts.size() >= 2) {
+                    repository.saveSplitBooking(nb, toSplits(parts), fp, done);
+                } else {
+                    repository.saveBookingWithPlace(nb, fp, done);
+                }
+            });
         });
     }
 

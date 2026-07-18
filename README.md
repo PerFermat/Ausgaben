@@ -110,6 +110,17 @@ permission is unaffected). F-Droid packaging notes are in [`fdroid/`](fdroid/).
   amount is used. If the location switch is **off**, amount-only entry on the phone is
   disabled (digits icon hidden); on the watch it stays available — the booking is then created with an empty
   payee.
+- **Receipt photos** (Settings → *Receipt photos*, on by default): in the editor a **“Receipt”** button lets
+  you **take a photo** or **pick one from the gallery** for the booking (one per booking). The image is stored
+  privately on the phone and **synced in the background** to `Belege/<year>/` under your configured sync folder
+  (WebDAV/Nextcloud or SMB) — offline captures upload on the next app start with a connection. The reference is
+  stored in the note as a `BELEG: <file>` tag (just like `GPS:`), so it travels with the booking through the
+  KMyMoney round-trip and **stays linked after a re-import**. In the editor the note field shows only your free
+  text; the **GPS coordinates and the receipt appear as two separate read-only rows below it**, each with an
+  icon — the map icon opens the location, the receipt icon opens the photo (view) or the camera/gallery chooser
+  (edit). When you **copy** a booking (voice/template quick-entry or “Save as new”), the stored GPS and receipt
+  are **not** carried over: GPS is taken from the current location and a receipt is attached only if you add a
+  new photo. The filename is a unique id; the year prefix routes it to the right folder.
 - **Alias names (learned mappings)**: if you change the voice-recognized payee (or, when editing, the
   existing one) while saving, the app asks whether to remember the mapping as an alias. The **booking context
   is stored with it** — booking type, account, category/-ies and **place**, or From/To accounts and

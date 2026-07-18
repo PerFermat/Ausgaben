@@ -171,6 +171,10 @@ public class SettingsActivity extends LocalizedActivity {
         switchGps.setChecked(settings.isGpsEnabled());
         switchGps.setOnCheckedChangeListener((b, checked) -> settings.setGpsEnabled(checked));
 
+        MaterialSwitch switchReceipt = findViewById(R.id.switchReceipt);
+        switchReceipt.setChecked(settings.isReceiptEnabled());
+        switchReceipt.setOnCheckedChangeListener((b, checked) -> settings.setReceiptEnabled(checked));
+
         MaterialSwitch switchAliasPrompt = findViewById(R.id.switchAliasPrompt);
         switchAliasPrompt.setChecked(settings.isAliasPromptEnabled());
         switchAliasPrompt.setOnCheckedChangeListener((b, checked) -> settings.setAliasPromptEnabled(checked));

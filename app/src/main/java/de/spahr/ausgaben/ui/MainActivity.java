@@ -425,6 +425,8 @@ public class MainActivity extends LocalizedActivity {
                 androidx.core.content.ContextCompat.RECEIVER_NOT_EXPORTED);
         de.spahr.ausgaben.settings.Currencies.refresh(this);
         de.spahr.ausgaben.settings.MoneyFormat.refresh(this);
+        // Offene Belegfotos im Hintergrund ins Netzlaufwerk hochladen (No-op ohne offene/ohne Config).
+        de.spahr.ausgaben.receipt.ReceiptSync.syncPending(this);
         boolean gps = settings.isGpsEnabled();
         // Ziffern-Button (stille Betrag-only-Erfassung) nur bei aktivem Standort anbieten.
         findViewById(R.id.fabNumber).setVisibility(gps ? View.VISIBLE : View.GONE);

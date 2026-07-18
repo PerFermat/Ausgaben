@@ -113,6 +113,17 @@ Mikrofon-Berechtigung ist davon unberührt). Hinweise zur F-Droid-Paketierung in
   wird nur der Betrag übernommen. Ist der Standort-Schalter **aus**, entfällt die Betrag-only-Erfassung am
   Handy (Ziffern-Symbol ausgeblendet); auf der Uhr bleibt sie möglich – die Buchung entsteht dann mit leerem
   Empfänger.
+- **Belegfotos** (Einstellungen → *Belegfotos*, standardmäßig an): im Editor kann man ein Foto
+  **aufnehmen** oder eines **aus der Galerie** wählen (ein Foto je Buchung). Das Bild wird privat auf dem Handy
+  gespeichert und **im Hintergrund** nach `Belege/<Jahr>/` unter dem konfigurierten Sync-Ordner
+  (WebDAV/Nextcloud oder SMB) synchronisiert – offline aufgenommene Fotos laden beim nächsten App-Start mit
+  Verbindung hoch. Der Verweis steht als `BELEG: <datei>`-Tag in der Notiz (wie `GPS:`) und reist damit über den
+  KMyMoney-Rundlauf mit – **die Zuordnung bleibt nach einem Neu-Import erhalten**. Im Editor zeigt das Notizfeld
+  nur den freien Text; die **GPS-Koordinaten und der Beleg erscheinen als zwei eigene, nicht änderbare Zeilen
+  darunter** – je mit Icon: das Karten-Icon öffnet den Standort, das Beleg-Icon das Foto (Ansicht) bzw. die
+  Kamera/Galerie-Auswahl (Bearbeiten). Beim **Kopieren** einer Buchung (Sprach-/Vorlage-Erfassung oder „Als neue
+  speichern") werden die gespeicherten Werte **nicht** übernommen: GPS wird aktuell bestimmt, ein Beleg nur bei
+  einem neu angehängten Bild. Der Dateiname ist eine eindeutige ID; das Jahr im Präfix steuert den Zielordner.
 - **Alias-Namen (gelernte Zuordnungen)**: ändert man beim Speichern den per Sprache erkannten (oder beim
   Bearbeiten den bestehenden) Empfänger, fragt die App, ob sie sich die Zuordnung als Alias merken soll.
   Dabei wird der **Kontext der Buchung mitgespeichert** – Buchungsart, Konto, Kategorie(n) und **Ort** bzw.

@@ -261,6 +261,27 @@
     <string name="security_section">Sicherheit</string>
     <string name="app_lock_switch">App mit Biometrie schützen</string>
     <string name="gps_switch">Standort (GPS) nutzen</string>
+
+    <!-- Belegfotos -->
+    <string name="receipt_switch">Belegfotos (aufnehmen &amp; synchronisieren)</string>
+    <string name="receipt_add">Beleg</string>
+    <string name="receipt_attached">Beleg ✓</string>
+    <string name="receipt_source_camera">Foto aufnehmen</string>
+    <string name="receipt_source_gallery">Aus Galerie wählen</string>
+    <string name="receipt_remove">Beleg entfernen</string>
+    <string name="receipt_view_title">Beleg</string>
+    <string name="receipt_opening">Beleg wird geöffnet…</string>
+    <string name="receipt_not_found">Beleg nicht gefunden</string>
+    <string name="receipt_no_viewer">Kein Bildbetrachter gefunden</string>
+    <string name="receipt_error">Bild konnte nicht verarbeitet werden</string>
+    <string name="gps_row_label">GPS: %1$s</string>
+    <string name="compass_n">N</string>
+    <string name="compass_s">S</string>
+    <string name="compass_e">O</string>
+    <string name="compass_w">W</string>
+    <string name="receipt_row_label">Beleg: %1$s</string>
+    <string name="receipt_new">neu</string>
+    <string name="receipt_none">—</string>
     <string name="lock_title">Ausgaben entsperren</string>
     <string name="lock_subtitle">Bitte authentifizieren, um fortzufahren</string>
     <string name="lock_retry">Erneut versuchen</string>

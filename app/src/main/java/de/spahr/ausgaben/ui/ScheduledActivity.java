@@ -433,20 +433,15 @@ public class ScheduledActivity extends LocalizedActivity {
             titleBox.addView(cat, new LinearLayout.LayoutParams(
                     LinearLayout.LayoutParams.MATCH_PARENT, LinearLayout.LayoutParams.WRAP_CONTENT));
         }
+        // Konto (bei Umbuchung beide) kursiv als Unterzeile – statt einer eigenen Spalte.
+        TextView acc = new TextView(this);
+        acc.setText(accountSubline(st));
+        acc.setTextSize(12);
+        acc.setTextColor(GREY);
+        acc.setTypeface(acc.getTypeface(), Typeface.ITALIC);
+        titleBox.addView(acc, new LinearLayout.LayoutParams(
+                LinearLayout.LayoutParams.MATCH_PARENT, LinearLayout.LayoutParams.WRAP_CONTENT));
         row.addView(titleBox, new LinearLayout.LayoutParams(0, LinearLayout.LayoutParams.WRAP_CONTENT, 1f));
-
-        // Konto-Spalte (bei Umbuchung beide untereinander).
-        LinearLayout konto = new LinearLayout(this);
-        konto.setOrientation(LinearLayout.VERTICAL);
-        konto.setGravity(Gravity.END);
-        addKontoLine(konto, st.account);
-        if (st.kind == ScheduledTransaction.KIND_TRANSFER && !st.counterparty.isEmpty()) {
-            addKontoLine(konto, st.counterparty);
-        }
-        LinearLayout.LayoutParams kontoLp = new LinearLayout.LayoutParams(
-                LinearLayout.LayoutParams.WRAP_CONTENT, LinearLayout.LayoutParams.WRAP_CONTENT);
-        kontoLp.setMarginEnd(dp(10));
-        row.addView(konto, kontoLp);
 
         // Betrag rechts.
         TextView amount = new TextView(this);
@@ -491,13 +486,12 @@ public class ScheduledActivity extends LocalizedActivity {
         return st.counterparty;
     }
 
-    private void addKontoLine(LinearLayout parent, String account) {
-        TextView tv = new TextView(this);
-        tv.setText(account);
-        tv.setTextSize(12);
-        tv.setTextColor(GREY);
-        tv.setGravity(Gravity.END);
-        parent.addView(tv);
+    /** Konto als Unterzeile: bei Umbuchung „KontoA → KontoB", sonst das einzelne Konto. */
+    private String accountSubline(ScheduledTransaction st) {
+        if (st.kind == ScheduledTransaction.KIND_TRANSFER && !st.counterparty.isEmpty()) {
+            return st.account + " → " + st.counterparty;
+        }
+        return st.account;
     }
 
     /** Name (fett) + Zahlungsempfänger dahinter in kleinerer, grauer Schrift. */

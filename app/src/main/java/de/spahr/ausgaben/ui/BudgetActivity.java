@@ -621,7 +621,7 @@ public class BudgetActivity extends LocalizedActivity {
         CalcKeyboardView.installToggling(input, box, false);
         input.requestFocus();
 
-        new MaterialAlertDialogBuilder(this)
+        androidx.appcompat.app.AlertDialog dialog = new MaterialAlertDialogBuilder(this)
                 .setTitle(getString(R.string.budget_edit_title, category))
                 .setView(box)
                 .setPositiveButton(android.R.string.ok, (d, w) -> {
@@ -633,7 +633,14 @@ public class BudgetActivity extends LocalizedActivity {
                     repository.saveBudgetLine(displayYear, category, income, cents, this::reload);
                 })
                 .setNegativeButton(android.R.string.cancel, null)
-                .show();
+                .create();
+        // Das fokussierte Betragsfeld darf nicht die System-Tastatur des Dialogfensters hochziehen –
+        // die eigene Rechentastatur erscheint stattdessen über den Fokus-Listener.
+        if (dialog.getWindow() != null) {
+            dialog.getWindow().setSoftInputMode(
+                    android.view.WindowManager.LayoutParams.SOFT_INPUT_STATE_ALWAYS_HIDDEN);
+        }
+        dialog.show();
     }
 
     private Long parseCents(String s) {

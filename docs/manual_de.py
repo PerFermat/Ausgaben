@@ -86,6 +86,34 @@ def pic(relpath, caption, width=14*cm):
     story.append(KeepTogether([box]))
     gap(6)
 
+def shot_row(items, max_width=6.0*cm, total_width=17*cm, hgap=0.4*cm):
+    """Mehrere Screenshots nebeneinander (statt untereinander) – je mit eigener Bildunterschrift.
+    Jedes Bild bekommt höchstens max_width; reicht der Platz nicht, wird gemeinsam verkleinert."""
+    n = len(items)
+    cell_w = min(max_width, (total_width - hgap * (n - 1)) / n)
+    row_cells, col_widths = [], []
+    for i, (fname, caption) in enumerate(items):
+        path = os.path.join(SHOTS, fname)
+        ir = ImageReader(path); iw, ih = ir.getSize()
+        img = Image(path, width=cell_w, height=cell_w * ih / iw)
+        cell = Table([[img], [Paragraph(caption, st_cap)]], colWidths=[cell_w])
+        cell.setStyle(TableStyle([("ALIGN", (0, 0), (-1, -1), "CENTER")]))
+        row_cells.append(cell)
+        col_widths.append(cell_w)
+        if i < n - 1:
+            row_cells.append("")
+            col_widths.append(hgap)
+    row = Table([row_cells], colWidths=col_widths)
+    row.setStyle(TableStyle([
+        ("VALIGN", (0, 0), (-1, -1), "TOP"),
+        ("ALIGN", (0, 0), (-1, -1), "CENTER"),
+        ("LEFTPADDING", (0, 0), (-1, -1), 0), ("RIGHTPADDING", (0, 0), (-1, -1), 0),
+        ("TOPPADDING", (0, 0), (-1, -1), 0), ("BOTTOMPADDING", (0, 0), (-1, -1), 0),
+    ]))
+    row.hAlign = "CENTER"
+    story.append(KeepTogether([row]))
+    gap(6)
+
 # Guillemets im Quelltext -> deutsche Anfuehrungszeichen im PDF (kollisionssicher gegen ASCII-").
 _RLParagraph = Paragraph
 def Paragraph(_t, *a, **k):
@@ -130,7 +158,10 @@ h2("Willkommen-Assistent beim ersten Start")
 p("Solange noch <b>kein Konto</b> angelegt ist, erscheint beim Start der App automatisch ein schlanker "
   "<b>Willkommen-Assistent</b>. Er bündelt die wichtigsten Startpunkte an einer Stelle und lässt sich "
   "nur automatisch aufrufen (kein Menüeintrag).")
-shot("Onboarding.png", "Willkommen-Assistent beim ersten Start: Sprache, Format, Sync und Konten importieren", width=6.0*cm)
+shot_row([
+    ("Willkommen_1.png", "Sprache, Format und Synchronisierung"),
+    ("Willkommen_2.png", "«Konten importieren», «Weitere Einstellungen», «Fertig»"),
+])
 bullets([
   "<b>Sprache</b> wählen (wirkt sofort).",
   "<b>Import-/Export-Format</b>: CSV oder KMyMoney-Datei (.kmy).",
@@ -154,7 +185,7 @@ p("Alle Einstellungen im Detail – Sprache, Zahlenformat, Währung, Server-Verb
 h1("3. Der Hauptbildschirm")
 p("Der Hauptbildschirm zeigt oben die grüne Titelleiste, darunter die <b>Saldenzeile</b> und dann "
   "die Liste der Buchungen. Unten rechts liegen die Aktionsknöpfe.")
-shot("Hauptbildschirm.png", "Hauptbildschirm mit Titelleiste, Saldenzeile und Buchungsliste")
+shot("Kontobuchungen.png", "Hauptbildschirm mit Titelleiste, Saldenzeile und Buchungsliste")
 h2("Saldenzeile (antippen zum Durchschalten)")
 p("Die farbige Zeile unter der Titelleiste zeigt einen Saldo. Durch <b>Antippen</b> schalten Sie "
   "der Reihe nach durch:")
@@ -178,6 +209,7 @@ p("Für den Startbildschirm gibt es vier wählbare Widgets, die den Saldo des <b
   "System-Sprachdialog erscheint); der graue <b>Wechsel-Knopf</b> schaltet das gewählte Konto bzw. dessen "
   "Orte durch (Saldo und Ziel der neuen Buchung folgen der Auswahl). Das Widget aktualisiert sich beim Öffnen "
   "der App und in regelmäßigen Abständen.")
+shot("Widget.png", "Alle vier Widget-Größen: mittel, Typ, groß und klein", width=6.0*cm)
 
 # ---------------------------------------------------------------- 4 Symbol-Referenz
 h1("4. Symbol- und Bedienelement-Referenz")
@@ -235,21 +267,10 @@ bullets([
 # ---------------------------------------------------------------- 6 Buchung erfassen
 h1("6. Eine Buchung erfassen")
 p("Tippen Sie auf den runden <b>✚</b>-Knopf. Es öffnet sich der Buchungs-Editor.")
-shot("Ausgaben.png", "Buchungs-Editor mit Typ-Umschalter, Betrag, Empfänger und Konto")
+shot("Buchung Empfänger.png", "Buchungs-Editor mit Typ-Umschalter, Betrag, Empfänger und Konto")
 h2("Rechnen im Betragsfeld")
-p("Das <b>Betragsfeld</b> öffnet eine <b>app-eigene Rechentastatur</b> (Ziffern, <b>⌫</b>, Dezimaltaste, "
-  "<b>×</b>, <b>−</b>, <b>+</b>, <b>OK</b>) statt der System-Tastatur und nimmt so auch eine kleine "
-  "<b>Rechnung</b> entgegen – praktisch, wenn Sie eine Rechnung teilen oder mehrere Posten verrechnen: "
-  "<i>10+20*3</i> ergibt 70, <i>100,50*2+25</i> ergibt 226, <i>30-5</i> ergibt 25. Erlaubt sind "
-  "<b>Addition (+)</b>, <b>Subtraktion (−)</b> und <b>Multiplikation (×)</b> mit üblicher Priorität (Punkt "
-  "vor Strich) sowie ein Dezimaltrennzeichen je Zahl; das Minus wirkt auch als <b>Vorzeichen</b> "
-  "(<i>-5</i>, <i>3*-2</i>). Division, Klammern und Funktionen sind <b>nicht</b> möglich; ungültige Zeichen "
-  "lassen sich gar nicht erst eintippen. <b>⌫</b> löscht das letzte Zeichen (langer Druck leert das Feld); "
-  "<b>OK</b> wertet die Rechnung aus und ersetzt sie durch das Ergebnis, eine ungültige Rechnung wird mit "
-  "einer Meldung quittiert. Dieselbe Tastatur erscheint überall, wo Sie einen Betrag eingeben – bei den "
-  "<b>Teilbeträgen</b> einer Splitbuchung, der Wert-Direkteingabe im Hauptmenü, bei <b>Beständen</b> "
-  "(dort auch mit Minus für Abgänge), im <b>Budget</b>, beim Umbuchen und beim Kassensturz. Steht etwas "
-  "Unvollständiges, bleibt der Betrag einfach leer.")
+p("Das <b>Betragsfeld</b> nimmt statt der System-Tastatur eine kleine <b>Rechnung</b> entgegen (z. B. "
+  "<i>10+20*3</i> oder <i>30-5</i>) – praktisch zum Teilen einer Rechnung oder Verrechnen mehrerer Posten.")
 h2("Felder und Bedienelemente")
 bullets([
   "<b>Typ-Umschalter</b>: <font color='#b00020'>Ausgabe</font> · <b>Umbuchung</b> · "
@@ -278,6 +299,7 @@ p("Wählen Sie den Typ «Umbuchung», dann Von- und Nach-Konto sowie optional ei
   "einen <b>Von-Ort</b> und einen <b>Nach-Ort</b> wählen; dann wird das jeweilige Ortsjournal mitgeführt "
   "(Von-Konto −Betrag, Nach-Konto +Betrag). Bearbeiten oder Löschen der Umbuchung rollt die Ort-Bewegungen "
   "wieder zurück.")
+shot("Buchung Umbuchung.png", "Detailansicht einer Umbuchung mit Kontostand vorher/nachher", width=6.0*cm)
 
 # ---------------------------------------------------------------- 7 Sprache & Standort
 h1("7. Spracheingabe und Standort-Erfassung")
@@ -293,6 +315,8 @@ h2("Nur den Betrag erfassen (Ziffernblock ⊞)")
 p("Bei eingeschaltetem Standort erscheint unten das Ziffernblock-Symbol. Tippen Sie nur einen Betrag ein: "
   "Die App sucht am aktuellen Standort (100 m) eine passende Vorlage und zeigt den gefundenen Empfänger "
   "bereits vor dem Speichern an.")
+shot("Buchung Betrag - Automatischer Empfänger anhand GPS.png",
+     "Betrag-only-Erfassung: der Empfänger wird über den Standort gefunden", width=6.0*cm)
 h2("Belegfotos")
 p("Im Buchungseditor können Sie über den Knopf <b>«Beleg»</b> ein Foto des Belegs <b>aufnehmen</b> oder eines "
   "<b>aus der Galerie</b> wählen (ein Foto je Buchung; abschaltbar unter <i>Einstellungen → Belegfotos</i>). "
@@ -304,9 +328,6 @@ p("Der Verweis auf das Bild wird – wie die GPS-Koordinaten – als Kürzel <b>
   "nach einem Neu-Import</b> wieder. Im Editor zeigt das Notizfeld nur den freien Text; <b>GPS und Beleg stehen "
   "als zwei eigene, nicht änderbare Zeilen darunter</b> – je mit Symbol: das Karten-Symbol öffnet den Standort, "
   "das Beleg-Symbol das Foto (Ansicht) bzw. die Kamera/Galerie-Auswahl (Bearbeiten).")
-p("Beim <b>Kopieren</b> einer Buchung (Sprach-/Vorlage-Erfassung oder «Als neue speichern») werden die "
-  "gespeicherten Werte <b>nicht</b> übernommen: die GPS-Koordinaten werden aktuell bestimmt und ein Beleg nur "
-  "übernommen, wenn ein neues Bild angehängt wird.")
 h2("Alias-Namen (gelernte Zuordnungen)")
 p("Ändern Sie beim Speichern den erkannten Empfänger, fragt die App, ob sie sich die Zuordnung als Alias "
   "merken soll – samt Konto, Kategorie und <b>Ort</b> (bei Umbuchungen Von-/Nach-Konto und Von-/Nach-Ort). "
@@ -319,6 +340,7 @@ p("Ein Alias kann <b>beliebig viele Standorte</b> führen (z. B. mehrere Filiale
   "Koordinate wieder. Beim Auffinden (Betrag-only/Sprache) passt der Alias, wenn der aktuelle Standort "
   "<b>einer beliebigen</b> seiner Koordinaten nahe ist. Wird ein Alias erneut aus einer Buchung an einem "
   "anderen Ort gelernt, wird die Koordinate <b>ergänzt</b> (nicht überschrieben).")
+shot("Aliase.png", "Verwaltung der Alias-Namen: gesprochener Begriff → echter Empfänger", width=6.0*cm)
 
 # ---------------------------------------------------------------- 8 Liste & Filter
 h1("8. Buchungsliste und Filter")
@@ -344,10 +366,11 @@ bullets([
   "Rückgängig.",
   "<b>Langdruck auf das App-Symbol</b> (Startbildschirm): «Neue Buchung» öffnet den Editor direkt.",
 ])
+shot("Buchungen Filtern.png", "Filter nach Suchtext, Kategorie, Betrag und Zeitraum", width=6.0*cm)
 
 # ---------------------------------------------------------------- 9 Auswertung
 h1("9. Auswertung")
-shot("Grafik.png", "Auswertung als Balken- und Liniendiagramm", width=9.5*cm)
+shot("Buchungen Auswertung.png", "Auswertung als Balken- und Liniendiagramm", width=9.5*cm)
 bullets([
   "Zeiträume: Tag / Woche / Monat / Jahr.",
   "Sichten: einzelnes Konto, Ort oder Gesamt.",
@@ -360,6 +383,7 @@ h1("10. Wofür geht mein Geld?")
 p("Die Seite <b>Kategorien</b> (Menü <b>⋮ → Kategorien</b>) zeigt die <b>Ausgaben je Kategorie</b> – als "
   "Kreisdiagramm und darunter als Liste, <b>absteigend</b> nach Betrag. Sie ergänzt die Auswertung "
   "(Kapitel 9), die nur den zeitlichen Verlauf je Konto/Ort zeigt.")
+shot("Kategorien Auswertung.png", "Kategorien-Kreisdiagramm: «Wofür geht mein Geld?»", width=6.0*cm)
 bullets([
   "Umschalter <b>Monat/Jahr</b>: laufender Monat bzw. laufendes Jahr.",
   "In beiden Sichten blättern Sie – wie im Budget – per <b>Wischgeste</b> durch die Zeiträume "
@@ -396,6 +420,7 @@ p("Jede Kategorie hat eine <b>feste Farbe</b> – unabhängig davon, auf welchem
 h1("11. Budget")
 p("Die <b>Budget</b>-Seite (Menü <b>⋮ → Budget</b>) stellt je Kategorie das <b>Ist</b> dem <b>Soll</b> "
   "gegenüber. Sie beantwortet die Frage: «Liege ich im Plan?»")
+shot("Budget.png", "Budget-Seite: Ist/Soll je Kategorie, mit Fortschrittsbalken", width=6.0*cm)
 h2("Woher kommt das Soll?")
 bullets([
   "<b>Aus KMyMoney importieren</b> (Knopf in den Einstellungen): enthält Ihre .kmy eine Budgetplanung, "
@@ -432,6 +457,7 @@ p("Die Seite <b>Geplante Buchungen</b> (Menü <b>⋮ → Geplante Buchungen</b>,
   "chronologische Liste</b> nach Fälligkeit. Die Planungen werden <b>nicht</b> beim normalen Konto-Import "
   "aktualisiert, sondern nur, wenn Sie auf dieser Seite die <b>Wischgeste nach unten</b> ausführen – dabei "
   "erscheint der gewohnte <b>gelbe Fortschrittsbanner</b>.")
+shot("Geplante Buchungen.png", "Geplante Buchungen: chronologische Liste mit Saldo-Streifen", width=6.0*cm)
 bullets([
   "Jede wiederkehrende Planung wird in ihre <b>Einzeltermine aufgefaltet</b> (z. B. ein wöchentlicher "
   "Bäcker erscheint mehrfach) – <b>ab der gespeicherten nächsten Fälligkeit</b> bis <b>höchstens 2 Jahre</b> "
@@ -505,6 +531,7 @@ p("Erreichbar über <b>⋮ → Bestände</b>. Jeder Ort führt ein eigenes <b>Be
   "ist die Summe seiner Bewegungen. Die Summe aller Ort-Salden entspricht dabei immer dem Kontosaldo: "
   "<b>«ohne Ort»</b> ist der automatisch berechnete Rest (Kontosaldo − Summe der übrigen Orte). So bleibt "
   "das Konto stimmig, egal wie viele Orte Sie anlegen.")
+shot("Bestände.png", "Bestände: Anlage-/Verbindlichkeitskonten und Depot mit Orten je Konto", width=6.0*cm)
 bullets([
   "Eine in der App angelegte Buchung erzeugt automatisch eine Bewegung auf dem <b>Standardort</b> des Kontos.",
   "Ort-Bewegungen lassen sich einzeln <b>anlegen, ändern und löschen</b>.",
@@ -557,13 +584,21 @@ p("Nach dem Import eines KMyMoney-Investmentkontos erscheint das <b>Depot</b> in
   "<b>Filter nach Käufen/Verkäufen/Dividenden</b> sowie einem Datums-Slider (Startdatum = erster Kauf). Der "
   "Depotwert wird getrennt geführt und erscheint zusätzlich als «Gesamtvermögen» in der Saldenzeile des "
   "Hauptbildschirms.")
+shot("Depot.png", "Depot-Ansicht: Wertpapiere mit Stückzahl, Kurs und aktuellem Wert", width=6.0*cm)
+shot_row([
+    ("Depot Buchungen.png", "Bewegungen eines Wertpapiers: Käufe, Verkäufe und Dividenden"),
+    ("Depot Filtern.png", "Depot-Bewegungen filtern (Käufe/Verkäufe/Dividenden, Zeitraum)"),
+])
 p("Das Menü <b>«Auswertung»</b> öffnet ein <b>Kreisdiagramm</b> der Wertpapiere – im Design der Kategorien-"
   "Seite (durchgehender Ring, feste Farbe je Wertpapier, höchstens halbe Bildschirmhöhe, darunter eine eigene "
   "scrollbare Liste). Die Segmente sind unbeschriftet; ein Tipp zeigt in der Mitte <b>Name und Betrag</b> des "
   "Papiers, ohne Auswahl steht dort «Gesamt». Grafik und Liste sind <b>immer</b> absteigend nach dem "
   "aktuellen Wert des Zeitraums sortiert.")
-p("Oben wählt ein <b>Umschalter</b> die Ansicht: <b>Aktueller Wert</b> (Standard) · <b>Netto-Einzahlungen</b> "
-  "· <b>Summe Dividenden</b>. Darunter grenzt ein <b>Zeitraumfilter</b> die Auswertung ein – ein monatlicher "
+shot("Depot Auswertung.png", "Depot-Auswertung: Symbol-Umschalter, Zeitraumfilter und Kreisdiagramm",
+     width=6.0*cm)
+p("Oben wählt ein <b>Symbol-Umschalter</b> die Ansicht: <b>Aktueller Wert</b> (Standard, €-Symbol) · "
+  "<b>Netto-Einzahlungen</b> (Pfeil) · <b>Summe Dividenden</b> (%-Symbol) · <b>Gewinn/Verlust</b> "
+  "(Trendpfeil). Darunter grenzt ein <b>Zeitraumfilter</b> die Auswertung ein – ein monatlicher "
   "Bereichsslider (erste Depot-Buchung bis heute) sowie zwei Datumsfelder <b>Von/Bis</b> für ein beliebiges "
   "Datum. Jede Änderung an Ansicht oder Zeitraum aktualisiert Grafik und Liste sofort.")
 bullets([
@@ -572,7 +607,13 @@ bullets([
   "Depotwert (im Zeitraum wieder verkaufte Stücke zählen nicht negativ).",
   "<b>Netto-Einzahlungen:</b> Käufe − Verkäufe − Dividenden innerhalb des Zeitraums.",
   "<b>Summe Dividenden:</b> alle im Zeitraum erhaltenen Dividenden (brutto/netto laut Einstellung).",
+  "<b>Gewinn/Verlust:</b> Aktueller Wert − Netto-Einzahlungen, je Wertpapier als €-Betrag und als "
+  "%-Rendite bezogen auf den Einstandspreis (Käufe) – in der Liste grün/rot gefärbt. Die "
+  "Kreisdiagramm-Segmente behalten dabei die normale Wertpapierfarbe.",
 ])
+p("Im <b>Menüstreifen</b> blendet ein Symbol <b>komplett verkaufte Wertpapiere</b> ein oder aus (Standard: "
+  "ausgeblendet). Maßgeblich ist der Netto-Bestand <b>am Ende des gewählten Zeitraums</b> – ein Verkauf "
+  "danach zählt also noch nicht als «komplett verkauft».")
 p("Der <b>Export</b> im Depot-Menü läuft direkt im Depot (ohne Wechsel zur Bargeld-Ansicht).")
 p("<b>Dividenden brutto/netto:</b> In den Einstellungen wählbar, ob Dividenden brutto (deklarierte Dividende) "
   "oder netto (gutgeschriebenes Geld nach Steuer) angezeigt und in der Saldenzeile (Dividenden, Nettoeinsatz, "
@@ -689,7 +730,11 @@ p("Die Einstellungen erreichen Sie über das <b>Menü ⋮</b> oben rechts – Ei
   "unten. Beim ersten Start setzt der Willkommen-Assistent (Kapitel 2) bereits die wichtigsten Punkte; hier "
   "sind alle Felder in der Reihenfolge des Bildschirms beschrieben. Änderungen wirken mit <b>«Speichern»</b> "
   "(Sprache und Dunkelmodus sofort).")
-shot("Einstellungen.png", "Einstellungen: Sprache, Server-Verbindung (SMB/WebDAV) und Export-Modus", width=6.0*cm)
+shot_row([
+    ("Einstellungen_1.png", "Sprache, Zahlenformat, Server-Verbindung"),
+    ("Einstellungen_2.png", "Export-Modus, Standardkonto, Orte je Konto"),
+    ("Einstellungen_3.png", "Darstellung, Sicherheit, Daten"),
+])
 h2("Sprache, Zahlenformat und Währung")
 bullets([
   "<b>Sprache</b>: Deutsch/Englisch (weitere per Sprachdatei). Beim ersten Start nach dem Handy vorbelegt; "

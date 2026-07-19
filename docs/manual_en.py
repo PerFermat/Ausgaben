@@ -81,6 +81,34 @@ def pic(relpath, caption, width=14*cm):
     box.hAlign = "CENTER"
     story.append(KeepTogether([box])); gap(6)
 
+def shot_row(items, max_width=6.0*cm, total_width=17*cm, hgap=0.4*cm):
+    """Several screenshots side by side (instead of stacked), each with its own caption.
+    Every image gets at most max_width; if there isn't enough room, all are shrunk together."""
+    n = len(items)
+    cell_w = min(max_width, (total_width - hgap * (n - 1)) / n)
+    row_cells, col_widths = [], []
+    for i, (fname, caption) in enumerate(items):
+        path = os.path.join(SHOTS, fname)
+        ir = ImageReader(path); iw, ih = ir.getSize()
+        img = Image(path, width=cell_w, height=cell_w * ih / iw)
+        cell = Table([[img], [Paragraph(caption, st_cap)]], colWidths=[cell_w])
+        cell.setStyle(TableStyle([("ALIGN", (0, 0), (-1, -1), "CENTER")]))
+        row_cells.append(cell)
+        col_widths.append(cell_w)
+        if i < n - 1:
+            row_cells.append("")
+            col_widths.append(hgap)
+    row = Table([row_cells], colWidths=col_widths)
+    row.setStyle(TableStyle([
+        ("VALIGN", (0, 0), (-1, -1), "TOP"),
+        ("ALIGN", (0, 0), (-1, -1), "CENTER"),
+        ("LEFTPADDING", (0, 0), (-1, -1), 0), ("RIGHTPADDING", (0, 0), (-1, -1), 0),
+        ("TOPPADDING", (0, 0), (-1, -1), 0), ("BOTTOMPADDING", (0, 0), (-1, -1), 0),
+    ]))
+    row.hAlign = "CENTER"
+    story.append(KeepTogether([row]))
+    gap(6)
+
 # Guillemets in the source -> English curly quotes in the PDF (collision-safe vs. ASCII ").
 _RLParagraph = Paragraph
 def Paragraph(_t, *a, **k):
@@ -127,7 +155,10 @@ h2("Welcome assistant on first start")
 p("As long as <b>no account</b> exists yet, a slim <b>welcome assistant</b> appears automatically when the "
   "app starts. It bundles the most important starting points in one place and can only be opened "
   "automatically (no menu entry).")
-shot("Onboarding.png", "Welcome assistant on first start: language, format, sync and import accounts", width=6.0*cm)
+shot_row([
+    ("Willkommen_1.png", "Language, format and synchronisation"),
+    ("Willkommen_2.png", "«Import accounts», «More settings», «Done»"),
+])
 bullets([
   "Choose the <b>language</b> (takes effect immediately).",
   "<b>Import/export format</b>: CSV or KMyMoney file (.kmy).",
@@ -149,7 +180,7 @@ p("All settings in detail – language, number format, currency, server connecti
 h1("3. The main screen")
 p("The main screen shows the green title bar at the top, the <b>balance line</b> below it, and then the "
   "list of bookings. The action buttons are at the bottom right.")
-shot("Hauptbildschirm.png", "Main screen with title bar, balance line and booking list")
+shot("Kontobuchungen.png", "Main screen with title bar, balance line and booking list")
 h2("Balance line (tap to cycle)")
 p("The coloured line below the title bar shows a balance. <b>Tapping</b> it cycles through, in order:")
 bullets([
@@ -171,6 +202,7 @@ p("For the launcher there are four selectable widgets showing the <b>default-pla
   "directly – the app is not opened (only the system voice dialog appears); the grey <b>switch button</b> "
   "cycles through the chosen account and its places (the balance and the target of the new booking follow the "
   "selection). The widget refreshes when the app is opened and at regular intervals.")
+shot("Widget.png", "All four widget sizes: medium, type, large and small", width=6.0*cm)
 
 # ---------------------------------------------------------------- 4
 h1("4. Symbol and control reference")
@@ -222,20 +254,10 @@ bullets([
 # ---------------------------------------------------------------- 6
 h1("6. Recording a booking")
 p("Tap the round <b>✚</b> button. The booking editor opens.")
-shot("Ausgaben.png", "Booking editor with type switch, amount, payee and account")
+shot("Buchung Empfänger.png", "Booking editor with type switch, amount, payee and account")
 h2("Arithmetic in the amount field")
-p("The <b>amount field</b> opens an <b>app-own calculator keypad</b> (digits, <b>⌫</b>, decimal key, "
-  "<b>×</b>, <b>−</b>, <b>+</b>, <b>OK</b>) instead of the system keyboard and so also accepts a small "
-  "<b>calculation</b> – handy when splitting a bill or offsetting several items: <i>10+20*3</i> gives 70, "
-  "<i>100,50*2+25</i> gives 226, <i>30-5</i> gives 25. <b>Addition (+)</b>, <b>subtraction (−)</b> and "
-  "<b>multiplication (×)</b> are allowed, with the usual precedence (× before +/−) and one decimal mark per "
-  "number; the minus also acts as a <b>sign</b> (<i>-5</i>, <i>3*-2</i>). Division, brackets and functions "
-  "are <b>not</b> possible; invalid characters cannot even be typed. <b>⌫</b> deletes the last character "
-  "(long-press clears the field); <b>OK</b> evaluates the calculation and replaces it with the result, an "
-  "invalid one flagged with a message. The same keypad appears everywhere you enter an amount – the "
-  "<b>partial amounts</b> of a split transaction, the value quick-entry from the main menu, <b>balances</b> "
-  "(there also with minus for outflows), the <b>budget</b>, transfers and the cash count. If the entry is "
-  "incomplete, the amount simply stays empty.")
+p("The <b>amount field</b> accepts a small <b>calculation</b> instead of the system keyboard (e.g. "
+  "<i>10+20*3</i> or <i>30-5</i>) – handy when splitting a bill or offsetting several items.")
 h2("Fields and controls")
 bullets([
   "<b>Type switch</b>: <font color='#b00020'>Expense</font> · <b>Transfer</b> · <font color='#2e7d32'>Income</font>. "
@@ -263,6 +285,7 @@ p("Choose the type «Transfer», then the From and To accounts plus an optional 
   "booking in both accounts (marked → or ← in the list). You can also choose a <b>from-place</b> and a "
   "<b>to-place</b>; then the respective place journal is updated (from-account −amount, to-account +amount). "
   "Editing or deleting the transfer rolls the place movements back.")
+shot("Buchung Umbuchung.png", "Detail view of a transfer with balance before/after", width=6.0*cm)
 
 # ---------------------------------------------------------------- 7
 h1("7. Voice input and location capture")
@@ -277,6 +300,8 @@ p("If there are several payees with the same name (e.g. «REWE location 1» and 
 h2("Amount-only entry (keypad ⊞)")
 p("With location enabled, the keypad symbol appears at the bottom. Type just an amount: the app looks for a "
   "matching template at your current location (100 m) and shows the resolved payee before you even save.")
+shot("Buchung Betrag - Automatischer Empfänger anhand GPS.png",
+     "Amount-only entry: the payee is resolved via the current location", width=6.0*cm)
 h2("Receipt photos")
 p("In the booking editor the <b>«Receipt»</b> button lets you <b>take a photo</b> of the receipt or <b>pick "
   "one from the gallery</b> (one photo per booking; can be turned off under <i>Settings → Receipt photos</i>). "
@@ -288,9 +313,6 @@ p("The reference to the image is stored in the note as a <b>«BELEG: …»</b> t
   "re-import</b>. In the editor the note field shows only your free text; <b>GPS and the receipt appear as two "
   "separate read-only rows below it</b>, each with an icon – the map icon opens the location, the receipt icon "
   "opens the photo (view) or the camera/gallery chooser (edit).")
-p("When you <b>copy</b> a booking (voice/template quick-entry or «Save as new»), the stored values are <b>not</b> "
-  "carried over: the GPS coordinates are taken from the current location, and a receipt is attached only if you "
-  "add a new photo.")
 h2("Alias names (learned mappings)")
 p("If you change the recognized payee while saving, the app asks whether to remember the mapping as an "
   "alias – together with account, category and <b>place</b> (for transfers the from/to accounts and "
@@ -303,6 +325,7 @@ p("An alias can hold <b>any number of locations</b> (e.g. several branches). In 
   "When resolving (amount-only/voice) the alias matches if the current location is near <b>any</b> of its "
   "coordinates. Re-learning an alias from a booking at another place <b>appends</b> the coordinate (it does "
   "not overwrite).")
+shot("Aliase.png", "Managing alias names: spoken term → real payee", width=6.0*cm)
 
 # ---------------------------------------------------------------- 8
 h1("8. Booking list and filter")
@@ -325,10 +348,11 @@ bullets([
   "movements (the history is preserved, the balance is correct). Transfers have no undo.",
   "<b>Long press on the app icon</b> (home screen): «New booking» opens the editor directly.",
 ])
+shot("Buchungen Filtern.png", "Filter by search text, category, amount and period", width=6.0*cm)
 
 # ---------------------------------------------------------------- 9
 h1("9. Analysis")
-shot("Grafik.png", "Analysis as a bar and line chart", width=9.5*cm)
+shot("Buchungen Auswertung.png", "Analysis as a bar and line chart", width=9.5*cm)
 bullets([
   "Periods: day / week / month / year.",
   "Views: single account, place or total.",
@@ -341,6 +365,7 @@ h1("10. Where does my money go?")
 p("The <b>Categories</b> page (menu <b>⋮ → Categories</b>) shows the <b>expenses per category</b> – as a pie "
   "chart and below it as a list, sorted <b>descending</b> by amount. It complements the analysis (chapter 9), "
   "which only shows the development over time per account/place.")
+shot("Kategorien Auswertung.png", "Category pie chart: «Where does my money go?»", width=6.0*cm)
 bullets([
   "<b>Month/Year</b> toggle: current month resp. current year.",
   "In both views you page through the periods by <b>swiping</b> – just like in the budget "
@@ -376,6 +401,7 @@ p("Each category has a <b>fixed colour</b> – regardless of its current positio
 h1("11. Budget")
 p("The <b>Budget</b> page (menu <b>⋮ → Budget</b>) puts the <b>actual</b> value against a per-category "
   "<b>target</b>. It answers the question: «Am I on plan?»")
+shot("Budget.png", "Budget page: actual/target per category, with progress bars", width=6.0*cm)
 h2("Where does the target come from?")
 bullets([
   "<b>Import from KMyMoney</b> (a button in the settings): if your .kmy contains a budget, its values are "
@@ -410,6 +436,7 @@ p("The <b>Scheduled transactions</b> page (menu <b>⋮ → Scheduled transaction
   "chronological list</b> by due date. The schedules are <b>not</b> refreshed by the normal account import; "
   "they update only when you use the <b>pull-to-refresh</b> gesture on this page – with the familiar "
   "<b>yellow progress banner</b>.")
+shot("Geplante Buchungen.png", "Scheduled transactions: chronological list with balance strip", width=6.0*cm)
 bullets([
   "Each recurring schedule is <b>expanded into its individual occurrences</b> (e.g. a weekly bakery appears "
   "several times) — from the stored next due date up to <b>2 years</b> ahead.",
@@ -479,6 +506,7 @@ p("Reached via <b>⋮ → Holdings</b>. Each place keeps its own <b>movement jou
   "sum of its movements. The sum of all place balances always equals the account balance: <b>«no place»</b> "
   "is the automatically computed remainder (account balance − sum of the other places). So the account "
   "stays consistent no matter how many places you create.")
+shot("Bestände.png", "Holdings: asset/liability accounts and portfolio, with places per account", width=6.0*cm)
 bullets([
   "A booking created in the app automatically produces a movement on the account's <b>default place</b>.",
   "Place movements can be <b>created, edited and deleted</b> individually.",
@@ -526,22 +554,34 @@ p("After importing a KMyMoney investment account, the <b>portfolio</b> appears i
   "<b>movements full-screen</b> (buys green, sells red, dividends neutral) with the same figures for that "
   "security plus a <b>filter by buys/sells/dividends</b> and a date slider (start date = first purchase). "
   "The portfolio value is kept separate and also appears as «Net worth» in the main screen's balance line.")
+shot("Depot.png", "Portfolio view: securities with shares, price and current value", width=6.0*cm)
+shot_row([
+    ("Depot Buchungen.png", "Movements of a security: buys, sells and dividends"),
+    ("Depot Filtern.png", "Filtering portfolio movements (buys/sells/dividends, period)"),
+])
 p("The <b>«Analysis»</b> menu opens a <b>pie chart</b> of the securities – styled like the Categories page "
   "(continuous ring, a fixed colour per security, at most half the screen height, with its own scrollable "
   "list below). The slices are unlabelled; a tap shows the <b>name and amount</b> of the security in the "
   "centre, with nothing selected it reads «Total». Chart and list are <b>always</b> sorted descending by the "
   "current value of the period.")
-p("At the top a <b>toggle</b> picks the view: <b>Current value</b> (default) · <b>Net deposits</b> · "
-  "<b>Total dividends</b>. Below it a <b>period filter</b> narrows the analysis – a monthly range slider "
-  "(first portfolio transaction to today) plus two <b>From/To</b> date fields for any date. Any change to the "
-  "view or period updates chart and list immediately.")
+shot("Depot Auswertung.png", "Portfolio analysis: icon toggle, period filter and pie chart", width=6.0*cm)
+p("At the top an <b>icon toggle</b> picks the view: <b>Current value</b> (default, € symbol) · <b>Net "
+  "deposits</b> (arrow) · <b>Total dividends</b> (% symbol) · <b>Gain/loss</b> (trend arrow). Below it a "
+  "<b>period filter</b> narrows the analysis – a monthly range slider (first portfolio transaction to "
+  "today) plus two <b>From/To</b> date fields for any date. Any change to the view or period updates chart "
+  "and list immediately.")
 bullets([
   "<b>Current value:</b> today's value (current price) of the <b>positions built</b> in the period – i.e. "
   "the shares bought within the period that are still held. Over the full period this equals the current "
   "portfolio value (shares sold again within the period do not count negative).",
   "<b>Net deposits:</b> buys − sells − dividends within the period.",
   "<b>Total dividends:</b> all dividends received within the period (gross/net per the setting).",
+  "<b>Gain/loss:</b> current value − net deposits, per security as a € amount and as a % return on cost "
+  "basis (buys) – coloured green/red in the list. The pie-chart slices keep the security's normal colour.",
 ])
+p("In the <b>toolbar</b> an icon shows or hides <b>fully sold securities</b> (hidden by default). What "
+  "counts is the net holding <b>at the end of the selected period</b> – a sale after that does not yet "
+  "count as «fully sold».")
 p("The <b>Export</b> in the portfolio menu runs right in the portfolio (no switch to the cash view).")
 p("<b>Dividends gross/net:</b> the settings let you choose whether dividends are shown gross (declared "
   "dividend) or net (cash received after tax) and used in the balance line (dividends, net invested, "
@@ -651,7 +691,11 @@ h1("16. Settings (complete reference)")
 p("The settings are reached via the <b>⋮ menu</b> at the top right – entry <b>«Settings»</b> at the very "
   "bottom. On first start the welcome assistant (Chapter 2) already sets the essentials; here all fields are "
   "described in screen order. Changes take effect on <b>«Save»</b> (language and dark mode immediately).")
-shot("Einstellungen.png", "Settings: language, server connection (SMB/WebDAV) and export mode", width=6.0*cm)
+shot_row([
+    ("Einstellungen_1.png", "Language, number format, server connection"),
+    ("Einstellungen_2.png", "Export mode, default account, places per account"),
+    ("Einstellungen_3.png", "Appearance, security, data"),
+])
 h2("Language, number format and currency")
 bullets([
   "<b>Language</b>: German/English (more via a language file). Pre-selected from the phone on first start; "

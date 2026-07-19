@@ -128,7 +128,7 @@ story.append(Paragraph("Benutzerhandbuch", S("st2", fontName="DejaVu-Bold", font
 story.append(Paragraph("Mobiles Ausgaben-/Haushaltsbuch für Android und Wear OS "
                        "mit KMyMoney-Anbindung", st_sub))
 story.append(Spacer(1, 0.6*cm))
-story.append(Paragraph("Version 1.1 &nbsp;·&nbsp; Stand: Juli 2026", st_sub))
+story.append(Paragraph("Version 1.2 &nbsp;·&nbsp; Stand: Juli 2026", st_sub))
 story.append(Spacer(1, 0.3*cm))
 story.append(Paragraph("Projekt: github.com/PerFermat/Ausgaben &nbsp;·&nbsp; Lizenz: GPL-3.0", st_note))
 story.append(PageBreak())
@@ -826,7 +826,7 @@ def footer(canvas, doc):
     canvas.saveState()
     canvas.setFont("DejaVu", 8)
     canvas.setFillColor(GREY)
-    canvas.drawString(2*cm, 1.2*cm, "Ausgaben · Benutzerhandbuch (Version 1.1)")
+    canvas.drawString(2*cm, 1.2*cm, "Ausgaben · Benutzerhandbuch (Version 1.2)")
     canvas.drawRightString(A4[0]-2*cm, 1.2*cm, "Seite %d" % doc.page)
     canvas.restoreState()
 

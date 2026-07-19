@@ -51,8 +51,9 @@ detail, with screenshots.
 
 The current APKs are on the **[releases page](../../releases/latest)**:
 
-- **Ausgaben-v1.0.apk** — the phone app (Android 8 / API 26 and up)
-- **Ausgaben-Wear-v1.0.apk** — the Wear OS watch app (spoken expenses to the phone app). Only needed if
+- **app-full-release.apk** — the phone app with the Wear OS bridge (Android 8 / API 26 and up)
+- **app-foss-release.apk** — the same phone app without Google Play Services (F-Droid build)
+- **wear-release.apk** — the Wear OS watch app (spoken expenses to the phone app). Only needed if
   the watch doesn't get the app automatically alongside the phone install; otherwise sideload it onto the
   watch separately.
 

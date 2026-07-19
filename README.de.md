@@ -48,8 +48,9 @@ Funktion im Detail, mit Bildschirmfotos.
 
 Die aktuellen APKs findest du auf der **[Releases-Seite](../../releases/latest)**:
 
-- **Ausgaben-v1.0.apk** – die Handy-App (Android 8 / API 26 und neuer)
-- **Ausgaben-Wear-v1.0.apk** – die Wear-OS-Uhren-App (gesprochene Ausgaben an die Handy-App). Nur nötig,
+- **app-full-release.apk** – die Handy-App mit Wear-OS-Anbindung (Android 8 / API 26 und neuer)
+- **app-foss-release.apk** – dieselbe Handy-App ohne Google Play Services (F-Droid-Variante)
+- **wear-release.apk** – die Wear-OS-Uhren-App (gesprochene Ausgaben an die Handy-App). Nur nötig,
   wenn die Uhr die App nicht automatisch mit der Handy-Installation erhält; sonst separat auf die Uhr
   sideloaden.
 

@@ -25,8 +25,9 @@ via F-Droid; it stays a GitHub-only artifact (its microphone permission is unaff
 2. Open a Request For Packaging (RFP) issue, or a merge request against
    [fdroiddata](https://gitlab.com/fdroid/fdroiddata) adding
    `metadata/de.spahr.ausgaben.yml`. Use [`de.spahr.ausgaben.yml`](de.spahr.ausgaben.yml) in this
-   folder as the starting point (it builds the `foss` flavor and pulls MPAndroidChart from source
-   via a srclib).
+   folder as the starting point (it builds the `foss` flavor; MPAndroidChart is vendored as a git
+   submodule and built from source, so the recipe just needs `submodules: yes` — no JitPack, no
+   srclib).
 
 3. Store listing texts and screenshots are provided as Fastlane metadata under
    `fastlane/metadata/android/{en-US,de-DE}/` and are picked up automatically.

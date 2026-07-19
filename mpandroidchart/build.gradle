@@ -1,0 +1,31 @@
+// Baut MPAndroidChart (Apache-2.0) direkt aus dem Quellcode statt über JitPack.
+// Quelle: third_party/MPAndroidChart (Git-Submodul, gepinnt auf Tag v3.1.0, siehe .gitmodules).
+// JitPack ist für F-Droid-Builds nicht zulässig; dieses Modul umgeht das, ohne die Funktion zu
+// ändern – exakt derselbe Quellstand wie das bisherige `com.github.PhilJay:MPAndroidChart:v3.1.0`.
+plugins {
+    id 'com.android.library'
+}
+
+android {
+    namespace 'com.github.mikephil.charting'
+    compileSdk 34
+
+    defaultConfig {
+        minSdk 21
+    }
+
+    sourceSets {
+        main {
+            java.srcDirs = ['../third_party/MPAndroidChart/MPChartLib/src/main/java']
+        }
+    }
+
+    compileOptions {
+        sourceCompatibility JavaVersion.VERSION_17
+        targetCompatibility JavaVersion.VERSION_17
+    }
+}
+
+dependencies {
+    implementation 'androidx.annotation:annotation:1.7.1'
+}

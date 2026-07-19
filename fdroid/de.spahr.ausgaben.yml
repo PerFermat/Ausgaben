@@ -5,13 +5,15 @@
 # It builds the GMS-free "foss" product flavor of the :app module. The Wear OS companion
 # (:wear) needs Google Play Services and is intentionally NOT packaged for F-Droid.
 #
-# Two things still need attention when the MR is opened:
-#  1. MPAndroidChart comes from JitPack, which F-Droid does not allow. It is pulled in from
-#     source via the `MPAndroidChart` srclib (PhilJay/MPAndroidChart @ v3.1.0). If that srclib
-#     does not exist yet in fdroiddata, add srclibs/MPAndroidChart.yml pointing at
-#     https://github.com/PhilJay/MPAndroidChart .
-#  2. Adjust the `prebuild` swap below to whatever the fdroiddata CI expects (project include
-#     vs. built .aar). The lint/build run on F-Droid's side is authoritative.
+# MPAndroidChart no longer comes from JitPack (which F-Droid does not allow): the app repo now
+# vendors it as a git submodule (third_party/MPAndroidChart, pinned to tag v3.1.0) and builds it
+# from source as the ':mpandroidchart' Gradle module (see mpandroidchart/build.gradle and
+# app/build.gradle). No srclib entry or prebuild sed hack is needed any more — just make sure
+# `submodules: yes` is set below so fdroidserver checks out the submodule too.
+#
+# Still to do before opening the MR:
+#  - Point `commit:` at a tag that actually contains this fix (i.e. v1.3 or later, once tagged;
+#    v1.2 still used the JitPack dependency and won't build without network access to JitPack).
 
 Categories:
   - Money
@@ -25,22 +27,17 @@ RepoType: git
 Repo: https://github.com/PerFermat/Ausgaben.git
 
 Builds:
-  - versionName: 1.1
-    versionCode: 2
-    commit: v1.1
+  - versionName: "1.3"       # TODO: update once v1.3 (or later) is tagged
+    versionCode: 4           # TODO: must match the tagged commit's app/build.gradle
+    commit: v1.3             # TODO: this tag does not exist yet — replace before submitting
     subdir: app
     gradle:
       - foss
-    srclibs:
-      - MPAndroidChart@v3.1.0
-    prebuild:
-      # Replace the JitPack binary with the source-built MPAndroidChart module.
-      - echo "include ':MPAndroidChart'" >> ../settings.gradle
-      - sed -i -e "s|implementation 'com.github.PhilJay:MPAndroidChart:v3.1.0'|implementation project(':MPAndroidChart')|" build.gradle
+    submodules: yes
     # Output of :app:assembleFossRelease (unsigned; F-Droid signs it):
     # app/build/outputs/apk/foss/release/app-foss-release-unsigned.apk
 
 AutoUpdateMode: Version v%v
 UpdateCheckMode: Tags
-CurrentVersion: "1.1"
-CurrentVersionCode: 2
+CurrentVersion: "1.3"
+CurrentVersionCode: 4

@@ -7,6 +7,7 @@
 /build/
 /app/build/
 /wear/build/
+/mpandroidchart/build/
 /captures/
 .externalNativeBuild/
 .cxx/

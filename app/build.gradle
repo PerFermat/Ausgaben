@@ -89,7 +89,9 @@ dependencies {
     // Karten-Auswahl für Alias-Standort (OpenStreetMap, kein API-Key nötig).
     implementation 'org.osmdroid:osmdroid-android:6.1.18'
 
-    implementation 'com.github.PhilJay:MPAndroidChart:v3.1.0'
+    // Aus dem Quellcode gebaut (Submodul third_party/MPAndroidChart, Tag v3.1.0) statt über
+    // JitPack, das F-Droid nicht zulässt (siehe mpandroidchart/build.gradle).
+    implementation project(':mpandroidchart')
     implementation 'androidx.security:security-crypto:1.1.0-alpha06'
     implementation 'androidx.biometric:biometric:1.1.0'
 

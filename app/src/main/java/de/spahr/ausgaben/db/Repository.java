@@ -1154,6 +1154,18 @@ public class Repository {
         depotRepo.getSecurityMetrics(depot, kmyId, callback);
     }
 
+    /** Setzt den manuellen Geldwert einer Ein-/Ausbuchung (KMyMoney liefert dafür nie einen Wert). */
+    public void saveSecurityTxValue(String depot, String kmyId, long date, String action, double shares,
+                                    long amountCents, Runnable onDone) {
+        depotRepo.saveSecurityTxValue(depot, kmyId, date, action, shares, amountCents, onDone);
+    }
+
+    /** Entfernt einen zuvor manuell gesetzten Wert einer Ein-/Ausbuchung wieder. */
+    public void clearSecurityTxValue(String depot, String kmyId, long date, String action, double shares,
+                                     Runnable onDone) {
+        depotRepo.clearSecurityTxValue(depot, kmyId, date, action, shares, onDone);
+    }
+
     /** Frühester Bewegungszeitpunkt eines Depots (ms; 0 wenn leer) – Untergrenze des Zeitraumfilters. */
     public void getDepotFirstTx(String depot, Callback<Long> callback) {
         depotRepo.getDepotFirstTx(depot, callback);

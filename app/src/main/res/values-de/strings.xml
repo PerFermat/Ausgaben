@@ -439,6 +439,9 @@
     <string name="action_add">Einbuchung</string>
     <string name="action_remove">Ausbuchung</string>
     <string name="action_reinvest">Wiederanlage</string>
+    <string name="depot_tx_set_value">Wert festlegen</string>
+    <string name="depot_tx_value_title">Wert für %1$s festlegen</string>
+    <string name="depot_tx_value_hint">Wert</string>
     <string name="kmy_replace_title">Konto ersetzen?</string>
     <string name="kmy_replace_message">Die bereits exportierten Buchungen des Kontos „%1$s" werden durch den Import ersetzt.</string>
     <string name="kmy_import_replace">Ersetzen</string>

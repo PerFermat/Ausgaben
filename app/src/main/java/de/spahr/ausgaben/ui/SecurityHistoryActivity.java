@@ -5,14 +5,20 @@ import android.os.Bundle;
 import android.view.Gravity;
 import android.view.LayoutInflater;
 import android.view.View;
+import android.view.WindowManager;
 import android.widget.EditText;
 import android.widget.LinearLayout;
 import android.widget.TextView;
+import android.widget.Toast;
+
+import androidx.appcompat.app.AlertDialog;
 
 import com.google.android.material.appbar.MaterialToolbar;
 import com.google.android.material.checkbox.MaterialCheckBox;
 import com.google.android.material.dialog.MaterialAlertDialogBuilder;
 import com.google.android.material.slider.RangeSlider;
+import com.google.android.material.textfield.TextInputEditText;
+import com.google.android.material.textfield.TextInputLayout;
 
 import java.text.SimpleDateFormat;
 import java.util.Date;
@@ -21,7 +27,9 @@ import java.util.Locale;
 import de.spahr.ausgaben.R;
 import de.spahr.ausgaben.db.Repository;
 import de.spahr.ausgaben.db.SecurityTx;
+import de.spahr.ausgaben.settings.AmountExpression;
 import de.spahr.ausgaben.settings.Currencies;
+import de.spahr.ausgaben.settings.MoneyFormat;
 
 /**
  * Vollbild-Historie eines Wertpapiers: im grünen Kopf der Wertpapiername, in der Saldenzeile per Klick
@@ -37,7 +45,10 @@ public class SecurityHistoryActivity extends LocalizedActivity {
 
     private final SimpleDateFormat dateFormat = new SimpleDateFormat("dd.MM.yyyy", Locale.GERMANY);
 
+    private String depot;
+    private String kmyId;
     private String securityName = "";
+    private Repository repository;
     private Repository.DepotMetrics metrics;
     private java.util.List<Integer> saldoModes = new java.util.ArrayList<>();
     private int saldoIndex = 0;
@@ -59,8 +70,8 @@ public class SecurityHistoryActivity extends LocalizedActivity {
         super.onCreate(savedInstanceState);
         setContentView(R.layout.activity_security_history);
 
-        String depot = getIntent().getStringExtra(EXTRA_DEPOT);
-        String kmyId = getIntent().getStringExtra(EXTRA_KMY_ID);
+        depot = getIntent().getStringExtra(EXTRA_DEPOT);
+        kmyId = getIntent().getStringExtra(EXTRA_KMY_ID);
         securityName = orEmpty(getIntent().getStringExtra(EXTRA_NAME));
 
         MaterialToolbar toolbar = findViewById(R.id.toolbar);
@@ -86,7 +97,12 @@ public class SecurityHistoryActivity extends LocalizedActivity {
         });
 
         container = findViewById(R.id.historyContainer);
-        Repository repository = new Repository(this);
+        repository = new Repository(this);
+        reload();
+    }
+
+    /** Kennzahlen (Saldozeile) und Bewegungen neu laden – nach dem Setzen/Löschen eines manuellen Werts. */
+    private void reload() {
         repository.getSecurityMetrics(depot, kmyId, m -> {
             metrics = m;
             saldoModes = DepotSaldo.modes(m);
@@ -226,29 +242,95 @@ public class SecurityHistoryActivity extends LocalizedActivity {
 
         // Dividenden je nach Einstellung brutto (amountCents) oder netto (netCents) anzeigen.
         long shown = "dividend".equals(tx.action) && !dividendGross ? tx.netCents : tx.amountCents;
+        boolean editable = "add".equals(tx.action) || "remove".equals(tx.action);
         TextView amount = new TextView(this);
-        amount.setText(shown != 0 ? money(shown) : "");
+        if (shown != 0) {
+            amount.setText(money(shown));
+        } else if (editable) {
+            // KMyMoney liefert für Ein-/Ausbuchungen nie einen Wert – Platzhalter statt leerer Spalte,
+            // damit die Zeile erkennbar antippbar wirkt statt kaputt.
+            amount.setText(R.string.depot_tx_set_value);
+            amount.setTypeface(Typeface.DEFAULT, Typeface.ITALIC);
+        } else {
+            amount.setText("");
+        }
         amount.setTextSize(16f);
-        amount.setTypeface(Typeface.MONOSPACE, Typeface.BOLD);
+        if (shown != 0) {
+            amount.setTypeface(Typeface.MONOSPACE, Typeface.BOLD);
+        }
         amount.setGravity(Gravity.END);
-        amount.setTextColor(amountColor(tx.action));
+        amount.setTextColor(shown != 0 ? amountColor(tx.action) : getColor(R.color.grey_text));
 
         row.addView(left);
         row.addView(amount);
+        if (editable) {
+            row.setOnLongClickListener(v -> {
+                showValueEditDialog(tx);
+                return true;
+            });
+        }
         return row;
     }
 
-    /** Verkauf = rot, Kauf/Wiederanlage = grün, Dividende (und Ein-/Ausbuchung) = Standardfarbe. */
+    /** Verkauf/Ausbuchung = rot, Kauf/Wiederanlage/Einbuchung = grün, Dividende = Standardfarbe. */
     private int amountColor(String action) {
         switch (action == null ? "" : action) {
             case "sell":
+            case "remove":
                 return getColor(R.color.expense_red);
             case "buy":
             case "reinvest":
+            case "add":
                 return getColor(R.color.income_green);
             default:
                 return primaryTextColor();
         }
+    }
+
+    /** Langer Klick auf eine Ein-/Ausbuchung: manuellen Wert festlegen (KMyMoney liefert dort nie einen). */
+    private void showValueEditDialog(SecurityTx tx) {
+        LinearLayout box = new LinearLayout(this);
+        box.setOrientation(LinearLayout.VERTICAL);
+        TextInputLayout til = new TextInputLayout(this);
+        til.setHint(getString(R.string.depot_tx_value_hint));
+        til.setBoxBackgroundMode(TextInputLayout.BOX_BACKGROUND_OUTLINE);
+        TextInputEditText input = new TextInputEditText(til.getContext());
+        input.setInputType(android.text.InputType.TYPE_CLASS_PHONE);
+        if (tx.amountCents > 0) {
+            input.setText(MoneyFormat.plain(tx.amountCents));
+        }
+        til.addView(input);
+        int pad = dp(16);
+        box.setPadding(pad, 0, pad, 0);
+        box.addView(til);
+        // Eigene Rechentastatur statt der System-Tastatur (erscheint bei Fokus des Betragsfelds).
+        CalcKeyboardView.installToggling(input, box, false);
+        input.requestFocus();
+
+        AlertDialog dialog = new MaterialAlertDialogBuilder(this)
+                .setTitle(getString(R.string.depot_tx_value_title, actionLabel(tx.action)))
+                .setView(box)
+                .setPositiveButton(android.R.string.ok, (d, w) -> {
+                    String raw = input.getText() == null ? "" : input.getText().toString().trim();
+                    if (raw.isEmpty()) {
+                        repository.clearSecurityTxValue(depot, kmyId, tx.date, tx.action, tx.shares, this::reload);
+                        return;
+                    }
+                    Long cents = AmountExpression.toCents(raw);
+                    if (cents == null || cents < 0) {
+                        Toast.makeText(this, R.string.budget_invalid_amount, Toast.LENGTH_SHORT).show();
+                        return;
+                    }
+                    repository.saveSecurityTxValue(depot, kmyId, tx.date, tx.action, tx.shares, cents, this::reload);
+                })
+                .setNegativeButton(R.string.cancel, null)
+                .create();
+        // Das fokussierte Betragsfeld darf nicht die System-Tastatur des Dialogfensters hochziehen –
+        // die eigene Rechentastatur erscheint stattdessen über den Fokus-Listener.
+        if (dialog.getWindow() != null) {
+            dialog.getWindow().setSoftInputMode(WindowManager.LayoutParams.SOFT_INPUT_STATE_ALWAYS_HIDDEN);
+        }
+        dialog.show();
     }
 
     private int primaryTextColor() {

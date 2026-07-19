@@ -75,12 +75,54 @@ class DepotRepository {
         });
     }
 
-    /** Bewegungen eines Wertpapiers (neueste zuerst). */
+    /** Bewegungen eines Wertpapiers (neueste zuerst); manuell gesetzte Werte für Ein-/Ausbuchungen eingeblendet. */
     void getSecurityTransactions(final String depot, final String kmyId,
                                  final Callback<List<SecurityTx>> callback) {
         executor.execute(() -> {
             final List<SecurityTx> result = securityDao.getTxBySecurity(depot, kmyId);
+            applyValueOverrides(depot, result);
             mainHandler.post(() -> callback.onResult(result));
+        });
+    }
+
+    /** Überschreibt amountCents/netCents der übergebenen Zeilen mit einem passenden manuellen Wert (falls vorhanden). */
+    private void applyValueOverrides(String depot, List<SecurityTx> rows) {
+        List<SecurityTxValueOverride> overrides = securityDao.getValueOverrides(depot);
+        if (overrides.isEmpty()) {
+            return;
+        }
+        for (SecurityTx tx : rows) {
+            for (SecurityTxValueOverride o : overrides) {
+                if (o.securityKmyId.equals(tx.securityKmyId) && o.date == tx.date
+                        && o.action.equals(tx.action) && o.shares == tx.shares) {
+                    tx.amountCents = o.amountCents;
+                    tx.netCents = o.amountCents;
+                    break;
+                }
+            }
+        }
+    }
+
+    /** Setzt den manuellen Wert einer Ein-/Ausbuchung (übersteht einen Depot-Reimport). */
+    void saveSecurityTxValue(final String depot, final String kmyId, final long date, final String action,
+                             final double shares, final long amountCents, final Runnable onDone) {
+        executor.execute(() -> {
+            securityDao.upsertValueOverride(
+                    new SecurityTxValueOverride(depot, kmyId, date, action, shares, amountCents));
+            if (onDone != null) {
+                mainHandler.post(onDone);
+            }
+        });
+    }
+
+    /** Entfernt einen zuvor manuell gesetzten Wert wieder. */
+    void clearSecurityTxValue(final String depot, final String kmyId, final long date, final String action,
+                              final double shares, final Runnable onDone) {
+        executor.execute(() -> {
+            securityDao.deleteValueOverride(depot, kmyId, date, action, shares);
+            if (onDone != null) {
+                mainHandler.post(onDone);
+            }
         });
     }
 
@@ -165,7 +207,11 @@ class DepotRepository {
                 if ("buy".equals(a) || "reinvest".equals(a)) {
                     boughtShares.computeIfAbsent(ps.kmyId, k -> new double[1])[0] += ps.shares;
                     buyAmt.computeIfAbsent(ps.kmyId, k -> new long[1])[0] += ps.amount;
-                } else if ("sell".equals(a)) {
+                } else if ("add".equals(a)) {
+                    // Einbuchung: nur der manuell gesetzte Geldwert zählt zum Einstandspreis, die
+                    // Stückzahl bleibt bewusst außen vor (läuft bereits korrekt über netShares/-AtEnd).
+                    buyAmt.computeIfAbsent(ps.kmyId, k -> new long[1])[0] += ps.amount;
+                } else if ("sell".equals(a) || "remove".equals(a)) {
                     sellAmt.computeIfAbsent(ps.kmyId, k -> new long[1])[0] += ps.amount;
                 } else if ("dividend".equals(a)) {
                     divAmt.computeIfAbsent(ps.kmyId, k -> new long[1])[0] += gross ? ps.amount : ps.net;
@@ -199,9 +245,11 @@ class DepotRepository {
         long buy = 0, sell = 0, dividend = 0;
         for (SecurityDao.ActionSum s : sums) {
             String a = s.action == null ? "" : s.action;
-            if ("buy".equals(a) || "reinvest".equals(a)) {
+            // Einbuchung = wie Kauf, Ausbuchung = wie Verkauf – zählt nur, wenn ein manueller Wert
+            // gesetzt wurde (KMyMoney liefert dafür sonst immer 0, siehe getActionSums/-BySecurity).
+            if ("buy".equals(a) || "reinvest".equals(a) || "add".equals(a)) {
                 buy += s.amount;
-            } else if ("sell".equals(a)) {
+            } else if ("sell".equals(a) || "remove".equals(a)) {
                 sell += s.amount;
             } else if ("dividend".equals(a)) {
                 // Brutto = amount (Einnahme-Split), Netto = net (gutgeschriebenes Geld).

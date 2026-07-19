@@ -439,6 +439,9 @@
     <string name="action_add">Add</string>
     <string name="action_remove">Remove</string>
     <string name="action_reinvest">Reinvest</string>
+    <string name="depot_tx_set_value">Set value</string>
+    <string name="depot_tx_value_title">Set value for %1$s</string>
+    <string name="depot_tx_value_hint">Value</string>
     <string name="kmy_replace_title">Replace account?</string>
     <string name="kmy_replace_message">The already exported bookings of account “%1$s” are replaced by the import.</string>
     <string name="kmy_import_replace">Replace</string>

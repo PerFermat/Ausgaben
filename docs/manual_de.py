@@ -122,7 +122,17 @@ def Paragraph(_t, *a, **k):
     return _RLParagraph(_t, *a, **k)
 
 # ---------------------------------------------------------------- Titelseite
-story.append(Spacer(1, 4.5*cm))
+# Titelbild groß oben (Konzept B: ein Bild dominiert), Textblock klar abgesetzt darunter statt als
+# Bild-Overlay – bleibt so unabhängig vom Bildinhalt zuverlässig lesbar.
+story.append(Spacer(1, 0.8*cm))
+_cover_path = os.path.join(SHOTS, "Promo-Datenschutz.png")
+_cover_ir = ImageReader(_cover_path)
+_cover_iw, _cover_ih = _cover_ir.getSize()
+_cover_h = 13.0*cm
+_cover_img = Image(_cover_path, width=_cover_h * _cover_iw / _cover_ih, height=_cover_h)
+_cover_img.hAlign = "CENTER"
+story.append(_cover_img)
+story.append(Spacer(1, 1.0*cm))
 story.append(Paragraph("Ausgaben", st_title))
 story.append(Paragraph("Benutzerhandbuch", S("st2", fontName="DejaVu-Bold", fontSize=16, textColor=GREY, spaceAfter=18)))
 story.append(Paragraph("Mobiles Ausgaben-/Haushaltsbuch für Android und Wear OS "
@@ -306,14 +316,14 @@ h1("7. Spracheingabe und Standort-Erfassung")
 h2("Spracheingabe")
 p("<b>Langer Druck</b> auf den ✚-Knopf öffnet die Spracheingabe. Sagen Sie z. B. «Frisör 20 €»: Die App "
   "sucht eine passende Vorlage (Empfänger, Konto, Kategorie, Buchungsart) und öffnet sie mit heutigem "
-  "Datum und dem gesprochenen Betrag. Die Empfängersuche ist unscharf.")
+  "Datum und dem gesprochenen Betrag. Die Empfängersuche findet auch ähnlich geschriebene Namen.")
 h2("Nächstgelegener Empfänger")
 p("Gibt es mehrere gleichnamige Empfänger (z. B. «REWE Ort 1» und «REWE Ort 2») und ist der Standort "
   "bekannt, wählt die App den <b>geografisch nächstgelegenen</b> – sowohl bei bestehenden Buchungen als "
   "auch bei Aliasen mit hinterlegten Koordinaten.")
 h2("Nur den Betrag erfassen (Ziffernblock ⊞)")
 p("Bei eingeschaltetem Standort erscheint unten das Ziffernblock-Symbol. Tippen Sie nur einen Betrag ein: "
-  "Die App sucht am aktuellen Standort (100 m) eine passende Vorlage und zeigt den gefundenen Empfänger "
+  "Die App sucht an Ihrem aktuellen Standort eine passende Vorlage und zeigt den gefundenen Empfänger "
   "bereits vor dem Speichern an.")
 shot("Buchung Betrag - Automatischer Empfänger anhand GPS.png",
      "Betrag-only-Erfassung: der Empfänger wird über den Standort gefunden", width=6.0*cm)
@@ -584,6 +594,10 @@ p("Nach dem Import eines KMyMoney-Investmentkontos erscheint das <b>Depot</b> in
   "<b>Filter nach Käufen/Verkäufen/Dividenden</b> sowie einem Datums-Slider (Startdatum = erster Kauf). Der "
   "Depotwert wird getrennt geführt und erscheint zusätzlich als «Gesamtvermögen» in der Saldenzeile des "
   "Hauptbildschirms.")
+p("Bei <b>Einbuchungen</b> und <b>Ausbuchungen</b> kennt KMyMoney nur die Stückzahl, keinen Geldwert. Ein "
+  "<b>langer Klick</b> auf eine solche Zeile öffnet einen Dialog, um den Wert manuell einzutragen (über "
+  "dieselbe Rechentastatur wie sonst im Betragsfeld) – er zählt danach wie ein Kauf bzw. Verkauf zum "
+  "Einstandspreis und Gewinn/Verlust und übersteht auch einen erneuten Depot-Import.")
 shot("Depot.png", "Depot-Ansicht: Wertpapiere mit Stückzahl, Kurs und aktuellem Wert", width=6.0*cm)
 shot_row([
     ("Depot Buchungen.png", "Bewegungen eines Wertpapiers: Käufe, Verkäufe und Dividenden"),
@@ -656,18 +670,8 @@ p("Ein Import ersetzt je Konto die bereits exportierten Buchungen (keine Dublett
   "(Unterordner 📁 + CSV-Dateien, «..» zurück); die gewählte CSV wird aus dem aktuellen Ordner importiert. "
   "Die Schublade bleibt beim langen Druck geöffnet.")
 h2("Was der Fortschritt im Banner bedeutet")
-p("Die Prozentanzeige folgt vier Phasen, jede mit einer echten Bezugsgröße – der Wert bewegt sich also "
-  "durchgehend statt in großen Sprüngen:")
-bullets([
-  "<b>0–30 % «Datei wird geladen…»</b>: die heruntergeladenen Bytes der .kmy. Meldet der Server keine "
-  "Dateigröße, bleibt die Anzeige in dieser Phase bei 0 – der Import läuft trotzdem.",
-  "<b>30–45 % «Datei wird gelesen…»</b>: die Datei wird entpackt und aufbereitet.",
-  "<b>45–70 % «Buchungen werden gelesen…»</b>: Anteil der gelesenen Buchungen (die Anzahl steht im "
-  "Dateikopf).",
-  "<b>70–99 %</b>: die Buchungen werden gespeichert; <b>100 %</b> = fertig.",
-])
-p("Gemeldet wird jeweils <b>nach</b> einem Arbeitsschritt. Bei sehr vielen Buchungen darf die Anzeige "
-  "kurz bei 99 % stehen, bevor sie auf 100 % springt.")
+p("Die Prozentanzeige bewegt sich während des gesamten Imports stetig voran (Herunterladen, Aufbereiten, "
+  "Buchungen lesen, Speichern) statt in großen Sprüngen.")
 p("Damit der Import zügig bleibt, liest die App die Datei <b>einmal für alle gewählten Konten</b> und "
   "speichert alles in einem Zug. Kurse, Budgets und geplante Buchungen stehen in der .kmy erst "
   "<b>hinter</b> den Buchungen – die App springt dorthin, statt für jeden dieser Bereiche noch einmal "
@@ -680,12 +684,7 @@ p("Vor jedem Rückschreiben legt die App automatisch eine <b>zeitgestempelte Sic
 h2("Schutz vor Überschreiben")
 p("Zwischen dem Herunterladen der .kmy und dem Rückschreiben vergehen einige Sekunden. Arbeitet in dieser "
   "Zeit jemand am Rechner in KMyMoney, dürfen dessen Änderungen nicht verloren gehen. Die App merkt sich "
-  "deshalb beim Herunterladen den <b>Stand der Datei</b> und schreibt nur, wenn er unverändert ist:")
-bullets([
-  "<b>Nextcloud/WebDAV</b>: über den <b>ETag</b> der Datei; die Prüfung macht der Server selbst "
-  "(<i>If-Match</i>), sie ist damit lückenlos.",
-  "<b>SMB/Samba</b>: über Änderungszeit und Größe, unmittelbar vor dem Schreiben geprüft.",
-])
+  "deshalb beim Herunterladen den <b>Stand der Datei</b> und schreibt nur, wenn er unverändert ist.")
 p("Wurde die Datei zwischenzeitlich geändert, <b>bricht der Export ab und schreibt nichts</b>; die Buchungen "
   "bleiben unexportiert und können nach einem erneuten Import ohne Verlust nochmals exportiert werden. "
   "Liefert der Server keinen Stand, wird wie bisher ungeprüft geschrieben – der Export scheitert daran nicht.")
@@ -698,17 +697,11 @@ p("Mit der Uhren-App erfassen Sie eine Ausgabe per Sprache direkt am Handgelenk.
   "Text auf; die Verarbeitung und das Anlegen der Buchung passieren auf dem Handy (derselbe Parser).")
 bullets([
   "<b>Drei Typ-Knöpfe</b>: Einnahme (grün), Umbuchung (gelb), Ausgabe (rot). Danach startet die Sprache.",
-  "Der erkannte Text wird 10 Sekunden mit «Abbrechen» angezeigt und sonst automatisch verarbeitet.",
+  "Der erkannte Text wird kurz mit «Abbrechen» angezeigt und sonst automatisch verarbeitet.",
   "<b>Stille Zifferneingabe</b>: über das Ziffern-Symbol einen Betrag lautlos eingeben (Standort-Auflösung am Handy).",
-  "<b>Standort erst nach frischem Fix</b>: Nach der Eingabe wartet die Uhr bis zu ~1 Minute auf einen "
-  "frischen GPS-Fix und sendet die Buchung erst danach – statt sofort einen veralteten Fix zu nehmen. Ohne "
-  "frischen Fix wird die zuletzt gespeicherte Messung genutzt (höchstens 5 Minuten alt), sonst ohne "
-  "Koordinaten gesendet. So landet eine Zahlung nicht mehr am zuvor besuchten Ort, wenn man inzwischen "
-  "woanders ist.",
   "<b>Wear-Tile</b>: Schnellzugriff als Kachel.",
   "<b>Standardort-Saldo</b>: Unter den Knöpfen zeigen App und Tile den Saldo des Standardorts als "
-  "«Ort: Saldo» (z. B. «Geldbeutel: 70,00 €»). Das Handy sendet den Wert nur bei Änderung; die Uhr liest "
-  "ihn beim Start und reagiert per Push – ohne Polling und ohne merklichen Akku-Mehrverbrauch. Kein "
+  "«Ort: Saldo» (z. B. «Geldbeutel: 70,00 €»). Der Saldo wird automatisch aktualisiert. Kein "
   "Standardort gesetzt → Zeile ausgeblendet.",
   "<b>Grund statt Saldo</b>: Sind noch Buchungen <b>nicht übertragen</b>, steht an dieser Stelle statt des "
   "Saldos der <b>Grund</b> dafür – «Warten auf GPS» (der Standort wird noch aufgelöst), «Keine Verbindung "
@@ -717,8 +710,8 @@ bullets([
   "in App und Tile – das angezeigte Konto bzw. dessen Orte durch; die nächste Buchung (Handy-Widget und Uhr) "
   "betrifft dann das gewählte Konto/den gewählten Ort. Bei einer Umbuchung ist das gewählte Konto das "
   "Von-Konto; das Nach-Konto ist das Standardkonto – außer das gewählte Konto ist selbst das Standardkonto, "
-  "dann bleibt das Nach-Konto leer (am Handy manuell ergänzen). Nach 60 s springt die Auswahl automatisch auf "
-  "den Standardort zurück.",
+  "dann bleibt das Nach-Konto leer (am Handy manuell ergänzen). Nach kurzer Zeit springt die Auswahl "
+  "automatisch auf den Standardort zurück.",
   "<b>Offline</b>: nicht übertragene Buchungen werden angezeigt und automatisch nachgereicht, sobald das "
   "Handy erreichbar ist – ohne Verlust und ohne Dopplung.",
 ])

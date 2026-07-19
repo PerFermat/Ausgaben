@@ -2,6 +2,7 @@ package de.spahr.ausgaben.db;
 
 import androidx.room.Dao;
 import androidx.room.Insert;
+import androidx.room.OnConflictStrategy;
 import androidx.room.Query;
 
 import java.util.List;
@@ -37,14 +38,27 @@ public interface SecurityDao {
     @Query("SELECT DISTINCT depot FROM security ORDER BY depot COLLATE NOCASE ASC")
     List<String> distinctDepots();
 
-    /** Beträge je Bewegungsart über das ganze Depot (Brutto + Netto; für Nettoeinsatz/Gewinn). */
-    @Query("SELECT action, SUM(amount_cents) AS amount, SUM(net_cents) AS net FROM security_tx "
-            + "WHERE depot = :depot GROUP BY action")
+    /**
+     * Beträge je Bewegungsart über das ganze Depot (Brutto + Netto; für Nettoeinsatz/Gewinn). Für
+     * Ein-/Ausbuchungen mit manuell gesetztem Wert ({@link SecurityTxValueOverride}) zählt dieser Wert
+     * statt der von KMyMoney immer mit 0 importierten Summe (COALESCE greift nur, wenn ein Override
+     * existiert – ohne Override bleibt das Ergebnis unverändert).
+     */
+    @Query("SELECT t.action AS `action`, SUM(COALESCE(o.amount_cents, t.amount_cents)) AS amount, "
+            + "SUM(t.net_cents) AS net FROM security_tx t "
+            + "LEFT JOIN security_tx_value_override o ON o.depot = t.depot "
+            + "AND o.security_kmy_id = t.security_kmy_id AND o.date = t.date AND o.action = t.action "
+            + "AND o.shares = t.shares "
+            + "WHERE t.depot = :depot GROUP BY t.action")
     List<ActionSum> getActionSums(String depot);
 
-    /** Beträge je Bewegungsart eines einzelnen Wertpapiers (Brutto + Netto). */
-    @Query("SELECT action, SUM(amount_cents) AS amount, SUM(net_cents) AS net FROM security_tx "
-            + "WHERE depot = :depot AND security_kmy_id = :kmyId GROUP BY action")
+    /** Beträge je Bewegungsart eines einzelnen Wertpapiers (Brutto + Netto); Override wie oben berücksichtigt. */
+    @Query("SELECT t.action AS `action`, SUM(COALESCE(o.amount_cents, t.amount_cents)) AS amount, "
+            + "SUM(t.net_cents) AS net FROM security_tx t "
+            + "LEFT JOIN security_tx_value_override o ON o.depot = t.depot "
+            + "AND o.security_kmy_id = t.security_kmy_id AND o.date = t.date AND o.action = t.action "
+            + "AND o.shares = t.shares "
+            + "WHERE t.depot = :depot AND t.security_kmy_id = :kmyId GROUP BY t.action")
     List<ActionSum> getActionSumsBySecurity(String depot, String kmyId);
 
     /** Frühester Bewegungszeitpunkt des Depots (ms); {@code null} bei leerem Depot – Untergrenze des Zeitraums. */
@@ -56,10 +70,14 @@ public interface SecurityDao {
      * Brutto- und Netto-Betrag im Fenster {@code [fromMs, toMs)}. Grundlage der zeitraumbezogenen
      * Depot-Auswertung.
      */
-    @Query("SELECT security_kmy_id AS kmyId, action, SUM(shares) AS shares, "
-            + "SUM(amount_cents) AS amount, SUM(net_cents) AS net FROM security_tx "
-            + "WHERE depot = :depot AND date >= :fromMs AND date < :toMs "
-            + "GROUP BY security_kmy_id, action")
+    @Query("SELECT t.security_kmy_id AS kmyId, t.action AS `action`, SUM(t.shares) AS shares, "
+            + "SUM(COALESCE(o.amount_cents, t.amount_cents)) AS amount, SUM(t.net_cents) AS net "
+            + "FROM security_tx t "
+            + "LEFT JOIN security_tx_value_override o ON o.depot = t.depot "
+            + "AND o.security_kmy_id = t.security_kmy_id AND o.date = t.date AND o.action = t.action "
+            + "AND o.shares = t.shares "
+            + "WHERE t.depot = :depot AND t.date >= :fromMs AND t.date < :toMs "
+            + "GROUP BY t.security_kmy_id, t.action")
     List<PeriodSum> getPeriodSums(String depot, long fromMs, long toMs);
 
     @Query("DELETE FROM security WHERE depot = :depot")
@@ -67,6 +85,19 @@ public interface SecurityDao {
 
     @Query("DELETE FROM security_tx WHERE depot = :depot")
     void deleteTx(String depot);
+
+    /** Setzt/überschreibt den manuellen Wert einer Ein-/Ausbuchung (übersteht einen Depot-Reimport). */
+    @Insert(onConflict = OnConflictStrategy.REPLACE)
+    void upsertValueOverride(SecurityTxValueOverride override);
+
+    /** Entfernt einen manuell gesetzten Wert wieder (Zeile fällt auf 0/Platzhalter zurück). */
+    @Query("DELETE FROM security_tx_value_override WHERE depot = :depot AND security_kmy_id = :kmyId "
+            + "AND date = :date AND action = :action AND shares = :shares")
+    void deleteValueOverride(String depot, String kmyId, long date, String action, double shares);
+
+    /** Alle manuell gesetzten Werte eines Depots – zum Einblenden in die Bewegungsliste. */
+    @Query("SELECT * FROM security_tx_value_override WHERE depot = :depot")
+    List<SecurityTxValueOverride> getValueOverrides(String depot);
 
     /** Projektion für {@link #getShareSums(String)}. */
     class ShareSum {

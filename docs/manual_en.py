@@ -117,7 +117,17 @@ def Paragraph(_t, *a, **k):
     return _RLParagraph(_t, *a, **k)
 
 # ---------------------------------------------------------------- Cover
-story.append(Spacer(1, 4.5*cm))
+# Large cover image on top (one image dominates), text block clearly separated below instead of an
+# overlay – stays legible independent of the image content.
+story.append(Spacer(1, 0.8*cm))
+_cover_path = os.path.join(SHOTS, "Promo-Datenschutz.png")
+_cover_ir = ImageReader(_cover_path)
+_cover_iw, _cover_ih = _cover_ir.getSize()
+_cover_h = 13.0*cm
+_cover_img = Image(_cover_path, width=_cover_h * _cover_iw / _cover_ih, height=_cover_h)
+_cover_img.hAlign = "CENTER"
+story.append(_cover_img)
+story.append(Spacer(1, 1.0*cm))
 story.append(Paragraph("Ausgaben", st_title))
 story.append(Paragraph("User Manual", S("st2", fontName="DejaVu-Bold", fontSize=16, textColor=GREY, spaceAfter=18)))
 story.append(Paragraph("Mobile expense / household book for Android and Wear OS "
@@ -292,14 +302,14 @@ h1("7. Voice input and location capture")
 h2("Voice input")
 p("A <b>long press</b> on the ✚ button opens voice input. Say e.g. «barber 20 €»: the app looks for a "
   "matching template (payee, account, category, booking type) and opens it with today's date and the "
-  "spoken amount. Payee search is fuzzy.")
+  "spoken amount. Payee search also finds similarly spelled names.")
 h2("Nearest payee")
 p("If there are several payees with the same name (e.g. «REWE location 1» and «REWE location 2») and the "
   "location is known, the app picks the <b>geographically nearest</b> one – both for existing bookings and "
   "for aliases with stored coordinates.")
 h2("Amount-only entry (keypad ⊞)")
 p("With location enabled, the keypad symbol appears at the bottom. Type just an amount: the app looks for a "
-  "matching template at your current location (100 m) and shows the resolved payee before you even save.")
+  "matching template at your current location and shows the resolved payee before you even save.")
 shot("Buchung Betrag - Automatischer Empfänger anhand GPS.png",
      "Amount-only entry: the payee is resolved via the current location", width=6.0*cm)
 h2("Receipt photos")
@@ -554,6 +564,10 @@ p("After importing a KMyMoney investment account, the <b>portfolio</b> appears i
   "<b>movements full-screen</b> (buys green, sells red, dividends neutral) with the same figures for that "
   "security plus a <b>filter by buys/sells/dividends</b> and a date slider (start date = first purchase). "
   "The portfolio value is kept separate and also appears as «Net worth» in the main screen's balance line.")
+p("For <b>Add</b> and <b>Remove</b> transactions, KMyMoney only ever records a share count, never a "
+  "monetary value. A <b>long press</b> on such a row opens a dialog to set the value manually (using the "
+  "same calculator keypad as elsewhere) – it then counts like a buy or sell towards the cost basis and "
+  "gain/loss, and survives a fresh portfolio import.")
 shot("Depot.png", "Portfolio view: securities with shares, price and current value", width=6.0*cm)
 shot_row([
     ("Depot Buchungen.png", "Movements of a security: buys, sells and dividends"),
@@ -620,17 +634,8 @@ p("An import replaces the already-exported bookings per account (no duplicates).
   "long-pressing one opens a <b>navigable folder browser</b> (subfolders 📁 + CSV files, «..» to go up); the "
   "chosen CSV is imported from the current folder. The drawer stays open on long press.")
 h2("What the progress in the banner means")
-p("The percentage follows four phases, each with a real reference value – so it keeps moving instead of "
-  "jumping:")
-bullets([
-  "<b>0–30 % «Reading file…»</b>: the downloaded bytes of the .kmy. If the server reports no file size, the "
-  "display stays at 0 during this phase – the import still runs.",
-  "<b>30–45 % «Reading file…»</b>: the file is unpacked and prepared.",
-  "<b>45–70 % «Reading bookings…»</b>: share of the bookings read (the count is in the file header).",
-  "<b>70–99 %</b>: the bookings are saved; <b>100 %</b> = done.",
-])
-p("Each value is reported <b>after</b> a step of work. With very many bookings the display may rest at 99 % "
-  "briefly before it jumps to 100 %.")
+p("The percentage keeps moving throughout the import (downloading, preparing, reading bookings, saving) "
+  "instead of jumping in large steps.")
 p("To keep the import quick, the app reads the file <b>once for all selected accounts</b> and saves "
   "everything in one go. Prices, budgets and scheduled transactions only appear <b>after</b> the bookings "
   "in the .kmy — the app jumps straight there instead of walking through the whole ledger again for each "
@@ -643,12 +648,7 @@ p("Before every write-back the app automatically creates a <b>timestamped backup
 h2("Protection against overwriting")
 p("A few seconds pass between downloading the .kmy and writing it back. If somebody works in KMyMoney on "
   "the computer during that window, their changes must not be lost. The app therefore remembers the "
-  "<b>state of the file</b> when downloading and only writes if it is unchanged:")
-bullets([
-  "<b>Nextcloud/WebDAV</b>: via the file's <b>ETag</b>; the server itself performs the check "
-  "(<i>If-Match</i>), so it is gap-free.",
-  "<b>SMB/Samba</b>: via change time and size, checked immediately before writing.",
-])
+  "<b>state of the file</b> when downloading and only writes if it is unchanged.")
 p("If the file changed in the meantime, the <b>export aborts and writes nothing</b>; the bookings stay "
   "unexported and can be exported again after a fresh import, without any loss. If the server reports no "
   "state, the app writes unchecked as before – the export never fails because of this.")
@@ -661,16 +661,11 @@ p("With the watch app you record an expense by voice right on your wrist. The wa
   "processing and creating the booking happen on the phone (the same parser).")
 bullets([
   "<b>Three type buttons</b>: income (green), transfer (yellow), expense (red). Then voice starts.",
-  "The recognized text is shown for 10 seconds with «Cancel» and otherwise processed automatically.",
+  "The recognized text is shown briefly with «Cancel» and otherwise processed automatically.",
   "<b>Silent digit entry</b>: enter an amount silently via the digits symbol (resolved by location on the phone).",
-  "<b>Location only after a fresh fix</b>: after input the watch waits up to ~1 minute for a fresh GPS fix "
-  "and sends the booking only afterwards – instead of taking a possibly stale fix immediately. Without a "
-  "fresh fix the last stored measurement is used (at most 5 minutes old), otherwise it is sent without "
-  "coordinates. This keeps a payment from landing at a previously visited place after you have moved.",
   "<b>Wear tile</b>: quick access as a tile.",
   "<b>Default-place balance</b>: below the buttons, the app and tile show the balance of the default place "
-  "as «Place: balance» (e.g. «Wallet: 70.00 €»). The phone sends the value only when it changes; the watch "
-  "reads it on start and reacts via push – no polling, no noticeable battery drain. No default place set → "
+  "as «Place: balance» (e.g. «Wallet: 70.00 €»). The balance updates automatically. No default place set → "
   "line hidden.",
   "<b>Reason instead of balance</b>: while bookings are <b>not yet transferred</b>, this line shows the "
   "<b>reason</b> instead of the balance – «Waiting for GPS» (the location is still being resolved), «No "
@@ -679,7 +674,7 @@ bullets([
   "tile – cycles through the shown account and its places; the next booking (phone widget and watch) then "
   "targets the chosen account/place. For a transfer the chosen account is the from-account; the to-account is "
   "the default account – unless the chosen account already is the default, in which case the to-account stays "
-  "empty (to fill in manually on the phone). After 60 s the selection reverts to the default place.",
+  "empty (to fill in manually on the phone). After a short while the selection reverts to the default place.",
   "<b>Offline</b>: bookings not yet transmitted are shown and delivered automatically once the phone is "
   "reachable – without loss and without duplication.",
 ])

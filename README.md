@@ -13,6 +13,14 @@ instead of typing everything in by hand later.
 📖 The full **[user manual (PDF, English)](docs/Manual-Ausgaben-en.pdf)** describes every feature in
 detail, with screenshots.
 
+<p>
+  <img src="screenshots/Promo-Datenschutz.png" width="220">
+  <img src="screenshots/Promo-Syncronisation.png" width="220">
+  <img src="screenshots/Promo-Alias.png" width="220">
+  <img src="screenshots/Promo-UhranlagemitAlias.png" width="220">
+</p>
+<sub>(Promo graphics are in German; the app itself is fully available in English.)</sub>
+
 ## Why it might be useful for KMyMoney users
 
 - 📲 **Mobile extension for KMyMoney** — capture cash spending the moment it happens

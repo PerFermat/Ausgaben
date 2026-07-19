@@ -656,7 +656,7 @@ p("If the file changed in the meantime, the <b>export aborts and writes nothing<
 # ---------------------------------------------------------------- 12
 # ---------------------------------------------------------------- 15 Wear OS
 h1("15. Wear OS (watch)")
-shot("UhranlagemitAlias.png", "Recording on the watch", width=6.0*cm)
+shot("Promo-UhranlagemitAlias.png", "Recording on the watch", width=6.0*cm)
 p("With the watch app you record an expense by voice right on your wrist. The watch only captures the text; "
   "processing and creating the booking happen on the phone (the same parser).")
 bullets([

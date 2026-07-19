@@ -693,7 +693,7 @@ p("Wurde die Datei zwischenzeitlich geändert, <b>bricht der Export ab und schre
 # ---------------------------------------------------------------- 12 Sync einrichten
 # ---------------------------------------------------------------- 15 Wear OS
 h1("15. Wear OS (Uhr)")
-shot("UhranlagemitAlias.png", "Erfassung auf der Uhr", width=6.0*cm)
+shot("Promo-UhranlagemitAlias.png", "Erfassung auf der Uhr", width=6.0*cm)
 p("Mit der Uhren-App erfassen Sie eine Ausgabe per Sprache direkt am Handgelenk. Die Uhr nimmt nur den "
   "Text auf; die Verarbeitung und das Anlegen der Buchung passieren auf dem Handy (derselbe Parser).")
 bullets([

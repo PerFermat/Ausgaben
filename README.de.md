@@ -11,6 +11,13 @@ nach KMyMoney, statt alles später von Hand nachzutragen.
 📖 Das vollständige **[Benutzerhandbuch (PDF, Deutsch)](docs/Handbuch-Ausgaben-de.pdf)** beschreibt jede
 Funktion im Detail, mit Bildschirmfotos.
 
+<p>
+  <img src="screenshots/Promo-Datenschutz.png" width="220">
+  <img src="screenshots/Promo-Syncronisation.png" width="220">
+  <img src="screenshots/Promo-Alias.png" width="220">
+  <img src="screenshots/Promo-UhranlagemitAlias.png" width="220">
+</p>
+
 ## Warum die App für KMyMoney-Nutzer interessant ist
 
 - 📲 **Mobile Erweiterung für KMyMoney** – Bargeldausgaben unterwegs sofort erfassen

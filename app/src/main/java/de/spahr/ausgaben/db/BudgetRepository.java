@@ -126,37 +126,75 @@ class BudgetRepository {
                 basis = bookingDao.getCategoryActuals(yearStart, yearEnd);
                 divisor = 1;
             }
-            // Je Kategorie den vorzeichenbehafteten Netto-Zufluss summieren; der Typ kommt allein aus der
-            // kmy-Datei. Eine Einnahme auf einer Ausgabekategorie (Erstattung) mindert deren Soll, die
-            // Kategorie bleibt Ausgabe. Kategorien ohne kmy-Typ werden übersprungen.
+            // Je Kategorie UND Kategorietyp den vorzeichenbehafteten Netto-Zufluss summieren (getrennt
+            // gehalten, da kMyMoney dieselbe Kategorie-Bezeichnung unabhängig im Einnahme- und im
+            // Ausgabe-Baum haben kann, z. B. „Versicherung:Krankenzusatz" – siehe getCategoryActuals).
+            // Der Typ kommt bevorzugt aus dem Kategorietyp je Zeile (CategorySum.catIsIncome); nur für
+            // Zeilen ohne eigenen Typ (NULL, vor der Kategorietyp-je-Zeile-Migration) greift der globale
+            // Rückfall über die kmy-Datei (typeMap). Eine Einnahme auf einer Ausgabekategorie (Erstattung)
+            // mindert deren Soll, die Kategorie bleibt Ausgabe. Kategorien ohne ermittelbaren Typ werden
+            // übersprungen. Der Unique-Index (year, month, category, is_income) erlaubt zwei getrennte
+            // Budget-Zeilen für dieselbe Kategorie mit unterschiedlichem Typ.
             java.util.Map<String, Boolean> typeMap = loadTypeMap();
-            java.util.Map<String, Long> perCat = new java.util.HashMap<>();
+            java.util.Map<String, java.util.Map<Boolean, Long>> perCat = new java.util.HashMap<>();
             for (CategorySum s : basis) {
                 if (s.category == null || s.category.isEmpty()) {
                     continue;
                 }
-                Long v = perCat.get(s.category);
-                perCat.put(s.category, (v == null ? 0L : v) + s.total);
+                java.util.Map<Boolean, Long> byType =
+                        perCat.computeIfAbsent(s.category, k -> new java.util.HashMap<>());
+                Long v = byType.get(s.catIsIncome);
+                byType.put(s.catIsIncome, (v == null ? 0L : v) + s.total);
             }
             budgetDao.deleteYear(year);
-            for (java.util.Map.Entry<String, Long> e : perCat.entrySet()) {
-                Boolean isIncome = typeMap.get(e.getKey());
-                if (isIncome == null) {
-                    continue; // strikt: nur kmy-Kategorien erhalten ein Soll
+            for (java.util.Map.Entry<String, java.util.Map<Boolean, Long>> e : perCat.entrySet()) {
+                String cat = e.getKey();
+                java.util.Map<Boolean, Long> byType = e.getValue();
+                java.util.List<Boolean> knownTypes = new java.util.ArrayList<>();
+                if (byType.containsKey(Boolean.TRUE)) {
+                    knownTypes.add(Boolean.TRUE);
                 }
-                long ist = BudgetMath.ist(isIncome, e.getValue());
-                if (ist <= 0) {
-                    continue; // negativer/0-Netto → kein Soll (Clamp auf 0)
+                if (byType.containsKey(Boolean.FALSE)) {
+                    knownTypes.add(Boolean.FALSE);
                 }
-                long soll = Math.round((double) ist / divisor);
-                if (soll <= 0) {
+                if (knownTypes.isEmpty()) {
+                    Boolean isIncome = typeMap.get(cat);
+                    if (isIncome == null) {
+                        continue; // strikt: nur kmy-Kategorien erhalten ein Soll
+                    }
+                    long net = 0;
+                    for (long v : byType.values()) {
+                        net += v;
+                    }
+                    upsertComputedBudget(year, cat, isIncome, net, divisor);
                     continue;
                 }
-                budgetDao.upsert(new Budget(year, e.getKey(), isIncome, soll, Budget.SOURCE_INTERNAL));
+                Boolean globalType = typeMap.get(cat);
+                for (Boolean type : knownTypes) {
+                    boolean foldNull = knownTypes.size() == 1 || (globalType != null && globalType.equals(type));
+                    long net = byType.containsKey(type) ? byType.get(type) : 0;
+                    if (foldNull && byType.containsKey(null)) {
+                        net += byType.get(null);
+                    }
+                    upsertComputedBudget(year, cat, type, net, divisor);
+                }
             }
             if (onDone != null) {
                 mainHandler.post(onDone);
             }
         });
+    }
+
+    /** Legt (bei positivem Soll) eine berechnete Budgetzeile für {@code cat}/{@code isIncome} an. */
+    private void upsertComputedBudget(int year, String cat, boolean isIncome, long net, int divisor) {
+        long ist = BudgetMath.ist(isIncome, net);
+        if (ist <= 0) {
+            return; // negativer/0-Netto → kein Soll (Clamp auf 0)
+        }
+        long soll = Math.round((double) ist / divisor);
+        if (soll <= 0) {
+            return;
+        }
+        budgetDao.upsert(new Budget(year, cat, isIncome, soll, Budget.SOURCE_INTERNAL));
     }
 }

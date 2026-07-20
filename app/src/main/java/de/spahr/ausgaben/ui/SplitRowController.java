@@ -29,10 +29,17 @@ class SplitRowController {
     static final class Part {
         final String category;
         final long cents;
+        /** Typ der Kategorie (true=Einnahme, false=Ausgabe, null=unbekannt/frei getippt). */
+        final Boolean categoryIsIncome;
 
         Part(String category, long cents) {
+            this(category, cents, null);
+        }
+
+        Part(String category, long cents, Boolean categoryIsIncome) {
             this.category = category;
             this.cents = cents;
+            this.categoryIsIncome = categoryIsIncome;
         }
     }
 
@@ -92,6 +99,15 @@ class SplitRowController {
     }
 
     void addRow(String category, String amountText) {
+        addRow(category, amountText, null);
+    }
+
+    /**
+     * Wie {@link #addRow(String, String)}, übernimmt zusätzlich einen bereits bekannten Kategorietyp
+     * (z. B. beim Vorbelegen einer bestehenden Buchung) als gemerkten Zustand der Zeile, ohne dass der
+     * Nutzer die Kategorie erneut in der Auswahlliste antippen müsste.
+     */
+    void addRow(String category, String amountText, Boolean categoryIsIncome) {
         View row = inflater.inflate(R.layout.item_split_row, container, false);
         MaterialAutoCompleteTextView cat = row.findViewById(R.id.splitCategory);
         TextInputEditText amt = row.findViewById(R.id.splitAmount);
@@ -103,6 +119,7 @@ class SplitRowController {
         if (category != null) {
             cat.setText(category, false);
         }
+        cat.setTag(categoryIsIncome);
         if (amountText != null) {
             amt.setText(amountText);
         }
@@ -114,7 +131,18 @@ class SplitRowController {
             container.addView(row);
             return;
         }
-        cat.addTextChangedListener(new SimpleWatcher(() -> onSplitCategoryChanged(row)));
+        cat.addTextChangedListener(new SimpleWatcher(() -> {
+            // Frei getippt/geändert → gemerkten Typ verwerfen (kein Auswahl-Signal mehr gültig). Bei
+            // einer Dropdown-Auswahl läuft dieser Watcher VOR dem Klick-Listener unten (Android ruft bei
+            // performCompletion() erst setText(), dann den Item-Klick), der den Typ danach korrekt setzt.
+            cat.setTag(null);
+            onSplitCategoryChanged(row);
+        }));
+        cat.setOnItemClickListener((parent, view, position, id) -> {
+            CategoryFilterAdapter.CatItem item =
+                    categoryAdapter != null ? categoryAdapter.getItem(position) : null;
+            cat.setTag(item != null ? item.groupIsIncome : null);
+        });
         amt.addTextChangedListener(new SimpleWatcher(() -> onPartialChanged(row)));
         if (amountBinder != null) {
             amountBinder.bind(amt);   // Teilbetrag-Feld an die Rechentastatur binden
@@ -235,10 +263,17 @@ class SplitRowController {
             }
             Long cents = parseCents(amtText(r));
             if (cents != null) {
-                parts.add(new Part(c, cents));
+                parts.add(new Part(c, cents, categoryIsIncomeTag(r)));
             }
         }
         return parts;
+    }
+
+    /** Gemerkter Kategorietyp der Zeile (aus der Auswahlliste angetippt oder vorbelegt), sonst {@code null}. */
+    private Boolean categoryIsIncomeTag(View row) {
+        MaterialAutoCompleteTextView cat = row.findViewById(R.id.splitCategory);
+        Object tag = cat.getTag();
+        return tag instanceof Boolean ? (Boolean) tag : null;
     }
 
     /** true, wenn das Ausgabe/Einnahme-Formular gespeichert werden darf (Summe der Teile = Gesamt). */

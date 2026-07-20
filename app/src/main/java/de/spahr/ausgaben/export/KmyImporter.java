@@ -492,7 +492,10 @@ public class KmyImporter {
             for (String[] cs : categorySplits) {
                 long catValue = valueToCents(cs[1]);
                 long partial = b.isIncome ? -catValue : catValue;
-                b.parts.add(new BookingSplit(0, orEmpty(doc.categoryPath(cs[0])), partial));
+                // Kategorietyp aus der (noch eindeutigen) kMyMoney-Konto-ID dieses Splits – Typ 12 =
+                // Einnahme, 13 = Ausgabe (categorySplits ist bereits auf 12/13 gefiltert).
+                boolean catIsIncome = doc.accountTypeOf(cs[0]) == 12;
+                b.parts.add(new BookingSplit(0, orEmpty(doc.categoryPath(cs[0])), partial, catIsIncome));
             }
             // Kopf-Kategorie = betragsmäßig größter Teil (nicht einfach der erste). Sonst bekäme z. B. eine
             // Dividende mit kleiner Gebühr fälschlich „Bankgebühren" als Haupt-Kategorie, wenn der
@@ -504,6 +507,7 @@ public class KmyImporter {
                 }
             }
             b.category = main == null ? "" : main.category;
+            b.categoryIsIncome = main == null ? null : main.categoryIsIncome;
             b.payee = resolveImportPayee(own, categorySplits.get(0), splits);
             return b;
         }
@@ -517,6 +521,13 @@ public class KmyImporter {
             }
         }
         b.category = counter == null ? "" : orEmpty(doc.categoryPath(counter[0]));
+        if (counter != null) {
+            int counterType = doc.accountTypeOf(counter[0]);
+            // Kategorietyp aus der Konto-ID (eindeutig); nur setzen, wenn es wirklich eine Kategorie ist
+            // (12=Einnahme, 13=Ausgabe) – ein Nicht-Kategorie-Gegenkonto bleibt hier ohnehin unerreicht,
+            // da Umbuchungen weiter oben schon zurückkehren.
+            b.categoryIsIncome = (counterType == 12 || counterType == 13) ? counterType == 12 : null;
+        }
         b.payee = resolveImportPayee(own, counter, splits);
         return b;
     }

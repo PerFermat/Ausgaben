@@ -37,6 +37,17 @@ public class Booking {
     @ColumnInfo(name = "category")
     public String category = "";
 
+    /**
+     * Typ von {@link #category} (true = Einnahme, false = Ausgabe), {@code null} = unbekannt (Zeile vor
+     * dieser Migration). kMyMoney erlaubt dieselbe Kategorie-Bezeichnung unabhängig im Einnahme- und im
+     * Ausgabe-Baum (z. B. „Versicherung:Krankenzusatz"); dieses Feld hält den Typ je Zeile fest, statt ihn
+     * nur global pro Text zu speichern (siehe {@link CategoryType}, das bei einer Namenskollision einen der
+     * beiden Typen überschreiben würde). Import: aus der kMyMoney-Konto-ID (eindeutig). App-Editor: aus der
+     * angetippten Gruppe der Kategorie-Auswahlliste, sonst Rückfall auf {@link #isIncome}.
+     */
+    @ColumnInfo(name = "category_is_income")
+    public Boolean categoryIsIncome;
+
     @NonNull
     @ColumnInfo(name = "note")
     public String note = "";

@@ -243,7 +243,7 @@ public class BudgetActivity extends LocalizedActivity {
         int maxBucket = monthView ? 31 : 12;
         histoThreshold = elapsed <= 0 ? 0
                 : (elapsed >= 1 ? maxBucket : (int) Math.round(elapsed * maxBucket));
-        Map<String, Cat> cats = buildCats();
+        List<Cat> cats = buildCats();
         String currency = Currencies.getDefault();
         renderSection(cats, true, getString(R.string.budget_income_header), currency);
         renderSection(cats, false, getString(R.string.budget_expense_header), currency);
@@ -349,8 +349,9 @@ public class BudgetActivity extends LocalizedActivity {
         }
     }
 
-    /** Kategorie-Typ (global bestimmt) + aktueller Ist (vorzeichenbehaftet) + Soll. */
+    /** Kategorie-Typ + Kategorie-Pfad + aktueller Ist (vorzeichenbehaftet) + Soll. */
     private static final class Cat {
+        String categoryPath;
         boolean isIncome;
         long ist;          // aktueller Zeitraum, vorzeichenbehaftet Richtung Kategorietyp
         long displaySoll;  // Jahr bzw. /12
@@ -358,19 +359,21 @@ public class BudgetActivity extends LocalizedActivity {
     }
 
     /**
-     * Baut je Kategorie den Typ, den aktuellen Ist und das Soll. Der Typ richtet sich <b>allein nach der
-     * kmy-Datei</b> ({@link #categoryTypes}, ersatzweise dem – ebenfalls aus der Datei stammenden – Typ der
-     * Budgetzeile), nicht nach dem Vorzeichen der Buchungen: eine Einnahme auf einer Ausgabekategorie
-     * (z. B. Erstattung) mindert dort den Ist, kippt die Kategorie aber nicht. Kategorien ohne kmy-Typ
-     * werden übersprungen. Es zählen nur Kategorien mit Zahlungen in den letzten 2 Jahren; ein negativer
-     * Netto-Ist wird auf 0 gesetzt.
+     * Baut je Kategorie (und – bei einer Namenskollision zwischen gleichnamiger Einnahme- und
+     * Ausgabekategorie in kMyMoney – je Typ <b>zwei</b> Einträge) den Typ, den aktuellen Ist und das Soll.
+     * Der Typ kommt bevorzugt aus dem Kategorietyp je Zeile ({@link CategorySum#catIsIncome}, siehe
+     * {@link #sums}); nur für Zeilen ohne eigenen Typ (NULL, vor der Kategorietyp-je-Zeile-Migration)
+     * greift wie bisher der globale Rückfall über {@link #categoryTypes} bzw. den Typ der Budgetzeile.
+     * Eine Einnahme auf einer Ausgabekategorie (z. B. Erstattung) mindert dort den Ist, kippt die
+     * Kategorie aber nicht. Kategorien ohne ermittelbaren Typ werden übersprungen. Es zählen nur
+     * Kategorien mit Zahlungen in den letzten 2 Jahren; ein negativer Netto-Ist wird auf 0 gesetzt.
      *
      * <p>Soll: Jahressicht = Jahreswert (Summe der Monatszeilen). Monatssicht = der Wert des aktuellen
      * Monats bei monatsgenauen Budgets ({@code month=1..12}), sonst Jahreswert/12.</p>
      */
-    private Map<String, Cat> buildCats() {
-        Map<String, Long> period = sums(actuals);
-        Map<String, Long> recent = sums(recentActuals);
+    private List<Cat> buildCats() {
+        Map<String, Map<Boolean, Long>> period = sums(actuals);
+        Map<String, Map<Boolean, Long>> recent = sums(recentActuals);
 
         // Budgetzeilen je Kategorie einsammeln: Jahres-Soll (month=0) bzw. Monatswerte (month=1..12).
         Map<String, Long> annualByCat = new java.util.HashMap<>();
@@ -391,46 +394,91 @@ public class BudgetActivity extends LocalizedActivity {
         }
         int curMonth = monthView ? displayMonth : 1;   // angezeigter Monat (folgt der Wischgeste)
 
-        Map<String, Cat> cats = new TreeMap<>(String.CASE_INSENSITIVE_ORDER);
-        for (Map.Entry<String, Long> e : recent.entrySet()) {
+        List<Cat> cats = new ArrayList<>();
+        for (Map.Entry<String, Map<Boolean, Long>> e : recent.entrySet()) {
             String cat = e.getKey();   // in der 2-Jahres-Liste = Zahlung im Zeitraum vorhanden
-            Boolean isInc = categoryTypes.get(cat);
-            if (isInc == null) {
-                isInc = budgetTypeByCat.get(cat);   // Rückfall auf den kmy-Typ der Budgetzeile
+            Map<Boolean, Long> recentByType = e.getValue();
+            // Ist-Betrag kommt aus dem aktuell angezeigten Zeitraum (period), recent dient nur der
+            // Typerkennung ("welche Typen kommen für diese Kategorie überhaupt vor").
+            Map<Boolean, Long> periodByType = period.containsKey(cat)
+                    ? period.get(cat) : java.util.Collections.emptyMap();
+            List<Boolean> knownTypes = new ArrayList<>();
+            if (recentByType.containsKey(Boolean.TRUE)) {
+                knownTypes.add(Boolean.TRUE);
             }
-            if (isInc == null) {
-                continue;   // strikt: nur Kategorien mit kmy-Typ
+            if (recentByType.containsKey(Boolean.FALSE)) {
+                knownTypes.add(Boolean.FALSE);
             }
-            long net = period.containsKey(cat) ? period.get(cat) : 0;
-            Cat c = new Cat();
-            c.isIncome = isInc;
-            c.ist = de.spahr.ausgaben.db.BudgetMath.ist(isInc, net);   // Typ-Richtung, Clamp auf 0
-            long[] monthly = monthlyByCat.get(cat);
-            if (monthly != null) {
-                long annual = 0;
-                for (long v : monthly) {
-                    annual += v;
+
+            if (knownTypes.isEmpty()) {
+                // Nur unbekannte (NULL-)Zeilen: wie bisher global auflösen, Ist = Summe aller
+                // period-Zeilen dieser Kategorie (es gibt ja keine Typtrennung für sie).
+                Boolean isInc = categoryTypes.get(cat);
+                if (isInc == null) {
+                    isInc = budgetTypeByCat.get(cat);   // Rückfall auf den kmy-Typ der Budgetzeile
                 }
-                c.annualSoll = annual;
-                c.displaySoll = monthView ? monthly[curMonth - 1] : annual;   // Monat = konkreter Monatswert
-            } else {
-                c.annualSoll = annualByCat.containsKey(cat) ? annualByCat.get(cat) : 0;
-                c.displaySoll = monthView ? Math.round(c.annualSoll / 12.0) : c.annualSoll;
+                if (isInc == null) {
+                    continue;   // strikt: nur Kategorien mit ermittelbarem Typ
+                }
+                long net = 0;
+                for (long v : periodByType.values()) {
+                    net += v;
+                }
+                cats.add(buildCat(cat, isInc, net, curMonth, monthlyByCat, annualByCat));
+                continue;
             }
-            cats.put(cat, c);
+
+            // Echte Kollision (beide Typen mit eigenen Zeilen) → zwei getrennte Einträge; sonst den
+            // NULL-Eimer (falls vorhanden) dem einzigen bekannten Typ zuschlagen.
+            Boolean globalType = categoryTypes.get(cat);
+            for (Boolean type : knownTypes) {
+                boolean foldNull = knownTypes.size() == 1 || (globalType != null && globalType.equals(type));
+                long net = periodByType.containsKey(type) ? periodByType.get(type) : 0;
+                if (foldNull && periodByType.containsKey(null)) {
+                    net += periodByType.get(null);
+                }
+                cats.add(buildCat(cat, type, net, curMonth, monthlyByCat, annualByCat));
+            }
         }
         return cats;
     }
 
-    /** Vorzeichenbehafteter Netto-Zufluss je Kategorie ({@code +} = rein, {@code −} = raus). */
-    private Map<String, Long> sums(List<CategorySum> list) {
-        Map<String, Long> m = new TreeMap<>(String.CASE_INSENSITIVE_ORDER);
+    /** Baut einen einzelnen {@link Cat}-Eintrag für {@code cat}/{@code isInc} aus dem Ist-Netto {@code net}. */
+    private Cat buildCat(String cat, boolean isInc, long net,
+                         int curMonth, Map<String, long[]> monthlyByCat, Map<String, Long> annualByCat) {
+        Cat c = new Cat();
+        c.categoryPath = cat;
+        c.isIncome = isInc;
+        c.ist = de.spahr.ausgaben.db.BudgetMath.ist(isInc, net);   // Typ-Richtung, Clamp auf 0
+        long[] monthly = monthlyByCat.get(cat);
+        if (monthly != null) {
+            long annual = 0;
+            for (long v : monthly) {
+                annual += v;
+            }
+            c.annualSoll = annual;
+            c.displaySoll = monthView ? monthly[curMonth - 1] : annual;   // Monat = konkreter Monatswert
+        } else {
+            c.annualSoll = annualByCat.containsKey(cat) ? annualByCat.get(cat) : 0;
+            c.displaySoll = monthView ? Math.round(c.annualSoll / 12.0) : c.annualSoll;
+        }
+        return c;
+    }
+
+    /**
+     * Vorzeichenbehafteter Netto-Zufluss je Kategorie ({@code +} = rein, {@code −} = raus), je
+     * Kategorietyp getrennt (innerer Schlüssel {@code TRUE}/{@code FALSE}/{@code null} = unbekannt) –
+     * damit gleichnamige Einnahme-/Ausgabekategorien (kMyMoney erlaubt das) nicht vermischt werden.
+     */
+    private Map<String, Map<Boolean, Long>> sums(List<CategorySum> list) {
+        Map<String, Map<Boolean, Long>> m = new TreeMap<>(String.CASE_INSENSITIVE_ORDER);
         for (CategorySum s : list) {
             if (s.category == null || s.category.isEmpty()) {
                 continue;
             }
-            Long v = m.get(s.category);
-            m.put(s.category, (v == null ? 0L : v) + s.total);
+            Map<Boolean, Long> byType = m.computeIfAbsent(s.category, k -> new java.util.HashMap<>());
+            Long v = byType.get(s.catIsIncome);
+            byType.put(s.catIsIncome, (v == null ? 0L : v) + s.total);
         }
         return m;
     }
@@ -446,19 +494,18 @@ public class BudgetActivity extends LocalizedActivity {
     }
 
     /** Ein Abschnitt (Einnahmen bzw. Ausgaben) mit Überschrift und aggregierten Kategoriezeilen. */
-    private void renderSection(Map<String, Cat> cats, boolean income, String header, String currency) {
+    private void renderSection(List<Cat> cats, boolean income, String header, String currency) {
         // Haupt → [ist, displaySoll, annualSoll]; Haupt → (Unter-Vollpfad → [ist, displaySoll, annualSoll]).
         Map<String, long[]> mainTot = new TreeMap<>(String.CASE_INSENSITIVE_ORDER);
         Map<String, Map<String, long[]>> subTot = new TreeMap<>(String.CASE_INSENSITIVE_ORDER);
         // Haupt → alle zugehörigen Kategorie-Pfade dieses Abschnitts (für den erwarteten Fortschritt).
         Map<String, List<String>> pathsByMain = new TreeMap<>(String.CASE_INSENSITIVE_ORDER);
 
-        for (Map.Entry<String, Cat> e : cats.entrySet()) {
-            Cat c = e.getValue();
+        for (Cat c : cats) {
             if (c.isIncome != income) {
                 continue;
             }
-            String cat = e.getKey();
+            String cat = c.categoryPath;
             String main = mainOf(cat);
             long[] mv = mainTot.get(main);
             if (mv == null) {

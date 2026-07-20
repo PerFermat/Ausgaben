@@ -864,18 +864,24 @@ public class BookingEditActivity extends LocalizedActivity {
 
         final long templateAmount = b.amountCents;
         final String singleCategory = b.category;
+        final Boolean singleCategoryIsIncome = b.categoryIsIncome;
         // Geplante Vorschau: Split-Teile liegen direkt an {@code b.parts} (keine DB-Buchung vorhanden).
         if (b.parts != null) {
-            fillSplitRows(b.parts, total, templateAmount, singleCategory);
+            fillSplitRows(b.parts, total, templateAmount, singleCategory, singleCategoryIsIncome);
             return;
         }
         // Kategorie-Teile laden (oder Einzelkategorie als eine Zeile); Betrag ggf. skaliert übernehmen.
-        repository.getSplits(b.id, splits -> fillSplitRows(splits, total, templateAmount, singleCategory));
+        repository.getSplits(b.id, splits ->
+                fillSplitRows(splits, total, templateAmount, singleCategory, singleCategoryIsIncome));
     }
 
-    /** Füllt die Split-Zeilen aus {@code splits} (proportional auf {@code total} skaliert). */
+    /**
+     * Füllt die Split-Zeilen aus {@code splits} (proportional auf {@code total} skaliert). Übernimmt den
+     * bereits gespeicherten Kategorietyp je Zeile, damit beim Bearbeiten/Duplizieren/Vorlagen keine
+     * erneute Auswahl in der Kategorieliste nötig ist, um den Typ zu erhalten.
+     */
     private void fillSplitRows(List<BookingSplit> splits, long total, long templateAmount,
-                               String singleCategory) {
+                               String singleCategory, Boolean singleCategoryIsIncome) {
         splitCtl.setSuppressEvents(true);
         splitCtl.clear();
         if (splits != null && !splits.isEmpty()) {
@@ -889,10 +895,10 @@ public class BookingEditActivity extends LocalizedActivity {
                 } else {
                     part = total - assigned; // letzte Zeile → exakte Summe = Gesamtbetrag
                 }
-                splitCtl.addRow(s.category, formatCents(part));
+                splitCtl.addRow(s.category, formatCents(part), s.categoryIsIncome);
             }
         } else if (!singleCategory.isEmpty()) {
-            splitCtl.addRow(singleCategory, formatCents(total));
+            splitCtl.addRow(singleCategory, formatCents(total), singleCategoryIsIncome);
         }
         splitCtl.setSuppressEvents(false);
         splitCtl.ensureTrailingRow();
@@ -1049,6 +1055,7 @@ public class BookingEditActivity extends LocalizedActivity {
         b.exported = false;
         final List<SplitRowController.Part> parts = splitCtl.collectParts();
         b.category = parts.isEmpty() ? "" : parts.get(0).category;
+        b.categoryIsIncome = parts.isEmpty() ? null : resolvePartType(parts.get(0));
         final String place = textOf(editPlace);
         maybeAskCorrection(b.payee, () -> maybeDateConfirm(() -> {
             b.createdAt = composeTimestamp();
@@ -1387,6 +1394,7 @@ public class BookingEditActivity extends LocalizedActivity {
         }
         final List<SplitRowController.Part> parts = splitCtl.collectParts();
         booking.category = parts.isEmpty() ? "" : parts.get(0).category;
+        booking.categoryIsIncome = parts.isEmpty() ? null : resolvePartType(parts.get(0));
         booking.isTransfer = false;
         booking.transferAccount = "";
         booking.transferGroup = "";
@@ -1474,6 +1482,7 @@ public class BookingEditActivity extends LocalizedActivity {
         nb.exported = false;
         final List<SplitRowController.Part> parts = splitCtl.collectParts();
         nb.category = parts.isEmpty() ? "" : parts.get(0).category;
+        nb.categoryIsIncome = parts.isEmpty() ? null : resolvePartType(parts.get(0));
         final String place = textOf(editPlace);
         final String group = origTransferGroup;
         final long oldId = booking.id;
@@ -1585,9 +1594,19 @@ public class BookingEditActivity extends LocalizedActivity {
     private List<BookingSplit> toSplits(List<SplitRowController.Part> parts) {
         List<BookingSplit> out = new ArrayList<>();
         for (SplitRowController.Part p : parts) {
-            out.add(new BookingSplit(0, p.category, p.cents));
+            out.add(new BookingSplit(0, p.category, p.cents, resolvePartType(p)));
         }
         return out;
+    }
+
+    /**
+     * Kategorietyp eines Teils: aus der Auswahlliste angetippt/vorbelegt, sonst Rückfall auf den
+     * Einnahme/Ausgabe-Umschalter der Buchung (z. B. bei frei getipptem Kategorietext).
+     */
+    private boolean resolvePartType(SplitRowController.Part p) {
+        return p.categoryIsIncome != null
+                ? p.categoryIsIncome
+                : toggleType.getCheckedButtonId() == R.id.btnIncome;
     }
 
     private long composeTimestamp() {

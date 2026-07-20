@@ -14,4 +14,12 @@ public class CategorySum {
      */
     @ColumnInfo(name = "total")
     public long total;
+
+    /**
+     * Kategorietyp dieser Zeile (true = Einnahme, false = Ausgabe), {@code null} = unbekannt (Zeile vor
+     * der Kategorietyp-je-Zeile-Migration). Getrennt je Typ gruppiert, damit gleichnamige Einnahme-/
+     * Ausgabekategorien (z. B. „Versicherung:Krankenzusatz") nicht vermischt werden.
+     */
+    @ColumnInfo(name = "cat_type")
+    public Boolean catIsIncome;
 }

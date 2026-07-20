@@ -13,7 +13,7 @@ import androidx.sqlite.db.SupportSQLiteDatabase;
         PayeeCorrection.class, Translation.class, Language.class, Security.class, SecurityTx.class,
         Budget.class, CategoryType.class, ScheduledTransaction.class, ScheduledSplit.class,
         AnalysisExtra.class, SecurityTxValueOverride.class, KmyPendingDelete.class},
-        version = 35, exportSchema = false)
+        version = 36, exportSchema = false)
 public abstract class AppDatabase extends RoomDatabase {
 
     /** v1 → v2: Notiz-Spalte ergänzen (bestehende Buchungen bleiben erhalten). */
@@ -416,6 +416,20 @@ public abstract class AppDatabase extends RoomDatabase {
         }
     };
 
+    /**
+     * Kategorietyp je Zeile: kMyMoney erlaubt dieselbe Kategorie-Bezeichnung unabhängig im Einnahme- und
+     * im Ausgabe-Baum (z. B. „Versicherung:Krankenzusatz"); der bisher rein globale Typ (category_type)
+     * kann das nicht abbilden (Namenskollision überschreibt einen der beiden Typen). NULL = unbekannt
+     * (bestehende Zeile) – kein Backfill, ein erneuter kMyMoney-Import befüllt importierte Zeilen neu.
+     */
+    static final Migration MIGRATION_35_36 = new Migration(35, 36) {
+        @Override
+        public void migrate(@NonNull SupportSQLiteDatabase db) {
+            db.execSQL("ALTER TABLE booking ADD COLUMN category_is_income INTEGER");
+            db.execSQL("ALTER TABLE booking_split ADD COLUMN category_is_income INTEGER");
+        }
+    };
+
     public abstract BookingDao bookingDao();
 
     public abstract AccountDao accountDao();
@@ -461,7 +475,8 @@ public abstract class AppDatabase extends RoomDatabase {
                                     MIGRATION_22_23, MIGRATION_23_24, MIGRATION_24_25,
                                     MIGRATION_25_26, MIGRATION_26_27, MIGRATION_27_28,
                                     MIGRATION_28_29, MIGRATION_29_30, MIGRATION_30_31,
-                                    MIGRATION_31_32, MIGRATION_32_33, MIGRATION_33_34, MIGRATION_34_35)
+                                    MIGRATION_31_32, MIGRATION_32_33, MIGRATION_33_34, MIGRATION_34_35,
+                                    MIGRATION_35_36)
                             .build();
                 }
             }

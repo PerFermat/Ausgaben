@@ -38,13 +38,16 @@ public class CategoryFilterAdapter extends ArrayAdapter<CategoryFilterAdapter.Ca
         final int kind;
         final String group; // zu welcher Gruppe (Überschrift) dieser Eintrag gehört
         public final boolean isMain;
+        /** Typ der Gruppe, aus der dieser Eintrag stammt (true = Einnahme, false = Ausgabe). */
+        public final boolean groupIsIncome;
 
-        CatItem(String label, String value, int kind, String group) {
+        CatItem(String label, String value, int kind, String group, boolean groupIsIncome) {
             this.label = label;
             this.value = value;
             this.kind = kind;
             this.group = group;
             this.isMain = kind == KIND_MAIN;
+            this.groupIsIncome = groupIsIncome;
         }
     }
 
@@ -66,18 +69,19 @@ public class CategoryFilterAdapter extends ArrayAdapter<CategoryFilterAdapter.Ca
                                        String incomeLabel, List<String> incomeCats) {
         List<CatItem> out = new ArrayList<>();
         if (allLabel != null) {
-            out.add(new CatItem(allLabel, "", KIND_ALL, ""));
+            out.add(new CatItem(allLabel, "", KIND_ALL, "", false));
         }
-        addGroup(out, expenseLabel, expenseCats);
-        addGroup(out, incomeLabel, incomeCats);
+        addGroup(out, expenseLabel, false, expenseCats);
+        addGroup(out, incomeLabel, true, incomeCats);
         return out;
     }
 
-    private static void addGroup(List<CatItem> out, String groupLabel, List<String> categories) {
+    private static void addGroup(List<CatItem> out, String groupLabel, boolean groupIsIncome,
+                                 List<String> categories) {
         if (categories == null || categories.isEmpty()) {
             return;
         }
-        out.add(new CatItem(groupLabel, "", KIND_GROUP, groupLabel));
+        out.add(new CatItem(groupLabel, "", KIND_GROUP, groupLabel, groupIsIncome));
         TreeMap<String, TreeSet<String>> tree = new TreeMap<>(String.CASE_INSENSITIVE_ORDER);
         for (String c : categories) {
             if (c == null || c.trim().isEmpty()) {
@@ -95,9 +99,9 @@ public class CategoryFilterAdapter extends ArrayAdapter<CategoryFilterAdapter.Ca
         }
         for (Map.Entry<String, TreeSet<String>> e : tree.entrySet()) {
             String main = e.getKey();
-            out.add(new CatItem(main, main, KIND_MAIN, groupLabel));
+            out.add(new CatItem(main, main, KIND_MAIN, groupLabel, groupIsIncome));
             for (String sub : e.getValue()) {
-                out.add(new CatItem(sub, main + ":" + sub, KIND_SUB, groupLabel));
+                out.add(new CatItem(sub, main + ":" + sub, KIND_SUB, groupLabel, groupIsIncome));
             }
         }
     }

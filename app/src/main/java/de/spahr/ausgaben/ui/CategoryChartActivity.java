@@ -479,12 +479,18 @@ public class CategoryChartActivity extends LocalizedActivity {
             List<DrilldownRow> rows = new ArrayList<>();
             if (bookings != null) {
                 for (Booking b : bookings) {
-                    if (!CategoryBookingFilter.matchesBooking(b, splitsByBooking, category, isMain)) {
+                    // Dieser Bildschirm zeigt nur Ausgaben (siehe render(), s.total < 0) – der Typ ist
+                    // daher immer „Ausgabe"; ohne diesen Zusatz würde bei gleichnamigen Einnahme-/
+                    // Ausgabekategorien (kMyMoney erlaubt das) die Einnahme-Buchung fälschlich mit erscheinen.
+                    if (!CategoryBookingFilter.matchesBooking(
+                            b, splitsByBooking, category, isMain, null, Boolean.FALSE)) {
                         continue;
                     }
                     long signed = b.isIncome ? b.amountCents : -b.amountCents;
-                    long display = CategoryBookingFilter.displaySigned(b, splitsByBooking, category, isMain, signed);
-                    boolean partial = CategoryBookingFilter.isPartial(b, splitsByBooking, category, isMain);
+                    long display = CategoryBookingFilter.displaySigned(
+                            b, splitsByBooking, category, isMain, signed, null, Boolean.FALSE);
+                    boolean partial = CategoryBookingFilter.isPartial(
+                            b, splitsByBooking, category, isMain, null, Boolean.FALSE);
                     rows.add(new DrilldownRow(b.createdAt, false, bookingRow(b, display, partial)));
                 }
             }

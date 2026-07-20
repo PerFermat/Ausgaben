@@ -29,6 +29,10 @@ public class BookingSplit {
     @ColumnInfo(name = "amount_cents")
     public long amountCents;
 
+    /** Typ von {@link #category} je Zeile; siehe {@link Booking#categoryIsIncome}. */
+    @ColumnInfo(name = "category_is_income")
+    public Boolean categoryIsIncome;
+
     public BookingSplit() {
     }
 
@@ -37,5 +41,11 @@ public class BookingSplit {
         this.bookingId = bookingId;
         this.category = category == null ? "" : category;
         this.amountCents = amountCents;
+    }
+
+    @Ignore
+    public BookingSplit(long bookingId, String category, long amountCents, Boolean categoryIsIncome) {
+        this(bookingId, category, amountCents);
+        this.categoryIsIncome = categoryIsIncome;
     }
 }

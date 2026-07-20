@@ -49,31 +49,35 @@ public interface BookingDao {
     List<Booking> getRecent(int limit);
 
     /**
-     * Netto-Geldzufluss je Kategorie im Zeitraum [fromMs, toMs): eine Zeile je Kategorie, {@code total}
-     * ist <b>vorzeichenbehaftet</b> ({@code +} = Zufluss, {@code −} = Abfluss). Einordnung als Einnahme/
-     * Ausgabe erfolgt später anhand des Kategorietyps ({@code category_type}), nicht hier – deshalb wird
-     * {@code is_income} nicht mehr gesetzt. Splitbuchungen zählen über ihre vorzeichenbehafteten
-     * Teilbeträge (nicht doppelt), Umbuchungen bleiben außen vor.
+     * Netto-Geldzufluss je Kategorie <b>und Kategorietyp</b> im Zeitraum [fromMs, toMs): eine Zeile je
+     * (Kategorie, Typ), {@code total} ist <b>vorzeichenbehaftet</b> ({@code +} = Zufluss, {@code −} =
+     * Abfluss). Getrennt nach Typ gruppiert (statt nur nach Text), da kMyMoney dieselbe Kategorie-
+     * Bezeichnung unabhängig im Einnahme- und im Ausgabe-Baum haben kann; ohne Typtrennung würden solche
+     * Namenskollisionen vermischt (siehe {@link Booking#categoryIsIncome}). Ist der Typ einer Zeile
+     * unbekannt (NULL, vor dieser Migration), gruppiert SQLite sie automatisch in einen eigenen
+     * „unbekannt"-Eimer – der Aufrufer fällt dafür weiter auf den globalen {@code category_type}-Typ
+     * zurück. Splitbuchungen zählen über ihre vorzeichenbehafteten Teilbeträge (nicht doppelt), Umbuchungen
+     * bleiben außen vor.
      */
-    @Query("SELECT cat AS category, SUM(signed) AS total FROM ("
-            + " SELECT category AS cat, "
+    @Query("SELECT cat AS category, typ AS cat_type, SUM(signed) AS total FROM ("
+            + " SELECT category AS cat, category_is_income AS typ, "
             + "        (CASE WHEN is_income THEN amount_cents ELSE -amount_cents END) AS signed "
             + "   FROM booking b "
             + "   WHERE category != '' AND is_transfer = 0 "
             + "     AND created_at >= :fromMs AND created_at < :toMs "
             + "     AND NOT EXISTS (SELECT 1 FROM booking_split s WHERE s.booking_id = b.id) "
             + " UNION ALL "
-            + " SELECT bs.category AS cat, "
+            + " SELECT bs.category AS cat, bs.category_is_income AS typ, "
             + "        (CASE WHEN b.is_income THEN bs.amount_cents ELSE -bs.amount_cents END) AS signed "
             + "   FROM booking_split bs JOIN booking b ON bs.booking_id = b.id "
             + "   WHERE bs.category != '' AND b.is_transfer = 0 "
             + "     AND b.created_at >= :fromMs AND b.created_at < :toMs "
             + " UNION ALL "
-            + " SELECT category AS cat, "
+            + " SELECT category AS cat, is_income AS typ, "
             + "        (CASE WHEN is_income THEN amount_cents ELSE -amount_cents END) AS signed "
             + "   FROM analysis_extra "
             + "   WHERE category != '' AND created_at >= :fromMs AND created_at < :toMs) "
-            + "GROUP BY cat")
+            + "GROUP BY cat, typ")
     List<CategorySum> getCategoryActuals(long fromMs, long toMs);
 
     /**
@@ -196,27 +200,34 @@ public interface BookingDao {
     List<String> getDistinctCategories();
 
     /**
-     * Einnahme-Kategorien: in Buchungen/Splits vorkommende Kategorien, deren kmy-Typ Einnahme ist
-     * ({@code category_type.is_income = 1}). Der Typ kommt allein aus der Datei, nicht aus der
-     * Buchungsrichtung – so erscheint keine Kategorie in beiden Listen. Kategorien ohne kmy-Typ fehlen.
+     * Einnahme-Kategorien für die Auswahlliste: jede Kategorie, die entweder in mindestens einer
+     * Buchung/Split explizit als Einnahme markiert ist ({@code category_is_income = 1}) oder – ohne
+     * eigene Typangabe (NULL, vor der Kategorietyp-je-Zeile-Migration) – laut globalem kmy-Typ
+     * ({@code category_type.is_income = 1}) eine Einnahme ist. Eine Kategorie mit echten Zeilen beider
+     * Typen (z. B. „Versicherung:Krankenzusatz" sowohl im Einnahme- als auch im Ausgabe-Baum) erscheint
+     * dadurch bewusst in <b>beiden</b> Listen – anders als vorher, wo die globale Typtabelle nur einen
+     * Typ pro Text kennen konnte.
      */
     @Query("SELECT DISTINCT c.category FROM ("
-            + "SELECT category FROM booking WHERE category != '' "
-            + "UNION SELECT category FROM booking_split WHERE category != '') c "
-            + "JOIN category_type ct ON ct.category = c.category COLLATE NOCASE "
-            + "WHERE ct.is_income = 1 "
+            + "SELECT category, category_is_income AS typ FROM booking WHERE category != '' "
+            + "UNION ALL "
+            + "SELECT category, category_is_income AS typ FROM booking_split WHERE category != '') c "
+            + "WHERE c.typ = 1 "
+            + "   OR (c.typ IS NULL AND EXISTS ("
+            + "         SELECT 1 FROM category_type ct "
+            + "         WHERE ct.category = c.category COLLATE NOCASE AND ct.is_income = 1)) "
             + "ORDER BY c.category COLLATE NOCASE ASC")
     List<String> getIncomeCategories();
 
-    /**
-     * Ausgabe-Kategorien: in Buchungen/Splits vorkommende Kategorien, deren kmy-Typ Ausgabe ist
-     * ({@code category_type.is_income = 0}). Typ allein aus der Datei; Kategorien ohne kmy-Typ fehlen.
-     */
+    /** Ausgabe-Kategorien für die Auswahlliste – spiegelbildlich zu {@link #getIncomeCategories()}. */
     @Query("SELECT DISTINCT c.category FROM ("
-            + "SELECT category FROM booking WHERE category != '' "
-            + "UNION SELECT category FROM booking_split WHERE category != '') c "
-            + "JOIN category_type ct ON ct.category = c.category COLLATE NOCASE "
-            + "WHERE ct.is_income = 0 "
+            + "SELECT category, category_is_income AS typ FROM booking WHERE category != '' "
+            + "UNION ALL "
+            + "SELECT category, category_is_income AS typ FROM booking_split WHERE category != '') c "
+            + "WHERE c.typ = 0 "
+            + "   OR (c.typ IS NULL AND EXISTS ("
+            + "         SELECT 1 FROM category_type ct "
+            + "         WHERE ct.category = c.category COLLATE NOCASE AND ct.is_income = 0)) "
             + "ORDER BY c.category COLLATE NOCASE ASC")
     List<String> getExpenseCategories();
 

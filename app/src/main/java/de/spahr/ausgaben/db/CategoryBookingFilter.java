@@ -28,17 +28,23 @@ public final class CategoryBookingFilter {
     }
 
     /**
-     * {@code true}, wenn {@code cat} laut {@code categoryTypes} vom erwarteten Typ ist. Ohne Typ-Info
-     * (Map/erwarteter Typ {@code null}, oder Kategorie nicht in der Map) gilt kein Ausschluss – wichtig,
-     * da z. B. Einnahme- und Ausgabekategorien in kMyMoney denselben Namen tragen können (etwa „Geschenke"
-     * als Einnahme und „Geschenke:Geschäft" als Ausgabe): ohne diesen Check würde die Präfix-Zuordnung der
-     * Hauptkategorie fälschlich auch die gleichnamige Kategorie des jeweils anderen Typs einschließen.
+     * {@code true}, wenn die Zeile vom erwarteten Typ ist. Maßgeblich ist der Typ <b>der Zeile selbst</b>
+     * ({@code rowIsIncome}, siehe {@link Booking#categoryIsIncome}/{@link BookingSplit#categoryIsIncome})
+     * – nur wenn der unbekannt ist (NULL, Zeile vor dieser Migration), fällt der Check auf den globalen
+     * {@code categoryTypes}-Typ zurück. Der globale Typ allein reicht nicht: kMyMoney erlaubt dieselbe
+     * Kategorie-Bezeichnung unabhängig im Einnahme- und im Ausgabe-Baum (z. B. „Versicherung:
+     * Krankenzusatz"), die globale Map kennt aber nur einen Typ pro Text und würde sonst Buchungen des
+     * jeweils anderen Typs fälschlich mit zuordnen. Ohne erwarteten Typ ({@code null}) gilt kein Ausschluss.
      */
-    private static boolean typeMatches(String cat, Map<String, Boolean> categoryTypes, Boolean expectIncome) {
-        if (expectIncome == null || categoryTypes == null) {
+    private static boolean typeMatches(Boolean rowIsIncome, String cat, Map<String, Boolean> categoryTypes,
+            Boolean expectIncome) {
+        if (expectIncome == null) {
             return true;
         }
-        Boolean actual = categoryTypes.get(cat);
+        Boolean actual = rowIsIncome;
+        if (actual == null && categoryTypes != null) {
+            actual = categoryTypes.get(cat);
+        }
         return actual == null || actual.equals(expectIncome);
     }
 
@@ -51,14 +57,15 @@ public final class CategoryBookingFilter {
     /** Wie {@link #matchesBooking(Booking, Map, String, boolean)}, zusätzlich typgeprüft (Einnahme/Ausgabe). */
     public static boolean matchesBooking(Booking b, Map<Long, List<BookingSplit>> splitsByBooking,
             String filterCategory, boolean isMain, Map<String, Boolean> categoryTypes, Boolean expectIncome) {
-        if (matches(b.category, filterCategory, isMain) && typeMatches(b.category, categoryTypes, expectIncome)) {
+        if (matches(b.category, filterCategory, isMain)
+                && typeMatches(b.categoryIsIncome, b.category, categoryTypes, expectIncome)) {
             return true;
         }
         List<BookingSplit> parts = splitsByBooking.get(b.id);
         if (parts != null) {
             for (BookingSplit p : parts) {
                 if (matches(p.category, filterCategory, isMain)
-                        && typeMatches(p.category, categoryTypes, expectIncome)) {
+                        && typeMatches(p.categoryIsIncome, p.category, categoryTypes, expectIncome)) {
                     return true;
                 }
             }
@@ -86,7 +93,8 @@ public final class CategoryBookingFilter {
         long sum = 0;
         boolean any = false;
         for (BookingSplit p : parts) {
-            if (matches(p.category, filterCategory, isMain) && typeMatches(p.category, categoryTypes, expectIncome)) {
+            if (matches(p.category, filterCategory, isMain)
+                    && typeMatches(p.categoryIsIncome, p.category, categoryTypes, expectIncome)) {
                 sum += b.isIncome ? p.amountCents : -p.amountCents;
                 any = true;
             }
@@ -109,7 +117,7 @@ public final class CategoryBookingFilter {
         }
         for (BookingSplit p : parts) {
             if (!(matches(p.category, filterCategory, isMain)
-                    && typeMatches(p.category, categoryTypes, expectIncome))) {
+                    && typeMatches(p.categoryIsIncome, p.category, categoryTypes, expectIncome))) {
                 return true;   // mindestens ein Split gehört zu einer anderen Kategorie oder einem anderen Typ
             }
         }

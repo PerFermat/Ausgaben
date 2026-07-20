@@ -154,6 +154,10 @@ public class CategoryFilterAdapter extends ArrayAdapter<CategoryFilterAdapter.Ca
                 result = all;
             } else {
                 // Passende Kategorien sammeln; eine Gruppen-Überschrift nur zeigen, wenn sie Treffer hat.
+                // Trifft nur eine Unterkategorie zu, wird zusätzlich ihre Hauptkategorie mit angezeigt
+                // (als Kontext, auch wenn deren eigener Text nicht passt) – sonst wüsste man beim Tippen
+                // einer Unterkategorie nicht, zu welcher Hauptkategorie sie gehört. Umgekehrt zeigt eine
+                // passende Hauptkategorie auch alle ihre Unterkategorien (unabhängig von deren Text).
                 result = new ArrayList<>();
                 for (CatItem it : all) {
                     if (it.kind == KIND_ALL) {
@@ -162,14 +166,41 @@ public class CategoryFilterAdapter extends ArrayAdapter<CategoryFilterAdapter.Ca
                 }
                 java.util.LinkedHashMap<String, List<CatItem>> byGroup = new java.util.LinkedHashMap<>();
                 java.util.Map<String, CatItem> headers = new java.util.HashMap<>();
+                java.util.Map<String, CatItem> pendingMain = new java.util.HashMap<>();
+                java.util.Set<String> addedMain = new java.util.HashSet<>();
+                java.util.Set<String> expandMain = new java.util.HashSet<>();
                 for (CatItem it : all) {
                     if (it.kind == KIND_GROUP) {
                         headers.put(it.group, it);
                         byGroup.put(it.group, new ArrayList<>());
-                    } else if ((it.kind == KIND_MAIN || it.kind == KIND_SUB)
-                            && it.label.toLowerCase(Locale.getDefault()).contains(q)) {
+                    } else if (it.kind == KIND_MAIN) {
+                        pendingMain.put(it.value, it);
+                        addedMain.remove(it.value);
+                        expandMain.remove(it.value);
+                        if (it.label.toLowerCase(Locale.getDefault()).contains(q)) {
+                            List<CatItem> l = byGroup.get(it.group);
+                            if (l != null) {
+                                l.add(it);
+                                addedMain.add(it.value);
+                                expandMain.add(it.value);
+                            }
+                        }
+                    } else if (it.kind == KIND_SUB) {
+                        String mainKey = it.value.substring(0, it.value.indexOf(':'));
+                        boolean matches = expandMain.contains(mainKey)
+                                || it.label.toLowerCase(Locale.getDefault()).contains(q);
+                        if (!matches) {
+                            continue;
+                        }
                         List<CatItem> l = byGroup.get(it.group);
                         if (l != null) {
+                            if (!addedMain.contains(mainKey)) {
+                                CatItem mainItem = pendingMain.get(mainKey);
+                                if (mainItem != null) {
+                                    l.add(mainItem);
+                                    addedMain.add(mainKey);
+                                }
+                            }
                             l.add(it);
                         }
                     }

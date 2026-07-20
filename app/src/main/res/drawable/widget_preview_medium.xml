@@ -1,0 +1,64 @@
+<?xml version="1.0" encoding="utf-8"?>
+<!-- Schematische Vorschau für den Widget-Auswahldialog (previewImage-Fallback vor API 31): breit (3×1),
+     Saldo-Zeile oben, drei angedeutete Aktions-Knöpfe unten – kein echter Screenshot. -->
+<layer-list xmlns:android="http://schemas.android.com/apk/res/android">
+    <item>
+        <shape android:shape="rectangle">
+            <size android:width="216dp" android:height="72dp" />
+            <solid android:color="@color/widget_bg" />
+            <corners android:radius="16dp" />
+        </shape>
+    </item>
+    <item
+        android:left="12dp"
+        android:right="120dp"
+        android:top="12dp"
+        android:height="8dp"
+        android:gravity="top">
+        <shape android:shape="rectangle">
+            <solid android:color="@color/widget_text_secondary" />
+            <corners android:radius="4dp" />
+        </shape>
+    </item>
+    <item
+        android:left="150dp"
+        android:right="12dp"
+        android:top="9dp"
+        android:height="14dp"
+        android:gravity="top">
+        <shape android:shape="rectangle">
+            <solid android:color="@color/widget_text" />
+            <corners android:radius="7dp" />
+        </shape>
+    </item>
+    <item
+        android:left="12dp"
+        android:right="150dp"
+        android:top="38dp"
+        android:bottom="10dp">
+        <shape android:shape="rectangle">
+            <solid android:color="#1B5E20" />
+            <corners android:radius="10dp" />
+        </shape>
+    </item>
+    <item
+        android:left="82dp"
+        android:right="82dp"
+        android:top="38dp"
+        android:bottom="10dp">
+        <shape android:shape="rectangle">
+            <solid android:color="#EAF3DE" />
+            <corners android:radius="10dp" />
+        </shape>
+    </item>
+    <item
+        android:left="150dp"
+        android:right="12dp"
+        android:top="38dp"
+        android:bottom="10dp">
+        <shape android:shape="rectangle">
+            <solid android:color="#EAF3DE" />
+            <corners android:radius="10dp" />
+        </shape>
+    </item>
+</layer-list>

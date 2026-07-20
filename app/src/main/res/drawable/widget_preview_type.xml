@@ -1,0 +1,48 @@
+<?xml version="1.0" encoding="utf-8"?>
+<!-- Schematische Vorschau für den Widget-Auswahldialog (previewImage-Fallback vor API 31): breit (4×1),
+     vier farbige Typ-Knöpfe (Einnahme/Umbuchung/Ausgabe/Wechsel) + Saldo-Zeile – kein echter Screenshot. -->
+<layer-list xmlns:android="http://schemas.android.com/apk/res/android">
+    <item>
+        <shape android:shape="rectangle">
+            <size android:width="288dp" android:height="72dp" />
+            <solid android:color="@color/widget_bg" />
+            <corners android:radius="16dp" />
+        </shape>
+    </item>
+    <item android:left="10dp" android:right="220dp" android:top="10dp" android:height="34dp" android:gravity="top">
+        <shape android:shape="rectangle">
+            <solid android:color="#2E7D32" />
+            <corners android:radius="10dp" />
+        </shape>
+    </item>
+    <item android:left="76dp" android:right="154dp" android:top="10dp" android:height="34dp" android:gravity="top">
+        <shape android:shape="rectangle">
+            <solid android:color="#F9A825" />
+            <corners android:radius="10dp" />
+        </shape>
+    </item>
+    <item android:left="142dp" android:right="88dp" android:top="10dp" android:height="34dp" android:gravity="top">
+        <shape android:shape="rectangle">
+            <solid android:color="#C62828" />
+            <corners android:radius="10dp" />
+        </shape>
+    </item>
+    <item android:left="208dp" android:right="22dp" android:top="10dp" android:height="34dp" android:gravity="top">
+        <shape android:shape="rectangle">
+            <solid android:color="#9E9E9E" />
+            <corners android:radius="10dp" />
+        </shape>
+    </item>
+    <item android:left="10dp" android:right="200dp" android:top="52dp" android:height="8dp" android:gravity="top">
+        <shape android:shape="rectangle">
+            <solid android:color="@color/widget_text_secondary" />
+            <corners android:radius="4dp" />
+        </shape>
+    </item>
+    <item android:left="220dp" android:right="10dp" android:top="49dp" android:height="12dp" android:gravity="top">
+        <shape android:shape="rectangle">
+            <solid android:color="@color/widget_text" />
+            <corners android:radius="6dp" />
+        </shape>
+    </item>
+</layer-list>

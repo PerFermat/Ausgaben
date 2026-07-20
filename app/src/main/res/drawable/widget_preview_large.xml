@@ -1,0 +1,65 @@
+<?xml version="1.0" encoding="utf-8"?>
+<!-- Schematische Vorschau für den Widget-Auswahldialog (previewImage-Fallback vor API 31): quadratisch
+     (4×4), Kopfzeile + drei angedeutete Buchungszeilen + Aktionsleiste – kein echter Screenshot. -->
+<layer-list xmlns:android="http://schemas.android.com/apk/res/android">
+    <item>
+        <shape android:shape="rectangle">
+            <size android:width="288dp" android:height="288dp" />
+            <solid android:color="@color/widget_bg" />
+            <corners android:radius="16dp" />
+        </shape>
+    </item>
+    <!-- Kopfzeile: Wallet-Punkt + zwei Textzeilen -->
+    <item android:width="26dp" android:height="26dp" android:left="14dp" android:top="12dp" android:gravity="top|left">
+        <shape android:shape="oval">
+            <solid android:color="#2E7D32" />
+        </shape>
+    </item>
+    <item android:left="50dp" android:right="14dp" android:top="14dp" android:height="7dp" android:gravity="top">
+        <shape android:shape="rectangle">
+            <solid android:color="@color/widget_text_secondary" />
+            <corners android:radius="3dp" />
+        </shape>
+    </item>
+    <item android:left="50dp" android:right="14dp" android:top="26dp" android:height="12dp" android:gravity="top">
+        <shape android:shape="rectangle">
+            <solid android:color="@color/widget_text" />
+            <corners android:radius="6dp" />
+        </shape>
+    </item>
+    <!-- Trennlinie -->
+    <item android:left="14dp" android:right="14dp" android:top="48dp" android:height="1dp" android:gravity="top">
+        <shape android:shape="rectangle">
+            <solid android:color="@color/widget_text_secondary" />
+        </shape>
+    </item>
+    <!-- Drei Buchungszeilen -->
+    <item android:left="14dp" android:right="100dp" android:top="64dp" android:height="9dp" android:gravity="top">
+        <shape android:shape="rectangle"><solid android:color="@color/widget_text" /><corners android:radius="4dp" /></shape>
+    </item>
+    <item android:left="220dp" android:right="14dp" android:top="64dp" android:height="9dp" android:gravity="top">
+        <shape android:shape="rectangle"><solid android:color="@color/widget_text" /><corners android:radius="4dp" /></shape>
+    </item>
+    <item android:left="14dp" android:right="130dp" android:top="94dp" android:height="9dp" android:gravity="top">
+        <shape android:shape="rectangle"><solid android:color="@color/widget_text" /><corners android:radius="4dp" /></shape>
+    </item>
+    <item android:left="220dp" android:right="14dp" android:top="94dp" android:height="9dp" android:gravity="top">
+        <shape android:shape="rectangle"><solid android:color="@color/widget_text" /><corners android:radius="4dp" /></shape>
+    </item>
+    <item android:left="14dp" android:right="110dp" android:top="124dp" android:height="9dp" android:gravity="top">
+        <shape android:shape="rectangle"><solid android:color="@color/widget_text" /><corners android:radius="4dp" /></shape>
+    </item>
+    <item android:left="220dp" android:right="14dp" android:top="124dp" android:height="9dp" android:gravity="top">
+        <shape android:shape="rectangle"><solid android:color="@color/widget_text" /><corners android:radius="4dp" /></shape>
+    </item>
+    <!-- Aktionsleiste unten -->
+    <item android:left="14dp" android:right="200dp" android:top="180dp" android:bottom="14dp">
+        <shape android:shape="rectangle"><solid android:color="#1B5E20" /><corners android:radius="10dp" /></shape>
+    </item>
+    <item android:left="106dp" android:right="106dp" android:top="180dp" android:bottom="14dp">
+        <shape android:shape="rectangle"><solid android:color="#EAF3DE" /><corners android:radius="10dp" /></shape>
+    </item>
+    <item android:left="200dp" android:right="14dp" android:top="180dp" android:bottom="14dp">
+        <shape android:shape="rectangle"><solid android:color="#EAF3DE" /><corners android:radius="10dp" /></shape>
+    </item>
+</layer-list>

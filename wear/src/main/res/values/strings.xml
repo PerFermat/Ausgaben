@@ -11,9 +11,10 @@
     <string name="wear_not_understood">Not understood</string>
     <string name="wear_no_mic">Microphone permission needed</string>
     <string name="wear_no_recognizer">No speech recognition available</string>
-    <string name="wear_pending">%d bookings not yet transferred</string>
-    <string name="wear_reason_gps">Waiting for GPS</string>
-    <string name="wear_reason_no_phone">No connection to phone</string>
-    <string name="wear_reason_sending">Transferring…</string>
+    <!-- Kurzform für die einzige verfügbare Zeile: Anzahl + Grund, z. B. "3 pending – No phone". -->
+    <string name="wear_pending">%1$d pending – %2$s</string>
+    <string name="wear_reason_gps">GPS</string>
+    <string name="wear_reason_no_phone">No phone</string>
+    <string name="wear_reason_sending">Sending…</string>
     <string name="number_entry">Enter amount by digits</string>
 </resources>

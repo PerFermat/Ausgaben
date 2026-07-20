@@ -60,9 +60,52 @@ public class ExpenseTileService extends TileService {
                     items.release();
                 }
             }
-            future.set(buildTile(BalanceStore.get(this)));
+            // Innerhalb der Anzeige-Minute nach einem Wechsel-Knopf-Druck immer das gewählte Konto/Ort
+            // zeigen; sonst wie in der App den Übertragungs-Hinweis, falls Buchungen noch nicht raus sind.
+            if (BalanceStore.isRecentlySelected(this)) {
+                future.set(buildTile(BalanceStore.get(this)));
+                return;
+            }
+            java.util.List<PendingEntry> pending = new PendingStore(this).getPending();
+            if (pending.isEmpty()) {
+                future.set(buildTile(BalanceStore.get(this)));
+                return;
+            }
+            try {
+                Wearable.getNodeClient(this).getConnectedNodes().addOnCompleteListener(nodeTask -> {
+                    boolean phoneConnected = nodeTask.isSuccessful() && nodeTask.getResult() != null
+                            && !nodeTask.getResult().isEmpty();
+                    future.set(buildTile(pendingText(pending, phoneConnected)));
+                });
+            } catch (Exception e) {
+                future.set(buildTile(pendingText(pending, false)));
+            }
         });
         return future;
+    }
+
+    /**
+     * Übersetzter Hinweistext „Anzahl – Grund" (nur eine Zeile Platz in der Kachel), oder der normale
+     * Saldo, wenn nichts offen ist.
+     */
+    private String pendingText(java.util.List<PendingEntry> pending, boolean phoneConnected) {
+        int reason = WearPendingReason.of(pending, phoneConnected);
+        String label;
+        switch (reason) {
+            case WearPendingReason.GPS:
+                label = tr("wear_reason_gps", R.string.wear_reason_gps);
+                break;
+            case WearPendingReason.NO_PHONE:
+                label = tr("wear_reason_no_phone", R.string.wear_reason_no_phone);
+                break;
+            case WearPendingReason.SENDING:
+                label = tr("wear_reason_sending", R.string.wear_reason_sending);
+                break;
+            default:
+                return BalanceStore.get(this);
+        }
+        String format = tr("wear_pending", R.string.wear_pending);
+        return String.format(java.util.Locale.getDefault(), format, pending.size(), label);
     }
 
     private TileBuilders.Tile buildTile(String balance) {

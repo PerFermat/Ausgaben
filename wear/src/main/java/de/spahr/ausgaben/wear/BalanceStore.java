@@ -63,12 +63,23 @@ public final class BalanceStore {
     /** Gewählter Index (0-basiert); nach Timeout oder außerhalb der Liste wieder 0. */
     public static int selectedIndex(Context context) {
         SharedPreferences p = prefs(context);
-        int idx = p.getInt(KEY_INDEX, 0);
-        if (idx <= 0 || System.currentTimeMillis() - p.getLong(KEY_TS, 0) >= TIMEOUT_MS) {
+        if (System.currentTimeMillis() - p.getLong(KEY_TS, 0) >= TIMEOUT_MS) {
             return 0;
         }
+        int idx = p.getInt(KEY_INDEX, 0);
         int n = count(context);
         return idx < n ? idx : 0;
+    }
+
+    /**
+     * {@code true}, wenn seit dem letzten {@link #advance()} weniger als {@link #TIMEOUT_MS} vergangen
+     * sind – unabhängig davon, ob die Auswahl dabei bei Position 0 (Standard) gelandet ist. Grundlage für
+     * die Anzeige „gerade gewähltes Konto zeigen" statt Saldo/Übertragungs-Hinweis.
+     */
+    public static boolean isRecentlySelected(Context context) {
+        SharedPreferences p = prefs(context);
+        long ts = p.getLong(KEY_TS, 0);
+        return ts > 0 && System.currentTimeMillis() - ts < TIMEOUT_MS;
     }
 
     /** Schaltet auf die nächste Konto/Ort-Position weiter (Zeitstempel für den Auto-Rücksprung). */
@@ -90,10 +101,11 @@ public final class BalanceStore {
     /** Verbleibende Zeit (ms) bis zum Auto-Rücksprung; 0, wenn bereits Standard/abgelaufen (für Tile-Freshness). */
     public static long remainingMs(Context context) {
         SharedPreferences p = prefs(context);
-        if (p.getInt(KEY_INDEX, 0) <= 0) {
+        long ts = p.getLong(KEY_TS, 0);
+        if (ts <= 0) {
             return 0;
         }
-        long rem = TIMEOUT_MS - (System.currentTimeMillis() - p.getLong(KEY_TS, 0));
+        long rem = TIMEOUT_MS - (System.currentTimeMillis() - ts);
         return rem > 0 ? rem : 0;
     }
 

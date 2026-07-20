@@ -497,25 +497,31 @@ public class WearMainActivity extends WearLocalizedActivity {
         status.setVisibility(View.VISIBLE);
     }
 
+    /**
+     * Blendet die Statuszeile aus. Die Anzahl noch nicht übertragener Buchungen steht jetzt zusammen mit
+     * dem Übertragungsgrund in einer Zeile in {@link #updateBalance()} – für einmalige Meldungen
+     * (Mikrofon-Berechtigung, kein Erkenner, nicht verstanden) bleibt {@link #showStatus(String)} nutzbar.
+     */
     private void updateStatus() {
-        int c = store.count();
-        if (c > 0) {
-            status.setText(getString(R.string.wear_pending, c));
-            status.setVisibility(View.VISIBLE);
-        } else {
-            status.setVisibility(View.GONE);
-        }
+        status.setVisibility(View.GONE);
     }
 
     /**
      * Zeigt den Konto/Ort-Saldo vom Phone; gibt es noch nicht übertragene Einträge, steht hier
-     * stattdessen der <b>Grund</b> dafür (die Anzahl nennt weiterhin die Statuszeile darunter).
-     * Leer → ausblenden. Wechsel-Knopf nur ab 2 Positionen.
+     * stattdessen Anzahl + Grund in einer Zeile (nur eine Zeile Platz auf dem Rundschirm). Leer →
+     * ausblenden. Wechsel-Knopf nur ab 2 Positionen.
      */
     private void updateBalance() {
-        String text = pendingReason();
-        if (text == null) {
+        String text;
+        if (BalanceStore.isRecentlySelected(this)) {
+            // Innerhalb der Anzeige-Minute nach einem Wechsel-Knopf-Druck gewinnt immer das gewählte
+            // Konto/Ort – auch wenn parallel noch Buchungen auf die Übertragung warten.
             text = BalanceStore.get(this);
+        } else {
+            text = pendingReason();
+            if (text == null) {
+                text = BalanceStore.get(this);
+            }
         }
         if (text != null && !text.isEmpty()) {
             balanceView.setText(text);
@@ -536,19 +542,22 @@ public class WearMainActivity extends WearLocalizedActivity {
      */
     private String pendingReason() {
         java.util.List<PendingEntry> pending = store.getPending();
-        if (pending.isEmpty()) {
-            return null;
+        int reason = WearPendingReason.of(pending, phoneConnected);
+        String label;
+        switch (reason) {
+            case WearPendingReason.GPS:
+                label = getString(R.string.wear_reason_gps);
+                break;
+            case WearPendingReason.NO_PHONE:
+                label = getString(R.string.wear_reason_no_phone);
+                break;
+            case WearPendingReason.SENDING:
+                label = getString(R.string.wear_reason_sending);
+                break;
+            default:
+                return null;
         }
-        long now = System.currentTimeMillis();
-        for (PendingEntry e : pending) {
-            if (e.readyAt > now && e.gps.isEmpty()) {
-                return getString(R.string.wear_reason_gps);
-            }
-        }
-        if (!phoneConnected) {
-            return getString(R.string.wear_reason_no_phone);
-        }
-        return getString(R.string.wear_reason_sending);
+        return getString(R.string.wear_pending, pending.size(), label);
     }
 
     /** Ist das Phone erreichbar? Ergebnis kommt asynchron und aktualisiert die Anzeige. */

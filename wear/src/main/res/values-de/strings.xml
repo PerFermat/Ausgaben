@@ -11,9 +11,10 @@
     <string name="wear_not_understood">Nicht verstanden</string>
     <string name="wear_no_mic">Mikrofon-Berechtigung nötig</string>
     <string name="wear_no_recognizer">Keine Spracherkennung verfügbar</string>
-    <string name="wear_pending">%d Buchungen noch nicht übertragen</string>
-    <string name="wear_reason_gps">Warten auf GPS</string>
-    <string name="wear_reason_no_phone">Keine Verbindung zum Handy</string>
-    <string name="wear_reason_sending">Wird übertragen…</string>
+    <!-- Kurzform für die einzige verfügbare Zeile: Anzahl + Grund, z. B. „3 offen – Kein Handy". -->
+    <string name="wear_pending">%1$d offen – %2$s</string>
+    <string name="wear_reason_gps">GPS</string>
+    <string name="wear_reason_no_phone">Kein Handy</string>
+    <string name="wear_reason_sending">Sendet…</string>
     <string name="number_entry">Betrag per Ziffern</string>
 </resources>

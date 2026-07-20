@@ -658,27 +658,23 @@ public class Repository {
         }
         long amount = amountCents > 0 ? amountCents : (template != null ? template.amountCents : 0);
 
-        // Umbuchung: von der Uhr erzwungen. Alias liefert Von/Bis, sonst Vorlage (falls Umbuchung),
-        // sonst Standardkonto → gesprochener Begriff als Zielkonto.
+        // Umbuchung: Von-Konto/-Ort sind die Uhr-/Widget-Auswahl und stehen fest (nie Alias/Vorlage).
+        // Alias/Vorlage liefern nur das Nach-Konto und den Empfänger.
         if (VOICE_TYPE_TRANSFER.equals(type)) {
-            String from;
+            String from = def;
             String to;
             String payee = "";
             String note = "";
             if (alias != null) {
-                from = alias.fromAccount.isEmpty() ? def : alias.fromAccount;
                 to = alias.toAccount.isEmpty() ? term : alias.toAccount;
                 payee = alias.corrected;
             } else if (template != null && template.isTransfer) {
-                from = template.isIncome ? template.transferAccount : template.account;
                 to = template.isIncome ? template.account : template.transferAccount;
                 payee = template.payee;
                 note = template.note;
             } else {
-                // Widget/Uhr: gewähltes Konto = Von-Konto; der gesprochene Name (falls vorhanden) ist der
-                // Empfänger. Nach-Konto: ist das Von-Konto das Standardkonto → leer (am Handy ergänzen),
-                // sonst das Standardkonto.
-                from = def;
+                // Widget/Uhr: der gesprochene Name (falls vorhanden) ist der Empfänger. Nach-Konto: ist
+                // das Von-Konto das Standardkonto → leer (am Handy ergänzen), sonst das Standardkonto.
                 payee = term;
                 String phoneDefault = new de.spahr.ausgaben.settings.SettingsStore(appContext)
                         .getDefaultAccount().trim();
@@ -687,8 +683,7 @@ public class Repository {
             note = AliasResolver.appendGps(note, coords);
             de.spahr.ausgaben.settings.PlacesStore ps =
                     new de.spahr.ausgaben.settings.PlacesStore(appContext);
-            String fromPlace = alias != null ? alias.fromPlace
-                    : (isRealPlace(selPlace) ? selPlace : ps.getDefaultPlace(from));
+            String fromPlace = isRealPlace(selPlace) ? selPlace : ps.getDefaultPlace(from);
             String toPlace = alias != null ? alias.toPlace
                     : (to.isEmpty() ? "" : ps.getDefaultPlace(to));
             insertTransferPair(from, to, amount, payee, note, now, false, UUID.randomUUID().toString(),
@@ -696,7 +691,8 @@ public class Repository {
             return true;
         }
 
-        // Einnahme/Ausgabe: Richtung per Knopf erzwungen; Alias bzw. Vorlage liefert Konto/Kategorie.
+        // Einnahme/Ausgabe: Richtung per Knopf erzwungen; Konto/Ort sind die Uhr-/Widget-Auswahl und
+        // stehen fest (nie Alias/Vorlage) – nur Kategorie/Empfänger/Notiz kommen aus Alias bzw. Vorlage.
         boolean income = VOICE_TYPE_INCOME.equals(type);
         boolean useTemplate = alias == null && template != null && !template.isTransfer;
         Booking b = new Booking();
@@ -704,35 +700,25 @@ public class Repository {
         b.createdAt = now;
         b.exported = false;
         b.isIncome = income;
+        b.account = def;
         if (alias != null) {
             b.payee = alias.corrected;
-            b.account = alias.account.isEmpty() ? def : alias.account;
             b.category = income ? AliasResolver.firstNonEmpty(alias.catIncome1, alias.catIncome2)
                     : AliasResolver.firstNonEmpty(alias.catExpense1, alias.catExpense2);
             b.note = "";
         } else if (useTemplate) {
             b.payee = template.payee;
-            b.account = template.account;
             b.category = template.category;
             b.note = template.note;
         } else {
             b.payee = term;
-            b.account = def;
             b.category = "";
             b.note = "";
         }
         b.note = AliasResolver.appendGps(b.note, coords);
-        // Sprach-/Uhr-Buchung ist in der App angelegt → Ort des Alias, sonst gewählter Ort (Widget/Uhr),
-        // sonst Standardort des Kontos.
-        String aliasPlace = alias != null ? alias.place : "";
-        String resolvedPlace;
-        if (isRealPlace(aliasPlace)) {
-            resolvedPlace = aliasPlace.trim();
-        } else if (isRealPlace(selPlace)) {
-            resolvedPlace = selPlace;
-        } else {
-            resolvedPlace = new de.spahr.ausgaben.settings.PlacesStore(appContext).getDefaultPlace(b.account);
-        }
+        // Ort ist die Uhr-/Widget-Auswahl (nie Alias/Vorlage); ohne Auswahl der Standardort des Kontos.
+        String resolvedPlace = isRealPlace(selPlace) ? selPlace
+                : new de.spahr.ausgaben.settings.PlacesStore(appContext).getDefaultPlace(b.account);
         b.place = isRealPlace(resolvedPlace) ? resolvedPlace.trim() : "";
         b.placeManaged = true;
         if (!b.payee.trim().isEmpty()) {

@@ -37,6 +37,7 @@ public class Repository {
     private final ScheduledTransactionDao scheduledTransactionDao;
     private final ScheduledSplitDao scheduledSplitDao;
     private final AnalysisExtraDao analysisExtraDao;
+    private final KmyPendingDeleteDao kmyPendingDeleteDao;
     private final Context appContext;
     private final ExecutorService executor = Executors.newSingleThreadExecutor();
     private final Handler mainHandler = new Handler(Looper.getMainLooper());
@@ -62,6 +63,7 @@ public class Repository {
         this.scheduledTransactionDao = db.scheduledTransactionDao();
         this.scheduledSplitDao = db.scheduledSplitDao();
         this.analysisExtraDao = db.analysisExtraDao();
+        this.kmyPendingDeleteDao = db.kmyPendingDeleteDao();
         this.budgetRepo = new BudgetRepository(bookingDao, budgetDao, categoryTypeDao, executor, mainHandler);
         this.depotRepo = new DepotRepository(securityDao, appContext, executor, mainHandler);
         this.aliasResolver = new AliasResolver(bookingDao, correctionDao, accountDao, executor, mainHandler);
@@ -529,6 +531,7 @@ public class Repository {
     public void deleteBooking(final long id, final Runnable onDone) {
         executor.execute(() -> {
             Booking old = bookingDao.getById(id);
+            queueKmyDeleteIfNeeded(old);
             bookingDao.deleteSplits(id);
             bookingDao.delete(id);
             // Ort-Journal nachziehen: Gegenbewegung anhängen (alte Bewegung bleibt als Historie stehen).
@@ -542,13 +545,36 @@ public class Repository {
         });
     }
 
+    /**
+     * Merkt eine bereits in der .kmy-Datei vorhandene Buchung (egal ob von der App exportiert oder von
+     * dort importiert – beides markiert {@link Booking#exported}) zum Löschen vor, nur im kmy-Modus (in
+     * anderen Speicherarten gibt es keine gemeinsame Datei, aus der etwas entfernt werden müsste). Die
+     * nächste {@code KmyExportCoordinator}-Übertragung sucht die passende Transaktion über Konto, Datum
+     * und Betrag und entfernt sie; siehe {@link KmyPendingDelete}.
+     */
+    private void queueKmyDeleteIfNeeded(Booking old) {
+        if (old == null || !old.exported) {
+            return;
+        }
+        if (!new de.spahr.ausgaben.settings.SettingsStore(appContext).isKmyMode()) {
+            return;
+        }
+        long signed = old.isIncome ? old.amountCents : -old.amountCents;
+        kmyPendingDeleteDao.insert(
+                new KmyPendingDelete(old.account, signed, old.createdAt, System.currentTimeMillis()));
+    }
+
     /** Löscht eine Umbuchung: beide Seiten (über {@code group}) oder die einzelne (importierte) Buchung. */
     public void deleteTransfer(final String group, final long fallbackId, final Runnable onDone) {
         executor.execute(() -> {
             if (group != null && !group.isEmpty()) {
+                for (Booking b : bookingDao.getByTransferGroup(group)) {
+                    queueKmyDeleteIfNeeded(b);
+                }
                 rollbackTransferPlaces(group);
                 bookingDao.deleteByTransferGroup(group);
             } else {
+                queueKmyDeleteIfNeeded(bookingDao.getById(fallbackId));
                 bookingDao.delete(fallbackId);
             }
             if (onDone != null) {
@@ -1499,6 +1525,11 @@ public class Repository {
     /** Liefert die Direktreferenz auf den BookingDao – nur für Hintergrund-Aufgaben verwenden. */
     public BookingDao bookingDao() {
         return bookingDao;
+    }
+
+    /** Liefert die Direktreferenz auf den KmyPendingDeleteDao – nur für Hintergrund-Aufgaben verwenden. */
+    public KmyPendingDeleteDao kmyPendingDeleteDao() {
+        return kmyPendingDeleteDao;
     }
 
     public ExecutorService executor() {

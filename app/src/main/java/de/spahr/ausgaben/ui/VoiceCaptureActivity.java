@@ -6,7 +6,6 @@ import android.location.Location;
 import android.location.LocationManager;
 import android.os.Bundle;
 import android.speech.RecognizerIntent;
-import android.speech.SpeechRecognizer;
 import android.widget.Toast;
 
 import androidx.activity.result.ActivityResultLauncher;
@@ -60,11 +59,10 @@ public class VoiceCaptureActivity extends LocalizedActivity {
     }
 
     private void startSpeech() {
-        if (!SpeechRecognizer.isRecognitionAvailable(this)) {
-            Toast.makeText(this, R.string.voice_no_recognizer, Toast.LENGTH_LONG).show();
-            finish();
-            return;
-        }
+        // Kein Vorab-Check über SpeechRecognizer.isRecognitionAvailable(): der prüft einen eigenen
+        // RecognitionService-Dienst und liefert auf manchen Geräten fälschlich „nicht verfügbar", obwohl
+        // z. B. die Google-Suchleiste per Mikrofon-Symbol funktioniert (gleiche ACTION_RECOGNIZE_SPEECH-
+        // Activity). Der catch-Block unten (ActivityNotFoundException) fängt das echte „kein Erkenner" ab.
         Intent intent = new Intent(RecognizerIntent.ACTION_RECOGNIZE_SPEECH);
         intent.putExtra(RecognizerIntent.EXTRA_LANGUAGE_MODEL,
                 RecognizerIntent.LANGUAGE_MODEL_FREE_FORM);

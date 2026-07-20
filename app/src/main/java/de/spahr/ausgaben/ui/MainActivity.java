@@ -498,10 +498,11 @@ public class MainActivity extends LocalizedActivity {
     // ---- Buchung per Sprache (Lang-Druck auf FAB) ----
 
     private void startVoiceEntry() {
-        if (!android.speech.SpeechRecognizer.isRecognitionAvailable(this)) {
-            Toast.makeText(this, R.string.voice_no_recognizer, Toast.LENGTH_LONG).show();
-            return;
-        }
+        // Kein Vorab-Check über SpeechRecognizer.isRecognitionAvailable(): der prüft einen eigenen
+        // RecognitionService-Dienst und liefert auf manchen Geräten fälschlich „nicht verfügbar",
+        // obwohl z. B. die Google-Suchleiste per Mikrofon-Symbol einwandfrei funktioniert (die nutzt die
+        // gleiche ACTION_RECOGNIZE_SPEECH-Activity). Stattdessen wird direkt versucht zu starten; schlägt
+        // das fehl, fängt der catch-Block unten (ActivityNotFoundException) das echte „kein Erkenner" ab.
         // Standort für eine mögliche Betrag-only-Auflösung vorwärmen (nur bei aktivem GPS).
         if (settings.isGpsEnabled() && locationTagger != null && !hasLocationPermission()) {
             locationPermissionLauncher.launch(android.Manifest.permission.ACCESS_FINE_LOCATION);

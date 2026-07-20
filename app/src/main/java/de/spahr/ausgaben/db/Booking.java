@@ -65,6 +65,15 @@ public class Booking {
     @ColumnInfo(name = "exported")
     public boolean exported;
 
+    /**
+     * Unbenutzt (Spalte bleibt aus Migrationsgründen bestehen). Die Lösch-Synchronisierung mit der
+     * .kmy-Datei ({@code KmyPendingDelete}) identifiziert Transaktionen stattdessen über Konto, Datum
+     * und Betrag, da importierte Buchungen keine KMyMoney-Transaktions-id kennen.
+     */
+    @NonNull
+    @ColumnInfo(name = "kmy_tx_id")
+    public String kmyTxId = "";
+
     /** Umbuchung (Kontotransfer): dann ist {@link #transferAccount} das Gegenkonto und es gibt keine Kategorie. */
     @ColumnInfo(name = "is_transfer")
     public boolean isTransfer;

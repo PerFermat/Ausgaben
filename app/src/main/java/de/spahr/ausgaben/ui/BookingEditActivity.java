@@ -557,6 +557,9 @@ public class BookingEditActivity extends LocalizedActivity {
         }
         splitCtl.setSuppressEvents(false);
         splitCtl.ensureTrailingRow();
+        // Betrag (z. B. aus der Spracherfassung bereits im Gesamtfeld) in den Teilbetrag übernehmen,
+        // sofern genau eine Kategorie gesetzt ist (Alias ohne echte zweite Splitkategorie).
+        splitCtl.onTotalChanged();
         // Ortsfeld-Sichtbarkeit an das vom Alias gesetzte Konto anpassen.
         applyTypeVisibility();
         updateSaveEnabled();

@@ -1,5 +1,7 @@
 package de.spahr.ausgaben.export;
 
+import java.math.BigDecimal;
+import java.math.RoundingMode;
 import java.text.SimpleDateFormat;
 import java.util.ArrayList;
 import java.util.Date;
@@ -14,6 +16,7 @@ import java.util.regex.Pattern;
 
 import de.spahr.ausgaben.db.Booking;
 import de.spahr.ausgaben.db.BookingSplit;
+import de.spahr.ausgaben.db.KmyPendingDelete;
 
 /**
  * Fügt App-Buchungen als KMyMoney-Transaktionen in die XML-Struktur einer {@link KmyDocument} ein.
@@ -28,6 +31,13 @@ public class KmyExporter {
         public final List<Long> writtenIds = new ArrayList<>();
         public final List<String> skipped = new ArrayList<>();
         public int newPayees;
+    }
+
+    /** Ergebnis des Entfernens bereits vorhandener, aber lokal gelöschter Transaktionen. */
+    public static class DeleteResult {
+        public String xml;
+        /** In dieser Runde tatsächlich gefundene und entfernte Vormerkungen (per {@link KmyPendingDelete#id}). */
+        public final List<Long> resolvedIds = new ArrayList<>();
     }
 
     private final KmyDocument doc;
@@ -119,6 +129,115 @@ public class KmyExporter {
         xml = updateLastModified(xml, today);
         result.xml = xml;
         return result;
+    }
+
+    /**
+     * Entfernt Transaktionen, die einer lokal gelöschten Buchung entsprechen, aus der XML – für die
+     * Buchungs-Lösch-Synchronisierung im kmy-Modus. KMyMoney-Transaktionen tragen aus App-Sicht keine
+     * bekannte id (weder von der App selbst importierte noch am Rechner angelegte Buchungen werden bisher
+     * mit ihrer Transaktions-id verknüpft), daher wird stattdessen über den Inhalt gesucht: Konto + Datum
+     * (auf den Tag genau) + der vorzeichenbehaftete Betrag des Kontosplits müssen zu {@link KmyPendingDelete}
+     * passen. Trifft eine Vormerkung auf mehrere gleichartige Transaktionen (z. B. zwei identische Beträge
+     * am selben Tag), wird nur die erste noch nicht verbrauchte entfernt – ein bekanntes, seltenes Risiko.
+     */
+    public DeleteResult removeTransactions(String xml, List<KmyPendingDelete> deletes) {
+        DeleteResult result = new DeleteResult();
+        if (deletes == null || deletes.isEmpty()) {
+            result.xml = xml;
+            return result;
+        }
+        // Je Vormerkung: Konto-id + Datum + Betrag, sofern das Konto (noch) existiert.
+        List<String> sigAccountId = new ArrayList<>();
+        List<String> sigDate = new ArrayList<>();
+        List<Long> sigCents = new ArrayList<>();
+        List<Long> sigDeleteId = new ArrayList<>();
+        for (KmyPendingDelete d : deletes) {
+            String assetId = doc.accountId(d.account);
+            if (assetId == null) {
+                continue; // Konto nicht mehr vorhanden → nichts zuzuordnen
+            }
+            sigAccountId.add(assetId);
+            sigDate.add(dateFor(d.createdAt));
+            sigCents.add(d.signedCents);
+            sigDeleteId.add(d.id);
+        }
+        if (sigAccountId.isEmpty()) {
+            result.xml = xml;
+            return result;
+        }
+        boolean[] consumed = new boolean[sigAccountId.size()];
+
+        Pattern block = Pattern.compile("<TRANSACTION\\b.*?</TRANSACTION>", Pattern.DOTALL);
+        Pattern postdateAttr = Pattern.compile("\\bpostdate=\"([^\"]*)\"");
+        Pattern splitTag = Pattern.compile("<SPLIT\\b[^>]*/>");
+        Pattern accountAttr = Pattern.compile("\\baccount=\"([^\"]*)\"");
+        Pattern valueAttr = Pattern.compile("\\bvalue=\"([^\"]*)\"");
+
+        Matcher m = block.matcher(xml);
+        StringBuilder sb = new StringBuilder();
+        int last = 0;
+        int removed = 0;
+        while (m.find()) {
+            String tx = m.group();
+            Matcher dm = postdateAttr.matcher(tx);
+            // postdate steht im öffnenden <TRANSACTION …> vor den Splits – erster Treffer genügt.
+            String date = dm.find() ? dm.group(1) : null;
+            int matchIdx = -1;
+            if (date != null) {
+                Matcher sm = splitTag.matcher(tx);
+                while (matchIdx < 0 && sm.find()) {
+                    String splitTagXml = sm.group();
+                    Matcher am = accountAttr.matcher(splitTagXml);
+                    Matcher vm = valueAttr.matcher(splitTagXml);
+                    if (!am.find() || !vm.find()) {
+                        continue;
+                    }
+                    String acc = am.group(1);
+                    long cents = valueToCents(vm.group(1));
+                    for (int i = 0; i < sigAccountId.size(); i++) {
+                        if (!consumed[i] && sigDate.get(i).equals(date) && sigAccountId.get(i).equals(acc)
+                                && sigCents.get(i) == cents) {
+                            matchIdx = i;
+                            break;
+                        }
+                    }
+                }
+            }
+            if (matchIdx >= 0) {
+                consumed[matchIdx] = true;
+                result.resolvedIds.add(sigDeleteId.get(matchIdx));
+                sb.append(xml, last, m.start());
+                last = m.end();
+                removed++;
+            }
+        }
+        sb.append(xml.substring(last));
+        String out = sb.toString();
+        if (removed > 0) {
+            out = bumpCount(out, "TRANSACTIONS", -removed);
+        }
+        result.xml = out;
+        return result;
+    }
+
+    /** KMyMoney-Betrag „num/den" → Cent (gerundet, mit Vorzeichen); wie {@code KmyImporter.valueToCents}. */
+    private static long valueToCents(String value) {
+        if (value == null || value.trim().isEmpty()) {
+            return 0;
+        }
+        try {
+            int slash = value.indexOf('/');
+            if (slash < 0) {
+                return new BigDecimal(value.trim()).multiply(BigDecimal.valueOf(100))
+                        .setScale(0, RoundingMode.HALF_UP).longValueExact();
+            }
+            BigDecimal num = new BigDecimal(value.substring(0, slash).trim());
+            BigDecimal den = new BigDecimal(value.substring(slash + 1).trim());
+            return num.multiply(BigDecimal.valueOf(100))
+                    .divide(den, 0, RoundingMode.HALF_UP).longValueExact();
+        } catch (ArithmeticException | NumberFormatException e) {
+            return 0;
+        }
     }
 
     // ---- XML-Bausteine ----

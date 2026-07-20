@@ -12,8 +12,8 @@ import androidx.sqlite.db.SupportSQLiteDatabase;
 @Database(entities = {Booking.class, BookingSplit.class, Account.class, Payee.class, PlaceEntry.class,
         PayeeCorrection.class, Translation.class, Language.class, Security.class, SecurityTx.class,
         Budget.class, CategoryType.class, ScheduledTransaction.class, ScheduledSplit.class,
-        AnalysisExtra.class, SecurityTxValueOverride.class},
-        version = 33, exportSchema = false)
+        AnalysisExtra.class, SecurityTxValueOverride.class, KmyPendingDelete.class},
+        version = 35, exportSchema = false)
 public abstract class AppDatabase extends RoomDatabase {
 
     /** v1 → v2: Notiz-Spalte ergänzen (bestehende Buchungen bleiben erhalten). */
@@ -382,6 +382,40 @@ public abstract class AppDatabase extends RoomDatabase {
         }
     };
 
+    /**
+     * Vormerkte, aber ungenutzte Spalte für eine Kmy-Transaktions-id + erste Fassung der Warteliste
+     * lokal gelöschter, bereits in der .kmy-Datei vorhandener Buchungen (siehe {@link #MIGRATION_34_35}
+     * für die tatsächlich genutzte Fassung – Transaktionen haben aus App-Sicht keine bekannte id).
+     */
+    static final Migration MIGRATION_33_34 = new Migration(33, 34) {
+        @Override
+        public void migrate(@NonNull SupportSQLiteDatabase db) {
+            db.execSQL("ALTER TABLE booking ADD COLUMN kmy_tx_id TEXT NOT NULL DEFAULT ''");
+            db.execSQL("CREATE TABLE IF NOT EXISTS kmy_pending_delete ("
+                    + "kmy_tx_id TEXT NOT NULL PRIMARY KEY, "
+                    + "created_at INTEGER NOT NULL)");
+        }
+    };
+
+    /**
+     * Warteliste lokal gelöschter, bereits in der .kmy-Datei vorhandener Buchungen neu aufgesetzt: statt
+     * einer (nie befüllten) Transaktions-id werden jetzt Konto, Datum und Betrag gespeichert – damit
+     * funktioniert die Lösch-Synchronisierung auch für aus der .kmy-Datei importierte Buchungen, nicht
+     * nur für von der App selbst geschriebene.
+     */
+    static final Migration MIGRATION_34_35 = new Migration(34, 35) {
+        @Override
+        public void migrate(@NonNull SupportSQLiteDatabase db) {
+            db.execSQL("DROP TABLE IF EXISTS kmy_pending_delete");
+            db.execSQL("CREATE TABLE IF NOT EXISTS kmy_pending_delete ("
+                    + "id INTEGER PRIMARY KEY AUTOINCREMENT NOT NULL, "
+                    + "account TEXT NOT NULL, "
+                    + "signed_cents INTEGER NOT NULL, "
+                    + "created_at INTEGER NOT NULL, "
+                    + "queued_at INTEGER NOT NULL)");
+        }
+    };
+
     public abstract BookingDao bookingDao();
 
     public abstract AccountDao accountDao();
@@ -406,6 +440,8 @@ public abstract class AppDatabase extends RoomDatabase {
 
     public abstract AnalysisExtraDao analysisExtraDao();
 
+    public abstract KmyPendingDeleteDao kmyPendingDeleteDao();
+
     private static volatile AppDatabase instance;
 
     public static AppDatabase getInstance(Context context) {
@@ -425,7 +461,7 @@ public abstract class AppDatabase extends RoomDatabase {
                                     MIGRATION_22_23, MIGRATION_23_24, MIGRATION_24_25,
                                     MIGRATION_25_26, MIGRATION_26_27, MIGRATION_27_28,
                                     MIGRATION_28_29, MIGRATION_29_30, MIGRATION_30_31,
-                                    MIGRATION_31_32, MIGRATION_32_33)
+                                    MIGRATION_31_32, MIGRATION_32_33, MIGRATION_33_34, MIGRATION_34_35)
                             .build();
                 }
             }

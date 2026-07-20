@@ -64,7 +64,9 @@ public class KmyExportCoordinator {
             String file = fileOf(path);
 
             List<Booking> bookings = repository.bookingDao().getUnexported();
-            if (bookings.isEmpty()) {
+            List<de.spahr.ausgaben.db.KmyPendingDelete> pendingDeletes =
+                    repository.kmyPendingDeleteDao().getAll();
+            if (bookings.isEmpty() && pendingDeletes.isEmpty()) {
                 complete(listener, r.getString(de.spahr.ausgaben.R.string.export_none), false);
                 return;
             }
@@ -86,9 +88,16 @@ public class KmyExportCoordinator {
 
                 progress(listener, r.getString(de.spahr.ausgaben.R.string.kmy_progress_processing));
                 KmyDocument doc = new KmyDocument(raw, appContext);
-                KmyExporter.Result res = new KmyExporter(doc, r).build(bookings, loadSplits());
+                KmyExporter exporter = new KmyExporter(doc, r);
+                KmyExporter.Result res = exporter.build(bookings, loadSplits());
 
-                if (res.writtenIds.isEmpty()) {
+                // Bereits vorhandene, lokal inzwischen gelöschte Buchungen aus der XML entfernen (nur im
+                // kmy-Modus vorgemerkt, siehe Repository.queueKmyDeleteIfNeeded); Suche über Konto/Datum/
+                // Betrag, da Transaktionen aus App-Sicht keine bekannte id haben.
+                KmyExporter.DeleteResult delRes = exporter.removeTransactions(res.xml, pendingDeletes);
+                res.xml = delRes.xml;
+
+                if (res.writtenIds.isEmpty() && delRes.resolvedIds.isEmpty()) {
                     complete(listener, r.getString(de.spahr.ausgaben.R.string.kmy_none_matched)
                             + "\n" + skippedText(r, res), false);
                     return;
@@ -107,7 +116,10 @@ public class KmyExportCoordinator {
                 storage.uploadBytes(folder, file, packed, version);
 
                 repository.bookingDao().markExported(res.writtenIds);
-                complete(listener, buildMessage(r, res, file, backup), true);
+                if (!delRes.resolvedIds.isEmpty()) {
+                    repository.kmyPendingDeleteDao().deleteByIds(delRes.resolvedIds);
+                }
+                complete(listener, buildMessage(r, res, delRes.resolvedIds.size(), file, backup), true);
             } catch (de.spahr.ausgaben.net.RemoteConflictException e) {
                 // Fremdänderung erkannt: nichts geschrieben, nichts als exportiert markiert.
                 complete(listener, r.getString(de.spahr.ausgaben.R.string.kmy_conflict), false);
@@ -132,11 +144,14 @@ public class KmyExportCoordinator {
         return map;
     }
 
-    private String buildMessage(Context r, KmyExporter.Result res, String file, String backup) {
+    private String buildMessage(Context r, KmyExporter.Result res, int removedCount, String file, String backup) {
         StringBuilder sb = new StringBuilder();
         sb.append(r.getString(de.spahr.ausgaben.R.string.kmy_result_written, res.writtenIds.size(), file));
         if (res.newPayees > 0) {
             sb.append(r.getString(de.spahr.ausgaben.R.string.kmy_result_new_payees, res.newPayees));
+        }
+        if (removedCount > 0) {
+            sb.append(r.getString(de.spahr.ausgaben.R.string.kmy_result_deleted, removedCount));
         }
         sb.append(".\n").append(r.getString(de.spahr.ausgaben.R.string.kmy_result_backup, backup));
         if (!res.skipped.isEmpty()) {

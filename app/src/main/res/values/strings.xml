@@ -458,6 +458,7 @@
     <string name="kmy_none_matched">No booking could be matched.</string>
     <string name="kmy_result_written">Wrote %1$d booking(s) to %2$s</string>
     <string name="kmy_result_new_payees">, %1$d new payee(s)</string>
+    <string name="kmy_result_deleted">, %1$d deleted</string>
     <string name="kmy_result_backup">Backup: %1$s</string>
     <string name="kmy_conflict">The .kmy was changed in the meantime (probably on the computer). Nothing was written – please re-import the accounts and export again.</string>
     <string name="kmy_skipped">%1$d skipped: %2$s</string>

@@ -249,6 +249,8 @@
     <string name="category_paid">Already paid</string>
     <string name="category_planned">Scheduled</string>
     <string name="category_planned_suffix">(scheduled)</string>
+    <string name="category_chart_no_bookings">No bookings in this period</string>
+    <string name="booking_row_partial_suffix">(share)</string>
     <string name="category_color_default">Default</string>
     <string name="category_color_pick">Pick colour</string>
     <string name="reminder_scheduled">Remind me of due transactions</string>

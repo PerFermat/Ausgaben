@@ -122,25 +122,10 @@ def Paragraph(_t, *a, **k):
     return _RLParagraph(_t, *a, **k)
 
 # ---------------------------------------------------------------- Titelseite
-# Titelbild groß oben (Konzept B: ein Bild dominiert), Textblock klar abgesetzt darunter statt als
-# Bild-Overlay – bleibt so unabhängig vom Bildinhalt zuverlässig lesbar.
-story.append(Spacer(1, 0.8*cm))
-_cover_path = os.path.join(SHOTS, "Promo-Datenschutz.png")
-_cover_ir = ImageReader(_cover_path)
-_cover_iw, _cover_ih = _cover_ir.getSize()
-_cover_h = 13.0*cm
-_cover_img = Image(_cover_path, width=_cover_h * _cover_iw / _cover_ih, height=_cover_h)
-_cover_img.hAlign = "CENTER"
-story.append(_cover_img)
-story.append(Spacer(1, 1.0*cm))
-story.append(Paragraph("Ausgaben", st_title))
-story.append(Paragraph("Benutzerhandbuch", S("st2", fontName="DejaVu-Bold", fontSize=16, textColor=GREY, spaceAfter=18)))
-story.append(Paragraph("Mobiles Ausgaben-/Haushaltsbuch für Android und Wear OS "
-                       "mit KMyMoney-Anbindung", st_sub))
-story.append(Spacer(1, 0.6*cm))
-story.append(Paragraph("Version 1.2 &nbsp;·&nbsp; Stand: Juli 2026", st_sub))
-story.append(Spacer(1, 0.3*cm))
-story.append(Paragraph("Projekt: github.com/PerFermat/Ausgaben &nbsp;·&nbsp; Lizenz: GPL-3.0", st_note))
+# Randloses Vollbild (v3): die Grafik enthält bereits den kompletten Titeltext; nur Version/Stand
+# werden per Canvas in den dafür vorgesehenen gestrichelten Rahmen gezeichnet (siehe cover_page()
+# weiter unten). Seite 1 bleibt im Flowable-Sinn leer, direkt weiter zu Kapitel 1.
+COVER_PATH_DE = os.path.join(SHOTS, "Handbuch Titelseite-de.png")
 story.append(PageBreak())
 
 # ---------------------------------------------------------------- 1 Einführung
@@ -814,6 +799,21 @@ code = ("Datum;Empfänger;Konto;Typ;Betrag;Notiz;Kategorie<br/>"
 story.append(Paragraph(code, S("code", fontName="DejaVu", fontSize=8.5, leading=12,
              backColor=LIGHT, borderPadding=6, textColor=colors.HexColor("#333333"))))
 
+# ---- Titelseite: randloses Vollbild + Version/Stand im vorgesehenen gestrichelten Rahmen ----
+# Rahmen-Position im Bild per Pixel-Analyse vermessen (grüne gestrichelte Box unten links,
+# Bild ist im Seitenverhältnis auf randlosen A4-Druck ausgelegt): x 7,8–57,5 mm, y 6,2–34,5 mm von unten.
+def cover_page(canvas, doc):
+    canvas.saveState()
+    canvas.drawImage(COVER_PATH_DE, 0, 0, width=A4[0], height=A4[1])
+    box_x = 7.8*mm + 3*mm
+    canvas.setFont("DejaVu-Bold", 13)
+    canvas.setFillColor(colors.HexColor("#1b1b1b"))
+    canvas.drawString(box_x, 34.5*mm - 9*mm, "Version 1.2")
+    canvas.setFont("DejaVu", 10)
+    canvas.setFillColor(GREY)
+    canvas.drawString(box_x, 34.5*mm - 17*mm, "Stand: Juli 2026")
+    canvas.restoreState()
+
 # ---- Fußzeile mit Seitenzahl ----
 def footer(canvas, doc):
     canvas.saveState()
@@ -843,5 +843,5 @@ story = _keep_headings_with_next(story)
 doc = SimpleDocTemplate(OUT, pagesize=A4,
                         leftMargin=2*cm, rightMargin=2*cm, topMargin=1.8*cm, bottomMargin=1.8*cm,
                         title="Ausgaben – Benutzerhandbuch", author="Ausgaben")
-doc.build(story, onFirstPage=footer, onLaterPages=footer)
+doc.build(story, onFirstPage=cover_page, onLaterPages=footer)
 print("OK ->", OUT)

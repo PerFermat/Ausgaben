@@ -26,7 +26,10 @@ import java.util.Map;
 import java.util.TreeMap;
 
 import de.spahr.ausgaben.R;
+import de.spahr.ausgaben.db.Booking;
+import de.spahr.ausgaben.db.BookingSplit;
 import de.spahr.ausgaben.db.Budget;
+import de.spahr.ausgaben.db.CategoryBookingFilter;
 import de.spahr.ausgaben.db.CategorySum;
 import de.spahr.ausgaben.db.Repository;
 import de.spahr.ausgaben.settings.Currencies;
@@ -50,6 +53,8 @@ public class BudgetActivity extends LocalizedActivity {
     private int monthOffset = 0;            // Monatssicht: 0 = aktueller Monat, ±n = vor/zurück (Wischgeste)
     private int displayYear;                // Jahr des aktuell angezeigten Zeitraums (folgt monthOffset)
     private int displayMonth;               // 1–12 = angezeigter Monat (Monatssicht), 0 = Jahressicht
+    private long periodFromMs;              // Zeitraum-Grenzen des angezeigten Monats/Jahres – für den
+    private long periodToMs;                // Buchungs-Drilldown beim Aufklappen einer Kategoriezeile
 
     private final List<CategorySum> actuals = new ArrayList<>();
     /** Ist-Summen der letzten 2 Jahre – für Kategorie-Typ und Aktivitätsfilter. */
@@ -164,6 +169,8 @@ public class BudgetActivity extends LocalizedActivity {
             c.add(Calendar.YEAR, 1);
             end = c.getTimeInMillis();
         }
+        periodFromMs = start;
+        periodToMs = end;
         long now = System.currentTimeMillis();
         elapsed = now <= start ? 0 : (now >= end ? 1 : (double) (now - start) / (end - start));
 
@@ -505,12 +512,12 @@ public class BudgetActivity extends LocalizedActivity {
             List<String> mainPaths = pathsByMain.get(main);
             double mainExpected = expectedFor(mainPaths == null ? java.util.Collections.emptyList() : mainPaths);
             addRow(main, main, income, mv[0], mv[1], true, currency,
-                    mainExpected >= 0 ? mainExpected : elapsed);
+                    mainExpected >= 0 ? mainExpected : elapsed, !visibleSubs.isEmpty());
             for (Map.Entry<String, long[]> se : visibleSubs) {
                 String label = se.getKey().substring(se.getKey().indexOf(':') + 1);
                 double subExpected = expectedFor(java.util.Collections.singletonList(se.getKey()));
                 addRow(label, se.getKey(), income, se.getValue()[0], se.getValue()[1], false, currency,
-                        subExpected >= 0 ? subExpected : elapsed);
+                        subExpected >= 0 ? subExpected : elapsed, false);
             }
         }
     }
@@ -524,14 +531,25 @@ public class BudgetActivity extends LocalizedActivity {
         container.addView(tv);
     }
 
+    /**
+     * Kategoriezeile; bei {@code main} nur aufklappbar, wenn diese Hauptkategorie <b>keine</b> sichtbaren
+     * Unterzeilen hat (sonst listen die Unterzeilen die Buchungen schon einzeln auf – Tippen auf die
+     * Hauptzeile macht dann nichts), Unterzeilen sind immer aufklappbar. Aufklappen zeigt die im
+     * angezeigten Zeitraum bereits getätigten Buchungen dieser Kategorie (bei Hauptkategorien inkl. aller
+     * Unterkategorien).
+     */
     private void addRow(String label, String category, boolean income, long ist, long soll,
-                        boolean main, String currency, double base) {
-        LinearLayout row = new LinearLayout(this);
-        row.setOrientation(LinearLayout.VERTICAL);
-        row.setPadding(main ? 0 : dp(16), dp(6), 0, dp(2));
+                        boolean main, String currency, double base, boolean hasVisibleSubs) {
+        LinearLayout wrapper = new LinearLayout(this);
+        wrapper.setOrientation(LinearLayout.VERTICAL);
+
+        LinearLayout header = new LinearLayout(this);
+        header.setOrientation(LinearLayout.VERTICAL);
+        header.setPadding(main ? 0 : dp(16), dp(6), 0, dp(2));
 
         LinearLayout line = new LinearLayout(this);
         line.setOrientation(LinearLayout.HORIZONTAL);
+        line.setGravity(Gravity.CENTER_VERTICAL);
 
         TextView name = new TextView(this);
         name.setText(label);
@@ -548,17 +566,120 @@ public class BudgetActivity extends LocalizedActivity {
         value.setGravity(Gravity.END);
         line.addView(value);
 
-        row.addView(line);
-        row.addView(buildBar(income, ist, soll, base));
+        boolean expandable = !main || !hasVisibleSubs;
+        TextView caret = new TextView(this);
+        if (expandable) {
+            caret.setTextColor(0xFF9E9E9E);
+            LinearLayout.LayoutParams caretLp = new LinearLayout.LayoutParams(
+                    LinearLayout.LayoutParams.WRAP_CONTENT, LinearLayout.LayoutParams.WRAP_CONTENT);
+            caretLp.setMarginStart(dp(8));
+            caret.setLayoutParams(caretLp);
+            caret.setText("▸");
+            line.addView(caret);
+        }
+
+        header.addView(line);
+        header.addView(buildBar(income, ist, soll, base));
+        wrapper.addView(header);
 
         boolean editable = !Budget.SOURCE_KMY.equals(budgetSource);
         if (editable) {
-            row.setOnLongClickListener(v -> {
+            header.setOnLongClickListener(v -> {
                 showEditDialog(category, income, currency);
                 return true;
             });
         }
-        container.addView(row);
+
+        if (expandable) {
+            LinearLayout detail = new LinearLayout(this);
+            detail.setOrientation(LinearLayout.VERTICAL);
+            detail.setPadding(dp(20), dp(4), 0, dp(6));
+            detail.setVisibility(View.GONE);
+            wrapper.addView(detail);
+
+            boolean isMain = main;
+            header.setOnClickListener(v -> {
+                boolean show = detail.getVisibility() != View.VISIBLE;
+                if (show && detail.getChildCount() == 0) {
+                    loadBookingDetail(detail, category, isMain, income);
+                }
+                detail.setVisibility(show ? View.VISIBLE : View.GONE);
+                caret.setText(show ? "▾" : "▸");
+            });
+        }
+
+        container.addView(wrapper);
+    }
+
+    /**
+     * Lädt die Buchungen des angezeigten Zeitraums für {@code filterCategory} (bei Hauptkategorie inkl.
+     * Unterkategorien) und füllt sie einmalig in {@code detail} – wird nur beim ersten Aufklappen gerufen.
+     * Zusätzlich zum Kategorie-Präfix wird der Kategorietyp geprüft ({@link #categoryTypes}): kMyMoney
+     * erlaubt gleichnamige Einnahme- und Ausgabekategorien (z. B. Einnahme „Geschenke" und Ausgabe
+     * „Geschenke:Geschäft") – ohne diesen Zusatz würde die Präfix-Zuordnung der Hauptkategorie „Geschenke"
+     * fälschlich auch die gleichnamige Kategorie des jeweils anderen Typs einschließen.
+     */
+    private void loadBookingDetail(LinearLayout detail, String filterCategory, boolean isMain, boolean income) {
+        repository.getBookingsBetween(periodFromMs, periodToMs, bookings ->
+                repository.getAllSplitsMap(splits -> {
+                    detail.removeAllViews();
+                    boolean any = false;
+                    if (bookings != null) {
+                        for (Booking b : bookings) {
+                            if (!CategoryBookingFilter.matchesBooking(
+                                    b, splits, filterCategory, isMain, categoryTypes, income)) {
+                                continue;
+                            }
+                            long signed = b.isIncome ? b.amountCents : -b.amountCents;
+                            long display = CategoryBookingFilter.displaySigned(
+                                    b, splits, filterCategory, isMain, signed, categoryTypes, income);
+                            boolean partial = CategoryBookingFilter.isPartial(
+                                    b, splits, filterCategory, isMain, categoryTypes, income);
+                            detail.addView(bookingRow(b, display, partial));
+                            any = true;
+                        }
+                    }
+                    if (!any) {
+                        TextView hint = new TextView(this);
+                        hint.setText(R.string.category_chart_no_bookings);
+                        hint.setTextColor(0xFF9E9E9E);
+                        detail.addView(hint);
+                    }
+                }));
+    }
+
+    /** Buchungszeile im Drilldown: Empfänger (fett) · Konto/Datum (grau) · Betrag (farbig, ggf. „Anteil"). */
+    private View bookingRow(Booking b, long displayCents, boolean partial) {
+        LinearLayout row = new LinearLayout(this);
+        row.setOrientation(LinearLayout.HORIZONTAL);
+        row.setGravity(Gravity.CENTER_VERTICAL);
+        row.setPadding(0, dp(6), 0, dp(6));
+
+        LinearLayout text = new LinearLayout(this);
+        text.setOrientation(LinearLayout.VERTICAL);
+
+        TextView payee = new TextView(this);
+        payee.setText(b.payee.isEmpty() ? b.category : b.payee);
+        text.addView(payee);
+
+        TextView sub = new TextView(this);
+        Locale locale = getResources().getConfiguration().getLocales().get(0);
+        sub.setText(b.account + " · " + new SimpleDateFormat("dd.MM.yyyy", locale)
+                .format(new java.util.Date(b.createdAt)));
+        sub.setTextSize(12);
+        sub.setTextColor(0xFF9E9E9E);
+        text.addView(sub);
+
+        row.addView(text, new LinearLayout.LayoutParams(0, LinearLayout.LayoutParams.WRAP_CONTENT, 1f));
+
+        TextView amount = new TextView(this);
+        String currency = Currencies.getDefault();
+        String suffix = partial ? " " + getString(R.string.booking_row_partial_suffix) : "";
+        amount.setText(MoneyFormat.display(displayCents, currency) + suffix);
+        amount.setTextColor(getColor(displayCents >= 0 ? R.color.income_green : R.color.expense_red));
+        amount.setGravity(Gravity.END);
+        row.addView(amount);
+        return row;
     }
 
     /**

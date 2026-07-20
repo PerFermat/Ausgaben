@@ -4,7 +4,7 @@ Content mirrors manual_de.py. German double quotes are written as guillemets («
 source and converted to English curly quotes at build time (collision-safe vs. ASCII ")."""
 import os
 from reportlab.lib.pagesizes import A4
-from reportlab.lib.units import cm
+from reportlab.lib.units import cm, mm
 from reportlab.lib import colors
 from reportlab.lib.styles import getSampleStyleSheet, ParagraphStyle
 from reportlab.lib.enums import TA_LEFT, TA_CENTER
@@ -117,28 +117,10 @@ def Paragraph(_t, *a, **k):
     return _RLParagraph(_t, *a, **k)
 
 # ---------------------------------------------------------------- Cover
-# Large cover image on top (one image dominates), text block clearly separated below instead of an
-# overlay – stays legible independent of the image content.
-story.append(Spacer(1, 0.8*cm))
-_cover_path = os.path.join(SHOTS, "Promo-Datenschutz.png")
-_cover_ir = ImageReader(_cover_path)
-_cover_iw, _cover_ih = _cover_ir.getSize()
-_cover_h = 13.0*cm
-_cover_img = Image(_cover_path, width=_cover_h * _cover_iw / _cover_ih, height=_cover_h)
-_cover_img.hAlign = "CENTER"
-story.append(_cover_img)
-story.append(Spacer(1, 1.0*cm))
-story.append(Paragraph("Ausgaben", st_title))
-story.append(Paragraph("User Manual", S("st2", fontName="DejaVu-Bold", fontSize=16, textColor=GREY, spaceAfter=18)))
-story.append(Paragraph("Mobile expense / household book for Android and Wear OS "
-                       "with KMyMoney integration", st_sub))
-story.append(Spacer(1, 0.6*cm))
-story.append(Paragraph("Version 1.2 &nbsp;·&nbsp; Updated: July 2026", st_sub))
-story.append(Spacer(1, 0.3*cm))
-story.append(Paragraph("Project: github.com/PerFermat/Ausgaben &nbsp;·&nbsp; License: GPL-3.0", st_note))
-story.append(Spacer(1, 0.5*cm))
-story.append(Paragraph("Note: the screenshots show the German interface; the app is fully available "
-                       "in English as well (Settings → Language).", st_note))
+# Borderless full-bleed cover (v3): the graphic already contains the full title text; only
+# version/date are drawn onto the dashed placeholder box (see cover_page() further below). Page 1
+# stays empty as far as flowables go, then straight on to chapter 1.
+COVER_PATH_EN = os.path.join(SHOTS, "Handbuch Titelseite-eng.png")
 story.append(PageBreak())
 
 # ---------------------------------------------------------------- 1
@@ -775,6 +757,21 @@ code = ("Datum;Empfänger;Konto;Typ;Betrag;Notiz;Kategorie<br/>"
 story.append(Paragraph(code, S("code", fontName="DejaVu", fontSize=8.5, leading=12,
              backColor=LIGHT, borderPadding=6, textColor=colors.HexColor("#333333"))))
 
+# ---- Cover page: borderless full-bleed image + version/date in the dashed placeholder box ----
+# Box position measured by pixel analysis on the dashed green box (bottom left of the image, which is
+# sized for borderless A4 printing): x 7.8-57.5 mm, y 6.2-34.5 mm from the bottom.
+def cover_page(canvas, doc):
+    canvas.saveState()
+    canvas.drawImage(COVER_PATH_EN, 0, 0, width=A4[0], height=A4[1])
+    box_x = 7.8*mm + 3*mm
+    canvas.setFont("DejaVu-Bold", 13)
+    canvas.setFillColor(colors.HexColor("#1b1b1b"))
+    canvas.drawString(box_x, 34.5*mm - 9*mm, "Version 1.2")
+    canvas.setFont("DejaVu", 10)
+    canvas.setFillColor(GREY)
+    canvas.drawString(box_x, 34.5*mm - 17*mm, "Updated: July 2026")
+    canvas.restoreState()
+
 # ---- footer ----
 def footer(canvas, doc):
     canvas.saveState()
@@ -797,5 +794,5 @@ story = _keep_headings_with_next(story)
 doc = SimpleDocTemplate(OUT, pagesize=A4, leftMargin=2*cm, rightMargin=2*cm,
                         topMargin=1.8*cm, bottomMargin=1.8*cm,
                         title="Ausgaben – User Manual", author="Ausgaben")
-doc.build(story, onFirstPage=footer, onLaterPages=footer)
+doc.build(story, onFirstPage=cover_page, onLaterPages=footer)
 print("OK ->", OUT)

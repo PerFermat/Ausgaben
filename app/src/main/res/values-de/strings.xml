@@ -249,6 +249,8 @@
     <string name="category_paid">Bereits gezahlt</string>
     <string name="category_planned">Geplant</string>
     <string name="category_planned_suffix">(geplant)</string>
+    <string name="category_chart_no_bookings">Keine Buchungen in diesem Zeitraum</string>
+    <string name="booking_row_partial_suffix">(Anteil)</string>
     <string name="category_color_default">Standard</string>
     <string name="category_color_pick">Farbe wählen</string>
     <string name="reminder_scheduled">Erinnerung an fällige Buchungen</string>

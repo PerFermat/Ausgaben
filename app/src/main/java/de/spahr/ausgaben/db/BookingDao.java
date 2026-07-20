@@ -39,6 +39,11 @@ public interface BookingDao {
     @Query("SELECT * FROM booking ORDER BY created_at DESC, id DESC")
     List<Booking> getAllBookings();
 
+    /** Buchungen im Zeitraum [fromMs, toMs), ohne Umbuchungen – Grundlage für den Kategorie-Drilldown. */
+    @Query("SELECT * FROM booking WHERE created_at >= :fromMs AND created_at < :toMs AND is_transfer = 0 "
+            + "ORDER BY created_at DESC, id DESC")
+    List<Booking> getBookingsBetween(long fromMs, long toMs);
+
     /** Die letzten Buchungen (für das Homescreen-Widget). */
     @Query("SELECT * FROM booking ORDER BY created_at DESC, id DESC LIMIT :limit")
     List<Booking> getRecent(int limit);

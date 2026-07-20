@@ -502,6 +502,14 @@ public class Repository {
         });
     }
 
+    /** Buchungen im Zeitraum, ohne Umbuchungen – Grundlage für den Kategorie-Drilldown. */
+    public void getBookingsBetween(final long fromMs, final long toMs, final Callback<List<Booking>> callback) {
+        executor.execute(() -> {
+            final List<Booking> result = bookingDao.getBookingsBetween(fromMs, toMs);
+            mainHandler.post(() -> callback.onResult(result));
+        });
+    }
+
     /** Alle Kategorie-Teile, gruppiert nach Buchungs-ID (für Anzeige/Filter in der Liste). */
     public void getAllSplitsMap(final Callback<Map<Long, List<BookingSplit>>> callback) {
         executor.execute(() -> {

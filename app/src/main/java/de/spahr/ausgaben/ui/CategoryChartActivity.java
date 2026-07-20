@@ -32,6 +32,9 @@ import java.util.List;
 import java.util.Map;
 
 import de.spahr.ausgaben.R;
+import de.spahr.ausgaben.db.Booking;
+import de.spahr.ausgaben.db.BookingSplit;
+import de.spahr.ausgaben.db.CategoryBookingFilter;
 import de.spahr.ausgaben.db.CategorySum;
 import de.spahr.ausgaben.db.Repository;
 import de.spahr.ausgaben.db.ScheduleProjection;
@@ -81,11 +84,20 @@ public class CategoryChartActivity extends LocalizedActivity {
 
     // Einmalig geladene Daten für Plan-Anteil und Slider-Grenzen.
     private boolean dataReady = false;
-    private int pending = 3;
+    private int pending = 4;
     private List<ScheduledTransaction> scheduled = new ArrayList<>();
     private final Map<Long, List<ScheduledSplit>> splitsBySched = new LinkedHashMap<>();
     private long firstDataMs = 0;
     private long lastActualMs = 0;
+    /** Alle Kategorie-Teile, gruppiert nach Buchungs-ID – für den Buchungs-Drilldown je Kreissegment. */
+    private final Map<Long, List<BookingSplit>> splitsByBooking = new LinkedHashMap<>();
+
+    // Zustand des Buchungs-Drilldowns (Tipp auf ein Kreissegment).
+    private String selectedCategory = null;
+    private long periodFromMs = 0;
+    private long periodToMs = 0;
+    private List<Cat> lastOut = new ArrayList<>();
+    private long lastTotal = 0;
 
     @Override
     protected void onCreate(Bundle savedInstanceState) {
@@ -196,6 +208,13 @@ public class CategoryChartActivity extends LocalizedActivity {
         repository.getBookingDateRange(r -> {
             firstDataMs = r[0];
             lastActualMs = Math.max(System.currentTimeMillis(), r[1]);
+            ready();
+        });
+        repository.getAllSplitsMap(m -> {
+            splitsByBooking.clear();
+            if (m != null) {
+                splitsByBooking.putAll(m);
+            }
             ready();
         });
     }
@@ -406,18 +425,186 @@ public class CategoryChartActivity extends LocalizedActivity {
         }
         Collections.sort(out, (a, b) -> Long.compare(b.total(), a.total()));
 
-        list.removeAllViews();
+        periodFromMs = fromMs;
+        periodToMs = toMs;
+        selectedCategory = null;   // Zeitraum-/Menüwechsel verwirft eine evtl. offene Buchungsauswahl
+        lastOut = out;
+        lastTotal = total;
+
         if (out.isEmpty()) {
+            list.removeAllViews();
             pie.setVisibility(View.GONE);
             empty.setVisibility(View.VISIBLE);
             return;
         }
         buildPie(out, total);
-        for (Cat c : out) {
-            list.addView(buildRow(c, total));
-        }
+        showCategoryList();
         pie.setVisibility(View.VISIBLE);
         empty.setVisibility(View.GONE);
+    }
+
+    /** Listenanzeige zurücksetzen auf die normale Kategorie-Übersicht (Name/Prozent/Betrag je Kategorie). */
+    private void showCategoryList() {
+        list.removeAllViews();
+        for (Cat c : lastOut) {
+            list.addView(buildRow(c, lastTotal));
+        }
+    }
+
+    /** Eine Drilldown-Zeile mit Datum (für die Sortierung) und fertig gebauter View. */
+    private static final class DrilldownRow {
+        final long dateMs;
+        final View view;
+
+        DrilldownRow(long dateMs, View view) {
+            this.dateMs = dateMs;
+            this.view = view;
+        }
+    }
+
+    /**
+     * Listenanzeige auf die Einzelbuchungen einer Kategorie im aktuellen Zeitraum umschalten – bei
+     * „geplante Buchungen einbeziehen" zusätzlich die im Zeitraum fälligen geplanten Termine (grau),
+     * chronologisch mit den Ist-Buchungen gemischt (neueste zuerst).
+     */
+    private void showCategoryBookings(String category) {
+        boolean isMain = !category.contains(":");
+        repository.getBookingsBetween(periodFromMs, periodToMs, bookings -> {
+            // Auswahl könnte sich zwischenzeitlich geändert haben (schnelles Antippen) – dann verwerfen.
+            if (!category.equals(selectedCategory)) {
+                return;
+            }
+            List<DrilldownRow> rows = new ArrayList<>();
+            if (bookings != null) {
+                for (Booking b : bookings) {
+                    if (!CategoryBookingFilter.matchesBooking(b, splitsByBooking, category, isMain)) {
+                        continue;
+                    }
+                    long signed = b.isIncome ? b.amountCents : -b.amountCents;
+                    long display = CategoryBookingFilter.displaySigned(b, splitsByBooking, category, isMain, signed);
+                    boolean partial = CategoryBookingFilter.isPartial(b, splitsByBooking, category, isMain);
+                    rows.add(new DrilldownRow(b.createdAt, bookingRow(b, display, partial)));
+                }
+            }
+            if (includePlanned) {
+                rows.addAll(plannedRows(category, isMain));
+            }
+            Collections.sort(rows, (a, b2) -> Long.compare(b2.dateMs, a.dateMs));
+
+            list.removeAllViews();
+            if (rows.isEmpty()) {
+                TextView hint = new TextView(this);
+                hint.setText(R.string.category_chart_no_bookings);
+                hint.setTextColor(0xFF9E9E9E);
+                hint.setPadding(0, dp(8), 0, dp(8));
+                list.addView(hint);
+                return;
+            }
+            for (DrilldownRow r : rows) {
+                list.addView(r.view);
+            }
+        });
+    }
+
+    /** Im Zeitraum fällige geplante Auszahlungen einer Kategorie – eine Zeile je Termin. */
+    private List<DrilldownRow> plannedRows(String category, boolean isMain) {
+        List<DrilldownRow> out = new ArrayList<>();
+        for (ScheduledTransaction st : scheduled) {
+            if (st.kind != ScheduledTransaction.KIND_EXPENSE || st.nextDueMs <= 0) {
+                continue;
+            }
+            List<Long> occ = ScheduleProjection.occurrences(st.nextDueMs, st.occurrence,
+                    st.occurrenceMultiplier, st.endMs, periodFromMs, periodToMs - 1, MAX_OCC);
+            if (occ.isEmpty()) {
+                continue;
+            }
+            if (st.split == 1) {
+                List<ScheduledSplit> parts = splitsBySched.get(st.id);
+                if (parts == null) {
+                    continue;
+                }
+                for (ScheduledSplit p : parts) {
+                    if (p.category.isEmpty() || !CategoryBookingFilter.matches(p.category, category, isMain)) {
+                        continue;
+                    }
+                    for (long d : occ) {
+                        out.add(new DrilldownRow(d, plannedRow(st, d, Math.abs(p.amountCents))));
+                    }
+                }
+            } else if (!st.counterparty.isEmpty()
+                    && CategoryBookingFilter.matches(st.counterparty, category, isMain)) {
+                for (long d : occ) {
+                    out.add(new DrilldownRow(d, plannedRow(st, d, st.amountCents)));
+                }
+            }
+        }
+        return out;
+    }
+
+    /** Geplante Zeile im Drilldown: komplett grau, Datum + „(geplant)"-Hinweis. */
+    private View plannedRow(ScheduledTransaction st, long dateMs, long cents) {
+        LinearLayout row = new LinearLayout(this);
+        row.setOrientation(LinearLayout.HORIZONTAL);
+        row.setGravity(Gravity.CENTER_VERTICAL);
+        row.setPadding(0, dp(6), 0, dp(6));
+
+        LinearLayout text = new LinearLayout(this);
+        text.setOrientation(LinearLayout.VERTICAL);
+
+        TextView payee = new TextView(this);
+        payee.setText(st.payee.isEmpty() ? st.name : st.payee);
+        payee.setTextColor(0xFF9E9E9E);
+        text.addView(payee);
+
+        TextView sub = new TextView(this);
+        java.util.Locale locale = getResources().getConfiguration().getLocales().get(0);
+        sub.setText(st.account + " · " + new java.text.SimpleDateFormat("dd.MM.yyyy", locale)
+                .format(new java.util.Date(dateMs)) + " " + getString(R.string.category_planned_suffix));
+        sub.setTextSize(12);
+        sub.setTextColor(0xFF9E9E9E);
+        text.addView(sub);
+
+        row.addView(text, new LinearLayout.LayoutParams(0, LinearLayout.LayoutParams.WRAP_CONTENT, 1f));
+
+        TextView amount = new TextView(this);
+        amount.setText("-" + money(cents));
+        amount.setTextColor(0xFF9E9E9E);
+        amount.setGravity(Gravity.END);
+        row.addView(amount);
+        return row;
+    }
+
+    /** Buchungszeile im Drilldown: Empfänger (fett) · Konto/Datum (grau) · Betrag (farbig, ggf. „Anteil"). */
+    private View bookingRow(Booking b, long displayCents, boolean partial) {
+        LinearLayout row = new LinearLayout(this);
+        row.setOrientation(LinearLayout.HORIZONTAL);
+        row.setGravity(Gravity.CENTER_VERTICAL);
+        row.setPadding(0, dp(6), 0, dp(6));
+
+        LinearLayout text = new LinearLayout(this);
+        text.setOrientation(LinearLayout.VERTICAL);
+
+        TextView payee = new TextView(this);
+        payee.setText(b.payee.isEmpty() ? b.category : b.payee);
+        text.addView(payee);
+
+        TextView sub = new TextView(this);
+        java.util.Locale locale = getResources().getConfiguration().getLocales().get(0);
+        sub.setText(b.account + " · " + new java.text.SimpleDateFormat("dd.MM.yyyy", locale)
+                .format(new java.util.Date(b.createdAt)));
+        sub.setTextSize(12);
+        sub.setTextColor(0xFF9E9E9E);
+        text.addView(sub);
+
+        row.addView(text, new LinearLayout.LayoutParams(0, LinearLayout.LayoutParams.WRAP_CONTENT, 1f));
+
+        TextView amount = new TextView(this);
+        String suffix = partial ? " " + getString(R.string.booking_row_partial_suffix) : "";
+        amount.setText(money(displayCents) + suffix);
+        amount.setTextColor(getColor(displayCents >= 0 ? R.color.income_green : R.color.expense_red));
+        amount.setGravity(Gravity.END);
+        row.addView(amount);
+        return row;
     }
 
     /** Zählt die im Fenster fälligen geplanten Auszahlungen je Kategorie hinzu. */
@@ -506,11 +693,15 @@ public class CategoryChartActivity extends LocalizedActivity {
                 long cents = d != null ? d.cents : 0L;
                 String suffix = d != null && d.planned ? " " + getString(R.string.category_planned_suffix) : "";
                 pie.setCenterText(name + suffix + "\n" + money(cents));
+                selectedCategory = name;
+                showCategoryBookings(name);
             }
 
             @Override
             public void onNothingSelected() {
                 pie.setCenterText(totalText);
+                selectedCategory = null;
+                showCategoryList();
             }
         });
         pie.invalidate();

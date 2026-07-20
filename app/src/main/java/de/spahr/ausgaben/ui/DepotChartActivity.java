@@ -405,7 +405,7 @@ public class DepotChartActivity extends LocalizedActivity {
 
         PieDataSet set = new PieDataSet(entries, "");
         set.setColors(pieColors);
-        set.setSliceSpace(0f);   // durchgehender Ring wie bei den Kategorien
+        set.setSliceSpace(2f);   // schmale schwarze Standard-Umrandung zwischen den Segmenten
         set.setDrawValues(false);
 
         pie.setData(new PieData(set));
@@ -496,7 +496,7 @@ public class DepotChartActivity extends LocalizedActivity {
 
         PieDataSet set = new PieDataSet(entries, "");
         set.setColors(pieColors);
-        set.setSliceSpace(0f);
+        set.setSliceSpace(2f);   // schmale schwarze Standard-Umrandung zwischen den Segmenten
         set.setDrawValues(false);
 
         pie.setData(new PieData(set));

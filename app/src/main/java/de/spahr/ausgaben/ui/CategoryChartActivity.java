@@ -454,18 +454,20 @@ public class CategoryChartActivity extends LocalizedActivity {
     /** Eine Drilldown-Zeile mit Datum (für die Sortierung) und fertig gebauter View. */
     private static final class DrilldownRow {
         final long dateMs;
+        final boolean planned;
         final View view;
 
-        DrilldownRow(long dateMs, View view) {
+        DrilldownRow(long dateMs, boolean planned, View view) {
             this.dateMs = dateMs;
+            this.planned = planned;
             this.view = view;
         }
     }
 
     /**
-     * Listenanzeige auf die Einzelbuchungen einer Kategorie im aktuellen Zeitraum umschalten – bei
-     * „geplante Buchungen einbeziehen" zusätzlich die im Zeitraum fälligen geplanten Termine (grau),
-     * chronologisch mit den Ist-Buchungen gemischt (neueste zuerst).
+     * Listenanzeige auf die Einzelbuchungen einer Kategorie im aktuellen Zeitraum umschalten – aufsteigend
+     * sortiert (älteste oben); bei „geplante Buchungen einbeziehen" stehen die im Zeitraum fälligen
+     * geplanten Termine (grau) unabhängig von ihrem Datum stets unten, nach den Ist-Buchungen.
      */
     private void showCategoryBookings(String category) {
         boolean isMain = !category.contains(":");
@@ -483,13 +485,18 @@ public class CategoryChartActivity extends LocalizedActivity {
                     long signed = b.isIncome ? b.amountCents : -b.amountCents;
                     long display = CategoryBookingFilter.displaySigned(b, splitsByBooking, category, isMain, signed);
                     boolean partial = CategoryBookingFilter.isPartial(b, splitsByBooking, category, isMain);
-                    rows.add(new DrilldownRow(b.createdAt, bookingRow(b, display, partial)));
+                    rows.add(new DrilldownRow(b.createdAt, false, bookingRow(b, display, partial)));
                 }
             }
             if (includePlanned) {
                 rows.addAll(plannedRows(category, isMain));
             }
-            Collections.sort(rows, (a, b2) -> Long.compare(b2.dateMs, a.dateMs));
+            Collections.sort(rows, (a, b2) -> {
+                if (a.planned != b2.planned) {
+                    return a.planned ? 1 : -1;   // Ist-Buchungen immer vor den geplanten
+                }
+                return Long.compare(a.dateMs, b2.dateMs);   // aufsteigend: älteste zuerst
+            });
 
             list.removeAllViews();
             if (rows.isEmpty()) {
@@ -528,13 +535,13 @@ public class CategoryChartActivity extends LocalizedActivity {
                         continue;
                     }
                     for (long d : occ) {
-                        out.add(new DrilldownRow(d, plannedRow(st, d, Math.abs(p.amountCents))));
+                        out.add(new DrilldownRow(d, true, plannedRow(st, d, Math.abs(p.amountCents))));
                     }
                 }
             } else if (!st.counterparty.isEmpty()
                     && CategoryBookingFilter.matches(st.counterparty, category, isMain)) {
                 for (long d : occ) {
-                    out.add(new DrilldownRow(d, plannedRow(st, d, st.amountCents)));
+                    out.add(new DrilldownRow(d, true, plannedRow(st, d, st.amountCents)));
                 }
             }
         }
@@ -657,16 +664,14 @@ public class CategoryChartActivity extends LocalizedActivity {
                 PieEntry e = new PieEntry(c.planned / 100f, c.category);
                 e.setData(new SliceData(c.planned, true));
                 entries.add(e);
-                pieColors.add(lighten(base));
+                pieColors.add(base);   // gleiche Farbe wie der Ist-Anteil, nur per Randlinie getrennt
             }
         }
         totalText = getString(R.string.saldo_total) + ":\n" + money(total);
 
         PieDataSet set = new PieDataSet(entries, "");
         set.setColors(pieColors);
-        // Kein Abstand zwischen den Segmenten: Ist- und Plan-Anteil einer Kategorie bilden so einen
-        // durchgehenden Kreisausschnitt (nur zweifarbig), ohne schwarzen Trennstrich dazwischen.
-        set.setSliceSpace(0f);
+        set.setSliceSpace(2f);   // schmale schwarze Standard-Umrandung zwischen den Segmenten
         set.setDrawValues(false);
 
         pie.setData(new PieData(set));

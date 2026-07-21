@@ -658,21 +658,35 @@ public class Repository {
         }
         long amount = amountCents > 0 ? amountCents : (template != null ? template.amountCents : 0);
 
-        // Umbuchung: Von-Konto/-Ort sind die Uhr-/Widget-Auswahl und stehen fest (nie Alias/Vorlage).
-        // Alias/Vorlage liefern nur das Nach-Konto und den Empfänger.
+        // Umbuchung: steckt das gewählte Konto (Uhr/Widget) bereits als Von- ODER Nach-Konto in der
+        // gefundenen Vorlage/im Alias, gelten beide Konten unverändert wie dort hinterlegt (die Auswahl
+        // bestätigt nur, welche der beiden Umbuchungsseiten gemeint ist). Steckt es in keinem von beiden,
+        // wird das Von-Konto durch die Uhr-/Widget-Auswahl ersetzt; das Nach-Konto bleibt wie gehabt aus
+        // Alias/Vorlage.
         if (VOICE_TYPE_TRANSFER.equals(type)) {
-            String from = def;
+            String from;
             String to;
             String payee = "";
             String note = "";
             if (alias != null) {
-                to = alias.toAccount.isEmpty() ? term : alias.toAccount;
+                String aliasFrom = alias.fromAccount == null ? "" : alias.fromAccount.trim();
+                String aliasTo = alias.toAccount == null ? "" : alias.toAccount.trim();
+                boolean selMatches = (!aliasFrom.isEmpty() && def.equalsIgnoreCase(aliasFrom))
+                        || (!aliasTo.isEmpty() && def.equalsIgnoreCase(aliasTo));
+                from = selMatches && !aliasFrom.isEmpty() ? aliasFrom : def;
+                to = aliasTo.isEmpty() ? term : aliasTo;
                 payee = alias.corrected;
             } else if (template != null && template.isTransfer) {
-                to = template.isIncome ? template.account : template.transferAccount;
+                String tplFrom = template.isIncome ? template.transferAccount : template.account;
+                String tplTo = template.isIncome ? template.account : template.transferAccount;
+                boolean selMatches = (!tplFrom.isEmpty() && def.equalsIgnoreCase(tplFrom))
+                        || (!tplTo.isEmpty() && def.equalsIgnoreCase(tplTo));
+                from = selMatches && !tplFrom.isEmpty() ? tplFrom : def;
+                to = tplTo;
                 payee = template.payee;
                 note = template.note;
             } else {
+                from = def;
                 // Widget/Uhr: der gesprochene Name (falls vorhanden) ist der Empfänger. Nach-Konto: ist
                 // das Von-Konto das Standardkonto → leer (am Handy ergänzen), sonst das Standardkonto.
                 payee = term;

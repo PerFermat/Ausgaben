@@ -563,6 +563,12 @@ public class MainActivity extends LocalizedActivity {
     /** Öffnet den Editor vorbelegt aus einer Auflösung (Vorlage/Alias) + Betrag. */
     private void openVoiceEditor(Repository.VoiceResolution res, long amount, String spokenPayee) {
         Intent i = new Intent(this, BookingEditActivity.class);
+        // Angezeigtes Konto ist eine Nutzereingabe: steckt es bei einer Umbuchung bereits als Von- oder
+        // Nach-Konto in Alias/Vorlage, bleiben dort beide Konten unverändert; sonst ersetzt es das
+        // Von-Konto (nur bei „Alle Konten" – selectedAccount leer – bleibt Alias/Vorlage maßgeblich).
+        if (!selectedAccount.isEmpty()) {
+            i.putExtra(BookingEditActivity.EXTRA_PRESET_TRANSFER_FROM_ACCOUNT, selectedAccount);
+        }
         if (res.booking != null) {
             i.putExtra(BookingEditActivity.EXTRA_TEMPLATE_BOOKING_ID, res.booking.id);
         } else {
@@ -613,17 +619,6 @@ public class MainActivity extends LocalizedActivity {
         payeeView.setPadding(0, pad / 2, 0, 0);
         box.addView(payeeView);
 
-        // Eigene Rechentastatur statt der System-Tastatur; OK wertet aus, ungültig → Meldung.
-        final CalcKeyboardView calc = new CalcKeyboardView(this);
-        calc.attachTo(field);
-        calc.setOnOk(valid -> {
-            if (!valid) {
-                Toast.makeText(this, R.string.error_amount_calc, Toast.LENGTH_SHORT).show();
-            }
-        });
-        field.requestFocus();
-        box.addView(calc);
-
         // Empfänger anhand der aktuellen Position ermitteln und anzeigen (aktualisiert sich bei neuem Fix).
         final Repository.VoiceResolution[] lastRes = new Repository.VoiceResolution[1];
         final Runnable resolveShow = () -> {
@@ -643,6 +638,39 @@ public class MainActivity extends LocalizedActivity {
             locationTagger.setOnLocationUpdate(resolveShow::run);
         }
 
+        // Einziges Feld im Dialog: OK auf der Rechentastatur übernimmt direkt (kein separater
+        // Speichern-Knopf nötig) – Rechnung ist bereits ausgewertet, wenn valid == true.
+        final androidx.appcompat.app.AlertDialog[] dialogRef = new androidx.appcompat.app.AlertDialog[1];
+        final CalcKeyboardView calc = new CalcKeyboardView(this);
+        calc.attachTo(field);
+        calc.setOnOk(valid -> {
+            if (!valid) {
+                Toast.makeText(this, R.string.error_amount_calc, Toast.LENGTH_SHORT).show();
+                return;
+            }
+            String raw = field.getText() == null ? "" : field.getText().toString().trim();
+            if (raw.isEmpty()) {
+                return;
+            }
+            Long cents = de.spahr.ausgaben.settings.AmountExpression.toCents(raw);
+            if (cents == null || cents <= 0) {
+                Toast.makeText(this, R.string.error_amount_calc, Toast.LENGTH_SHORT).show();
+                return;
+            }
+            String amt = de.spahr.ausgaben.settings.MoneyFormat.plain(cents);
+            if (lastRes[0] != null) {
+                // Bereits per Standort ermittelten Empfänger wiederverwenden (konsistent mit Anzeige).
+                openVoiceEditor(lastRes[0], cents, "");
+            } else {
+                handleVoiceResult(amt); // payee leer + Betrag → Betrag-only-Pfad
+            }
+            if (dialogRef[0] != null) {
+                dialogRef[0].dismiss();
+            }
+        });
+        field.requestFocus();
+        box.addView(calc);
+
         androidx.appcompat.app.AlertDialog dialog = new com.google.android.material.dialog.MaterialAlertDialogBuilder(
                 this, R.style.ThemeOverlay_Ausgaben_Dialog)
                 .setTitle(R.string.new_booking)
@@ -652,27 +680,9 @@ public class MainActivity extends LocalizedActivity {
                         locationTagger.setOnLocationUpdate(null);
                     }
                 })
-                .setPositiveButton(R.string.save, (d, w) -> {
-                    String raw = field.getText() == null ? "" : field.getText().toString().trim();
-                    if (raw.isEmpty()) {
-                        return;
-                    }
-                    // Rechnung auswerten (nur + und *); ungültig → Meldung, nicht weiter.
-                    Long cents = de.spahr.ausgaben.settings.AmountExpression.toCents(raw);
-                    if (cents == null || cents <= 0) {
-                        Toast.makeText(this, R.string.error_amount_calc, Toast.LENGTH_SHORT).show();
-                        return;
-                    }
-                    String amt = de.spahr.ausgaben.settings.MoneyFormat.plain(cents);
-                    if (lastRes[0] != null) {
-                        // Bereits per Standort ermittelten Empfänger wiederverwenden (konsistent mit Anzeige).
-                        openVoiceEditor(lastRes[0], cents, "");
-                    } else {
-                        handleVoiceResult(amt); // payee leer + Betrag → Betrag-only-Pfad
-                    }
-                })
                 .setNegativeButton(R.string.cancel, null)
                 .create();
+        dialogRef[0] = dialog;
         // Nur die eigene Rechentastatur zeigen – die System-Tastatur des Dialogs unterdrücken.
         if (dialog.getWindow() != null) {
             dialog.getWindow().setSoftInputMode(

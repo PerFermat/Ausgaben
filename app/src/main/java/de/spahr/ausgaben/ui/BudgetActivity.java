@@ -786,22 +786,34 @@ public class BudgetActivity extends LocalizedActivity {
         box.setPadding(pad, 0, pad, 0);
         box.addView(til);
         // Eigene Rechentastatur statt der System-Tastatur (erscheint bei Fokus des Betragsfelds).
-        CalcKeyboardView.installToggling(input, box, false);
+        CalcKeyboardView calc = CalcKeyboardView.installToggling(input, box, false);
         input.requestFocus();
+
+        // Einziges Feld im Dialog: OK auf der Rechentastatur übernimmt direkt (kein separater OK-Knopf
+        // nötig) – überschreibt den installToggling()-Standard (nur Fokus verlassen).
+        final androidx.appcompat.app.AlertDialog[] dialogRef = new androidx.appcompat.app.AlertDialog[1];
+        calc.setOnOk(valid -> {
+            if (!valid) {
+                Toast.makeText(this, R.string.budget_invalid_amount, Toast.LENGTH_SHORT).show();
+                return;
+            }
+            Long cents = parseCents(input.getText() == null ? "" : input.getText().toString());
+            if (cents == null || cents < 0) {
+                Toast.makeText(this, R.string.budget_invalid_amount, Toast.LENGTH_SHORT).show();
+                return;
+            }
+            repository.saveBudgetLine(displayYear, category, income, cents, this::reload);
+            if (dialogRef[0] != null) {
+                dialogRef[0].dismiss();
+            }
+        });
 
         androidx.appcompat.app.AlertDialog dialog = new MaterialAlertDialogBuilder(this)
                 .setTitle(getString(R.string.budget_edit_title, category))
                 .setView(box)
-                .setPositiveButton(android.R.string.ok, (d, w) -> {
-                    Long cents = parseCents(input.getText() == null ? "" : input.getText().toString());
-                    if (cents == null || cents < 0) {
-                        Toast.makeText(this, R.string.budget_invalid_amount, Toast.LENGTH_SHORT).show();
-                        return;
-                    }
-                    repository.saveBudgetLine(displayYear, category, income, cents, this::reload);
-                })
                 .setNegativeButton(android.R.string.cancel, null)
                 .create();
+        dialogRef[0] = dialog;
         // Das fokussierte Betragsfeld darf nicht die System-Tastatur des Dialogfensters hochziehen –
         // die eigene Rechentastatur erscheint stattdessen über den Fokus-Listener.
         if (dialog.getWindow() != null) {

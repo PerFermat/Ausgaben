@@ -63,6 +63,13 @@ public class BookingEditActivity extends LocalizedActivity {
     public static final String EXTRA_PRESET_ACCOUNT = "preset_account";
     /** Neue Buchung mit vorbelegtem Ort (aus der Ort-Ansicht der Bestände; leer = „ohne Ort"). */
     public static final String EXTRA_PRESET_PLACE = "preset_place";
+    /**
+     * Bei einer per Alias/Vorlage aufgelösten Umbuchung: das in der Buchungsliste angezeigte Konto
+     * (Nutzereingabe). Steckt es bereits als Von- oder Nach-Konto in Alias/Vorlage, bleiben beide Konten
+     * unverändert wie dort hinterlegt; sonst wird das Von-Konto damit ersetzt (Nach-Konto bleibt), siehe
+     * {@link MainActivity#openVoiceEditor}.
+     */
+    public static final String EXTRA_PRESET_TRANSFER_FROM_ACCOUNT = "preset_transfer_from_account";
     /** Öffnet eine bestehende Buchung nur zur Ansicht (keine Änderung möglich). */
     public static final String EXTRA_READ_ONLY = "read_only";
     /**
@@ -159,6 +166,8 @@ public class BookingEditActivity extends LocalizedActivity {
     private String prefilledPayee;
     /** Passender Alias für die Vorbelegung einer neuen Sprachbuchung (null = keiner). */
     private PayeeCorrection activeAlias;
+    /** Nutzereingabe-Vorrang bei Alias-Umbuchung, siehe {@link #EXTRA_PRESET_TRANSFER_FROM_ACCOUNT}. */
+    private String presetTransferFromAccount = "";
 
     /** Verwaltet die dynamische Kategorie-/Teilbetrag-Liste (Splitbuchung). */
     private SplitRowController splitCtl;
@@ -307,6 +316,8 @@ public class BookingEditActivity extends LocalizedActivity {
         long scheduledBookId = getIntent().getLongExtra(EXTRA_SCHEDULED_BOOK_ID, -1);
         long voiceAmount = getIntent().getLongExtra(EXTRA_VOICE_AMOUNT_CENTS, -1);
         voiceSpokenPayee = getIntent().getStringExtra(EXTRA_VOICE_SPOKEN_PAYEE);
+        String presetFrom = getIntent().getStringExtra(EXTRA_PRESET_TRANSFER_FROM_ACCOUNT);
+        presetTransferFromAccount = presetFrom == null ? "" : presetFrom.trim();
 
         // Nur bei NEUEN Buchungen und aktivem GPS: Standort vorwärmen und ggf. Berechtigung anfragen,
         // damit beim Speichern Koordinaten an die Notiz angehängt werden können. Bei einer geplanten
@@ -521,7 +532,18 @@ public class BookingEditActivity extends LocalizedActivity {
             return;
         }
         if (isTransferType()) {
-            if (!activeAlias.fromAccount.isEmpty()) {
+            // Steckt das angezeigte Konto (Nutzereingabe) bereits als Von- oder Nach-Konto im Alias, gelten
+            // beide Konten unverändert wie im Alias hinterlegt. Sonst ersetzt es das Von-Konto (Nach-Konto
+            // bleibt aus dem Alias), siehe EXTRA_PRESET_TRANSFER_FROM_ACCOUNT.
+            boolean selMatches = !presetTransferFromAccount.isEmpty()
+                    && ((!activeAlias.fromAccount.isEmpty()
+                            && presetTransferFromAccount.equalsIgnoreCase(activeAlias.fromAccount))
+                        || (!activeAlias.toAccount.isEmpty()
+                            && presetTransferFromAccount.equalsIgnoreCase(activeAlias.toAccount)));
+            boolean fromPreset = !presetTransferFromAccount.isEmpty() && !selMatches;
+            if (fromPreset) {
+                editAccount.setText(presetTransferFromAccount, false);
+            } else if (!activeAlias.fromAccount.isEmpty()) {
                 editAccount.setText(activeAlias.fromAccount, false);
             }
             if (!activeAlias.toAccount.isEmpty()) {
@@ -529,7 +551,9 @@ public class BookingEditActivity extends LocalizedActivity {
             }
             // Ort-Dropdowns/Sichtbarkeit für die neuen Konten aufbauen, dann Alias-Orte vorbelegen.
             applyTypeVisibility();
-            if (!activeAlias.fromPlace.isEmpty()) {
+            // Der Alias-Von-Ort gehört zum Alias-Konto – beim Vorrang des angezeigten Kontos passt er nicht
+            // mehr sicher dazu, applyTypeVisibility() hat dafür bereits einen sinnvollen Standardort gesetzt.
+            if (!fromPreset && !activeAlias.fromPlace.isEmpty()) {
                 editPlace.setText(activeAlias.fromPlace, false);
             }
             if (!activeAlias.toPlace.isEmpty()) {
@@ -793,6 +817,25 @@ public class BookingEditActivity extends LocalizedActivity {
         if (b == null) {
             setupNewMode();
             return;
+        }
+        if (b.isTransfer && !presetTransferFromAccount.isEmpty()) {
+            // Steckt das angezeigte Konto (Nutzereingabe) bereits als Von- oder Nach-Konto in der Vorlage,
+            // gelten beide Konten unverändert wie dort hinterlegt. Sonst ersetzt es das Von-Konto
+            // (Nach-Konto bleibt aus der Vorlage), siehe EXTRA_PRESET_TRANSFER_FROM_ACCOUNT.
+            String tplFrom = b.isIncome ? b.transferAccount : b.account;
+            String tplTo = b.isIncome ? b.account : b.transferAccount;
+            boolean selMatches = (!tplFrom.isEmpty() && presetTransferFromAccount.equalsIgnoreCase(tplFrom))
+                    || (!tplTo.isEmpty() && presetTransferFromAccount.equalsIgnoreCase(tplTo));
+            if (!selMatches) {
+                // transferGroup verwerfen: sonst würde populateFrom() den (zum neuen Von-Konto nicht mehr
+                // passenden) Vorlagen-Ort asynchron nachträglich wieder setzen.
+                if (b.isIncome) {
+                    b.transferAccount = presetTransferFromAccount;
+                } else {
+                    b.account = presetTransferFromAccount;
+                }
+                b.transferGroup = "";
+            }
         }
         booking = null; // Neu-Modus → Speichern legt eine neue Buchung an
         // Kopie aus einer Vorlage: GPS/Beleg NICHT übernehmen (GPS wird frisch bestimmt, Beleg nur bei neuem Bild).

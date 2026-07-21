@@ -304,27 +304,39 @@ public class SecurityHistoryActivity extends LocalizedActivity {
         box.setPadding(pad, 0, pad, 0);
         box.addView(til);
         // Eigene Rechentastatur statt der System-Tastatur (erscheint bei Fokus des Betragsfelds).
-        CalcKeyboardView.installToggling(input, box, false);
+        CalcKeyboardView calc = CalcKeyboardView.installToggling(input, box, false);
         input.requestFocus();
+
+        // Einziges Feld im Dialog: OK auf der Rechentastatur übernimmt direkt (kein separater OK-Knopf
+        // nötig) – überschreibt den installToggling()-Standard (nur Fokus verlassen).
+        final AlertDialog[] dialogRef = new AlertDialog[1];
+        calc.setOnOk(valid -> {
+            if (!valid) {
+                Toast.makeText(this, R.string.budget_invalid_amount, Toast.LENGTH_SHORT).show();
+                return;
+            }
+            String raw = input.getText() == null ? "" : input.getText().toString().trim();
+            if (raw.isEmpty()) {
+                repository.clearSecurityTxValue(depot, kmyId, tx.date, tx.action, tx.shares, this::reload);
+            } else {
+                Long cents = AmountExpression.toCents(raw);
+                if (cents == null || cents < 0) {
+                    Toast.makeText(this, R.string.budget_invalid_amount, Toast.LENGTH_SHORT).show();
+                    return;
+                }
+                repository.saveSecurityTxValue(depot, kmyId, tx.date, tx.action, tx.shares, cents, this::reload);
+            }
+            if (dialogRef[0] != null) {
+                dialogRef[0].dismiss();
+            }
+        });
 
         AlertDialog dialog = new MaterialAlertDialogBuilder(this)
                 .setTitle(getString(R.string.depot_tx_value_title, actionLabel(tx.action)))
                 .setView(box)
-                .setPositiveButton(android.R.string.ok, (d, w) -> {
-                    String raw = input.getText() == null ? "" : input.getText().toString().trim();
-                    if (raw.isEmpty()) {
-                        repository.clearSecurityTxValue(depot, kmyId, tx.date, tx.action, tx.shares, this::reload);
-                        return;
-                    }
-                    Long cents = AmountExpression.toCents(raw);
-                    if (cents == null || cents < 0) {
-                        Toast.makeText(this, R.string.budget_invalid_amount, Toast.LENGTH_SHORT).show();
-                        return;
-                    }
-                    repository.saveSecurityTxValue(depot, kmyId, tx.date, tx.action, tx.shares, cents, this::reload);
-                })
                 .setNegativeButton(R.string.cancel, null)
                 .create();
+        dialogRef[0] = dialog;
         // Das fokussierte Betragsfeld darf nicht die System-Tastatur des Dialogfensters hochziehen –
         // die eigene Rechentastatur erscheint stattdessen über den Fokus-Listener.
         if (dialog.getWindow() != null) {

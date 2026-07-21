@@ -84,6 +84,8 @@ public class MainActivity extends LocalizedActivity {
     private String filterPayee = "";
     private String filterCategory = "";
     private boolean filterCategoryIsMain = false;
+    /** Typ der gefilterten Kategorie (Einnahme/Ausgabe), {@code null} = kein Typ gewählt ("Alle"). */
+    private Boolean filterCategoryIsIncome = null;
     private Long filterAmountFrom = null;
     private Long filterAmountTo = null;
     private Long filterDateFrom = null;
@@ -91,6 +93,8 @@ public class MainActivity extends LocalizedActivity {
 
     private List<String> catExpense = new ArrayList<>();
     private List<String> catIncome = new ArrayList<>();
+    /** Kategorie-Pfad → Typ (globaler Rückfall für Buchungszeilen ohne eigenen Typ, siehe Booking#categoryIsIncome). */
+    private java.util.Map<String, Boolean> categoryTypes = new java.util.HashMap<>();
 
     /** Gewähltes Konto (leer = „Alle Konten"). Standard beim Start = Standardkonto. */
     private String selectedAccount = "";
@@ -691,6 +695,7 @@ public class MainActivity extends LocalizedActivity {
             catExpense = g.expense;
             catIncome = g.income;
         });
+        repository.getCategoryTypes(types -> categoryTypes = types);
         repository.getAccountNames(this::populateAccountDrawer);
         repository.getAllBookings(result -> {
             allBookings = result;
@@ -832,54 +837,26 @@ public class MainActivity extends LocalizedActivity {
 
     /**
      * Bei aktivem Kategorie-Filter zeigt eine Splitbuchung nur den Teilbetrag der gewählten Kategorie;
-     * sonst den vollen (vorzeichenbehafteten) Betrag {@code full}.
+     * sonst den vollen (vorzeichenbehafteten) Betrag {@code full}. Zusätzlich typgeprüft (Einnahme/
+     * Ausgabe, siehe {@link #categoryMatchesBooking}) für gleichnamige Kategorien unterschiedlichen Typs.
      */
     private long displaySignedForFilter(Booking b, long full) {
         if (filterCategory.isEmpty()) {
             return full;
         }
-        List<BookingSplit> parts = splitsByBooking.get(b.id);
-        if (parts == null || parts.isEmpty()) {
-            return full; // Einzelkategorie: gesamter Betrag entfällt auf diese Kategorie
-        }
-        long sum = 0;
-        boolean any = false;
-        for (BookingSplit p : parts) {
-            if (categoryMatches(p.category)) {
-                sum += b.isIncome ? p.amountCents : -p.amountCents;
-                any = true;
-            }
-        }
-        return any ? sum : full;
+        return de.spahr.ausgaben.db.CategoryBookingFilter.displaySigned(b, splitsByBooking,
+                filterCategory, filterCategoryIsMain, full, categoryTypes, filterCategoryIsIncome);
     }
 
-    /** Treffer, wenn die (Haupt-)Kategorie oder eine Teilkategorie einer Splitbuchung passt. */
+    /**
+     * Treffer, wenn die (Haupt-)Kategorie oder eine Teilkategorie einer Splitbuchung passt – zusätzlich
+     * typgeprüft ({@link #filterCategoryIsIncome}): kMyMoney erlaubt dieselbe Kategorie-Bezeichnung
+     * unabhängig im Einnahme- und im Ausgabe-Baum (z. B. „Versicherung:Krankenzusatz"), maßgeblich ist
+     * dabei der Typ der jeweiligen Buchungs-/Split-Zeile selbst (siehe {@link Booking#categoryIsIncome}).
+     */
     private boolean categoryMatchesBooking(Booking b) {
-        if (categoryMatches(b.category)) {
-            return true;
-        }
-        List<BookingSplit> parts = splitsByBooking.get(b.id);
-        if (parts != null) {
-            for (BookingSplit p : parts) {
-                if (categoryMatches(p.category)) {
-                    return true;
-                }
-            }
-        }
-        return false;
-    }
-
-    private boolean categoryMatches(String cat) {
-        if (cat == null) {
-            cat = "";
-        }
-        if (filterCategoryIsMain) {
-            // Hauptkategorie: exakt oder als Präfix inkl. Unterkategorien.
-            return cat.equalsIgnoreCase(filterCategory)
-                    || cat.toLowerCase(Locale.GERMANY).startsWith(
-                            filterCategory.toLowerCase(Locale.GERMANY) + ":");
-        }
-        return cat.equalsIgnoreCase(filterCategory);
+        return de.spahr.ausgaben.db.CategoryBookingFilter.matchesBooking(b, splitsByBooking,
+                filterCategory, filterCategoryIsMain, categoryTypes, filterCategoryIsIncome);
     }
 
     private boolean isFilterActive() {
@@ -1026,6 +1003,8 @@ public class MainActivity extends LocalizedActivity {
         // Kategorie-Baum
         final String[] catValue = {filterCategory};
         final boolean[] catIsMain = {filterCategoryIsMain};
+        // "Alle" (leerer Wert) setzt bewusst keinen Typ – kein Ausschluss.
+        final Boolean[] catIsIncome = {filterCategory.isEmpty() ? null : filterCategoryIsIncome};
         CategoryFilterAdapter catAdapter = new CategoryFilterAdapter(this,
                 getString(R.string.category_all),
                 getString(R.string.category_group_expense), catExpense,
@@ -1037,6 +1016,7 @@ public class MainActivity extends LocalizedActivity {
             if (it != null) {
                 catValue[0] = it.value;
                 catIsMain[0] = it.isMain;
+                catIsIncome[0] = it.value.isEmpty() ? null : it.groupIsIncome;
                 fCategory.setText(it.value, false);
             }
         });
@@ -1140,6 +1120,7 @@ public class MainActivity extends LocalizedActivity {
                     filterPayee = textOf(fPayee).trim();
                     filterCategory = catValue[0] == null ? "" : catValue[0].trim();
                     filterCategoryIsMain = catIsMain[0];
+                    filterCategoryIsIncome = filterCategory.isEmpty() ? null : catIsIncome[0];
                     if (dateRange != null) {
                         long df = dateRange.getFromMillis();
                         long dt = dateRange.getToMillis();
@@ -1181,6 +1162,7 @@ public class MainActivity extends LocalizedActivity {
                     filterPayee = "";
                     filterCategory = "";
                     filterCategoryIsMain = false;
+                    filterCategoryIsIncome = null;
                     filterAmountFrom = null;
                     filterAmountTo = null;
                     filterDateFrom = null;
@@ -1265,6 +1247,8 @@ public class MainActivity extends LocalizedActivity {
             i.putExtra(AnalysisActivity.EXTRA_FILTER_PAYEE, filterPayee);
             i.putExtra(AnalysisActivity.EXTRA_FILTER_CATEGORY, filterCategory);
             i.putExtra(AnalysisActivity.EXTRA_FILTER_CATEGORY_MAIN, filterCategoryIsMain);
+            i.putExtra(AnalysisActivity.EXTRA_FILTER_CATEGORY_INCOME,
+                    filterCategoryIsIncome == null ? -1 : (filterCategoryIsIncome ? 1 : 0));
             i.putExtra(AnalysisActivity.EXTRA_FILTER_AMOUNT_FROM,
                     filterAmountFrom == null ? Long.MIN_VALUE : filterAmountFrom);
             i.putExtra(AnalysisActivity.EXTRA_FILTER_AMOUNT_TO,

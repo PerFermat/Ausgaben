@@ -514,7 +514,9 @@ public class MainActivity extends LocalizedActivity {
         Intent intent = new Intent(android.speech.RecognizerIntent.ACTION_RECOGNIZE_SPEECH);
         intent.putExtra(android.speech.RecognizerIntent.EXTRA_LANGUAGE_MODEL,
                 android.speech.RecognizerIntent.LANGUAGE_MODEL_FREE_FORM);
-        intent.putExtra(android.speech.RecognizerIntent.EXTRA_LANGUAGE, "de-DE");
+        // Erkennungssprache folgt der gewählten App-Sprache (auch hochgeladene); nicht unterstützte
+        // Codes fallen im System auf die Gerätesprache zurück.
+        intent.putExtra(android.speech.RecognizerIntent.EXTRA_LANGUAGE, settings.getLanguage());
         intent.putExtra(android.speech.RecognizerIntent.EXTRA_PROMPT, getString(R.string.voice_prompt));
         // Mehrere Alternativen anfordern (die erste mit lesbarem Betrag wird bevorzugt).
         intent.putExtra(android.speech.RecognizerIntent.EXTRA_MAX_RESULTS, 5);

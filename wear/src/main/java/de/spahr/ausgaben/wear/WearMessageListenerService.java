@@ -40,7 +40,8 @@ public class WearMessageListenerService extends WearableListenerService {
                     && WearPaths.PATH_LANGUAGE.equals(path)) {
                 DataMap map = DataMapItem.fromDataItem(event.getDataItem()).getDataMap();
                 String code = map.getString("code", "de");
-                WearStrings.update(this, code, map.getString("strings", "{}"));
+                WearStrings.update(this, code, map.getString("strings", "{}"),
+                        map.getBoolean("installModel", false));
                 androidx.appcompat.app.AppCompatDelegate.setApplicationLocales(
                         androidx.core.os.LocaleListCompat.forLanguageTags(code));
                 Log.d(TAG, "Sprache empfangen: " + code);

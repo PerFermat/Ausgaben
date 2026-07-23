@@ -16,5 +16,8 @@
     <string name="wear_reason_gps">GPS</string>
     <string name="wear_reason_no_phone">Kein Handy</string>
     <string name="wear_reason_sending">Sendet…</string>
+    <string name="wear_offline_number">Offline – Betrag eingeben</string>
+    <string name="wear_model_downloading">Offline-Sprachmodell wird geladen…</string>
+    <string name="wear_model_hint">Offline-Sprache für diese Sprache in den Uhr-Einstellungen aktivieren (System → Sprachen &amp; Eingabe).</string>
     <string name="number_entry">Betrag per Ziffern</string>
 </resources>

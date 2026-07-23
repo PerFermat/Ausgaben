@@ -94,8 +94,12 @@ Details, screenshots and exact behavior are in the **[user manual](docs/Manual-A
 
 An additional `:wear` module records a cash expense by voice right on a Wear OS watch ("hairdresser 20
 euros"). The watch only captures the text; processing and creating the booking happen on the phone (the
-same parser). Bookings recorded offline are sent automatically once the phone is reachable — without loss
-or duplication. See the "Wear OS" chapter in the manual for details.
+same parser). Recognition follows the selected app language and **prefers offline** speech, so recording
+works even with the phone off; if offline speech isn't available the watch falls back to the silent number
+pad. Bookings recorded offline are buffered (incl. GPS) and sent automatically once the phone is reachable
+— without loss or duplication. An opt-in phone setting ("Install offline speech package on the watch",
+`full` build only) lets the watch download the offline speech model for the chosen language. See the
+"Wear OS" chapter in the manual for details.
 
 Requirement: the phone and watch app share the same `applicationId` **and** the same signature.
 

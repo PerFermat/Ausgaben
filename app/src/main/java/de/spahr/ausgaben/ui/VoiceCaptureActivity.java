@@ -66,7 +66,10 @@ public class VoiceCaptureActivity extends LocalizedActivity {
         Intent intent = new Intent(RecognizerIntent.ACTION_RECOGNIZE_SPEECH);
         intent.putExtra(RecognizerIntent.EXTRA_LANGUAGE_MODEL,
                 RecognizerIntent.LANGUAGE_MODEL_FREE_FORM);
-        intent.putExtra(RecognizerIntent.EXTRA_LANGUAGE, "de-DE");
+        // Erkennungssprache folgt der gewählten App-Sprache (auch hochgeladene); nicht unterstützte
+        // Codes fallen im System auf die Gerätesprache zurück.
+        intent.putExtra(RecognizerIntent.EXTRA_LANGUAGE,
+                new SettingsStore(this).getLanguage());
         intent.putExtra(RecognizerIntent.EXTRA_PROMPT, getString(R.string.voice_prompt));
         intent.putExtra(RecognizerIntent.EXTRA_MAX_RESULTS, 5);
         try {

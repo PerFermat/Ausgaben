@@ -101,6 +101,14 @@
             android:layout_marginTop="8dp"
             android:text="@string/show_currency_symbol" />
 
+        <!-- Nur im full-Build sichtbar (Wear-Anbindung); in foss per R.bool.wear_bridge ausgeblendet. -->
+        <com.google.android.material.materialswitch.MaterialSwitch
+            android:id="@+id/switchWearOfflineModel"
+            android:layout_width="match_parent"
+            android:layout_height="wrap_content"
+            android:layout_marginTop="8dp"
+            android:text="@string/wear_offline_model_switch" />
+
         <com.google.android.material.materialswitch.MaterialSwitch
             android:id="@+id/switchDividendGross"
             android:layout_width="match_parent"

@@ -93,8 +93,13 @@ Details, Screenshots und die genaue Bedienung stehen im **[Benutzerhandbuch](doc
 
 Ein zusätzliches Modul `:wear` erfasst eine Bargeldausgabe per Sprache direkt auf einer Wear-OS-Uhr
 („Frisör 20 Euro“). Die Uhr nimmt nur den Text auf; Verarbeitung und Buchungsanlage passieren auf dem
-Smartphone (derselbe Parser). Offline aufgenommene Buchungen werden automatisch nachgereicht, sobald das
-Handy erreichbar ist – ohne Verlust und ohne Dopplung. Details im Handbuch, Kapitel „Wear OS“.
+Smartphone (derselbe Parser). Die Erkennung folgt der gewählten App-Sprache und **bevorzugt Offline**-
+Spracherkennung, sodass die Aufnahme auch bei ausgeschaltetem Handy klappt; ist offline keine Sprache
+verfügbar, fällt die Uhr auf den stillen Zahlenblock zurück. Offline aufgenommene Buchungen werden
+zwischengespeichert (inkl. GPS) und automatisch nachgereicht, sobald das Handy erreichbar ist – ohne
+Verlust und ohne Dopplung. Ein optionaler Handy-Schalter („Offline-Sprachpaket auf der Uhr installieren“,
+nur `full`-Build) lädt das Offline-Sprachmodell der gewählten Sprache auf die Uhr. Details im Handbuch,
+Kapitel „Wear OS“.
 
 Voraussetzung: Phone- und Wear-App haben dieselbe `applicationId` **und** dieselbe Signatur.
 

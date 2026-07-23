@@ -1,0 +1,5 @@
+<?xml version="1.0" encoding="utf-8"?>
+<!-- foss-Flavor (F-Droid): keine Wear-Anbindung (kein GMS) → Uhr-bezogene Optionen ausgeblendet. -->
+<resources>
+    <bool name="wear_bridge">false</bool>
+</resources>

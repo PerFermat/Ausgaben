@@ -700,6 +700,19 @@ bullets([
   "<b>Offline</b>: nicht übertragene Buchungen werden angezeigt und automatisch nachgereicht, sobald das "
   "Handy erreichbar ist – ohne Verlust und ohne Dopplung.",
 ])
+h2("Offline erfassen (Handy aus oder getrennt)")
+p("Die Spracherkennung nutzt die <b>in den Einstellungen gewählte Sprache</b> (auch hochgeladene) und "
+  "bevorzugt die <b>Offline-Erkennung</b>, sodass die Aufnahme auch ohne Handy/Netz funktioniert – sofern "
+  "auf der Uhr ein Offline-Sprachmodell vorhanden ist. Klappt die Sprache offline nicht, öffnet die Uhr "
+  "automatisch den <b>Zahlenblock</b>: Sie tippen nur den Betrag, die Buchung wird <b>inkl. GPS "
+  "zwischengespeichert</b> und automatisch gesendet, sobald das Handy wieder verfügbar ist (den Empfänger "
+  "löst das Handy per Standort auf).")
+p("Damit die <b>Sprachaufnahme</b> offline klappt, kann das <b>Offline-Sprachmodell</b> der gewählten "
+  "Sprache auf die Uhr geladen werden. Dazu am Handy in den Einstellungen den Schalter <b>«Offline-"
+  "Sprachpaket auf der Uhr installieren»</b> aktivieren (nur in der GitHub-Variante mit Wear-Anbindung). "
+  "Auf Wear OS 4+ stößt die Uhr den Download dann automatisch an (einmalig, bei erreichbarem Netz); auf "
+  "älteren Uhren erscheint ein Hinweis, das Modell in den Systemeinstellungen der Uhr zu laden. Ohne diesen "
+  "Schalter bleibt es beim Zahlenblock-Fallback.")
 p("Voraussetzung: Handy- und Uhren-App haben dieselbe Signatur (gleicher Schlüssel).", )
 
 # ---------------------------------------------------------------- 16 Einstellungen (vollstaendige Referenz)
@@ -726,6 +739,9 @@ bullets([
   "<b>Dividenden brutto/netto</b>: ob Depot-Dividenden brutto (deklariert) oder netto verrechnet werden.",
   "<b>Budget app-intern</b>: das Budget-Ist aus dem Verlauf berechnen statt aus KMyMoney importieren "
   "(siehe Kapitel 11).",
+  "<b>Offline-Sprachpaket auf der Uhr installieren</b> (nur GitHub-Variante mit Wear-Anbindung): erlaubt "
+  "der Uhr, das Offline-Sprachmodell der gewählten Sprache zu laden, damit die Sprachaufnahme auch offline "
+  "funktioniert (siehe Kapitel 15). Aus → offline greift der Zahlenblock-Fallback.",
 ])
 h2("Verbindung zu Ihrem Server (SMB / WebDAV / Nextcloud)")
 p("<b>Der wichtigste Einrichtungsschritt</b>, damit die App mit KMyMoney Daten austauscht. Wählen Sie den "

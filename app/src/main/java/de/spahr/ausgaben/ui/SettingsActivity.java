@@ -171,6 +171,19 @@ public class SettingsActivity extends LocalizedActivity {
         switchGps.setChecked(settings.isGpsEnabled());
         switchGps.setOnCheckedChangeListener((b, checked) -> settings.setGpsEnabled(checked));
 
+        // Nur im full-Build (Wear-Anbindung): Offline-Sprachpaket auf der Uhr installieren lassen.
+        // Der Zustand reist über LanguageSync (/language-DataItem) zur Uhr.
+        MaterialSwitch switchWearModel = findViewById(R.id.switchWearOfflineModel);
+        if (getResources().getBoolean(R.bool.wear_bridge)) {
+            switchWearModel.setChecked(settings.isWearInstallModel());
+            switchWearModel.setOnCheckedChangeListener((b, checked) -> {
+                settings.setWearInstallModel(checked);
+                de.spahr.ausgaben.wear.LanguageSync.publish(this);
+            });
+        } else {
+            switchWearModel.setVisibility(android.view.View.GONE);
+        }
+
         MaterialSwitch switchReceipt = findViewById(R.id.switchReceipt);
         switchReceipt.setChecked(settings.isReceiptEnabled());
         switchReceipt.setOnCheckedChangeListener((b, checked) -> settings.setReceiptEnabled(checked));

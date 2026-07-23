@@ -660,6 +660,17 @@ bullets([
   "<b>Offline</b>: bookings not yet transmitted are shown and delivered automatically once the phone is "
   "reachable – without loss and without duplication.",
 ])
+h2("Recording offline (phone off or disconnected)")
+p("Speech recognition uses the <b>language chosen in the settings</b> (including uploaded ones) and "
+  "<b>prefers offline</b> recognition, so recording works even without the phone/network – provided an "
+  "offline speech model is present on the watch. If offline speech fails, the watch automatically opens the "
+  "<b>number pad</b>: you just type the amount, the booking is <b>buffered including GPS</b> and sent "
+  "automatically once the phone is reachable again (the payee is resolved by location on the phone).")
+p("So that <b>voice</b> recording works offline, the <b>offline speech model</b> of the chosen language can "
+  "be installed on the watch. On the phone, enable the setting <b>«Install offline speech package on the "
+  "watch»</b> (only in the GitHub build with the Wear bridge). On Wear OS 4+ the watch then triggers the "
+  "download automatically (once, when a network is reachable); on older watches a hint appears to load the "
+  "model in the watch's system settings. Without this switch, the number-pad fallback applies.")
 p("Requirement: the phone and watch apps share the same signature (same key).")
 
 # ---------------------------------------------------------------- 15
@@ -686,6 +697,9 @@ bullets([
   "<b>Dividends gross/net</b>: whether portfolio dividends are settled gross (declared) or net.",
   "<b>Budget in-app</b>: compute the budget actuals from history instead of importing from KMyMoney "
   "(see Chapter 11).",
+  "<b>Install offline speech package on the watch</b> (GitHub build with the Wear bridge only): lets the "
+  "watch download the offline speech model of the chosen language so voice recording works offline too "
+  "(see Chapter 15). Off → the number-pad fallback applies offline.",
 ])
 h2("Connection to your server (SMB / WebDAV / Nextcloud)")
 p("<b>The most important setup step</b>, so the app can exchange data with KMyMoney. Choose the <b>server "

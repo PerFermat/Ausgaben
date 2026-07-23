@@ -30,6 +30,7 @@ public class SettingsStore {
     private static final String KEY_GPS_ENABLED = "gps_enabled";
     private static final String KEY_RECEIPT_ENABLED = "receipt_enabled";
     private static final String KEY_SCHEDULED_REMINDER = "scheduled_reminder";
+    private static final String KEY_WEAR_INSTALL_MODEL = "wear_install_offline_model";
     private static final String KEY_SERVER_TYPE = "server_type";
     private static final String KEY_ALIAS_PROMPT = "alias_prompt";
     private static final String KEY_LANGUAGE = "language";
@@ -246,6 +247,18 @@ public class SettingsStore {
 
     public void setGpsEnabled(boolean enabled) {
         prefs.edit().putBoolean(KEY_GPS_ENABLED, enabled).apply();
+    }
+
+    /**
+     * Ob die Uhr das Offline-Sprachpaket der gewählten Sprache installieren darf (nur im {@code full}-Build
+     * sichtbar/relevant). Standard aus – dann greift offline der Zahlenblock-Fallback.
+     */
+    public boolean isWearInstallModel() {
+        return prefs.getBoolean(KEY_WEAR_INSTALL_MODEL, false);
+    }
+
+    public void setWearInstallModel(boolean enabled) {
+        prefs.edit().putBoolean(KEY_WEAR_INSTALL_MODEL, enabled).apply();
     }
 
     /** Belegfotos je Buchung aufnehmen und ins Netzlaufwerk synchronisieren (Standard: an). */

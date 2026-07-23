@@ -35,6 +35,8 @@ public final class LanguageSync {
                 PutDataMapRequest req = PutDataMapRequest.create(PATH);
                 req.getDataMap().putString("code", code);
                 req.getDataMap().putString("strings", o.toString());
+                // Darf die Uhr das Offline-Sprachpaket installieren? (Opt-in in den Einstellungen)
+                req.getDataMap().putBoolean("installModel", new SettingsStore(app).isWearInstallModel());
                 req.getDataMap().putLong("ts", System.currentTimeMillis());
                 Wearable.getDataClient(app).putDataItem(req.asPutDataRequest().setUrgent());
             } catch (Exception ignored) {

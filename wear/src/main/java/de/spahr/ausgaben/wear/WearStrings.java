@@ -20,6 +20,7 @@ public final class WearStrings {
     private static final String PREFS = "wear_language";
     private static final String KEY_CODE = "code";
     private static final String KEY_STRINGS = "strings";
+    private static final String KEY_INSTALL_MODEL = "install_model";
 
     private static volatile Map<String, String> map = Collections.emptyMap();
     private static volatile Locale locale = Locale.GERMAN;
@@ -44,6 +45,19 @@ public final class WearStrings {
         prefs(context).edit().putString(KEY_CODE, code).putString(KEY_STRINGS, stringsJson).apply();
         apply(code, stringsJson);
         loaded = true;
+    }
+
+    /** Wie {@link #update}, dazu die Freigabe fürs Offline-Sprachpaket (Opt-in am Phone). */
+    public static void update(Context context, String code, String stringsJson, boolean installModel) {
+        prefs(context).edit().putString(KEY_CODE, code).putString(KEY_STRINGS, stringsJson)
+                .putBoolean(KEY_INSTALL_MODEL, installModel).apply();
+        apply(code, stringsJson);
+        loaded = true;
+    }
+
+    /** Darf die Uhr das Offline-Sprachpaket der gewählten Sprache installieren? Standard aus. */
+    public static boolean installModelEnabled(Context context) {
+        return prefs(context).getBoolean(KEY_INSTALL_MODEL, false);
     }
 
     private static void apply(String code, String stringsJson) {

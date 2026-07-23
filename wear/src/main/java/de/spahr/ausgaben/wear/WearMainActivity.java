@@ -67,6 +67,9 @@ public class WearMainActivity extends WearLocalizedActivity {
     /** Zuletzt geprüfte Erreichbarkeit des Phones; optimistisch, bis die Abfrage antwortet. */
     private boolean phoneConnected = true;
 
+    /** Offline-Sprachmodell nur einmal je Prozess prüfen/anstoßen. */
+    private static boolean offlineModelChecked;
+
     private String pendingType = WearPaths.TYPE_EXPENSE;
     private String confirmEntryId;
     private CountDownTimer confirmTimer;
@@ -206,20 +209,23 @@ public class WearMainActivity extends WearLocalizedActivity {
                 if (best != null) {
                     onRecognized(best);
                 } else {
-                    onListenError();
+                    onListenError(SpeechRecognizer.ERROR_NO_MATCH);
                 }
             }
 
             @Override
             public void onError(int error) {
                 destroySpeech();
-                onListenError();
+                onListenError(error);
             }
         });
 
         Intent intent = new Intent(RecognizerIntent.ACTION_RECOGNIZE_SPEECH);
         intent.putExtra(RecognizerIntent.EXTRA_LANGUAGE_MODEL, RecognizerIntent.LANGUAGE_MODEL_FREE_FORM);
-        intent.putExtra(RecognizerIntent.EXTRA_LANGUAGE, "de-DE");
+        // Erkennungssprache folgt der gewählten App-Sprache (auch hochgeladene); Offline bevorzugen, damit
+        // die Aufnahme auch ohne Handy/Netz funktioniert (sofern ein Offline-Modell vorhanden ist).
+        intent.putExtra(RecognizerIntent.EXTRA_LANGUAGE, recognizerLanguageTag());
+        intent.putExtra(RecognizerIntent.EXTRA_PREFER_OFFLINE, true);
         intent.putExtra(RecognizerIntent.EXTRA_CALLING_PACKAGE, getPackageName());
         // Mehrere Alternativen anfordern (die erste mit einer Zahl wird bevorzugt).
         intent.putExtra(RecognizerIntent.EXTRA_MAX_RESULTS, 5);
@@ -227,13 +233,39 @@ public class WearMainActivity extends WearLocalizedActivity {
             speech.startListening(intent);
         } catch (Exception e) {
             destroySpeech();
-            onListenError();
+            onListenError(SpeechRecognizer.ERROR_CLIENT);
         }
     }
 
-    private void onListenError() {
-        showTypeSelection();
-        showStatus(getString(R.string.wear_not_understood));
+    /** BCP-47-Tag der gewählten App-Sprache; leer/unbekannt → Gerätesprache. */
+    private String recognizerLanguageTag() {
+        String tag = WearStrings.locale().toLanguageTag();
+        if (tag == null || tag.isEmpty() || "und".equals(tag)) {
+            return java.util.Locale.getDefault().toLanguageTag();
+        }
+        return tag;
+    }
+
+    /**
+     * Erkennung fehlgeschlagen. Bei Offline-/Netzwerkfehler oder nicht verbundenem Handy in den stillen
+     * Zahlenblock wechseln (Betrag+GPS werden gepuffert und später gesendet); sonst „Nicht verstanden".
+     */
+    private void onListenError(int code) {
+        boolean offline = !phoneConnected
+                || code == SpeechRecognizer.ERROR_NETWORK
+                || code == SpeechRecognizer.ERROR_NETWORK_TIMEOUT
+                || code == SpeechRecognizer.ERROR_SERVER
+                || code == SpeechRecognizer.ERROR_CLIENT
+                || (android.os.Build.VERSION.SDK_INT >= 31
+                    && code == SpeechRecognizer.ERROR_SERVER_DISCONNECTED);
+        if (offline) {
+            android.widget.Toast.makeText(this, R.string.wear_offline_number,
+                    android.widget.Toast.LENGTH_SHORT).show();
+            showNumberPad();
+        } else {
+            showTypeSelection();
+            showStatus(getString(R.string.wear_not_understood));
+        }
     }
 
     /** Bevorzugt die erste Erkennungs-Alternative mit einer Zahl (sonst die beste), damit ein Betrag nicht
@@ -464,10 +496,90 @@ public class WearMainActivity extends WearLocalizedActivity {
             location.start();
         }
         WearSync.syncPending(this);
+        ensureOfflineModel();
         // Nicht mitten in Aufnahme/Bestätigung/Zifferneingabe zurücksetzen; sonst Typauswahl zeigen.
         if (confirmTimer == null && speech == null && !numberEntryActive) {
             showTypeSelection();
         }
+    }
+
+    /**
+     * Bei Opt-in (Phone-Einstellung „Offline-Sprachpaket auf der Uhr installieren") das Modell der gewählten
+     * Sprache bereitstellen. Ab Wear OS 4 (API 33) automatisch anstoßen; auf älteren Uhren nur ein einmaliger
+     * Hinweis, es manuell in den Systemeinstellungen zu laden. Ohne Opt-in passiert nichts (Offline greift
+     * dann der Zahlenblock-Fallback).
+     */
+    private void ensureOfflineModel() {
+        if (offlineModelChecked || !WearStrings.installModelEnabled(this)) {
+            return;
+        }
+        offlineModelChecked = true;
+        if (android.os.Build.VERSION.SDK_INT < 33) {
+            android.widget.Toast.makeText(this, R.string.wear_model_hint,
+                    android.widget.Toast.LENGTH_LONG).show();
+            return;
+        }
+        triggerOfflineModelDownload();
+    }
+
+    @androidx.annotation.RequiresApi(33)
+    private void triggerOfflineModelDownload() {
+        final String tag = recognizerLanguageTag();
+        final Intent intent = new Intent(RecognizerIntent.ACTION_RECOGNIZE_SPEECH);
+        intent.putExtra(RecognizerIntent.EXTRA_LANGUAGE_MODEL, RecognizerIntent.LANGUAGE_MODEL_FREE_FORM);
+        intent.putExtra(RecognizerIntent.EXTRA_LANGUAGE, tag);
+        final SpeechRecognizer rec;
+        try {
+            rec = SpeechRecognizer.createOnDeviceSpeechRecognizer(this);
+        } catch (Exception e) {
+            return;
+        }
+        try {
+            rec.checkRecognitionSupport(intent, getMainExecutor(),
+                    new android.speech.RecognitionSupportCallback() {
+                        @Override
+                        public void onSupportResult(android.speech.RecognitionSupport support) {
+                            boolean installed = containsLang(support.getInstalledOnDeviceLanguages(), tag);
+                            boolean pending = containsLang(support.getPendingOnDeviceLanguages(), tag);
+                            boolean supported = containsLang(support.getSupportedOnDeviceLanguages(), tag);
+                            if (!installed && !pending && supported) {
+                                android.widget.Toast.makeText(WearMainActivity.this,
+                                        R.string.wear_model_downloading,
+                                        android.widget.Toast.LENGTH_SHORT).show();
+                                try {
+                                    rec.triggerModelDownload(intent);
+                                } catch (Exception ignored) {
+                                }
+                            }
+                            rec.destroy();
+                        }
+
+                        @Override
+                        public void onError(int error) {
+                            rec.destroy();
+                        }
+                    });
+        } catch (Exception e) {
+            rec.destroy();
+        }
+    }
+
+    /** Grober Sprach-Vergleich: exakt oder gleicher Sprachteil (z. B. „de" ~ „de-DE"). */
+    private static boolean containsLang(java.util.List<String> langs, String tag) {
+        if (langs == null || tag == null) {
+            return false;
+        }
+        String base = tag.split("-")[0].toLowerCase(java.util.Locale.ROOT);
+        for (String l : langs) {
+            if (l == null) {
+                continue;
+            }
+            if (l.equalsIgnoreCase(tag)
+                    || l.split("-")[0].toLowerCase(java.util.Locale.ROOT).equals(base)) {
+                return true;
+            }
+        }
+        return false;
     }
 
     @Override

@@ -358,6 +358,7 @@
     <string name="currency_hint">Currency indicator (default)</string>
     <string name="number_format_hint">Number format</string>
     <string name="show_currency_symbol">Show currency symbol</string>
+    <string name="wear_offline_model_switch">Install offline speech package on the watch</string>
     <string name="dividend_gross_switch">Show dividends gross (off = net)</string>
     <string name="depot_dividends_gross">Dividends (gross)</string>
     <string name="depot_dividends_net">Dividends (net)</string>

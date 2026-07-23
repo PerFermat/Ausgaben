@@ -358,6 +358,7 @@
     <string name="currency_hint">Währungskennzeichen (Standard)</string>
     <string name="number_format_hint">Zahlenformat</string>
     <string name="show_currency_symbol">Währungskennzeichen anzeigen</string>
+    <string name="wear_offline_model_switch">Offline-Sprachpaket auf der Uhr installieren</string>
     <string name="dividend_gross_switch">Dividenden brutto anzeigen (aus = netto)</string>
     <string name="budget_internal_switch">Budget app-intern aus Verlauf berechnen (statt aus KMyMoney)</string>
     <string name="budget_import_button">Budget aus KMyMoney importieren</string>

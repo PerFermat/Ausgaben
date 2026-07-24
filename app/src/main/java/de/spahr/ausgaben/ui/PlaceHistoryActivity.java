@@ -82,9 +82,11 @@ public class PlaceHistoryActivity extends LocalizedActivity {
     private void render(List<PlaceEntry> entries) {
         container.removeAllViews();
         long running = 0;
+        // Saldo chronologisch aufsummieren (jede Zeile zeigt ihren korrekten Zwischenstand), die Zeilen
+        // aber jeweils oben einfügen → neueste Buchung steht oben.
         for (PlaceEntry e : entries) {
             running += e.amountCents;
-            container.addView(buildRow(e, running));
+            container.addView(buildRow(e, running), 0);
         }
         placeBalance.setText(getString(R.string.balance, formatEuro(running)));
         if (entries.isEmpty()) {

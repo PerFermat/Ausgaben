@@ -189,6 +189,15 @@ public class WearMainActivity extends WearLocalizedActivity {
 
     /** Programmatische Spracherkennung starten – liefert das Ergebnis automatisch (kein Bestätigen). */
     private void startListening() {
+        startListening(true);
+    }
+
+    /**
+     * @param allowOnDevice bei {@code true} wird – falls das Offline-Modell laut Opt-in installiert ist –
+     *     der On-Device-Recognizer bevorzugt (auch online). Der automatische Online-Rückfall setzt dies auf
+     *     {@code false}, damit der Standard-Recognizer greift, wenn das On-Device-Modell doch scheitert.
+     */
+    private void startListening(boolean allowOnDevice) {
         if (!SpeechRecognizer.isRecognitionAvailable(this)) {
             showTypeSelection();
             showStatus(getString(R.string.wear_no_recognizer));
@@ -198,7 +207,21 @@ public class WearMainActivity extends WearLocalizedActivity {
         showListening();
 
         destroySpeech();
-        speech = SpeechRecognizer.createSpeechRecognizer(this);
+        // Ist das Offline-Modell laut Opt-in installiert, hat es Vorrang – auch online (nutzt den
+        // On-Device-Recognizer, der das per triggerModelDownload geladene Modell zuverlässig verwendet;
+        // der Standard-Recognizer greift trotz PREFER_OFFLINE auf Wear OS oft nicht darauf zu). Ist der
+        // Schalter aus oder kein Modell da, läuft die Online-Erkennung; klappt die gar nicht (kein Netz,
+        // kein Modell), fällt onListenError auf den Zahlenblock zurück.
+        boolean online = hasValidatedInternet();
+        final boolean usingOnDevice = allowOnDevice
+                && android.os.Build.VERSION.SDK_INT >= 33
+                && WearStrings.installModelEnabled(this)
+                && SpeechRecognizer.isOnDeviceRecognitionAvailable(this);
+        if (usingOnDevice) {
+            speech = SpeechRecognizer.createOnDeviceSpeechRecognizer(this);
+        } else {
+            speech = SpeechRecognizer.createSpeechRecognizer(this);
+        }
         speech.setRecognitionListener(new SimpleRecognitionListener() {
             @Override
             public void onResults(Bundle results) {
@@ -216,16 +239,22 @@ public class WearMainActivity extends WearLocalizedActivity {
             @Override
             public void onError(int error) {
                 destroySpeech();
-                onListenError(error);
+                // Scheitert das On-Device-Modell (z. B. noch nicht fertig geladen) und ist Internet da,
+                // einmalig auf die Online-Erkennung zurückfallen statt gleich den Zahlenblock zu zeigen.
+                if (usingOnDevice && hasValidatedInternet()) {
+                    startListening(false);
+                } else {
+                    onListenError(error);
+                }
             }
         });
 
         Intent intent = new Intent(RecognizerIntent.ACTION_RECOGNIZE_SPEECH);
         intent.putExtra(RecognizerIntent.EXTRA_LANGUAGE_MODEL, RecognizerIntent.LANGUAGE_MODEL_FREE_FORM);
-        // Erkennungssprache folgt der gewählten App-Sprache (auch hochgeladene); Offline bevorzugen, damit
-        // die Aufnahme auch ohne Handy/Netz funktioniert (sofern ein Offline-Modell vorhanden ist).
+        // Erkennungssprache folgt der gewählten App-Sprache (auch hochgeladene). „Prefer offline" setzen,
+        // wenn wir den On-Device-Recognizer nutzen oder gar kein Internet da ist.
         intent.putExtra(RecognizerIntent.EXTRA_LANGUAGE, recognizerLanguageTag());
-        intent.putExtra(RecognizerIntent.EXTRA_PREFER_OFFLINE, true);
+        intent.putExtra(RecognizerIntent.EXTRA_PREFER_OFFLINE, usingOnDevice || !online);
         intent.putExtra(RecognizerIntent.EXTRA_CALLING_PACKAGE, getPackageName());
         // Mehrere Alternativen anfordern (die erste mit einer Zahl wird bevorzugt).
         intent.putExtra(RecognizerIntent.EXTRA_MAX_RESULTS, 5);
@@ -247,11 +276,39 @@ public class WearMainActivity extends WearLocalizedActivity {
     }
 
     /**
-     * Erkennung fehlgeschlagen. Bei Offline-/Netzwerkfehler oder nicht verbundenem Handy in den stillen
-     * Zahlenblock wechseln (Betrag+GPS werden gepuffert und später gesendet); sonst „Nicht verstanden".
+     * Hat die Uhr gerade tatsächlich nutzbares Internet? Prüft <b>alle</b> Netze (nicht nur das per-UID-
+     * Default): Wear OS routet App-Verkehr standardmäßig über den Bluetooth-Proxy, der zwar {@code INTERNET}
+     * meldet, aber nicht {@code VALIDATED} ist – ein daneben laufendes WLAN würde bei {@code getActiveNetwork()}
+     * dann übersehen. {@code NET_CAPABILITY_VALIDATED} ist bewusst verlangt: Ist das Handy selbst offline
+     * (Test 5), bleibt der BT-Proxy unvalidiert und es greift richtigerweise das Offline-Modell.
+     */
+    private boolean hasValidatedInternet() {
+        android.net.ConnectivityManager cm =
+                (android.net.ConnectivityManager) getSystemService(CONNECTIVITY_SERVICE);
+        if (cm == null) {
+            return false;
+        }
+        for (android.net.Network net : cm.getAllNetworks()) {
+            android.net.NetworkCapabilities caps = cm.getNetworkCapabilities(net);
+            if (caps != null
+                    && caps.hasCapability(android.net.NetworkCapabilities.NET_CAPABILITY_INTERNET)
+                    && caps.hasCapability(android.net.NetworkCapabilities.NET_CAPABILITY_VALIDATED)) {
+                return true;
+            }
+        }
+        return false;
+    }
+
+    /**
+     * Erkennung fehlgeschlagen. Ohne nutzbares Internet (dann ist ein Sprach-Wiederholen sinnlos – ein
+     * Offline-Modell hätte schon gegriffen) oder bei einem Netzwerk-/Serverfehler direkt in den stillen
+     * Zahlenblock wechseln (Betrag+GPS werden gepuffert und später gesendet), damit die Eingabe <b>immer</b>
+     * möglich bleibt. Nur bei vorhandenem Internet und einem reinen „nicht erkannt" → „Nicht verstanden"
+     * (Sprache erneut versuchen; der Zahlenblock-Knopf steht dort ohnehin bereit).
      */
     private void onListenError(int code) {
-        boolean offline = !phoneConnected
+        boolean offline = !hasValidatedInternet()
+                || !phoneConnected
                 || code == SpeechRecognizer.ERROR_NETWORK
                 || code == SpeechRecognizer.ERROR_NETWORK_TIMEOUT
                 || code == SpeechRecognizer.ERROR_SERVER

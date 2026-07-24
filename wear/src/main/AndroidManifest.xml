@@ -8,6 +8,8 @@
     <!-- Für die GPS-Koordinaten, die zum Sprechzeitpunkt bestimmt und mitübertragen werden. -->
     <uses-permission android:name="android.permission.ACCESS_FINE_LOCATION" />
     <uses-permission android:name="android.permission.ACCESS_COARSE_LOCATION" />
+    <!-- Um zu erkennen, ob gerade echtes Internet da ist (dann Online-Erkennung, sonst Offline bevorzugen). -->
+    <uses-permission android:name="android.permission.ACCESS_NETWORK_STATE" />
     <queries>
         <intent>
             <action android:name="android.speech.RecognitionService" />

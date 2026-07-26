@@ -239,7 +239,7 @@ bullets([
   "<b>«All accounts»</b> shows all bookings together; a single account filters the list to it.",
   "<b>Long press on an account</b>: import/update that account from the .kmy.",
   "<b>Long press on «All accounts»</b>: re-imports <b>all</b> existing accounts (full import).",
-  "<b>Portfolios</b> appear at the bottom as «… (Depot)»: short tap opens the portfolio view, long press updates it.",
+  "<b>Portfolios</b> sit at the bottom under the «Portfolios» heading and behave just like accounts: a short tap opens the portfolio view (the selected portfolio stays highlighted), a long press updates it.",
   "<b>«Add account»</b> (at the bottom): loads the .kmy and offers the contained accounts for selection.",
 ])
 
@@ -780,7 +780,7 @@ def cover_page(canvas, doc):
     box_x = 7.8*mm + 3*mm
     canvas.setFont("DejaVu-Bold", 13)
     canvas.setFillColor(colors.HexColor("#1b1b1b"))
-    canvas.drawString(box_x, 34.5*mm - 9*mm, "Version 1.2")
+    canvas.drawString(box_x, 34.5*mm - 9*mm, "Version 1.3")
     canvas.setFont("DejaVu", 10)
     canvas.setFillColor(GREY)
     canvas.drawString(box_x, 34.5*mm - 17*mm, "Updated: July 2026")
@@ -790,7 +790,7 @@ def cover_page(canvas, doc):
 def footer(canvas, doc):
     canvas.saveState()
     canvas.setFont("DejaVu", 8); canvas.setFillColor(GREY)
-    canvas.drawString(2*cm, 1.2*cm, "Ausgaben · User Manual (Version 1.2)")
+    canvas.drawString(2*cm, 1.2*cm, "Ausgaben · User Manual (Version 1.3)")
     canvas.drawRightString(A4[0]-2*cm, 1.2*cm, "Page %d" % doc.page)
     canvas.restoreState()
 

@@ -31,6 +31,7 @@ import java.util.Locale;
 import de.spahr.ausgaben.R;
 import de.spahr.ausgaben.db.Repository;
 import de.spahr.ausgaben.export.ExportCoordinator;
+import de.spahr.ausgaben.export.KmyAccountImport;
 import de.spahr.ausgaben.export.KmyDocument;
 import de.spahr.ausgaben.export.KmyExportCoordinator;
 import de.spahr.ausgaben.export.KmyImporter;
@@ -67,6 +68,9 @@ public class DepotActivity extends LocalizedActivity {
     private ShimmerView importShimmer;
     private TextView importStatus;
     private TextView importPercent;
+
+    /** Konten der Schublade – Grundlage für „Alle Konten aktualisieren". */
+    private final List<String> appAccounts = new ArrayList<>();
 
     private String depot;
     private Repository.DepotMetrics metrics;
@@ -161,9 +165,9 @@ public class DepotActivity extends LocalizedActivity {
 
                     @Override
                     public void onImport(String account, boolean isAll) {
-                        // Import läuft über den Hauptbildschirm.
-                        drawerLayout.closeDrawers();
-                        openMainAccount(isAll ? "" : account);
+                        // Wie im Hauptbildschirm: Schublade offen lassen, Abfrage und Banner
+                        // erscheinen darüber.
+                        onImportRequested(isAll ? null : account);
                     }
 
                     @Override
@@ -187,8 +191,18 @@ public class DepotActivity extends LocalizedActivity {
             drawerLayout.closeDrawers();
             openMainAccount("");
         });
-        repository.getAccountsGrouped(g -> accountAdapter.setAccounts(g.assets, g.liabilities));
+        loadDrawerAccounts();
         repository.getDepots(accountAdapter::setDepots);
+    }
+
+    /** Kontenliste der Schublade laden und dabei die Grundlage für „Alle Konten" merken. */
+    private void loadDrawerAccounts() {
+        repository.getAccountsGrouped(g -> {
+            appAccounts.clear();
+            appAccounts.addAll(g.assets);
+            appAccounts.addAll(g.liabilities);
+            accountAdapter.setAccounts(g.assets, g.liabilities);
+        });
     }
 
     private void setTitleText(String title) {
@@ -205,6 +219,21 @@ public class DepotActivity extends LocalizedActivity {
                 .addFlags(Intent.FLAG_ACTIVITY_CLEAR_TOP | Intent.FLAG_ACTIVITY_SINGLE_TOP);
         i.putExtra(MainActivity.EXTRA_SELECT_ACCOUNT, account);
         startActivity(i);
+        // Gegenstück zum Depot-Aufruf: die Kontoansicht ersetzt das Depot, statt darüberzuliegen.
+        finish();
+        overridePendingTransition(0, 0);
+    }
+
+    @Override
+    protected void onNewIntent(Intent intent) {
+        super.onNewIntent(intent);
+        setIntent(intent);
+        // Depotwahl aus der Kontenschublade übernehmen, wenn diese Ansicht wiederverwendet wird.
+        String d = intent.getStringExtra(EXTRA_DEPOT);
+        if (d != null && !d.equals(depot)) {
+            depot = d;
+            saldoIndex = 0;
+        }
     }
 
     @Override
@@ -231,6 +260,7 @@ public class DepotActivity extends LocalizedActivity {
             return;
         }
         setTitleText(depot);
+        accountAdapter.setSelectedDepot(depot);
         repository.getDepotMetrics(depot, m -> {
             metrics = m;
             saldoModes = DepotSaldo.modes(m);
@@ -416,6 +446,76 @@ public class DepotActivity extends LocalizedActivity {
         }
     }
 
+    // ---- Konten aktualisieren (langer Druck in der Schublade – wie im Hauptbildschirm) ----
+
+    /**
+     * Langer Druck auf ein Konto bzw. „Alle Konten": fragt nach und ersetzt die Buchungen dieser Konten
+     * aus der .kmy. Läuft hier im Depot ab, damit die Schublade offen bleibt.
+     *
+     * @param account einzelnes Konto oder {@code null} für „Alle Konten"
+     */
+    private void onImportRequested(final String account) {
+        if (!settings.isKmyMode() || !settings.hasRemoteConfig()) {
+            Toast.makeText(this, R.string.export_no_config, Toast.LENGTH_LONG).show();
+            return;
+        }
+        if (settings.getKmyPath().isEmpty()) {
+            Toast.makeText(this, R.string.kmy_path_missing, Toast.LENGTH_LONG).show();
+            return;
+        }
+        MaterialAlertDialogBuilder b =
+                new MaterialAlertDialogBuilder(this, R.style.ThemeOverlay_Ausgaben_Dialog)
+                        .setNegativeButton(R.string.cancel, null);
+        if (account == null) {
+            b.setTitle(R.string.kmy_import_all_title)
+                    .setMessage(R.string.kmy_import_all_message)
+                    .setPositiveButton(R.string.kmy_import_replace, (d, w) -> runAccountImport(null));
+        } else {
+            b.setTitle(R.string.kmy_replace_title)
+                    .setMessage(getString(R.string.kmy_replace_message, account))
+                    .setPositiveButton(R.string.kmy_import_replace, (d, w) -> runAccountImport(account));
+        }
+        b.show();
+    }
+
+    /** Konto-Import mit dem gelben Banner dieser Ansicht (gleiche Logik wie im Hauptbildschirm). */
+    private void runAccountImport(final String account) {
+        importStarted();
+        KmyAccountImport.start(this, settings, repository, appAccounts, account,
+                new KmyAccountImport.Ui() {
+                    @Override
+                    public de.spahr.ausgaben.util.ProgressListener phase(String label, int from, int to) {
+                        return phaseListener(label, from, to);
+                    }
+
+                    @Override
+                    public void noMatchingAccount() {
+                        runOnUiThread(() -> {
+                            importFinished();
+                            Toast.makeText(DepotActivity.this, R.string.kmy_account_not_found,
+                                    Toast.LENGTH_LONG).show();
+                        });
+                    }
+
+                    @Override
+                    public void failed(Exception e) {
+                        runOnUiThread(() -> {
+                            importFinished();
+                            String msg = e.getMessage() == null ? e.toString() : e.getMessage();
+                            Toast.makeText(DepotActivity.this, getString(R.string.import_failed, msg),
+                                    Toast.LENGTH_LONG).show();
+                        });
+                    }
+
+                    @Override
+                    public void finished() {
+                        // Das Depot selbst ändert sich nicht, aber die Kontenliste der Schublade kann.
+                        loadDrawerAccounts();
+                        completeImport();
+                    }
+                });
+    }
+
     // ---- Depot neu einlesen (Herunterziehen / langer Druck auf das Depot) ----
 
     /**
@@ -453,9 +553,12 @@ public class DepotActivity extends LocalizedActivity {
                 repository.replaceDepotImport(depotName, data.securities, data.transactions,
                         () -> runOnUiThread(this::completeImport));
             } catch (Exception e) {
+                final String msg = e.getMessage() == null ? e.toString() : e.getMessage();
                 runOnUiThread(() -> {
                     importFinished();
-                    Toast.makeText(this, R.string.import_failed, Toast.LENGTH_LONG).show();
+                    // Mit Grund – „import_failed" enthält einen Platzhalter.
+                    Toast.makeText(this, getString(R.string.import_failed, msg),
+                            Toast.LENGTH_LONG).show();
                 });
             }
         }).start();

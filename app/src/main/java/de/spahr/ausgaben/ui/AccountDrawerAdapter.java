@@ -16,8 +16,9 @@ import de.spahr.ausgaben.R;
 
 /**
  * Kontenliste in der Navigations-Schublade. Aufbau: „Alle Konten", dann – jeweils mit Überschrift –
- * die Anlage- und Verbindlichkeitskonten, am Ende die Depots. Kurzer Tipp wählt Konto/öffnet Depot,
- * langer Tipp importiert bzw. aktualisiert. Der gewählte Eintrag wird hervorgehoben.
+ * die Anlage- und Verbindlichkeitskonten, am Ende die Depots. Depots verhalten sich wie Konten:
+ * kurzer Tipp wählt aus, langer Tipp importiert bzw. aktualisiert. Der gewählte Eintrag wird
+ * hervorgehoben.
  */
 public class AccountDrawerAdapter extends RecyclerView.Adapter<AccountDrawerAdapter.VH> {
 
@@ -45,6 +46,8 @@ public class AccountDrawerAdapter extends RecyclerView.Adapter<AccountDrawerAdap
     private final List<String> depots = new ArrayList<>();
     private final String allLabel;
     private String selected = "";
+    /** true = der gewählte Eintrag ist ein Depot (Depot- und Kontonamen können sich gleichen). */
+    private boolean selectedIsDepot = false;
     private final Listener listener;
 
     public AccountDrawerAdapter(String allLabel, Listener listener) {
@@ -71,6 +74,14 @@ public class AccountDrawerAdapter extends RecyclerView.Adapter<AccountDrawerAdap
     /** Markiert das gewählte Konto (leer = „Alle Konten"). */
     public void setSelected(String account) {
         this.selected = account == null ? "" : account;
+        this.selectedIsDepot = false;
+        notifyDataSetChanged();
+    }
+
+    /** Markiert das gewählte Depot – wie ein Konto, nur aus der Depot-Gruppe. */
+    public void setSelectedDepot(String depot) {
+        this.selected = depot == null ? "" : depot;
+        this.selectedIsDepot = true;
         notifyDataSetChanged();
     }
 
@@ -169,9 +180,24 @@ public class AccountDrawerAdapter extends RecyclerView.Adapter<AccountDrawerAdap
     }
 
     private void bindAccount(VH h, String item, boolean isAll) {
-        boolean isSelected = isAll ? selected.isEmpty() : item.equals(selected);
+        boolean isSelected = !selectedIsDepot && (isAll ? selected.isEmpty() : item.equals(selected));
+        bindRow(h, item, isSelected,
+                v -> listener.onSelect(isAll ? "" : item, isAll),
+                v -> listener.onImport(isAll ? "" : item, isAll));
+    }
+
+    /** Depots werden wie Konten dargestellt (nur der Name, gleiche Auswahl-Hervorhebung). */
+    private void bindDepot(VH h, String depot) {
+        bindRow(h, depot, selectedIsDepot && depot.equals(selected),
+                v -> listener.onDepotSelect(depot),
+                v -> listener.onDepotImport(depot));
+    }
+
+    /** Gemeinsame Darstellung aller wählbaren Zeilen (Konto, „Alle Konten", Depot). */
+    private void bindRow(VH h, String label, boolean isSelected,
+                         View.OnClickListener onClick, View.OnClickListener onLongClick) {
         applyRowMetrics(h, false);
-        h.text.setText(item);
+        h.text.setText(label);
         h.text.setTypeface(Typeface.DEFAULT, isSelected ? Typeface.BOLD : Typeface.NORMAL);
         h.text.setTextColor(primaryText(h.text));
         h.text.setBackgroundColor(isSelected
@@ -179,24 +205,9 @@ public class AccountDrawerAdapter extends RecyclerView.Adapter<AccountDrawerAdap
                 : android.graphics.Color.TRANSPARENT);
         h.text.setClickable(true);
         h.text.setLongClickable(true);
-        h.text.setOnClickListener(v -> listener.onSelect(isAll ? "" : item, isAll));
+        h.text.setOnClickListener(onClick);
         h.text.setOnLongClickListener(v -> {
-            listener.onImport(isAll ? "" : item, isAll);
-            return true;
-        });
-    }
-
-    private void bindDepot(VH h, String depot) {
-        applyRowMetrics(h, false);
-        h.text.setText(h.text.getResources().getString(R.string.kmy_choose_depot, depot));
-        h.text.setTypeface(Typeface.DEFAULT, Typeface.NORMAL);
-        h.text.setTextColor(primaryText(h.text));
-        h.text.setBackgroundColor(android.graphics.Color.TRANSPARENT);
-        h.text.setClickable(true);
-        h.text.setLongClickable(true);
-        h.text.setOnClickListener(v -> listener.onDepotSelect(depot));
-        h.text.setOnLongClickListener(v -> {
-            listener.onDepotImport(depot);
+            onLongClick.onClick(v);
             return true;
         });
     }

@@ -209,9 +209,16 @@ public class MainActivity extends LocalizedActivity {
                     @Override
                     public void onDepotSelect(String depot) {
                         drawerLayout.closeDrawers();
-                        Intent i = new Intent(MainActivity.this, DepotActivity.class);
+                        // Ein Depot ist eine Auswahl wie ein Konto: die Depot-Ansicht ersetzt diese
+                        // Kontoansicht, statt sich darüberzulegen. Darum hier beenden – so bleibt
+                        // immer nur eine Ledger-Ansicht übrig und Zurück beendet die App.
+                        Intent i = new Intent(MainActivity.this, DepotActivity.class)
+                                .addFlags(Intent.FLAG_ACTIVITY_CLEAR_TOP
+                                        | Intent.FLAG_ACTIVITY_SINGLE_TOP);
                         i.putExtra(DepotActivity.EXTRA_DEPOT, depot);
                         startActivity(i);
+                        finish();
+                        overridePendingTransition(0, 0);
                     }
 
                     @Override
@@ -1564,75 +1571,32 @@ public class MainActivity extends LocalizedActivity {
     /** Lädt die .kmy und importiert ein Konto ({@code null} = alle bereits vorhandenen App-Konten). */
     private void runKmyImport(final String account) {
         importStarted();
-        new Thread(() -> {
-            KmyImporter importer;
-            try {
-                String path = settings.getKmyPath();
-                byte[] raw = RemoteStorage.from(settings).downloadBytes(folderOf(path), fileOf(path),
-                        phaseListener(getString(R.string.import_stage_download),
-                                de.spahr.ausgaben.export.ImportPhase.DOWNLOAD_FROM,
-                                de.spahr.ausgaben.export.ImportPhase.DOWNLOAD_TO));
-                importer = new KmyImporter(
-                        new KmyDocument(raw, getApplicationContext(),
-                                phaseListener(getString(R.string.import_stage_reading),
-                                        de.spahr.ausgaben.export.ImportPhase.READ_FILE_FROM,
-                                        de.spahr.ausgaben.export.ImportPhase.READ_FILE_TO)),
-                        getApplicationContext());
-            } catch (Exception e) {
-                postImportError(e);
-                return;
-            }
-            List<String> available = importer.accountNames();
-            List<String> targets = new ArrayList<>();
-            if (account == null) {
-                // Nur bereits vorhandene App-Konten, die es auch in der .kmy gibt (keine neuen anlegen).
-                for (String acc : appAccounts) {
-                    if (containsIgnoreCase(available, acc)) {
-                        targets.add(acc);
+        de.spahr.ausgaben.export.KmyAccountImport.start(this, settings, repository, appAccounts, account,
+                new de.spahr.ausgaben.export.KmyAccountImport.Ui() {
+                    @Override
+                    public de.spahr.ausgaben.util.ProgressListener phase(String label, int from, int to) {
+                        return phaseListener(label, from, to);
                     }
-                }
-            } else if (containsIgnoreCase(available, account)) {
-                targets.add(account);
-            }
-            if (targets.isEmpty()) {
-                runOnUiThread(() -> {
-                    importFinished();
-                    Toast.makeText(this, R.string.kmy_account_not_found, Toast.LENGTH_LONG).show();
-                });
-                return;
-            }
-            replaceFromImporter(importer, targets);
-        }).start();
-    }
 
-    /**
-     * Baut die Buchungen der Zielkonten und ersetzt sie in der DB. Läuft im Hintergrund; die Liste wird
-     * am Ende still aktualisiert, eine Meldung kommt nur bei einem Fehler.
-     */
-    private void replaceFromImporter(KmyImporter importer, List<String> accounts) {
-        try {
-            // Ein Lesedurchlauf für ALLE Konten (vorher: einer je Konto über die ganze Datei).
-            java.util.LinkedHashMap<String, List<Booking>> map = importer.bookingsForAccounts(accounts,
-                    phaseListener(getString(R.string.import_stage_bookings),
-                            de.spahr.ausgaben.export.ImportPhase.BOOKINGS_FROM,
-                            de.spahr.ausgaben.export.ImportPhase.BOOKINGS_TO));
-            for (String acc : accounts) {
-                // Währungskennzeichen aus der KMyMoney-Datei je Konto übernehmen.
-                repository.setAccountCurrency(acc, importer.currencyOf(acc));
-            }
-            // Anlage/Verbindlichkeit für ALLE vorhandenen Konten aus der .kmy klassifizieren (nicht nur die neu importierten).
-            repository.applyAccountTypes(importer.accountTypes());
-            // Kategorietyp (Einnahme/Ausgabe) für ALLE Kategorien der .kmy übernehmen (Budget-Einordnung).
-            repository.applyCategoryTypes(importer.categoryTypes());
-            // Kein separates „Buchungen werden gespeichert" beim Konto-Aktualisieren – nur die Konto-Phase zeigen.
-            runOnUiThread(() -> repository.replaceImportAccounts(map,
-                    phaseListener(getString(R.string.import_running_banner),
-                            de.spahr.ausgaben.export.ImportPhase.SAVE_FROM,
-                            de.spahr.ausgaben.export.ImportPhase.SAVE_TO),
-                    res -> completeImport()));
-        } catch (Exception e) {
-            postImportError(e);
-        }
+                    @Override
+                    public void noMatchingAccount() {
+                        runOnUiThread(() -> {
+                            importFinished();
+                            Toast.makeText(MainActivity.this, R.string.kmy_account_not_found,
+                                    Toast.LENGTH_LONG).show();
+                        });
+                    }
+
+                    @Override
+                    public void failed(Exception e) {
+                        postImportError(e);
+                    }
+
+                    @Override
+                    public void finished() {
+                        completeImport();
+                    }
+                });
     }
 
     private static boolean containsIgnoreCase(List<String> list, String name) {

@@ -111,11 +111,12 @@
             android:label="@string/scheduled_title"
             android:parentActivityName=".ui.ScheduledActivity" />
 
+        <!-- Kein parentActivityName: das Depot ist keine Unteransicht der Kontoansicht,
+             sondern eine gleichrangige Auswahl aus der Kontenschublade. -->
         <activity
             android:name=".ui.DepotActivity"
             android:exported="false"
-            android:label="@string/depot_title"
-            android:parentActivityName=".ui.MainActivity" />
+            android:label="@string/depot_title" />
 
         <activity
             android:name=".ui.SecurityHistoryActivity"

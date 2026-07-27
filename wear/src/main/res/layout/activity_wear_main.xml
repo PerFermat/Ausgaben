@@ -104,9 +104,9 @@
                 </LinearLayout>
             </LinearLayout>
 
-            <!-- Konto/Ort-Saldo vom Phone (z. B. „Geldbeutel: 70,00 €"); leer → ausgeblendet.
-                 Schriftgröße wie im Tile (ExpenseTileService: 12sp). Gibt es noch nicht übertragene
-                 Einträge, steht hier stattdessen der Grund dafür. -->
+            <!-- Einzige Zeile auf dem Rundschirm: Konto/Ort-Saldo vom Phone (z. B. „Geldbeutel: 70,00 €")
+                 ODER – falls vorhanden – eine Meldung (Übertragungs-Hinweis bzw. einmalige Meldung), die
+                 den Saldo ersetzt. Es gibt bewusst keine zweite Zeile. Schriftgröße wie im Tile (12sp). -->
             <TextView
                 android:id="@+id/balanceView"
                 android:layout_width="match_parent"
@@ -116,16 +116,6 @@
                 android:textColor="@android:color/white"
                 android:textSize="12sp"
                 android:textStyle="bold"
-                android:visibility="gone" />
-
-            <TextView
-                android:id="@+id/status"
-                android:layout_width="match_parent"
-                android:layout_height="wrap_content"
-                android:layout_marginTop="6dp"
-                android:gravity="center"
-                android:textColor="@android:color/white"
-                android:textSize="12sp"
                 android:visibility="gone" />
         </LinearLayout>
 

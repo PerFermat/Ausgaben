@@ -8,16 +8,17 @@
     <string name="wear_cancel">Cancel</string>
     <string name="wear_prompt">Say a booking, e.g. \"Barber 20 euros\"</string>
     <string name="wear_listening">Speak now…</string>
-    <string name="wear_not_understood">Not understood</string>
-    <string name="wear_no_mic">Microphone permission needed</string>
-    <string name="wear_no_recognizer">No speech recognition available</string>
-    <!-- Kurzform für die einzige verfügbare Zeile: Anzahl + Grund, z. B. "3 pending – No phone". -->
-    <string name="wear_pending">%1$d pending – %2$s</string>
+    <string name="wear_not_understood">Not recognized</string>
+    <string name="wear_no_mic">Mic needed</string>
+    <string name="wear_no_recognizer">No recognizer</string>
+    <!-- Kurzform für die einzige verfügbare Zeile: Anzahl + Grund, z. B. "3 pending · No phone". -->
+    <string name="wear_pending">%1$d pending · %2$s</string>
     <string name="wear_reason_gps">GPS</string>
     <string name="wear_reason_no_phone">No phone</string>
-    <string name="wear_reason_sending">Sending…</string>
+    <string name="wear_reason_sending">sending…</string>
     <string name="wear_offline_number">Offline – enter amount</string>
     <string name="wear_model_downloading">Downloading offline speech model…</string>
     <string name="wear_model_hint">Enable offline speech for this language in the watch settings (System → Languages &amp; input).</string>
+    <string name="wear_model_unsupported">This watch does not support offline speech recognition. The number pad is used when offline.</string>
     <string name="number_entry">Enter amount by digits</string>
 </resources>

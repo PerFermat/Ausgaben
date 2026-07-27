@@ -45,6 +45,9 @@ public class AusgabenApp extends Application implements Application.ActivityLife
         de.spahr.ausgaben.settings.MoneyFormat.refresh(this);
         // Tageswecker der Erinnerung sicherstellen (bzw. abbestellen, wenn ausgeschaltet).
         de.spahr.ausgaben.notify.ScheduledReminder.apply(this);
+        // Wear-Texte einmal je App-Start an die Uhr publizieren, damit Textänderungen (auch nach einem
+        // App-Update) ankommen (full: echte Sync, foss: No-op-Stub).
+        de.spahr.ausgaben.wear.LanguageSync.publish(this);
         registerActivityLifecycleCallbacks(this);
     }
 

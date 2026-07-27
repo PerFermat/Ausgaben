@@ -38,7 +38,7 @@ class AliasResolver {
      * {@code null}.
      */
     private PayeeCorrection matchAlias(String term, boolean preferred, double[] coords,
-                                       java.util.Set<String> closed) {
+                                       java.util.Set<String> closed, String type) {
         String t = term == null ? "" : term.trim();
         if (t.isEmpty()) {
             return null;
@@ -52,10 +52,11 @@ class AliasResolver {
                 matches = correctionDao.findAllBySpokenExact(bestSpoken, pref);
             }
         }
-        // Nur offene (nicht auf geschlossene Konten zeigende) Aliase.
+        // Nur offene (nicht auf geschlossene Konten zeigende) Aliase, und – im typgefilterten Durchlauf –
+        // nur solche, die die für die gewünschte Buchungsart erforderlichen Daten mitbringen.
         List<PayeeCorrection> open = new ArrayList<>();
         for (PayeeCorrection a : matches) {
-            if (!aliasBlocked(a, closed)) {
+            if (!aliasBlocked(a, closed) && aliasSupports(a, type)) {
                 open.add(a);
             }
         }
@@ -104,18 +105,104 @@ class AliasResolver {
      * Buchungen, erst danach die übrigen Aliase. Setzt {@code out[0]}=Vorlage-Buchung, {@code out[1]}=Alias.
      * Geschlossene Konten ({@code closed}) werden übersprungen.
      */
-    void resolve(String term, double[] coords, java.util.Set<String> closed,
+    void resolve(String term, double[] coords, java.util.Set<String> closed, String type,
                  Booking[] outBooking, PayeeCorrection[] outAlias) {
-        PayeeCorrection alias = matchAlias(term, true, coords, closed);
-        Booking booking = null;
-        if (alias == null) {
-            booking = findVoiceTemplate(term, coords, closed);
-            if (booking == null) {
-                alias = matchAlias(term, false, coords, closed);
+        // Globaler Zweipass: erst der komplette Ablauf nur mit typpassenden Kandidaten; findet der gar
+        // nichts, derselbe Ablauf erneut ohne Typfilter (dann darf auch ein typfremder Treffer gewinnen).
+        if (resolvePass(term, coords, closed, type, outBooking, outAlias)) {
+            return;
+        }
+        if (type != null) {
+            resolvePass(term, coords, closed, null, outBooking, outAlias);
+        }
+    }
+
+    private boolean resolvePass(String term, double[] coords, java.util.Set<String> closed, String type,
+                                Booking[] outBooking, PayeeCorrection[] outAlias) {
+        PayeeCorrection alias = matchAlias(term, true, coords, closed, type);
+        if (alias != null) {
+            outAlias[0] = alias;
+            return true;
+        }
+        Booking booking = findVoiceTemplate(term, coords, closed, type);
+        if (booking != null) {
+            outBooking[0] = booking;
+            return true;
+        }
+        alias = matchAlias(term, false, coords, closed, type);
+        if (alias != null) {
+            outAlias[0] = alias;
+            return true;
+        }
+        return false;
+    }
+
+    /**
+     * Bringt der Alias die für {@code type} erforderlichen Daten mit? Umbuchung ⇒ Von- <b>und</b>
+     * Nach-Konto; Einnahme ⇒ eine Einnahme-Kategorie; Ausgabe ⇒ eine Ausgabe-Kategorie. Ohne Typ ({@code
+     * null}) immer {@code true}. Maßgeblich sind die vorhandenen Daten, nicht die bevorzugte Buchungsart.
+     */
+    private static boolean aliasSupports(PayeeCorrection a, String type) {
+        if (type == null || a == null) {
+            return true;
+        }
+        if (Repository.VOICE_TYPE_TRANSFER.equals(type)) {
+            return !isBlank(a.fromAccount) && !isBlank(a.toAccount);
+        }
+        if (Repository.VOICE_TYPE_INCOME.equals(type)) {
+            return !isBlank(a.catIncome1) || !isBlank(a.catIncome2);
+        }
+        if (Repository.VOICE_TYPE_EXPENSE.equals(type)) {
+            return !isBlank(a.catExpense1) || !isBlank(a.catExpense2);
+        }
+        return true;
+    }
+
+    /** Passt die Buchung als Vorlage zu {@code type}? Über die eigene Art (Umbuchung/Einnahme/Ausgabe). */
+    private static boolean bookingSupports(Booking b, String type) {
+        if (type == null || b == null) {
+            return true;
+        }
+        if (Repository.VOICE_TYPE_TRANSFER.equals(type)) {
+            return b.isTransfer;
+        }
+        if (Repository.VOICE_TYPE_INCOME.equals(type)) {
+            return !b.isTransfer && b.isIncome;
+        }
+        if (Repository.VOICE_TYPE_EXPENSE.equals(type)) {
+            return !b.isTransfer && !b.isIncome;
+        }
+        return true;
+    }
+
+    private static boolean isBlank(String s) {
+        return s == null || s.trim().isEmpty();
+    }
+
+    private static List<Booking> filterBookings(List<Booking> list, String type) {
+        if (type == null) {
+            return list;
+        }
+        List<Booking> out = new ArrayList<>();
+        for (Booking b : list) {
+            if (bookingSupports(b, type)) {
+                out.add(b);
             }
         }
-        outBooking[0] = booking;
-        outAlias[0] = alias;
+        return out;
+    }
+
+    private static List<PayeeCorrection> filterAliases(List<PayeeCorrection> list, String type) {
+        if (type == null) {
+            return list;
+        }
+        List<PayeeCorrection> out = new ArrayList<>();
+        for (PayeeCorrection a : list) {
+            if (aliasSupports(a, type)) {
+                out.add(a);
+            }
+        }
+        return out;
     }
 
     /**
@@ -123,19 +210,38 @@ class AliasResolver {
      * strenger Reihenfolge – bevorzugte Aliase → Buchungen → übrige Aliase; der erste Tier mit Treffer
      * gewinnt, innerhalb eines Tiers der nächstgelegene. Geschlossene Konten werden übersprungen.
      */
-    void resolveGps(double lat, double lon, java.util.Set<String> closed,
+    void resolveGps(double lat, double lon, java.util.Set<String> closed, String type,
                     Booking[] outBooking, PayeeCorrection[] outAlias) {
-        PayeeCorrection a = nearestAlias(lat, lon, openAliases(correctionDao.getWithGps(1), closed));
+        // Globaler Zweipass (100-m-Radius bleibt in beiden Durchläufen, nur der Typfilter fällt im 2. weg).
+        if (resolveGpsPass(lat, lon, closed, type, outBooking, outAlias)) {
+            return;
+        }
+        if (type != null) {
+            resolveGpsPass(lat, lon, closed, null, outBooking, outAlias);
+        }
+    }
+
+    private boolean resolveGpsPass(double lat, double lon, java.util.Set<String> closed, String type,
+                                   Booking[] outBooking, PayeeCorrection[] outAlias) {
+        PayeeCorrection a = nearestAlias(lat, lon,
+                filterAliases(openAliases(correctionDao.getWithGps(1), closed), type));
         if (a != null) {
             outAlias[0] = a;
-            return;
+            return true;
         }
-        Booking b = nearestBooking(lat, lon, openBookings(bookingDao.getWithGpsNote(), closed));
+        Booking b = nearestBooking(lat, lon,
+                filterBookings(openBookings(bookingDao.getWithGpsNote(), closed), type));
         if (b != null) {
             outBooking[0] = b;
-            return;
+            return true;
         }
-        outAlias[0] = nearestAlias(lat, lon, openAliases(correctionDao.getWithGps(0), closed));
+        a = nearestAlias(lat, lon,
+                filterAliases(openAliases(correctionDao.getWithGps(0), closed), type));
+        if (a != null) {
+            outAlias[0] = a;
+            return true;
+        }
+        return false;
     }
 
     /** Namen der geschlossenen Konten (läuft bereits auf dem Executor-Thread). */
@@ -302,16 +408,19 @@ class AliasResolver {
      * und ist die aktuelle Position {@code coords} bekannt, wird der zur Position nächstgelegene Treffer
      * mit GPS-Notiz gewählt – sonst die neueste Buchung.
      */
-    private Booking findVoiceTemplate(String term, double[] coords, java.util.Set<String> closed) {
+    private Booking findVoiceTemplate(String term, double[] coords, java.util.Set<String> closed,
+                                      String type) {
         if (term == null || term.isEmpty()) {
             return null;
         }
-        Booking template = pickTemplate(openBookings(bookingDao.findByPayeeLike(term), closed), coords);
+        Booking template = pickTemplate(
+                filterBookings(openBookings(bookingDao.findByPayeeLike(term), closed), type), coords);
         if (template == null) {
             String best = de.spahr.ausgaben.voice.VoiceInput.bestFuzzyPayee(
                     term, bookingDao.getDistinctPayees());
             if (best != null) {
-                template = pickTemplate(openBookings(bookingDao.findByPayeeLike(best), closed), coords);
+                template = pickTemplate(
+                        filterBookings(openBookings(bookingDao.findByPayeeLike(best), closed), type), coords);
             }
         }
         return template;
@@ -363,7 +472,7 @@ class AliasResolver {
             String t = term == null ? "" : term.trim();
             Booking[] booking = new Booking[1];
             PayeeCorrection[] alias = new PayeeCorrection[1];
-            resolve(t, de.spahr.ausgaben.location.Geo.parse(coords), closedAccounts(), booking, alias);
+            resolve(t, de.spahr.ausgaben.location.Geo.parse(coords), closedAccounts(), null, booking, alias);
             String payee = alias[0] != null ? alias[0].corrected : t;
             final Booking fb = booking[0];
             final PayeeCorrection fa = alias[0];
@@ -383,7 +492,7 @@ class AliasResolver {
             PayeeCorrection[] alias = new PayeeCorrection[1];
             double[] ll = de.spahr.ausgaben.location.Geo.parse(coords);
             if (ll != null) {
-                resolveGps(ll[0], ll[1], closedAccounts(), booking, alias);
+                resolveGps(ll[0], ll[1], closedAccounts(), null, booking, alias);
             }
             String payee = alias[0] != null ? alias[0].corrected
                     : (booking[0] != null ? booking[0].payee : "");

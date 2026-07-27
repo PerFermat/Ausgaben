@@ -45,7 +45,9 @@ public class WearMainActivity extends WearLocalizedActivity {
     private PendingStore store;
     private View typeSelection;
     private View confirmView;
-    private TextView status;
+    /** Einmalige Meldung (Mikrofon/kein Erkenner/nicht verstanden/offline) – ersetzt in der einzigen Zeile
+     * Konto+Saldo; {@code null} = keine. Es gibt auf der Uhr bewusst nur eine Zeile. */
+    private String transientStatus;
     private TextView balanceView;
     private View btnCycle;
     private final android.os.Handler revertHandler =
@@ -100,7 +102,6 @@ public class WearMainActivity extends WearLocalizedActivity {
         store = new PendingStore(this);
         typeSelection = findViewById(R.id.typeSelection);
         confirmView = findViewById(R.id.confirmView);
-        status = findViewById(R.id.status);
         balanceView = findViewById(R.id.balanceView);
         confirmType = findViewById(R.id.confirmType);
         confirmText = findViewById(R.id.confirmText);
@@ -434,6 +435,7 @@ public class WearMainActivity extends WearLocalizedActivity {
                 BalanceStore.selectedAccount(this), BalanceStore.selectedPlace(this),
                 now, now + LOCATION_WAIT_MS));
         numberEntryActive = false;
+        requestTileUpdate();
         resolveLocationThenSend(id);
         showTypeSelection();
     }
@@ -446,6 +448,7 @@ public class WearMainActivity extends WearLocalizedActivity {
                     System.currentTimeMillis());
             WearSync.syncPending(app);
             // Der Grund wechselt jetzt von „Warten auf GPS" auf den Übertragungszustand.
+            requestTileUpdate();
             runOnUiThread(() -> {
                 if (!isFinishing() && !isDestroyed()) {
                     refreshPhoneConnection();
@@ -464,6 +467,7 @@ public class WearMainActivity extends WearLocalizedActivity {
         store.add(new PendingEntry(confirmEntryId, text, pendingType, "",
                 BalanceStore.selectedAccount(this), BalanceStore.selectedPlace(this),
                 now, now + CANCEL_WINDOW_MS + LOCATION_WAIT_MS));
+        requestTileUpdate();
 
         confirmText.setText(text);
         btnCancel.setVisibility(View.VISIBLE);
@@ -502,6 +506,7 @@ public class WearMainActivity extends WearLocalizedActivity {
         if (confirmEntryId != null) {
             store.remove(confirmEntryId);
             confirmEntryId = null;
+            requestTileUpdate();
         }
         showTypeSelection();
     }
@@ -571,8 +576,12 @@ public class WearMainActivity extends WearLocalizedActivity {
             return;
         }
         offlineModelChecked = true;
-        if (android.os.Build.VERSION.SDK_INT < 33) {
-            android.widget.Toast.makeText(this, R.string.wear_model_hint,
+        // Diese Uhr stellt Apps gar keinen Offline-/On-Device-Erkenner bereit (z. B. nur der Online-Dienst
+        // des Google-TTS-Pakets ist gesetzt). Dann kann weder ein Modell geladen noch offline erkannt werden
+        // – ehrlich sagen statt einen wirkungslosen Download anzustoßen.
+        if (android.os.Build.VERSION.SDK_INT < 33
+                || !SpeechRecognizer.isOnDeviceRecognitionAvailable(this)) {
+            android.widget.Toast.makeText(this, R.string.wear_model_unsupported,
                     android.widget.Toast.LENGTH_LONG).show();
             return;
         }
@@ -661,31 +670,35 @@ public class WearMainActivity extends WearLocalizedActivity {
                 == PackageManager.PERMISSION_GRANTED;
     }
 
+    /** Einmalige Meldung setzen – sie ersetzt in der einzigen Zeile Konto+Saldo (keine zweite Zeile). */
     private void showStatus(String text) {
-        status.setText(text);
-        status.setVisibility(View.VISIBLE);
+        transientStatus = text;
+        updateBalance();
     }
 
-    /**
-     * Blendet die Statuszeile aus. Die Anzahl noch nicht übertragener Buchungen steht jetzt zusammen mit
-     * dem Übertragungsgrund in einer Zeile in {@link #updateBalance()} – für einmalige Meldungen
-     * (Mikrofon-Berechtigung, kein Erkenner, nicht verstanden) bleibt {@link #showStatus(String)} nutzbar.
-     */
+    /** Einmalige Meldung löschen und die eine Zeile neu berechnen. */
     private void updateStatus() {
-        status.setVisibility(View.GONE);
+        transientStatus = null;
+        updateBalance();
     }
 
     /**
-     * Zeigt den Konto/Ort-Saldo vom Phone; gibt es noch nicht übertragene Einträge, steht hier
-     * stattdessen Anzahl + Grund in einer Zeile (nur eine Zeile Platz auf dem Rundschirm). Leer →
-     * ausblenden. Wechsel-Knopf nur ab 2 Positionen.
+     * Füllt die einzige Zeile auf dem Rundschirm. Es gibt bewusst <b>nur eine</b> Zeile: jede Meldung
+     * (einmalige Meldung oder Übertragungs-Hinweis) <b>ersetzt</b> Konto+Saldo. Priorität:
+     * <ol>
+     *   <li>Hat der Nutzer gerade bewusst umgeschaltet (60‑s‑Fenster nach dem Wechsel-Knopf) → Konto/Saldo.</li>
+     *   <li>Einmalige Meldung (Mikrofon/kein Erkenner/nicht verstanden/offline) → diese Meldung.</li>
+     *   <li>Noch nicht übertragene Buchungen → Anzahl + Grund.</li>
+     *   <li>Sonst Konto/Saldo vom Phone.</li>
+     * </ol>
+     * Wechsel-Knopf nur ab 2 Positionen.
      */
     private void updateBalance() {
         String text;
         if (BalanceStore.isRecentlySelected(this)) {
-            // Innerhalb der Anzeige-Minute nach einem Wechsel-Knopf-Druck gewinnt immer das gewählte
-            // Konto/Ort – auch wenn parallel noch Buchungen auf die Übertragung warten.
             text = BalanceStore.get(this);
+        } else if (transientStatus != null && !transientStatus.isEmpty()) {
+            text = transientStatus;
         } else {
             text = pendingReason();
             if (text == null) {
@@ -727,6 +740,18 @@ public class WearMainActivity extends WearLocalizedActivity {
                 return null;
         }
         return getString(R.string.wear_pending, pending.size(), label);
+    }
+
+    /**
+     * Stößt eine Neuberechnung der Kachel (Tile/„Widget") an. Nötig, sobald sich auf der Uhr selbst die
+     * Warteschlange ändert (Buchung angelegt/entfernt/gesendet) – sonst zeigt die Kachel bis zur nächsten
+     * Phone-Nachricht weiter den alten Saldo statt des Übertragungs-Hinweises.
+     */
+    private void requestTileUpdate() {
+        try {
+            androidx.wear.tiles.TileService.getUpdater(this).requestUpdate(ExpenseTileService.class);
+        } catch (Exception ignored) {
+        }
     }
 
     /** Ist das Phone erreichbar? Ergebnis kommt asynchron und aktualisiert die Anzeige. */

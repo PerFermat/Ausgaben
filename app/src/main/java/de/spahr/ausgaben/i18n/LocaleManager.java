@@ -42,13 +42,13 @@ public final class LocaleManager {
             {"wear_cancel", "Abbrechen", "Cancel"},
             {"wear_prompt", "Buchung sagen, z. B. „Frisör 20 Euro\"", "Say a booking, e.g. \"Barber 20 euros\""},
             {"wear_listening", "Sprich jetzt…", "Speak now…"},
-            {"wear_not_understood", "Nicht verstanden", "Not understood"},
-            {"wear_no_mic", "Mikrofon-Berechtigung nötig", "Microphone permission needed"},
-            {"wear_no_recognizer", "Keine Spracherkennung verfügbar", "No speech recognition available"},
-            {"wear_pending", "%d Buchungen noch nicht übertragen", "%d bookings not yet transferred"},
-            {"wear_reason_gps", "Warten auf GPS", "Waiting for GPS"},
-            {"wear_reason_no_phone", "Keine Verbindung zum Handy", "No connection to phone"},
-            {"wear_reason_sending", "Wird übertragen…", "Transferring…"},
+            {"wear_not_understood", "Nicht erkannt", "Not recognized"},
+            {"wear_no_mic", "Mikrofon nötig", "Mic needed"},
+            {"wear_no_recognizer", "Keine Erkennung", "No recognizer"},
+            {"wear_pending", "%1$d offen · %2$s", "%1$d pending · %2$s"},
+            {"wear_reason_gps", "GPS", "GPS"},
+            {"wear_reason_no_phone", "Kein Handy", "No phone"},
+            {"wear_reason_sending", "sendet…", "sending…"},
     };
 
     private static final ExecutorService EXEC = Executors.newSingleThreadExecutor();

@@ -644,11 +644,12 @@ public class Repository {
         if (term.isEmpty()) {
             double[] ll = de.spahr.ausgaben.location.Geo.parse(coords);
             if (ll != null) {
-                aliasResolver.resolveGps(ll[0], ll[1], closed, resolvedBooking, resolvedAlias);
+                aliasResolver.resolveGps(ll[0], ll[1], closed, type, resolvedBooking, resolvedAlias);
             }
         } else {
             // Mit Empfänger: bei mehreren gleichnamigen Treffern den zur aktuellen Position nächsten wählen.
-            aliasResolver.resolve(term, de.spahr.ausgaben.location.Geo.parse(coords), closed,
+            // Die gewünschte Buchungsart (Knopf auf der Uhr) grenzt die Treffer im ersten Durchlauf ein.
+            aliasResolver.resolve(term, de.spahr.ausgaben.location.Geo.parse(coords), closed, type,
                     resolvedBooking, resolvedAlias);
         }
         Booking template = resolvedBooking[0];
@@ -687,9 +688,10 @@ public class Repository {
                 note = template.note;
             } else {
                 from = def;
-                // Widget/Uhr: der gesprochene Name (falls vorhanden) ist der Empfänger. Nach-Konto: ist
-                // das Von-Konto das Standardkonto → leer (am Handy ergänzen), sonst das Standardkonto.
-                payee = term;
+                // Kein Umbuchungs-Treffer. Wurde im 2. Durchlauf dennoch eine (typfremde) Vorlage gefunden,
+                // korrigiert deren Empfänger den Namen; sonst der gesprochene Name. Nach-Konto: ist das
+                // Von-Konto das Standardkonto → leer (am Handy ergänzen), sonst das Standardkonto.
+                payee = template != null ? template.payee : term;
                 String phoneDefault = new de.spahr.ausgaben.settings.SettingsStore(appContext)
                         .getDefaultAccount().trim();
                 to = from.equalsIgnoreCase(phoneDefault) ? "" : phoneDefault;
@@ -708,7 +710,9 @@ public class Repository {
         // Einnahme/Ausgabe: Richtung per Knopf erzwungen; Konto/Ort sind die Uhr-/Widget-Auswahl und
         // stehen fest (nie Alias/Vorlage) – nur Kategorie/Empfänger/Notiz kommen aus Alias bzw. Vorlage.
         boolean income = VOICE_TYPE_INCOME.equals(type);
-        boolean useTemplate = alias == null && template != null && !template.isTransfer;
+        // Vorlage vom exakt passenden Typ (Einnahme/Ausgabe wie angefordert): dann auch Kategorie/Notiz
+        // übernehmen. Eine im 2. Durchlauf gefundene typfremde Vorlage korrigiert nur den Empfänger.
+        boolean templateSameType = template != null && !template.isTransfer && template.isIncome == income;
         Booking b = new Booking();
         b.amountCents = amount;
         b.createdAt = now;
@@ -720,10 +724,10 @@ public class Repository {
             b.category = income ? AliasResolver.firstNonEmpty(alias.catIncome1, alias.catIncome2)
                     : AliasResolver.firstNonEmpty(alias.catExpense1, alias.catExpense2);
             b.note = "";
-        } else if (useTemplate) {
+        } else if (template != null) {
             b.payee = template.payee;
-            b.category = template.category;
-            b.note = template.note;
+            b.category = templateSameType ? template.category : "";
+            b.note = templateSameType ? template.note : "";
         } else {
             b.payee = term;
             b.category = "";
@@ -744,8 +748,9 @@ public class Repository {
         long id = bookingDao.insert(b);
         insertBookingMovement(b);
 
-        // Splitbuchungs-Vorlage: Teilbeträge proportional auf den neuen Betrag skalieren (Rest in letzte Zeile).
-        if (useTemplate && template.amountCents != 0) {
+        // Splitbuchungs-Vorlage: Teilbeträge proportional auf den neuen Betrag skalieren (Rest in letzte
+        // Zeile). Nur von einer typgleichen Vorlage übernehmen (eine typfremde korrigiert nur den Empfänger).
+        if (templateSameType && template.amountCents != 0) {
             List<BookingSplit> tmplSplits = bookingDao.getSplits(template.id);
             if (tmplSplits != null && tmplSplits.size() >= 2) {
                 long assigned = 0;

@@ -550,7 +550,7 @@ public class DepotActivity extends LocalizedActivity {
                 KmyImporter.DepotData data = importer.importDepot(depotName);
                 postImportProgress(getString(R.string.import_stage_depot, depotName),
                         de.spahr.ausgaben.export.ImportPhase.SAVE_FROM);
-                repository.replaceDepotImport(depotName, data.securities, data.transactions,
+                repository.replaceDepotImport(depotName, data.securities, data.transactions, data.prices,
                         () -> runOnUiThread(this::completeImport));
             } catch (Exception e) {
                 final String msg = e.getMessage() == null ? e.toString() : e.getMessage();

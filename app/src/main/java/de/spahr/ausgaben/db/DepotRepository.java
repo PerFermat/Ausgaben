@@ -32,21 +32,40 @@ class DepotRepository {
         this.mainHandler = mainHandler;
     }
 
-    /** Ersetzt die Depotdaten (Wertpapiere + Bewegungen) eines Depots. */
+    /** Ersetzt die Depotdaten (Wertpapiere + Bewegungen + Kurshistorie) eines Depots. */
     void replaceDepotImport(final String depot, final List<Security> securities,
-                            final List<SecurityTx> transactions, final Runnable onDone) {
+                            final List<SecurityTx> transactions, final List<SecurityPrice> prices,
+                            final Runnable onDone) {
         executor.execute(() -> {
             securityDao.deleteTx(depot);
             securityDao.deleteSecurities(depot);
+            securityDao.deletePrices(depot);
             for (Security s : securities) {
                 securityDao.insertSecurity(s);
             }
             for (SecurityTx t : transactions) {
                 securityDao.insertTx(t);
             }
+            if (prices != null) {
+                for (SecurityPrice p : prices) {
+                    securityDao.insertPrice(p);
+                }
+            }
             if (onDone != null) {
                 mainHandler.post(onDone);
             }
+        });
+    }
+
+    /** Depotübergreifende Bewertung (Zeitreihe) für die Vermögensgrafik. */
+    void getDepotValuation(final Callback<DepotValuation> callback) {
+        executor.execute(() -> {
+            final DepotValuation v = DepotValuation.build(
+                    securityDao.getAllSecurities(),
+                    securityDao.getAllTxPoints(),
+                    securityDao.getAllPricePoints(),
+                    securityDao.getAllDividendPoints());
+            mainHandler.post(() -> callback.onResult(v));
         });
     }
 

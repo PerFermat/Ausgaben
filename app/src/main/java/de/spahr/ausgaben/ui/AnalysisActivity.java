@@ -69,6 +69,8 @@ public class AnalysisActivity extends LocalizedActivity {
 
     private List<Booking> allBookings = new ArrayList<>();
     private List<PlaceEntry> allPlaceEntries = new ArrayList<>();
+    /** Depotübergreifende Zeitreihen-Bewertung (Depot-Linie in „Gesamt"/„Depot"); {@code null} bis geladen. */
+    private de.spahr.ausgaben.db.DepotValuation depotValuation = null;
     private boolean bookingsLoaded = false;
     private boolean placesLoaded = false;
     /** Aktive (nicht geschlossene) Konten – nur diese sind als Einzel-/Orts-Sicht wählbar. */
@@ -174,6 +176,12 @@ public class AnalysisActivity extends LocalizedActivity {
             placesLoaded = true;
             if (bookingsLoaded) renderChart();
         });
+        // Depotwert-Zeitreihe (für die „Gesamt"- und „Depot"-Sicht); danach Sichten + Grafik auffrischen.
+        repository.getDepotValuation(v -> {
+            depotValuation = v;
+            if (bookingsLoaded) setupViewSelector();
+            if (bookingsLoaded && placesLoaded) renderChart();
+        });
         // Aktive Konten laden → geschlossene Konten nicht als Einzel-/Orts-Sicht anbieten.
         repository.getAccountNames(names -> {
             activeAccounts = new java.util.HashSet<>(names);
@@ -184,9 +192,16 @@ public class AnalysisActivity extends LocalizedActivity {
     private void setupViewSelector() {
         viewKeys.clear();
         viewLabels.clear();
-        // Gesamt (alle Konten)
+        // Gesamt (alle Konten + Depot)
         viewKeys.add(MainActivity.VIEW_TOTAL);
         viewLabels.add(getString(R.string.saldo_total));
+        // Bei vorhandenem Depot zusätzlich „Gesamt ohne Depot" (nur Konten) und „Depot" (nur Depotwert).
+        if (depotValuation != null && !depotValuation.isEmpty()) {
+            viewKeys.add(MainActivity.VIEW_TOTAL_NODEPOT);
+            viewLabels.add(getString(R.string.saldo_total_nodepot));
+            viewKeys.add(MainActivity.VIEW_DEPOT_TOTAL);
+            viewLabels.add(getString(R.string.saldo_depot_total));
+        }
         // Jedes aktive Konto (aus den vorhandenen Buchungen, stabile Reihenfolge); geschlossene Konten
         // erscheinen nicht als Einzel-/Orts-Sicht – nur die Gesamtsicht enthält ihren historischen Saldo.
         java.util.LinkedHashSet<String> accounts = new java.util.LinkedHashSet<>();
@@ -217,11 +232,19 @@ public class AnalysisActivity extends LocalizedActivity {
             viewKeys.add(MainActivity.VIEW_FILTERED);
             viewLabels.add(getString(R.string.saldo_filtered));
         }
-        if (!viewKeys.contains(viewKey)) {
-            viewKey = MainActivity.VIEW_TOTAL;
+        int idx = viewKeys.indexOf(viewKey);
+        if (idx < 0) {
+            // Depot-Sichten erscheinen erst nach dem Laden der Bewertung – die gewünschte Sicht dann noch
+            // nicht zurücksetzen, nur vorübergehend „Gesamt" anzeigen (ein späterer Aufruf korrigiert das).
+            boolean depotViewPending = viewKey.equals(MainActivity.VIEW_TOTAL_NODEPOT)
+                    || viewKey.equals(MainActivity.VIEW_DEPOT_TOTAL);
+            if (!depotViewPending) {
+                viewKey = MainActivity.VIEW_TOTAL;
+            }
+            idx = 0;
         }
         viewSelector.setAdapter(new ArrayAdapter<>(this, android.R.layout.simple_list_item_1, viewLabels));
-        viewSelector.setText(viewLabels.get(viewKeys.indexOf(viewKey)), false);
+        viewSelector.setText(viewLabels.get(idx), false);
         viewSelector.setOnItemClickListener((parent, view, position, id) -> {
             viewKey = viewKeys.get(position);
             renderChart();
@@ -238,6 +261,10 @@ public class AnalysisActivity extends LocalizedActivity {
 
     private List<long[]> eventsForView() {
         List<long[]> events = new ArrayList<>();
+        // „Depot" = reine Depotwert-Linie ohne Buchungs-Ereignisse (die Linie kommt aus der Bewertung).
+        if (viewKey.equals(MainActivity.VIEW_DEPOT_TOTAL)) {
+            return events;
+        }
         if (viewKey.startsWith(MainActivity.VIEW_ACCOUNT_PREFIX)) {
             String account = viewKey.substring(MainActivity.VIEW_ACCOUNT_PREFIX.length());
             for (Booking b : allBookings) {
@@ -334,15 +361,24 @@ public class AnalysisActivity extends LocalizedActivity {
     }
 
     private void renderChart() {
+        // Depot-Beteiligung der Sicht: „Gesamt" enthält den Depotwert zusätzlich, „Depot" zeigt nur ihn.
+        boolean depotReady = depotValuation != null && !depotValuation.isEmpty();
+        boolean includeDepot = viewKey.equals(MainActivity.VIEW_TOTAL) && depotReady;
+        boolean depotOnly = viewKey.equals(MainActivity.VIEW_DEPOT_TOTAL) && depotReady;
+        boolean useDepot = includeDepot || depotOnly;
+
         List<long[]> events = eventsForView();
 
         long total = 0;
         for (long[] e : events) {
             total += e[1];
         }
+        if (useDepot) {
+            total += depotValuation.valueCentsAt(System.currentTimeMillis());
+        }
         textTotal.setText(getString(R.string.analysis_total, formatEuro(total)));
 
-        if (events.isEmpty()) {
+        if (events.isEmpty() && !depotOnly) {
             chart.clear();
             chart.invalidate();
             fabScrollRight.hide();
@@ -362,14 +398,38 @@ public class AnalysisActivity extends LocalizedActivity {
             if (ps < minMs) minMs = ps;
             if (ps > maxMs) maxMs = ps;
         }
+        // Depot-Sichten: Zeitraum um die Depot-Historie (frühester Kauf … heute) erweitern, damit die
+        // Depot-Linie ihren gesamten Verlauf bis zum aktuellen Wert zeigt.
+        if (useDepot) {
+            long first = depotValuation.firstTxMs();
+            if (first > 0) {
+                long fps = periodStart(first);
+                if (fps < minMs) minMs = fps;
+            }
+            long nowPs = periodStart(System.currentTimeMillis());
+            if (nowPs > maxMs) maxMs = nowPs;
+        }
+        if (minMs == Long.MAX_VALUE || maxMs == Long.MIN_VALUE) {
+            chart.clear();
+            chart.invalidate();
+            fabScrollRight.hide();
+            return;
+        }
 
-        List<Long> periods = new ArrayList<>();
+        // Perioden aufbauen. Bei sehr feinem Raster (Tag) über viele Jahre nur die JÜNGSTEN Perioden
+        // behalten (Fenster endet heute). Sonst schneidet die Kappung die letzten Jahre inkl. heute ab und
+        // die letzte gezeigte Periode nimmt den gesamten heutigen Depotwert auf einmal auf (großer Sprung).
+        final int maxBars = 5000;
+        List<Long> allPeriods = new ArrayList<>();
         Calendar cur = Calendar.getInstance();
         cur.setTimeInMillis(minMs);
-        while (cur.getTimeInMillis() <= maxMs && periods.size() <= 5000) {
-            periods.add(cur.getTimeInMillis());
+        int guard = 0;
+        while (cur.getTimeInMillis() <= maxMs && guard++ < 40000) {
+            allPeriods.add(cur.getTimeInMillis());
             advance(cur);
         }
+        int drop = Math.max(0, allPeriods.size() - maxBars);
+        List<Long> periods = new ArrayList<>(allPeriods.subList(drop, allPeriods.size()));
 
         List<BarEntry> barEntries = new ArrayList<>();
         List<Integer> barColors = new ArrayList<>();
@@ -377,18 +437,56 @@ public class AnalysisActivity extends LocalizedActivity {
         List<String> labels = new ArrayList<>();
         int green = getColor(R.color.income_green);
         int red = getColor(R.color.expense_red);
+        // Depot-Balken (nur „Depot"-Sicht) = Kursgewinn/-verlust + Käufe − Dividenden − Verkäufe
+        // = (Depotwert am Periodenende − am Anfang) − Dividenden der Periode.
+        boolean depotGross = depotOnly && new de.spahr.ausgaben.settings.SettingsStore(this).isDividendGross();
+        // Laufenden Saldo mit dem Netto der weggelassenen (älteren) Perioden vorbelegen, damit die Linie im
+        // Fenster beim korrekten Kontostand startet.
         long running = 0;
+        for (int k = 0; k < drop; k++) {
+            Long dn = netByPeriod.get(allPeriods.get(k));
+            if (dn != null) running += dn;
+        }
+        // Depotwert unmittelbar vor Fensterbeginn – Basis für die Wertänderung der ersten gezeigten Periode.
+        long prevDepotCents = (useDepot && !periods.isEmpty())
+                ? depotValuation.valueCentsAt(periods.get(0) - 1) : 0;
         for (int i = 0; i < periods.size(); i++) {
             long ps = periods.get(i);
             labels.add(label(ps));
             Long net = netByPeriod.get(ps);
             long netVal = net == null ? 0L : net;
             running += netVal;
-            if (hasEvent.contains(ps)) {
-                barEntries.add(new BarEntry(i, netVal / 100f));
-                barColors.add(netVal >= 0 ? green : red);
+
+            long depotCents = 0;
+            long depotDelta = 0;
+            long nextBoundary = (i + 1 < periods.size())
+                    ? periods.get(i + 1) : System.currentTimeMillis() + 1;
+            if (useDepot) {
+                // Depotwert am Ende der Periode (für die letzte Periode: aktueller Wert).
+                depotCents = depotValuation.valueCentsAt(nextBoundary - 1);
+                depotDelta = depotCents - prevDepotCents;
             }
-            lineEntries.add(new Entry(i, running / 100f));
+
+            long bar;
+            boolean drawBar;
+            if (depotOnly) {
+                bar = depotDelta - depotValuation.dividendCentsIn(ps, nextBoundary, depotGross);
+                drawBar = bar != 0;
+            } else if (includeDepot) {
+                // „Gesamt" = Buchungs-Netto + Wertentwicklung des Depots (Δ Depotwert) je Periode.
+                bar = netVal + depotDelta;
+                drawBar = bar != 0;
+            } else {
+                bar = netVal;
+                drawBar = hasEvent.contains(ps);
+            }
+            if (drawBar) {
+                barEntries.add(new BarEntry(i, bar / 100f));
+                barColors.add(bar >= 0 ? green : red);
+            }
+
+            prevDepotCents = depotCents;
+            lineEntries.add(new Entry(i, (running + depotCents) / 100f));
         }
         lastIndex = periods.size() - 1;
 

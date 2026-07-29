@@ -62,6 +62,8 @@ public class KmyDocument {
     private final Map<String, String[]> securityInfo = new LinkedHashMap<>(); // {name, symbol, currency}
     /** Wertpapier-ID → letzter Kurs {price, dateMillis}. */
     private final Map<String, double[]> securityPrice = new LinkedHashMap<>();
+    /** Wertpapier-ID → vollständige Kurshistorie (je Eintrag {price, dateMillis}), zeitlich aufsteigend. */
+    private final Map<String, List<double[]>> securityPriceHistory = new LinkedHashMap<>();
 
     /** Budgetjahr → Liste der Kategorie-Soll-Werte (Jahressumme) aus dem BUDGETS-Block. */
     private final Map<Integer, List<BudgetEntry>> budgetsByYear = new LinkedHashMap<>();
@@ -246,6 +248,12 @@ public class KmyDocument {
         return securityPrice.get(kmyId);
     }
 
+    /** Vollständige Kurshistorie (je Eintrag {price, dateMillis}) zur Wertpapier-ID; nie {@code null}. */
+    public List<double[]> securityPriceHistory(String kmyId) {
+        List<double[]> l = securityPriceHistory.get(kmyId);
+        return l != null ? l : new ArrayList<>();
+    }
+
     public long maxTransactionNumber() {
         return maxTransactionNumber;
     }
@@ -332,9 +340,13 @@ public class KmyDocument {
                         if (tc.isEmpty() || tc.equalsIgnoreCase(curTo)) {
                             long d = parseKmyDate(parser.getAttributeValue(null, "date"));
                             double p = fractionToDouble(parser.getAttributeValue(null, "price"));
-                            double[] prev = securityPrice.get(curFrom);
-                            if (d >= 0 && p > 0 && (prev == null || d >= (long) prev[1])) {
-                                securityPrice.put(curFrom, new double[]{p, d});
+                            if (d >= 0 && p > 0) {
+                                double[] prev = securityPrice.get(curFrom);
+                                if (prev == null || d >= (long) prev[1]) {
+                                    securityPrice.put(curFrom, new double[]{p, d});
+                                }
+                                securityPriceHistory.computeIfAbsent(curFrom, k -> new ArrayList<>())
+                                        .add(new double[]{p, d});
                             }
                         }
                     }

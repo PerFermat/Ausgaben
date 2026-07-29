@@ -142,7 +142,10 @@ public class MainActivity extends LocalizedActivity {
     public static final String WIDGET_ACTION_BALANCES = "balances";
 
     public static final String VIEW_TOTAL = "TOTAL";
-    public static final String VIEW_NETWORTH = "NETWORTH";
+    /** Gesamt ohne Depot = nur Konten (heutiges „Gesamt"-Verhalten). */
+    public static final String VIEW_TOTAL_NODEPOT = "TOTAL_NODEPOT";
+    /** Nur Depotwert. */
+    public static final String VIEW_DEPOT_TOTAL = "DEPOT_TOTAL";
     public static final String VIEW_NOPLACE = "NOPLACE";
     public static final String VIEW_FILTERED = "FILTERED";
     public static final String VIEW_PLACE_PREFIX = "PLACE:";
@@ -895,12 +898,15 @@ public class MainActivity extends LocalizedActivity {
             saldoViews.add(new SaldoView(VIEW_ACCOUNT_PREFIX + selectedAccount, selectedAccount,
                     selectedAccountBalance));
         }
-        // 2. Gesamt (alle Konten)
-        saldoViews.add(new SaldoView(VIEW_TOTAL, getString(R.string.saldo_total), totalBalance));
-        // 2b. Gesamtvermögen (alle Konten + Depotwert), sobald ein Depot importiert wurde.
+        // 2. Gesamt (alle Konten + Depotwert). Ohne Depot bleibt es beim reinen Kontosaldo.
+        saldoViews.add(new SaldoView(VIEW_TOTAL, getString(R.string.saldo_total),
+                totalBalance + depotValueCents));
+        // 2b. Sobald ein Depot importiert wurde, zusätzlich „Gesamt ohne Depot" und „Depot".
         if (hasDepot) {
-            saldoViews.add(new SaldoView(VIEW_NETWORTH, getString(R.string.saldo_networth),
-                    totalBalance + depotValueCents));
+            saldoViews.add(new SaldoView(VIEW_TOTAL_NODEPOT, getString(R.string.saldo_total_nodepot),
+                    totalBalance));
+            saldoViews.add(new SaldoView(VIEW_DEPOT_TOTAL, getString(R.string.saldo_depot_total),
+                    depotValueCents));
         }
         // 3. Orte des gewählten Kontos (Standardort = Rest-Topf des Kontos).
         if (!selectedAccount.isEmpty()) {
@@ -1518,7 +1524,7 @@ public class MainActivity extends LocalizedActivity {
         new Thread(() -> {
             try {
                 KmyImporter.DepotData data = importer.importDepot(depot);
-                repository.replaceDepotImport(depot, data.securities, data.transactions, () ->
+                repository.replaceDepotImport(depot, data.securities, data.transactions, data.prices, () ->
                         importDepotsThenFinish(importer, rest, done + 1, total));
             } catch (Exception e) {
                 postImportError(e);
@@ -1563,7 +1569,7 @@ public class MainActivity extends LocalizedActivity {
                 postImportProgress(getString(R.string.import_stage_depot, depotName),
                         de.spahr.ausgaben.export.ImportPhase.SAVE_FROM);
                 runOnUiThread(() -> repository.replaceDepotImport(depotName, data.securities,
-                        data.transactions, this::completeImport));
+                        data.transactions, data.prices, this::completeImport));
             } catch (Exception e) {
                 postImportError(e);
             }

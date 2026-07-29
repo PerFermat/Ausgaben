@@ -16,8 +16,28 @@ public interface SecurityDao {
     @Insert
     void insertTx(SecurityTx tx);
 
+    @Insert
+    void insertPrice(SecurityPrice price);
+
     @Query("SELECT * FROM security WHERE depot = :depot ORDER BY name COLLATE NOCASE ASC")
     List<Security> getSecurities(String depot);
+
+    /** Alle Wertpapiere aller Depots – Grundlage für die depotübergreifende Zeitreihen-Bewertung. */
+    @Query("SELECT * FROM security")
+    List<Security> getAllSecurities();
+
+    /** Alle Bewegungen (Depot, Wertpapier, Datum, Stückzahl) über alle Depots, zeitlich sortiert. */
+    @Query("SELECT depot, security_kmy_id AS kmyId, date, shares FROM security_tx ORDER BY date ASC")
+    List<TxPoint> getAllTxPoints();
+
+    /** Vollständige Kurshistorie über alle Depots, zeitlich sortiert. */
+    @Query("SELECT depot, security_kmy_id AS kmyId, date, price FROM security_price ORDER BY date ASC")
+    List<PricePoint> getAllPricePoints();
+
+    /** Alle Dividenden-Bewegungen (Brutto {@code amount} + Netto {@code net}) über alle Depots, zeitlich sortiert. */
+    @Query("SELECT date, amount_cents AS amount, net_cents AS net FROM security_tx "
+            + "WHERE action = 'dividend' ORDER BY date ASC")
+    List<DividendPoint> getAllDividendPoints();
 
     /** Gehaltene Stückzahl je Wertpapier (Summe der Bewegungen). */
     @Query("SELECT security_kmy_id AS kmyId, SUM(shares) AS shares FROM security_tx "
@@ -86,6 +106,9 @@ public interface SecurityDao {
     @Query("DELETE FROM security_tx WHERE depot = :depot")
     void deleteTx(String depot);
 
+    @Query("DELETE FROM security_price WHERE depot = :depot")
+    void deletePrices(String depot);
+
     /** Setzt/überschreibt den manuellen Wert einer Ein-/Ausbuchung (übersteht einen Depot-Reimport). */
     @Insert(onConflict = OnConflictStrategy.REPLACE)
     void upsertValueOverride(SecurityTxValueOverride override);
@@ -117,6 +140,29 @@ public interface SecurityDao {
         public String kmyId;
         public String action;
         public double shares;
+        public long amount;
+        public long net;
+    }
+
+    /** Projektion für eine einzelne Depot-Bewegung (Stückzahl-Änderung zu einem Zeitpunkt). */
+    class TxPoint {
+        public String depot;
+        public String kmyId;
+        public long date;
+        public double shares;
+    }
+
+    /** Projektion für einen historischen Kurspunkt. */
+    class PricePoint {
+        public String depot;
+        public String kmyId;
+        public long date;
+        public double price;
+    }
+
+    /** Projektion für eine Dividenden-Bewegung (Brutto {@code amount} + Netto {@code net}). */
+    class DividendPoint {
+        public long date;
         public long amount;
         public long net;
     }

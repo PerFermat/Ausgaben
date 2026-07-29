@@ -1168,12 +1168,18 @@ public class Repository {
     // Depot → DepotRepository.
 
     public void replaceDepotImport(String depot, List<Security> securities,
-                                   List<SecurityTx> transactions, Runnable onDone) {
-        depotRepo.replaceDepotImport(depot, securities, transactions, onDone);
+                                   List<SecurityTx> transactions, List<SecurityPrice> prices,
+                                   Runnable onDone) {
+        depotRepo.replaceDepotImport(depot, securities, transactions, prices, onDone);
     }
 
     public void getDepots(Callback<List<String>> callback) {
         depotRepo.getDepots(callback);
+    }
+
+    /** Depotübergreifende Bewertung (Zeitreihe) für die Vermögensgrafik. */
+    public void getDepotValuation(Callback<DepotValuation> callback) {
+        depotRepo.getDepotValuation(callback);
     }
 
     public void getDepotHoldings(String depot, Callback<List<DepotHolding>> callback) {

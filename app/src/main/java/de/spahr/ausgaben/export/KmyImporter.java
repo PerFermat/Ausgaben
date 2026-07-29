@@ -24,6 +24,7 @@ import de.spahr.ausgaben.db.BookingSplit;
 import de.spahr.ausgaben.db.ScheduledSplit;
 import de.spahr.ausgaben.db.ScheduledTransaction;
 import de.spahr.ausgaben.db.Security;
+import de.spahr.ausgaben.db.SecurityPrice;
 import de.spahr.ausgaben.db.SecurityTx;
 
 /**
@@ -61,10 +62,11 @@ public class KmyImporter {
         return doc.budgetEntries(year);
     }
 
-    /** Ergebnis eines Depot-Imports: Wertpapiere (mit letztem Kurs) + ihre Bewegungen. */
+    /** Ergebnis eines Depot-Imports: Wertpapiere (mit letztem Kurs) + Bewegungen + Kurshistorie. */
     public static final class DepotData {
         public final List<Security> securities = new ArrayList<>();
         public final List<SecurityTx> transactions = new ArrayList<>();
+        public final List<SecurityPrice> prices = new ArrayList<>();
     }
 
     /**
@@ -91,6 +93,10 @@ public class KmyImporter {
                 String currency = info != null && !info[2].isEmpty() ? info[2] : "EUR";
                 data.securities.add(new Security(depotName, secId, name, symbol, currency,
                         price != null ? price[0] : 0, price != null ? (long) price[1] : 0));
+                // Vollständige Kurshistorie (für die zeitliche Depotbewertung in der Vermögensgrafik).
+                for (double[] ph : doc.securityPriceHistory(secId)) {
+                    data.prices.add(new SecurityPrice(depotName, secId, (long) ph[1], ph[0]));
+                }
             }
         }
         if (stockAccounts.isEmpty()) {

@@ -130,7 +130,8 @@
 
     <!-- Balance bar -->
     <string name="saldo_total">Total</string>
-    <string name="saldo_networth">Net worth</string>
+    <string name="saldo_total_nodepot">Total without portfolio</string>
+    <string name="saldo_depot_total">Portfolio</string>
     <string name="saldo_filtered">Filtered</string>
     <string name="no_place">no place</string>
 

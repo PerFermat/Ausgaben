@@ -83,7 +83,9 @@ Details, screenshots and exact behavior are in the **[user manual](docs/Manual-A
 - **Analysis**: history chart per account/place/total, category pie chart ("Where does my money go?"),
   budget (actual vs. planned, imported from KMyMoney or computed in-app), scheduled bookings preview.
 - **Holdings & portfolio**: several cash **places** per account with their own movement journal and
-  reconciliation; portfolio import with prices, buys/sells/dividends, gain/loss analysis.
+  reconciliation; portfolio import with the full **price history**, buys/sells/dividends, gain/loss
+  analysis. The portfolio value counts like an account in **"Total"** and in the net-worth graph; the
+  history additionally offers the views **"Total without portfolio"** and **"Portfolio"**.
 - **Sync**: Nextcloud/WebDAV/SMB, `.kmy` mode (writes/reads the KMyMoney file directly, including splits,
   transfers and the portfolio) or CSV export; automatic backup before every export, protection against
   concurrent overwrites.

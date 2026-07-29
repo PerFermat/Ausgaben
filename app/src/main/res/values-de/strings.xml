@@ -130,7 +130,8 @@
 
     <!-- Saldo-Leiste -->
     <string name="saldo_total">Gesamt</string>
-    <string name="saldo_networth">Gesamtvermögen</string>
+    <string name="saldo_total_nodepot">Gesamt ohne Depot</string>
+    <string name="saldo_depot_total">Depot</string>
     <string name="saldo_filtered">Gefiltert</string>
     <string name="no_place">ohne Ort</string>
 

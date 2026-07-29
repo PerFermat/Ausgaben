@@ -12,8 +12,8 @@ import androidx.sqlite.db.SupportSQLiteDatabase;
 @Database(entities = {Booking.class, BookingSplit.class, Account.class, Payee.class, PlaceEntry.class,
         PayeeCorrection.class, Translation.class, Language.class, Security.class, SecurityTx.class,
         Budget.class, CategoryType.class, ScheduledTransaction.class, ScheduledSplit.class,
-        AnalysisExtra.class, SecurityTxValueOverride.class, KmyPendingDelete.class},
-        version = 36, exportSchema = false)
+        AnalysisExtra.class, SecurityTxValueOverride.class, KmyPendingDelete.class, SecurityPrice.class},
+        version = 37, exportSchema = false)
 public abstract class AppDatabase extends RoomDatabase {
 
     /** v1 → v2: Notiz-Spalte ergänzen (bestehende Buchungen bleiben erhalten). */
@@ -430,6 +430,24 @@ public abstract class AppDatabase extends RoomDatabase {
         }
     };
 
+    /**
+     * Kurshistorie je Wertpapier (vollständige KMyMoney-PRICES). Erlaubt die Bewertung des Depots zu
+     * vergangenen Stichtagen (Vermögensgrafik). Wird beim nächsten Depot-Import befüllt.
+     */
+    static final Migration MIGRATION_36_37 = new Migration(36, 37) {
+        @Override
+        public void migrate(@NonNull SupportSQLiteDatabase db) {
+            db.execSQL("CREATE TABLE IF NOT EXISTS security_price ("
+                    + "id INTEGER PRIMARY KEY AUTOINCREMENT NOT NULL, "
+                    + "depot TEXT NOT NULL, "
+                    + "security_kmy_id TEXT NOT NULL, "
+                    + "date INTEGER NOT NULL, "
+                    + "price REAL NOT NULL)");
+            db.execSQL("CREATE INDEX IF NOT EXISTS index_security_price_depot_security_kmy_id_date "
+                    + "ON security_price (depot, security_kmy_id, date)");
+        }
+    };
+
     public abstract BookingDao bookingDao();
 
     public abstract AccountDao accountDao();
@@ -476,7 +494,7 @@ public abstract class AppDatabase extends RoomDatabase {
                                     MIGRATION_25_26, MIGRATION_26_27, MIGRATION_27_28,
                                     MIGRATION_28_29, MIGRATION_29_30, MIGRATION_30_31,
                                     MIGRATION_31_32, MIGRATION_32_33, MIGRATION_33_34, MIGRATION_34_35,
-                                    MIGRATION_35_36)
+                                    MIGRATION_35_36, MIGRATION_36_37)
                             .build();
                 }
             }

@@ -232,6 +232,8 @@ public class MainActivity extends LocalizedActivity {
 
         textBalance = findViewById(R.id.textBalance);
         textSaldoLabel = findViewById(R.id.textSaldoLabel);
+        // Laufschrift für lange Kontonamen (bei großer Schrift), damit der Saldo daneben Platz behält.
+        textSaldoLabel.setSelected(true);
         findViewById(R.id.saldoHeader).setOnClickListener(v -> cycleSaldo());
 
         RecyclerView recycler = findViewById(R.id.recyclerBookings);

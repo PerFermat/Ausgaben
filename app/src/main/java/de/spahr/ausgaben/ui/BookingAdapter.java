@@ -155,6 +155,8 @@ public class BookingAdapter extends RecyclerView.Adapter<BookingAdapter.VH> {
             note = itemView.findViewById(R.id.textNote);
             amount = itemView.findViewById(R.id.textAmount);
             exported = itemView.findViewById(R.id.textExported);
+            // Laufschrift für lange Empfänger-Namen (bei großer Schrift), damit nichts abgeschnitten wird.
+            payee.setSelected(true);
         }
     }
 }

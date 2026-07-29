@@ -1,6 +1,7 @@
 package de.spahr.ausgaben.ui;
 
 import android.content.Context;
+import android.content.res.Configuration;
 import android.content.res.Resources;
 import android.os.Bundle;
 import android.view.LayoutInflater;
@@ -21,10 +22,27 @@ public class LocalizedActivity extends AppCompatActivity {
 
     private Resources translatedResources;
     private Resources translatedBase;
+    /** Schriftgrößen-Faktor, mit dem diese Activity aufgebaut wurde (für Live-Neuaufbau bei Änderung). */
+    private float appliedFontScale = 1f;
 
     @Override
     protected void attachBaseContext(Context base) {
-        super.attachBaseContext(LocaleContextWrapper.wrap(base));
+        // Globale Schriftgröße anwenden: fontScale multiplikativ (stapelt auf die System-Schriftgröße,
+        // „normal" = Faktor 1,0 = heutiges Verhalten). Alle sp-Texte skalieren dadurch automatisch.
+        appliedFontScale = de.spahr.ausgaben.settings.FontScale.factor();
+        Configuration cfg = new Configuration(base.getResources().getConfiguration());
+        cfg.fontScale *= appliedFontScale;
+        Context scaled = base.createConfigurationContext(cfg);
+        super.attachBaseContext(LocaleContextWrapper.wrap(scaled));
+    }
+
+    @Override
+    protected void onResume() {
+        super.onResume();
+        // Wurde die Schriftgröße in den Einstellungen geändert, zieht jede Ansicht beim Anzeigen nach.
+        if (appliedFontScale != de.spahr.ausgaben.settings.FontScale.factor()) {
+            recreate();
+        }
     }
 
     /**

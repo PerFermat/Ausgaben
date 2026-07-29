@@ -323,7 +323,7 @@ public class ScheduledChartActivity extends LocalizedActivity {
         BarDataSet barSet = new BarDataSet(barEntries, "");
         barSet.setColors(barColors);
         barSet.setValueTextColor(chartText);
-        barSet.setValueTextSize(11f);
+        barSet.setValueTextSize(11f * de.spahr.ausgaben.settings.FontScale.factor());
         BarData barData = new BarData(barSet);
         barData.setBarWidth(0.6f);
 
@@ -379,9 +379,9 @@ public class ScheduledChartActivity extends LocalizedActivity {
         x.setDrawGridLines(false);
         x.setAvoidFirstLastClipping(true);
         x.setTextColor(chartText);
-        x.setTextSize(12f);
+        x.setTextSize(12f * de.spahr.ausgaben.settings.FontScale.factor());
         chart.getAxisLeft().setTextColor(chartText);
-        chart.getAxisLeft().setTextSize(12f);
+        chart.getAxisLeft().setTextSize(12f * de.spahr.ausgaben.settings.FontScale.factor());
 
         chart.setOnChartGestureListener(new OnChartGestureListener() {
             @Override public void onChartGestureStart(MotionEvent me, ChartTouchListener.ChartGesture g) { }

@@ -39,6 +39,16 @@ public class SettingsStore {
     private static final String KEY_SHOW_CURRENCY = "show_currency";
     private static final String KEY_DIVIDEND_GROSS = "dividend_gross";
     private static final String KEY_BUDGET_INTERNAL = "budget_internal";
+    private static final String KEY_FONT_SIZE = "font_size";
+
+    /** Schriftgröße klein (Faktor 0,90). */
+    public static final String FONT_SIZE_SMALL = "klein";
+    /** Schriftgröße normal (Faktor 1,0) = heutiges Verhalten. Standard. */
+    public static final String FONT_SIZE_NORMAL = "normal";
+    /** Schriftgröße groß (Faktor 1,15). */
+    public static final String FONT_SIZE_LARGE = "gross";
+    /** Schriftgröße sehr groß (Faktor 1,30). */
+    public static final String FONT_SIZE_XLARGE = "sehr_gross";
 
     /** Zahlenformat: Tausenderpunkt + Dezimalkomma („1.234,56"). */
     public static final String NUMBER_FORMAT_DE_GROUP = "de_group";
@@ -314,6 +324,16 @@ public class SettingsStore {
     public void setNumberFormat(String format) {
         prefs.edit().putString(KEY_NUMBER_FORMAT,
                 format == null ? NUMBER_FORMAT_PLAIN_COMMA : format.trim()).apply();
+    }
+
+    /** Gewählte Schriftgröße (siehe {@code FONT_SIZE_*}). Standard = normal (heutiges Verhalten). */
+    public String getFontSize() {
+        String v = prefs.getString(KEY_FONT_SIZE, FONT_SIZE_NORMAL);
+        return v == null || v.trim().isEmpty() ? FONT_SIZE_NORMAL : v.trim();
+    }
+
+    public void setFontSize(String size) {
+        prefs.edit().putString(KEY_FONT_SIZE, size == null ? FONT_SIZE_NORMAL : size.trim()).apply();
     }
 
     /** Ob das Währungskennzeichen an Beträge angehängt wird (Standard an). */

@@ -85,6 +85,11 @@ public class SettingsActivity extends LocalizedActivity {
     private MaterialAutoCompleteTextView editLanguage;
     private TextInputEditText editCurrency;
     private MaterialAutoCompleteTextView editNumberFormat;
+    private com.google.android.material.slider.Slider sliderFontSize;
+    /** Schriftgrößen-Werte je Slider-Position 0..3 (klein → sehr groß). */
+    private static final String[] FONT_SIZE_VALUES = {
+            SettingsStore.FONT_SIZE_SMALL, SettingsStore.FONT_SIZE_NORMAL,
+            SettingsStore.FONT_SIZE_LARGE, SettingsStore.FONT_SIZE_XLARGE};
     private MaterialSwitch switchShowCurrency;
     private MaterialSwitch switchDividendGross;
     private MaterialSwitch switchBudgetInternal;
@@ -198,6 +203,7 @@ public class SettingsActivity extends LocalizedActivity {
         editCurrency = findViewById(R.id.editCurrency);
         editCurrency.setText(settings.getCurrency());
         editNumberFormat = findViewById(R.id.editNumberFormat);
+        sliderFontSize = findViewById(R.id.sliderFontSize);
         switchShowCurrency = findViewById(R.id.switchShowCurrency);
         switchShowCurrency.setChecked(settings.isCurrencyShown());
         switchDividendGross = findViewById(R.id.switchDividendGross);
@@ -214,6 +220,7 @@ public class SettingsActivity extends LocalizedActivity {
             BudgetImportFlow.run(this, settings, repository, y, null);
         });
         setupNumberFormat();
+        setupFontSize();
         setupLanguages();
         ((MaterialButton) findViewById(R.id.btnExportTemplate)).setOnClickListener(
                 v -> templateExportLauncher.launch("ausgaben-language-template.json"));
@@ -611,6 +618,51 @@ public class SettingsActivity extends LocalizedActivity {
                 selectedNumberFormat = NUMBER_FORMAT_VALUES[position]);
     }
 
+    /**
+     * Schriftgrößen-Slider (links klein … rechts sehr groß). Die Änderung greift – wie beim Nacht-Modus –
+     * sofort: die Auswahl wird gespeichert und die aktuelle Ansicht neu aufgebaut (Live-Vorschau). Der
+     * Rest der App zieht beim nächsten Anzeigen nach (siehe {@link LocalizedActivity}).
+     */
+    private void setupFontSize() {
+        String[] labels = {
+                getString(R.string.font_size_small),
+                getString(R.string.font_size_normal),
+                getString(R.string.font_size_large),
+                getString(R.string.font_size_xlarge)};
+        sliderFontSize.setValue(indexOfFontSize(settings.getFontSize()));
+        sliderFontSize.setLabelFormatter(value -> labels[Math.round(value)]);
+        // Beim Loslassen anwenden (nicht bei jedem Zwischenschritt), damit kein Neuaufbau-Stakkato entsteht.
+        sliderFontSize.addOnSliderTouchListener(new com.google.android.material.slider.Slider.OnSliderTouchListener() {
+            @Override
+            public void onStartTrackingTouch(com.google.android.material.slider.Slider slider) {
+            }
+
+            @Override
+            public void onStopTrackingTouch(com.google.android.material.slider.Slider slider) {
+                applyFontSize(FONT_SIZE_VALUES[Math.round(slider.getValue())]);
+            }
+        });
+    }
+
+    private int indexOfFontSize(String code) {
+        for (int i = 0; i < FONT_SIZE_VALUES.length; i++) {
+            if (FONT_SIZE_VALUES[i].equals(code)) {
+                return i;
+            }
+        }
+        return 1; // normal
+    }
+
+    /** Speichert die Schriftgröße und baut die Ansicht sofort neu auf (Live-Vorschau, wie Nacht-Modus). */
+    private void applyFontSize(String code) {
+        if (code.equals(settings.getFontSize())) {
+            return;
+        }
+        settings.setFontSize(code);
+        de.spahr.ausgaben.settings.FontScale.refresh(this);
+        recreate();
+    }
+
     // ---- Sprache ----
 
     private void setupLanguages() {
@@ -918,6 +970,7 @@ public class SettingsActivity extends LocalizedActivity {
                 selectedServerType);
 
         repository.ensureAccount(defaultAccount);
+        // Schriftgröße wird bereits beim Schieben des Sliders sofort angewendet (siehe setupFontSize()).
         settings.setCurrency(textOf(editCurrency));
         settings.setNumberFormat(selectedNumberFormat);
         settings.setCurrencyShown(switchShowCurrency.isChecked());

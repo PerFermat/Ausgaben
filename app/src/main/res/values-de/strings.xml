@@ -238,6 +238,12 @@
     <string name="data_section">Daten</string>
     <string name="appearance_section">Darstellung</string>
     <string name="dark_mode">Dunkles Design</string>
+    <string name="font_size_hint">Schriftgröße</string>
+    <string name="font_size_sample">A</string>
+    <string name="font_size_small">Klein</string>
+    <string name="font_size_normal">Normal</string>
+    <string name="font_size_large">Groß</string>
+    <string name="font_size_xlarge">Sehr groß</string>
     <string name="filter_search_hint">Suche (Empfänger, Notiz, Kategorie)</string>
     <string name="shortcut_new_expense_short">Neue Buchung</string>
     <string name="shortcut_new_expense_long">Neue Buchung erfassen</string>

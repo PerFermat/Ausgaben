@@ -43,6 +43,8 @@ public class AusgabenApp extends Application implements Application.ActivityLife
         AppCompatDelegate.setDefaultNightMode(settings.getNightMode());
         de.spahr.ausgaben.settings.Currencies.refresh(this);
         de.spahr.ausgaben.settings.MoneyFormat.refresh(this);
+        // Globale Schriftgröße laden, bevor die erste Activity ihren (skalierten) Context aufbaut.
+        de.spahr.ausgaben.settings.FontScale.refresh(this);
         // Tageswecker der Erinnerung sicherstellen (bzw. abbestellen, wenn ausgeschaltet).
         de.spahr.ausgaben.notify.ScheduledReminder.apply(this);
         // Wear-Texte einmal je App-Start an die Uhr publizieren, damit Textänderungen (auch nach einem

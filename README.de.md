@@ -87,6 +87,8 @@ Details, Screenshots und die genaue Bedienung stehen im **[Benutzerhandbuch](doc
   gleichzeitigem Überschreiben.
 - **Mehrsprachig**: Deutsch/Englisch eingebaut, weitere Sprachen per Übersetzungsdatei nachrüstbar (auch
   für die Uhr).
+- **Darstellung**: dunkles Design und app-weite **Schriftgröße** (Klein/Normal/Groß/Sehr groß) – wirkt
+  zusätzlich zur System-Schriftgröße; lange Kontonamen/Buchungstitel laufen bei Bedarf als Laufschrift.
 - **Sicherheit**: optionale biometrische App-Sperre, GPS standardmäßig aus, verschlüsselte Zugangsdaten.
 
 ## Wear OS (Sprach-Schnellerfassung)

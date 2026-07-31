@@ -85,6 +85,12 @@ public class SettingsActivity extends LocalizedActivity {
     private MaterialAutoCompleteTextView editLanguage;
     private TextInputEditText editCurrency;
     private MaterialAutoCompleteTextView editNumberFormat;
+    private MaterialAutoCompleteTextView editCsvSeparator;
+    /** Aktuell gewähltes CSV-Trennzeichen (SettingsStore.CSV_SEP_*). */
+    private String selectedCsvSeparator = SettingsStore.CSV_SEP_SEMICOLON;
+    /** Trennzeichen-Werte passend zu den Labels in {@link #setupCsvSeparator()}. */
+    private static final String[] CSV_SEPARATOR_VALUES = {
+            SettingsStore.CSV_SEP_SEMICOLON, SettingsStore.CSV_SEP_COMMA};
     private com.google.android.material.slider.Slider sliderFontSize;
     /** Schriftgrößen-Werte je Slider-Position 0..3 (klein → sehr groß). */
     private static final String[] FONT_SIZE_VALUES = {
@@ -130,6 +136,7 @@ public class SettingsActivity extends LocalizedActivity {
         editExportMode = findViewById(R.id.editExportMode);
         editServerType = findViewById(R.id.editServerType);
         editKmyPath = findViewById(R.id.editKmyPath);
+        editCsvSeparator = findViewById(R.id.editCsvSeparator);
         editDefaultAccount = findViewById(R.id.editDefaultAccount);
         switchDarkMode = findViewById(R.id.switchDarkMode);
 
@@ -139,6 +146,7 @@ public class SettingsActivity extends LocalizedActivity {
         editImportFolder.setText(settings.getImportFolder());
         editKmyPath.setText(settings.getKmyPath());
         setupExportMode();
+        setupCsvSeparator();
         setupServerType();
         editDefaultAccount.setText(settings.getDefaultAccount(), false);
 
@@ -263,6 +271,19 @@ public class SettingsActivity extends LocalizedActivity {
             selectedExportMode = position == 1 ? SettingsStore.MODE_KMY : SettingsStore.MODE_CSV;
             applyExportModeVisibility();
         });
+    }
+
+    /** Dropdown „CSV-Trennzeichen" (nur im CSV-Block sichtbar): Semikolon (Standard) oder Komma. */
+    private void setupCsvSeparator() {
+        String[] labels = {
+                getString(R.string.csv_separator_semicolon),
+                getString(R.string.csv_separator_comma)};
+        editCsvSeparator.setAdapter(new ArrayAdapter<>(this, android.R.layout.simple_list_item_1, labels));
+        selectedCsvSeparator = settings.getCsvSeparator();
+        int idx = SettingsStore.CSV_SEP_COMMA.equals(selectedCsvSeparator) ? 1 : 0;
+        editCsvSeparator.setText(labels[idx], false);
+        editCsvSeparator.setOnItemClickListener((parent, view, position, id) ->
+                selectedCsvSeparator = CSV_SEPARATOR_VALUES[position]);
     }
 
     /** Blendet nur die zum gewählten Format passenden Felder ein (CSV: Ordner, .kmy: Dateipfad). */
@@ -973,6 +994,7 @@ public class SettingsActivity extends LocalizedActivity {
         // Schriftgröße wird bereits beim Schieben des Sliders sofort angewendet (siehe setupFontSize()).
         settings.setCurrency(textOf(editCurrency));
         settings.setNumberFormat(selectedNumberFormat);
+        settings.setCsvSeparator(selectedCsvSeparator);
         settings.setCurrencyShown(switchShowCurrency.isChecked());
         settings.setDividendGross(switchDividendGross.isChecked());
         settings.setBudgetInternal(switchBudgetInternal.isChecked());

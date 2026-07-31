@@ -109,8 +109,10 @@ Requirement: the phone and watch app share the same `applicationId` **and** the 
 
 ## CSV format (export)
 
-German: column separator `;`, decimal separator `,`, date `DD.MM.YYYY`, UTF-8, CRLF. Split bookings are
-written as one row per category.
+Column separator (`;` or `,`) and decimal separator (comma or dot) follow the settings, date
+`DD.MM.YYYY`, UTF-8, CRLF. Split bookings are written as one row per category. Import is
+language-independent: it reads KMyMoney ledger exports in any language (German, English, …) and re-imports
+the app's own export.
 
 ```
 Datum;Empfänger;Konto;Typ;Betrag;Notiz;Kategorie

@@ -109,8 +109,10 @@ Voraussetzung: Phone- und Wear-App haben dieselbe `applicationId` **und** diesel
 
 ## CSV-Format (Export)
 
-Deutsch: Spaltentrenner `;`, Dezimaltrennzeichen `,`, Datum `TT.MM.JJJJ`, UTF-8, CRLF. Splitbuchungen
-werden je Kategorie als eigene Zeile geschrieben.
+Spaltentrenner (`;` oder `,`) und Dezimaltrennzeichen (Komma oder Punkt) folgen den Einstellungen, Datum
+`TT.MM.JJJJ`, UTF-8, CRLF. Splitbuchungen werden je Kategorie als eigene Zeile geschrieben. Der Import ist
+sprachunabhängig: Er liest KMyMoney-Ledger-Exporte in jeder Sprache (Deutsch, Englisch, …) und
+re-importiert den App-eigenen Export.
 
 ```
 Datum;Empfänger;Konto;Typ;Betrag;Notiz;Kategorie

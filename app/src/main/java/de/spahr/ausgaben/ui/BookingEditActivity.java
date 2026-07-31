@@ -144,6 +144,10 @@ public class BookingEditActivity extends LocalizedActivity {
     private boolean receiptEnabled;
     /** Zu speichernde Koordinaten „lat, lon" (aus Standort bzw. bestehender Buchung); null = keine. */
     private String gpsRowCoords;
+    /** True, sobald der Standort auf der Karte manuell gewählt wurde – dann kein Überschreiben per Live-GPS. */
+    private boolean gpsEditedByUser;
+    /** Karten-Auswahl (OpenStreetMap) für den Standort der Buchung. */
+    private ActivityResultLauncher<Intent> gpsMapLauncher;
     /** Dateiname eines bereits verknüpften Belegs; null = keiner. */
     private String receiptFileName;
     /** Bereits komprimiertes Beleg-Temp, das beim Speichern final benannt und verlinkt wird. */
@@ -296,6 +300,18 @@ public class BookingEditActivity extends LocalizedActivity {
                         ingestReceipt(uri, null);
                     }
                 });
+        // Standort auf der Karte (OpenStreetMap) wählen/ändern – wie beim Alias. Die manuelle Wahl gewinnt
+        // ab jetzt gegen den Live-GPS-Wert (siehe gpsEditedByUser).
+        gpsMapLauncher = registerForActivityResult(
+                new ActivityResultContracts.StartActivityForResult(), result -> {
+                    if (result.getResultCode() == RESULT_OK && result.getData() != null) {
+                        double lat = result.getData().getDoubleExtra(MapPickerActivity.EXTRA_LAT, 0);
+                        double lon = result.getData().getDoubleExtra(MapPickerActivity.EXTRA_LON, 0);
+                        gpsRowCoords = formatCoords(lat, lon);
+                        gpsEditedByUser = true;
+                        updateNoteTagRows();
+                    }
+                });
         rowGps = findViewById(R.id.rowGps);
         rowReceipt = findViewById(R.id.rowReceipt);
         textGps = findViewById(R.id.textGps);
@@ -431,7 +447,7 @@ public class BookingEditActivity extends LocalizedActivity {
         // Nur im Neu-/Vorlage-Modus (booking == null) die GPS-Zeile live mit der aktuellen Position füllen;
         // beim Bearbeiten bleiben die gespeicherten Koordinaten stehen (der Tagger läuft nur, damit „Als neue
         // speichern" aktuelle Koordinaten holen kann).
-        if (locationTagger == null || booking != null) {
+        if (locationTagger == null || booking != null || gpsEditedByUser) {
             return;
         }
         String coords = locationTagger.currentCoordinates();
@@ -631,7 +647,8 @@ public class BookingEditActivity extends LocalizedActivity {
         toolbar.setTitle(R.string.edit_title);
         selectedDate.setTimeInMillis(b.createdAt);
         updateDateField();
-        switchExported.setVisibility(b.isTransfer ? View.GONE : View.VISIBLE);
+        // Export-Status auch bei Umbuchungen änderbar (beide Seiten werden beim Speichern angepasst).
+        switchExported.setVisibility(View.VISIBLE);
         switchExported.setChecked(b.exported);
         btnUpdate.setVisibility(View.VISIBLE);
         btnDelete.setVisibility(View.VISIBLE);
@@ -1187,7 +1204,17 @@ public class BookingEditActivity extends LocalizedActivity {
             textGps.setText(getString(R.string.gps_row_label, gpsDisplay(gpsRowCoords)));
             final double lat = ll[0];
             final double lon = ll[1];
-            btnNoteMap.setOnClickListener(v -> openMapAt(lat, lon));
+            // Ansicht: nur Karte zeigen. Bearbeiten/Neu: Standort auf der Karte ändern.
+            if (readOnly) {
+                btnNoteMap.setOnClickListener(v -> openMapAt(lat, lon));
+            } else {
+                btnNoteMap.setOnClickListener(v -> openMapForEdit(lat, lon));
+            }
+            rowGps.setVisibility(View.VISIBLE);
+        } else if (!readOnly && settings.isGpsEnabled() && !isTransferType()) {
+            // Noch kein Standort: Zeile zum Setzen eines Standorts anbieten.
+            textGps.setText(R.string.gps_row_none);
+            btnNoteMap.setOnClickListener(v -> openMapForEdit(null, null));
             rowGps.setVisibility(View.VISIBLE);
         } else {
             rowGps.setVisibility(View.GONE);
@@ -1245,14 +1272,33 @@ public class BookingEditActivity extends LocalizedActivity {
         startActivity(i);
     }
 
+    /**
+     * Öffnet die Karten-Auswahl (wählbar, wie im Alias), zentriert auf die aktuellen Koordinaten (falls
+     * vorhanden – sonst letzte bekannte Position/Standard). Das Ergebnis übernimmt {@link #gpsMapLauncher}.
+     */
+    private void openMapForEdit(Double lat, Double lon) {
+        Intent i = new Intent(this, MapPickerActivity.class);
+        if (lat != null && lon != null) {
+            i.putExtra(MapPickerActivity.EXTRA_LAT, (double) lat);
+            i.putExtra(MapPickerActivity.EXTRA_LON, (double) lon);
+        }
+        gpsMapLauncher.launch(i);
+    }
+
+    /** Koordinaten als „lat,lon" mit sechs Nachkommastellen (wie die Karten-Auswahl liefert). */
+    private static String formatCoords(double lat, double lon) {
+        return String.format(java.util.Locale.US, "%.6f,%.6f", lat, lon);
+    }
+
     /** Freier Text + (je nach Kopie/Update) GPS-Tag. Der BELEG:-Tag kommt in {@link #attachReceipt}. */
     private String composeNoteForSave(boolean asNew) {
         String free = textOf(editNote).trim();
         String coords;
         if (asNew) {
             // Neu/Vorlage (booking == null): der Zeilenwert ist bereits die aktuelle Position.
-            // „Als neue speichern" aus einer bestehenden Buchung: frische Position vom Tagger holen.
-            coords = (booking == null) ? gpsRowCoords
+            // „Als neue speichern" aus einer bestehenden Buchung: frische Position vom Tagger holen –
+            // außer der Nutzer hat den Standort manuell auf der Karte gewählt (dann gilt dieser).
+            coords = (booking == null || gpsEditedByUser) ? gpsRowCoords
                     : (locationTagger != null ? locationTagger.currentCoordinates() : null);
         } else {
             coords = gpsRowCoords;
@@ -1482,6 +1528,8 @@ public class BookingEditActivity extends LocalizedActivity {
         final String payee = textOf(editPayee).trim();
         final String fromPlace = selectedPlace();
         final String toPlace = selectedPlaceTo();
+        // Export-Status aus dem Schalter übernehmen; updateTransferBooking überträgt ihn auf beide Seiten.
+        booking.exported = switchExported.isChecked();
         maybeAskCorrection(payee, () ->
                 repository.updateTransferBooking(booking, from, to, cents, payee, note,
                 composeTimestamp(), fromPlace, toPlace, () -> {

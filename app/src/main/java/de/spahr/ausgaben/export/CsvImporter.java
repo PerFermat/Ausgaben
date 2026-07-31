@@ -15,20 +15,28 @@ import de.spahr.ausgaben.R;
 import de.spahr.ausgaben.db.Booking;
 
 /**
- * Importiert das kMyMoney-Ledger-CSV-Format:
+ * Importiert ein Ledger-CSV sprachunabhängig. Erkannt werden zwei Layouts:
+ * <ul>
+ *   <li><b>KMyMoney-Ledger</b> (jede Sprache): {@code Datum;Empfänger;Betrag;Konto/Kategorie;Notiz;…}</li>
+ *   <li><b>Ausgaben-Export</b>: {@code Datum;Empfänger;Konto;Typ;Betrag;Notiz;Kategorie}</li>
+ * </ul>
  * <pre>
- * Kontentyp:Bargeld
+ * Account Type:Credit Card,Account Name:My Visa   (bzw. Kontentyp:Bargeld / AccountType:Bargeld)
  * &lt;leer&gt;
- * Datum;Zahlungsempfänger;Betrag;Konto/Kategorie;Notiz;Status;Nummer;Split-…
- * 2010-12-06;"Meisters";"-40,00";"Unterhaltung:Ausgehen";;C;
+ * Date,Payee,Amount,Account/Cat,Memo,Status,…     (bzw. Datum;Zahlungsempfänger;Betrag;…)
+ * 2010-12-06,"Meisters","-40.00","Unterhaltung",…
  * </pre>
- * Verwertet werden Spalte 1 (Datum, ISO yyyy-MM-dd), Spalte 2 (Empfänger), Spalte 3 (Betrag,
- * Vorzeichen bestimmt Ausgabe/Einnahme) und Spalte 5 (Notiz). Das Konto stammt aus Zeile 1.
- * Alle importierten Buchungen werden als bereits exportiert markiert.
+ * Der Aufbau wird strukturell erkannt: erste nicht-leere Zeile = Kontozeile (Name = Wert hinter dem
+ * letzten „:"), nächste nicht-leere Zeile = Kopfzeile (bestimmt das Trennzeichen), danach Datenzeilen.
+ * Das Spalten-Layout wird aus dem Inhalt der ersten Datenzeile abgeleitet. Alle importierten Buchungen
+ * werden als bereits exportiert markiert.
  */
 public class CsvImporter {
 
-    private final SimpleDateFormat isoDate = new SimpleDateFormat("yyyy-MM-dd", Locale.GERMANY);
+    /** Datumsformate in Prüfreihenfolge: ISO (KMyMoney), dt. Punkt (App-Export), Schrägstrich-Varianten. */
+    private static final String[] DATE_PATTERNS = {
+            "yyyy-MM-dd", "dd.MM.yyyy", "yyyy/MM/dd", "MM/dd/yyyy", "dd/MM/yyyy"};
+
     private String parsedAccount = "";
     private final Context ctx;
 
@@ -36,7 +44,7 @@ public class CsvImporter {
         this.ctx = de.spahr.ausgaben.i18n.LocaleManager.localizedContext(context);
     }
 
-    /** Kontoname aus der zuletzt geparsten Datei (Zeile „Kontentyp:…"). */
+    /** Kontoname aus der zuletzt geparsten Datei (Wert hinter dem letzten „:" der Kontozeile). */
     public String getParsedAccount() {
         return parsedAccount;
     }
@@ -48,20 +56,11 @@ public class CsvImporter {
         }
         String[] lines = content.split("\r\n|\n|\r");
 
-        String account = null;
-        int headerIndex = -1;
-        for (int i = 0; i < lines.length; i++) {
-            String line = lines[i].trim();
-            if (account == null && line.contains(":")
-                    && line.toLowerCase(Locale.GERMANY).startsWith("kont")) {
-                // Label tolerant: "Kontentyp", "Kontotyp", "Konto", …
-                account = line.substring(line.indexOf(':') + 1).trim();
-            }
-            if (line.toLowerCase(Locale.GERMANY).startsWith("datum;")) {
-                headerIndex = i;
-                break;
-            }
-        }
+        // Erste nicht-leere Zeile = Kontozeile, nächste nicht-leere = Kopfzeile.
+        int accountIndex = nextNonEmpty(lines, 0);
+        int headerIndex = accountIndex < 0 ? -1 : nextNonEmpty(lines, accountIndex + 1);
+
+        String account = accountIndex < 0 ? null : accountName(lines[accountIndex]);
         if (account == null || account.isEmpty()) {
             throw new IllegalArgumentException(ctx.getString(R.string.err_csv_account_missing));
         }
@@ -70,21 +69,45 @@ public class CsvImporter {
         }
         parsedAccount = account;
 
+        char sep = detectSeparator(lines[headerIndex]);
+
+        // Spalten-Layout aus der ersten verwertbaren Datenzeile bestimmen (Betrag in Spalte 2 → KMyMoney,
+        // sonst Spalte 4 → Ausgaben-Export). Standard: KMyMoney.
+        int amountCol = 2;
+        int categoryCol = 3;
+        int noteCol = 4;
+        for (int i = headerIndex + 1; i < lines.length; i++) {
+            if (lines[i].trim().isEmpty()) {
+                continue;
+            }
+            List<String> f = splitCsv(lines[i], sep);
+            if (f.size() < 3 || parseDate(f.get(0).trim()) < 0) {
+                continue;
+            }
+            boolean amountAt2 = parseAmountToCents(f.get(2).trim()) != null;
+            if (!amountAt2 && f.size() > 4 && parseAmountToCents(f.get(4).trim()) != null) {
+                amountCol = 4;
+                noteCol = 5;
+                categoryCol = 6;   // Ausgaben-Export-Layout
+            }
+            break;
+        }
+
         List<Booking> result = new ArrayList<>();
         for (int i = headerIndex + 1; i < lines.length; i++) {
             String raw = lines[i];
             if (raw.trim().isEmpty()) {
                 continue;
             }
-            List<String> fields = splitCsv(raw);
-            if (fields.size() < 3) {
+            List<String> fields = splitCsv(raw, sep);
+            if (fields.size() <= amountCol) {
                 continue;
             }
             String dateStr = fields.get(0).trim();
             String payee = fields.get(1).trim();
-            String amountStr = fields.get(2).trim();
-            String category = fields.size() > 3 ? fields.get(3).trim() : "";
-            String note = fields.size() > 4 ? fields.get(4).trim() : "";
+            String amountStr = fields.get(amountCol).trim();
+            String category = fields.size() > categoryCol ? fields.get(categoryCol).trim() : "";
+            String note = fields.size() > noteCol ? fields.get(noteCol).trim() : "";
 
             Long cents = parseAmountToCents(amountStr);
             long when = parseDate(dateStr);
@@ -106,35 +129,94 @@ public class CsvImporter {
         return result;
     }
 
-    /** ISO-Datum → epoch millis zur lokalen Mitternacht; -1 bei Fehler. */
-    private long parseDate(String s) {
-        try {
-            Date d = isoDate.parse(s);
-            if (d == null) {
-                return -1;
+    /** Index der nächsten nicht-leeren Zeile ab {@code from} (inklusive), sonst -1. */
+    private static int nextNonEmpty(String[] lines, int from) {
+        for (int i = Math.max(0, from); i < lines.length; i++) {
+            if (!lines[i].trim().isEmpty()) {
+                return i;
             }
-            Calendar cal = Calendar.getInstance();
-            cal.setTime(d);
-            cal.set(Calendar.HOUR_OF_DAY, 0);
-            cal.set(Calendar.MINUTE, 0);
-            cal.set(Calendar.SECOND, 0);
-            cal.set(Calendar.MILLISECOND, 0);
-            return cal.getTimeInMillis();
-        } catch (ParseException e) {
-            return -1;
         }
+        return -1;
     }
 
-    /** Deutscher Betrag (ggf. mit Tausenderpunkt) → vorzeichenbehaftete Cent; null bei Fehler. */
+    /** Kontoname = Wert hinter dem letzten „:" der Kontozeile (ohne Anführungszeichen/Whitespace). */
+    private static String accountName(String line) {
+        int colon = line.lastIndexOf(':');
+        if (colon < 0) {
+            return null;
+        }
+        String value = line.substring(colon + 1).trim();
+        if (value.length() >= 2 && value.startsWith("\"") && value.endsWith("\"")) {
+            value = value.substring(1, value.length() - 1).replace("\"\"", "\"");
+        }
+        return value.trim();
+    }
+
+    /** Trennzeichen aus der Kopfzeile: häufigeres von ';' und ',' (';' bei Gleichstand). */
+    private static char detectSeparator(String header) {
+        int semis = 0;
+        int commas = 0;
+        for (int i = 0; i < header.length(); i++) {
+            char c = header.charAt(i);
+            if (c == ';') {
+                semis++;
+            } else if (c == ',') {
+                commas++;
+            }
+        }
+        return commas > semis ? ',' : ';';
+    }
+
+    /** Datum → epoch millis zur lokalen Mitternacht; -1 bei Fehler. Toleriert mehrere Formate. */
+    private long parseDate(String s) {
+        if (s == null || s.isEmpty()) {
+            return -1;
+        }
+        for (String pattern : DATE_PATTERNS) {
+            SimpleDateFormat fmt = new SimpleDateFormat(pattern, Locale.US);
+            fmt.setLenient(false);
+            try {
+                Date d = fmt.parse(s);
+                if (d == null) {
+                    continue;
+                }
+                Calendar cal = Calendar.getInstance();
+                cal.setTime(d);
+                cal.set(Calendar.HOUR_OF_DAY, 0);
+                cal.set(Calendar.MINUTE, 0);
+                cal.set(Calendar.SECOND, 0);
+                cal.set(Calendar.MILLISECOND, 0);
+                return cal.getTimeInMillis();
+            } catch (ParseException e) {
+                // nächstes Muster versuchen
+            }
+        }
+        return -1;
+    }
+
+    /**
+     * Betrag → vorzeichenbehaftete Cent; null bei Fehler. Toleriert deutsches und englisches Format:
+     * das rechteste von ',' und '.' gilt als Dezimaltrenner, das andere (Tausender) wird entfernt.
+     */
     private Long parseAmountToCents(String raw) {
         if (raw == null || raw.isEmpty()) {
             return null;
         }
-        String s = raw.replace(" ", "");
-        if (s.contains(",")) {
-            // Deutsch: Punkt = Tausender, Komma = Dezimal
-            s = s.replace(".", "").replace(",", ".");
+        String s = raw.replace(" ", "").replace(" ", "");
+        int lastComma = s.lastIndexOf(',');
+        int lastDot = s.lastIndexOf('.');
+        if (lastComma >= 0 && lastDot >= 0) {
+            // Beide vorhanden: das rechteste ist der Dezimaltrenner, das andere Tausendertrennung.
+            if (lastComma > lastDot) {
+                s = s.replace(".", "").replace(',', '.');
+            } else {
+                s = s.replace(",", "");
+            }
+        } else if (lastComma >= 0) {
+            // Nur Komma → Dezimaltrenner (deutsch).
+            s = s.replace(',', '.');
         }
+        // Nur Punkt (oder keins) → bereits im BigDecimal-Format.
         try {
             return new BigDecimal(s).movePointRight(2)
                     .setScale(0, java.math.RoundingMode.HALF_UP).longValueExact();
@@ -143,8 +225,8 @@ public class CsvImporter {
         }
     }
 
-    /** Zerlegt eine CSV-Zeile an ';' unter Beachtung von "…"-Quoting (mit ""-Escaping). */
-    private List<String> splitCsv(String line) {
+    /** Zerlegt eine CSV-Zeile am {@code sep} unter Beachtung von "…"-Quoting (mit ""-Escaping). */
+    private List<String> splitCsv(String line, char sep) {
         List<String> fields = new ArrayList<>();
         StringBuilder cur = new StringBuilder();
         boolean inQuotes = false;
@@ -164,7 +246,7 @@ public class CsvImporter {
             } else {
                 if (c == '"') {
                     inQuotes = true;
-                } else if (c == ';') {
+                } else if (c == sep) {
                     fields.add(cur.toString());
                     cur.setLength(0);
                 } else {

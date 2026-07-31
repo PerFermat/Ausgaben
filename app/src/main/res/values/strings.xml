@@ -284,6 +284,7 @@
     <string name="receipt_no_viewer">No image viewer found</string>
     <string name="receipt_error">Could not process the image</string>
     <string name="gps_row_label">GPS: %1$s</string>
+    <string name="gps_row_none">Location: tap the map to set</string>
     <string name="compass_n">N</string>
     <string name="compass_s">S</string>
     <string name="compass_e">E</string>
@@ -364,6 +365,9 @@
     <string name="language_upload_failed">Invalid language file: %1$s</string>
     <string name="currency_hint">Currency indicator (default)</string>
     <string name="number_format_hint">Number format</string>
+    <string name="csv_separator_hint">CSV column separator</string>
+    <string name="csv_separator_semicolon">Semicolon ( ; )</string>
+    <string name="csv_separator_comma">Comma ( , )</string>
     <string name="show_currency_symbol">Show currency symbol</string>
     <string name="wear_offline_model_switch">Install offline speech package on the watch (only if the watch supports offline recognition)</string>
     <string name="dividend_gross_switch">Show dividends gross (off = net)</string>
@@ -494,8 +498,8 @@
     <string name="err_file_create">File could not be created</string>
     <string name="err_no_write_access">No write access</string>
     <string name="err_csv_empty">File is empty</string>
-    <string name="err_csv_account_missing">Account name (line “Kontentyp:…”) not found</string>
-    <string name="err_csv_header_missing">Header line (starting with “Datum;”) not found</string>
+    <string name="err_csv_account_missing">Account line not found</string>
+    <string name="err_csv_header_missing">Table header not found</string>
     <string name="skip_account_not_found">Account not found (%1$s)</string>
     <string name="skip_category_not_found">Category not found (%1$s)</string>
     <string name="skip_transfer_account_not_found">Transfer %1$s → %2$s: account not found (%3$s)</string>

@@ -11,13 +11,14 @@ import java.util.Locale;
 import java.util.Map;
 
 /**
- * Erzeugt eine kMyMoney-taugliche CSV im deutschen Format:
- * Spaltentrenner ';', Dezimaltrennzeichen ',', Datum TT.MM.JJJJ.
- * Ausgaben werden mit negativem, Einnahmen mit positivem Betrag exportiert.
+ * Erzeugt eine kMyMoney-taugliche CSV: Spaltentrenner und Dezimaltrennzeichen folgen den Einstellungen
+ * (Standard ';' bzw. ',', Datum TT.MM.JJJJ). Ausgaben werden mit negativem, Einnahmen mit positivem
+ * Betrag exportiert.
  */
 public class CsvExporter {
 
-    private static final String SEPARATOR = ";";
+    /** Spaltentrenner – aus den Einstellungen (Standard ';'); in {@link #build} gesetzt. */
+    private String separator = ";";
     private static final String NEWLINE = "\r\n";
 
     private final SimpleDateFormat dateFormat = new SimpleDateFormat("dd.MM.yyyy", Locale.GERMANY);
@@ -31,6 +32,11 @@ public class CsvExporter {
     public String build(String account, List<Booking> bookings,
                         Map<Long, List<BookingSplit>> splitsMap, android.content.Context context) {
         android.content.Context ctx = de.spahr.ausgaben.i18n.LocaleManager.localizedContext(context);
+        // Beträge im eingestellten Zahlenformat (Dezimalzeichen aus den Einstellungen) ausgeben – ohne
+        // Tausendertrennung, damit die CSV parser-/importsicher bleibt.
+        de.spahr.ausgaben.settings.MoneyFormat.refresh(context);
+        // Spaltentrenner aus den Einstellungen (Standard ';').
+        this.separator = new de.spahr.ausgaben.settings.SettingsStore(context).getCsvSeparator();
         String[] header = {
                 ctx.getString(de.spahr.ausgaben.R.string.csv_col_date),
                 ctx.getString(de.spahr.ausgaben.R.string.csv_col_payee),
@@ -91,24 +97,21 @@ public class CsvExporter {
         return s.isEmpty() ? "Konto" : s;
     }
 
-    /** Betrag in deutschem Format mit Komma; Ausgaben negativ. */
+    /** Betrag im eingestellten Zahlenformat (ohne Tausendertrennung); Ausgaben negativ. */
     private String formatAmount(long amountCents, boolean isIncome) {
         return formatSigned(isIncome ? amountCents : -amountCents);
     }
 
-    /** Bereits vorzeichenbehafteter Cent-Betrag im deutschen Format mit Komma. */
+    /** Bereits vorzeichenbehafteter Cent-Betrag im eingestellten Zahlenformat (ohne Tausendertrennung). */
     private String formatSigned(long signed) {
-        long euros = signed / 100;
-        long cents = Math.abs(signed % 100);
-        String sign = (signed < 0 && euros == 0) ? "-" : "";
-        return sign + euros + "," + String.format(Locale.GERMANY, "%02d", cents);
+        return de.spahr.ausgaben.settings.MoneyFormat.plain(signed);
     }
 
     private String joinRow(String[] fields) {
         StringBuilder row = new StringBuilder();
         for (int i = 0; i < fields.length; i++) {
             if (i > 0) {
-                row.append(SEPARATOR);
+                row.append(separator);
             }
             row.append(quote(fields[i]));
         }
@@ -120,7 +123,7 @@ public class CsvExporter {
         if (value == null) {
             return "";
         }
-        boolean needsQuote = value.contains(SEPARATOR)
+        boolean needsQuote = value.contains(separator)
                 || value.contains("\"")
                 || value.contains("\n")
                 || value.contains("\r");

@@ -36,6 +36,7 @@ public class SettingsStore {
     private static final String KEY_LANGUAGE = "language";
     private static final String KEY_CURRENCY = "currency";
     private static final String KEY_NUMBER_FORMAT = "number_format";
+    private static final String KEY_CSV_SEPARATOR = "csv_separator";
     private static final String KEY_SHOW_CURRENCY = "show_currency";
     private static final String KEY_DIVIDEND_GROSS = "dividend_gross";
     private static final String KEY_BUDGET_INTERNAL = "budget_internal";
@@ -58,6 +59,11 @@ public class SettingsStore {
     public static final String NUMBER_FORMAT_PLAIN_COMMA = "plain_comma";
     /** Ohne Tausendertrennung, Dezimalpunkt („1234.56"). */
     public static final String NUMBER_FORMAT_PLAIN_DOT = "plain_dot";
+
+    /** CSV-Spaltentrennzeichen: Semikolon (Standard). */
+    public static final String CSV_SEP_SEMICOLON = ";";
+    /** CSV-Spaltentrennzeichen: Komma. */
+    public static final String CSV_SEP_COMMA = ",";
 
     /** Server-Typ: Nextcloud (Standard, mit {@code /remote.php/dav/files/<user>/}). */
     public static final String SERVER_NEXTCLOUD = "nextcloud";
@@ -324,6 +330,17 @@ public class SettingsStore {
     public void setNumberFormat(String format) {
         prefs.edit().putString(KEY_NUMBER_FORMAT,
                 format == null ? NUMBER_FORMAT_PLAIN_COMMA : format.trim()).apply();
+    }
+
+    /** Gewähltes CSV-Spaltentrennzeichen (";" Standard oder ","). Nur im CSV-Modus relevant. */
+    public String getCsvSeparator() {
+        String v = prefs.getString(KEY_CSV_SEPARATOR, CSV_SEP_SEMICOLON);
+        return CSV_SEP_COMMA.equals(v) ? CSV_SEP_COMMA : CSV_SEP_SEMICOLON;
+    }
+
+    public void setCsvSeparator(String separator) {
+        prefs.edit().putString(KEY_CSV_SEPARATOR,
+                CSV_SEP_COMMA.equals(separator) ? CSV_SEP_COMMA : CSV_SEP_SEMICOLON).apply();
     }
 
     /** Gewählte Schriftgröße (siehe {@code FONT_SIZE_*}). Standard = normal (heutiges Verhalten). */

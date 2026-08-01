@@ -394,6 +394,8 @@
     <string name="conn_ok">Verbindung erfolgreich</string>
     <string name="conn_failed">Verbindung fehlgeschlagen: %1$s</string>
     <string name="kmy_browse">.kmy auswählen</string>
+    <string name="folder_browse">Ordner durchsuchen</string>
+    <string name="folder_choose_this">✓  Diesen Ordner wählen</string>
     <string name="kmy_browse_none">Keine .kmy-Datei gefunden</string>
     <string name="nextcloud_password_hint">App-Passwort</string>
     <string name="nextcloud_folder_hint">Zielordner (optional, z. B. Finanzen)</string>

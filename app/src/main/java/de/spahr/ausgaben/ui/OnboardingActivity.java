@@ -115,6 +115,10 @@ public class OnboardingActivity extends LocalizedActivity {
                 .setOnClickListener(v -> testConnection());
         ((MaterialButton) findViewById(R.id.btnBrowseKmy))
                 .setOnClickListener(v -> browseKmy());
+        ((MaterialButton) findViewById(R.id.btnBrowseFolder))
+                .setOnClickListener(v -> browseFolderInto(editFolder));
+        ((MaterialButton) findViewById(R.id.btnBrowseImportFolder))
+                .setOnClickListener(v -> browseFolderInto(editImportFolder));
         ((MaterialButton) findViewById(R.id.btnImportAccounts))
                 .setOnClickListener(v -> importAccounts());
         ((MaterialButton) findViewById(R.id.btnMoreSettings)).setOnClickListener(v -> {
@@ -314,6 +318,58 @@ public class OnboardingActivity extends LocalizedActivity {
             actions.add(() -> editKmyPath.setText(path));
         }
         String title = folder.isEmpty() ? getString(R.string.kmy_browse) : "/" + folder;
+        new MaterialAlertDialogBuilder(this, R.style.ThemeOverlay_Ausgaben_Dialog)
+                .setTitle(title)
+                .setItems(labels.toArray(new String[0]), (d, w) -> actions.get(w).run())
+                .setNegativeButton(R.string.cancel, null)
+                .show();
+    }
+
+    /**
+     * Navigierbarer Ordner-Dialog (nur Ordner) für die CSV-Export-/Import-Ordner. Nutzt – wie der
+     * kmy-Browser – {@link RemoteStorage} mit den aktuell eingegebenen Zugangsdaten, gilt also für
+     * Nextcloud, WebDAV und SMB.
+     */
+    private void browseFolderInto(TextInputEditText target) {
+        browseFolderAt(textOf(target), target);
+    }
+
+    private void browseFolderAt(String folder, TextInputEditText target) {
+        final String serverType = selectedServerType;
+        final String url = textOf(editUrl);
+        final String user = textOf(editUser);
+        String pw = textOf(editPassword);
+        final String password = pw.isEmpty() ? settings.getPassword() : pw;
+        Toast.makeText(this, R.string.loading_files, Toast.LENGTH_SHORT).show();
+        new Thread(() -> {
+            try {
+                RemoteStorage storage = RemoteStorage.from(serverType, url, user, password);
+                List<String> folders = storage.listFolders(folder);
+                java.util.Collections.sort(folders, String.CASE_INSENSITIVE_ORDER);
+                runOnUiThread(() -> showFolderPick(folder, folders, target));
+            } catch (Exception e) {
+                final String msg = e.getMessage() == null ? e.toString() : e.getMessage();
+                runOnUiThread(() -> Toast.makeText(this,
+                        getString(R.string.conn_failed, msg), Toast.LENGTH_LONG).show());
+            }
+        }).start();
+    }
+
+    private void showFolderPick(String folder, List<String> folders, TextInputEditText target) {
+        final List<String> labels = new ArrayList<>();
+        final List<Runnable> actions = new ArrayList<>();
+        labels.add(getString(R.string.folder_choose_this));
+        actions.add(() -> target.setText(folder));
+        if (!folder.isEmpty()) {
+            labels.add("↑  ..");
+            actions.add(() -> browseFolderAt(parentFolder(folder), target));
+        }
+        for (String d : folders) {
+            labels.add("📁  " + d);
+            final String next = folder.isEmpty() ? d : folder + "/" + d;
+            actions.add(() -> browseFolderAt(next, target));
+        }
+        String title = folder.isEmpty() ? getString(R.string.folder_browse) : "/" + folder;
         new MaterialAlertDialogBuilder(this, R.style.ThemeOverlay_Ausgaben_Dialog)
                 .setTitle(title)
                 .setItems(labels.toArray(new String[0]), (d, w) -> actions.get(w).run())

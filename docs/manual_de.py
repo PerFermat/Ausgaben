@@ -758,10 +758,12 @@ p("Bei Server-Typ <b>SMB/Samba</b> erscheint statt der Adressfelder ein Assisten
 bullets([
   "<b>1. Server suchen</b>: die App durchsucht beim Öffnen automatisch das lokale Netz (Bonjour/mDNS, "
   "NetBIOS-Namensabfrage und ein Verbindungstest auf dem SMB-Port). Gefundene Server erscheinen mit "
-  "Anzeigename und darunter der IP-Adresse. <b>«Erneut suchen»</b> startet die Suche neu, zuletzt "
-  "gefundene Server werden gemerkt und sofort angezeigt.",
-  "<b>2. Anmelden</b>: Benutzername und Passwort des Servers. <b>Leerer Benutzer = Gast.</b> Das Passwort "
-  "wird verschlüsselt gespeichert und nie im Klartext angezeigt.",
+  "Anzeigename und darunter der IP-Adresse – und, sofern der Server sie nennt, seiner "
+  "<b>Arbeitsgruppe</b>. <b>«Erneut suchen»</b> startet die Suche neu, zuletzt gefundene Server "
+  "werden gemerkt und sofort angezeigt.",
+  "<b>2. Anmelden</b>: Benutzername und Passwort des Servers. <b>Leerer Benutzer = Gast.</b> Gehört der "
+  "Server einer anderen Arbeitsgruppe als «WORKGROUP» an, ist das Feld bereits mit «ARBEITSGRUPPE\\» "
+  "vorbelegt. Das Passwort wird verschlüsselt gespeichert und nie im Klartext angezeigt.",
   "<b>3. Freigabe wählen</b>: nach der Anmeldung liest die App die <b>Freigaben</b> des Servers aus und "
   "zeigt sie zur Auswahl (System-Freigaben wie IPC$ werden ausgeblendet). Ein Klick trägt die Freigabe in "
   "das Feld <b>«Freigabename»</b> ein; dort lässt sie sich auch von Hand eintippen, falls der Server die "

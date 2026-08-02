@@ -34,14 +34,19 @@ import java.util.concurrent.TimeUnit;
  */
 public final class SmbDiscovery {
 
-    /** Ein gefundener Server: Anzeigename (kann gleich dem Host sein) und Host/IP zum Verbinden. */
+    /**
+     * Ein gefundener Server: Anzeigename (kann gleich dem Host sein), Host/IP zum Verbinden und – sofern
+     * der Server ihn per NetBIOS nennt – seine Arbeitsgruppe bzw. Domäne (sonst leer).
+     */
     public static final class Server {
         public final String name;
         public final String host;
+        public final String workgroup;
 
-        public Server(String name, String host) {
+        public Server(String name, String host, String workgroup) {
             this.name = name;
             this.host = host;
+            this.workgroup = workgroup == null ? "" : workgroup;
         }
     }
 
@@ -59,6 +64,7 @@ public final class SmbDiscovery {
 
     private final Handler main = new Handler(Looper.getMainLooper());
     private final Map<String, String> found = new ConcurrentHashMap<>();
+    private final Map<String, String> workgroups = new ConcurrentHashMap<>();
     private final Context context;
     private volatile boolean cancelled;
     private ExecutorService pool;
@@ -73,6 +79,7 @@ public final class SmbDiscovery {
     public void start(final Listener listener) {
         cancelled = false;
         found.clear();
+        workgroups.clear();
         pool = Executors.newFixedThreadPool(48);
         startMdns(listener);
         new Thread(() -> {
@@ -110,18 +117,37 @@ public final class SmbDiscovery {
         }
     }
 
-    /** Meldet einen Treffer; ein echter Name gewinnt gegen einen zuvor gemeldeten reinen IP-Namen. */
-    private void publish(Listener listener, String host, String name) {
+    /**
+     * Meldet einen Treffer. Ein echter Name gewinnt gegen einen zuvor gemeldeten reinen IP-Namen, und eine
+     * nachgereichte Arbeitsgruppe ergänzt einen schon gemeldeten Server – gemeldet wird nur, wenn dabei
+     * wirklich etwas Neues dazukommt.
+     */
+    private void publish(Listener listener, String host, String name, String workgroup) {
         if (cancelled || host == null || host.isEmpty()) {
             return;
         }
         String label = name == null || name.trim().isEmpty() ? host : name.trim();
-        String known = found.get(host);
-        if (known != null && (known.equals(label) || !known.equals(host))) {
-            return;   // schon gemeldet, und der bekannte Name ist nicht schlechter
+        String wg = workgroup == null ? "" : workgroup.trim();
+        String knownName = found.get(host);
+        String knownWg = workgroups.containsKey(host) ? workgroups.get(host) : "";
+        boolean betterName = knownName == null || (knownName.equals(host) && !label.equals(host));
+        boolean betterGroup = !wg.isEmpty() && !wg.equals(knownWg);
+        if (!betterName && !betterGroup) {
+            return;
         }
-        found.put(host, label);
-        main.post(() -> listener.onServer(new Server(label, host)));
+        if (betterName) {
+            found.put(host, label);
+        } else {
+            label = knownName;
+        }
+        if (betterGroup) {
+            workgroups.put(host, wg);
+        } else {
+            wg = knownWg;
+        }
+        final String outName = label;
+        final String outGroup = wg;
+        main.post(() -> listener.onServer(new Server(outName, host, outGroup)));
     }
 
     // ------------------------------------------------------------------ mDNS
@@ -175,7 +201,8 @@ public final class SmbDiscovery {
                 public void onServiceResolved(NsdServiceInfo resolved) {
                     InetAddress addr = resolved.getHost();
                     if (addr != null) {
-                        publish(listener, addr.getHostAddress(), resolved.getServiceName());
+                        // Bonjour nennt keine Arbeitsgruppe – die liefert bei Bedarf NetBIOS nach.
+                        publish(listener, addr.getHostAddress(), resolved.getServiceName(), "");
                     }
                 }
             });
@@ -228,7 +255,8 @@ public final class SmbDiscovery {
                 }
                 String name = parseNodeStatus(p.getData(), p.getLength());
                 if (name != null) {
-                    publish(listener, p.getAddress().getHostAddress(), name);
+                    publish(listener, p.getAddress().getHostAddress(), name,
+                            parseWorkgroup(p.getData(), p.getLength()));
                 }
             }
         } catch (Exception ignored) {
@@ -236,8 +264,11 @@ public final class SmbDiscovery {
         }
     }
 
-    /** Gezielte Namensabfrage an einen Host; {@code null}, wenn er nicht per NetBIOS antwortet. */
-    private String netbiosName(InetAddress host) {
+    /**
+     * Gezielte Namensabfrage an einen Host; liefert {@code {Name, Arbeitsgruppe}} oder {@code null}, wenn
+     * er nicht per NetBIOS antwortet.
+     */
+    private String[] netbiosName(InetAddress host) {
         try (DatagramSocket socket = new DatagramSocket()) {
             socket.setSoTimeout(400);
             byte[] query = nodeStatusQuery();
@@ -245,7 +276,9 @@ public final class SmbDiscovery {
             byte[] buf = new byte[1024];
             DatagramPacket p = new DatagramPacket(buf, buf.length);
             socket.receive(p);
-            return parseNodeStatus(p.getData(), p.getLength());
+            String name = parseNodeStatus(p.getData(), p.getLength());
+            return name == null ? null
+                    : new String[]{name, parseWorkgroup(p.getData(), p.getLength())};
         } catch (Exception e) {
             return null;
         }
@@ -303,6 +336,28 @@ public final class SmbDiscovery {
         return fallback;
     }
 
+    /**
+     * Die Arbeitsgruppe (bzw. Domäne) aus einer Node-Status-Antwort: der erste Gruppeneintrag mit Suffix
+     * {@code 0x00}. Leer, wenn der Server keine nennt.
+     */
+    static String parseWorkgroup(byte[] data, int length) {
+        int p = 12 + 34 + 10;
+        if (length < p + 1) {
+            return "";
+        }
+        int count = data[p] & 0xFF;
+        p++;
+        for (int i = 0; i < count && p + 18 <= length; i++, p += 18) {
+            String name = new String(data, p, 15, StandardCharsets.US_ASCII).trim();
+            int suffix = data[p + 15] & 0xFF;
+            boolean group = (data[p + 16] & 0x80) != 0;
+            if (group && suffix == 0x00 && !name.isEmpty()) {
+                return name;
+            }
+        }
+        return "";
+    }
+
     // ------------------------------------------------------------- Port 445
 
     /** Prüft jede Adresse des eigenen Subnetzes auf einen offenen SMB-Port. */
@@ -322,15 +377,14 @@ public final class SmbDiscovery {
                     } catch (Exception e) {
                         return;   // dort läuft kein SMB
                     }
-                    String name = found.get(ip);
-                    if (name == null || name.equals(ip)) {
-                        try {
-                            name = netbiosName(InetAddress.getByName(ip));
-                        } catch (Exception ignored) {
-                            name = null;
-                        }
+                    String[] netbios = null;
+                    try {
+                        netbios = netbiosName(InetAddress.getByName(ip));
+                    } catch (Exception ignored) {
+                        // Kein NetBIOS: dann bleibt es bei der IP als Anzeigename.
                     }
-                    publish(listener, ip, name);
+                    publish(listener, ip, netbios == null ? found.get(ip) : netbios[0],
+                            netbios == null ? "" : netbios[1]);
                 });
             }
         }

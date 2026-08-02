@@ -199,16 +199,16 @@ public class SettingsStore {
     }
 
     /**
-     * Zuletzt im Netz gefundene SMB-Server als {@code Name|Host}-Zeilen (höchstens
-     * {@link #MAX_KNOWN_SMB_HOSTS}). Der Einrichtungsassistent zeigt sie sofort an, während die neue
-     * Suche noch läuft.
+     * Zuletzt im Netz gefundene SMB-Server als {@code Name|Host|Arbeitsgruppe}-Zeilen (höchstens
+     * {@link #MAX_KNOWN_SMB_HOSTS}; die Arbeitsgruppe darf fehlen). Der Einrichtungsassistent zeigt sie
+     * sofort an, während die neue Suche noch läuft.
      */
     public java.util.List<String[]> getKnownSmbHosts() {
         java.util.List<String[]> out = new java.util.ArrayList<>();
         for (String line : prefs.getString(KEY_SMB_KNOWN_HOSTS, "").split("\n")) {
-            int sep = line.indexOf('|');
-            if (sep > 0 && sep < line.length() - 1) {
-                out.add(new String[]{line.substring(0, sep), line.substring(sep + 1)});
+            String[] parts = line.split("\\|", 3);
+            if (parts.length >= 2 && !parts[1].isEmpty()) {
+                out.add(new String[]{parts[0], parts[1], parts.length > 2 ? parts[2] : ""});
             }
         }
         return out;
@@ -227,7 +227,9 @@ public class SettingsStore {
             if (sb.length() > 0) {
                 sb.append('\n');
             }
-            sb.append(h[0] == null || h[0].isEmpty() ? h[1] : h[0].replace('|', ' ')).append('|').append(h[1]);
+            sb.append(h[0] == null || h[0].isEmpty() ? h[1] : h[0].replace('|', ' '))
+                    .append('|').append(h[1])
+                    .append('|').append(h.length > 2 && h[2] != null ? h[2].replace('|', ' ') : "");
         }
         prefs.edit().putString(KEY_SMB_KNOWN_HOSTS, sb.toString()).apply();
     }

@@ -716,10 +716,11 @@ p("With server type <b>SMB/Samba</b> a wizard replaces the address fields, so yo
 bullets([
   "<b>1. Search for servers</b>: on opening, the app scans the local network automatically (Bonjour/mDNS, "
   "a NetBIOS name query and a connection test on the SMB port). Each hit is listed with its display name "
-  "and the IP address below it. <b>«Search again»</b> restarts the scan; the servers found last time are "
-  "remembered and shown right away.",
-  "<b>2. Log in</b>: username and password of the server. <b>An empty user means guest.</b> The password is "
-  "stored encrypted and never shown in clear text.",
+  "and the IP address below it – plus its <b>workgroup</b> if the server reports one. <b>«Search "
+  "again»</b> restarts the scan; the servers found last time are remembered and shown right away.",
+  "<b>2. Log in</b>: username and password of the server. <b>An empty user means guest.</b> If the server "
+  "belongs to a workgroup other than «WORKGROUP», the field is pre-filled with «WORKGROUP\\». The "
+  "password is stored encrypted and never shown in clear text.",
   "<b>3. Pick the share</b>: after logging in the app reads the server's <b>shares</b> and offers them for "
   "selection (system shares such as IPC$ are hidden). Clicking one fills the <b>«Share name»</b> field; you "
   "can also type it there if the server refuses to list them.",

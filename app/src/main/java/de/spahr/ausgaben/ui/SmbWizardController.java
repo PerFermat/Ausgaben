@@ -68,6 +68,7 @@ public class SmbWizardController {
     private final List<SmbDiscovery.Server> servers = new ArrayList<>();
     private String selectedHost = "";
     private String selectedName = "";
+    private String selectedWorkgroup = "";
     private String selectedShare = "";
     private boolean started;
     private boolean manual;
@@ -172,7 +173,7 @@ public class SmbWizardController {
         searchEmpty.setVisibility(View.GONE);
         searchProgress.setVisibility(View.VISIBLE);
         for (String[] known : settings.getKnownSmbHosts()) {
-            addServer(new SmbDiscovery.Server(known[0], known[1]));
+            addServer(new SmbDiscovery.Server(known[0], known[1], known[2]));
         }
         discovery = new SmbDiscovery(activity);
         discovery.start(new SmbDiscovery.Listener() {
@@ -193,7 +194,7 @@ public class SmbWizardController {
                 searchEmpty.setVisibility(servers.isEmpty() ? View.VISIBLE : View.GONE);
                 List<String[]> keep = new ArrayList<>();
                 for (SmbDiscovery.Server s : servers) {
-                    keep.add(new String[]{s.name, s.host});
+                    keep.add(new String[]{s.name, s.host, s.workgroup});
                 }
                 settings.setKnownSmbHosts(keep);
             }
@@ -221,18 +222,21 @@ public class SmbWizardController {
         rb.setOnClickListener(v -> {
             selectedHost = servers.get(index).host;
             selectedName = servers.get(index).name;
+            selectedWorkgroup = servers.get(index).workgroup;
             btnToLogin.setEnabled(true);
         });
         serverList.addView(rb);
     }
 
-    /** Name groß, darunter Host/IP kleiner – wie in den Beispielen der Serverliste. */
+    /** Name groß, darunter Host/IP und – falls bekannt – die Arbeitsgruppe kleiner. */
     private CharSequence serverLabel(SmbDiscovery.Server server) {
-        if (server.name.equals(server.host)) {
+        String detail = server.workgroup.isEmpty() ? server.host : server.host + " · " + server.workgroup;
+        if (server.name.equals(server.host) && server.workgroup.isEmpty()) {
             return server.host;
         }
-        SpannableString s = new SpannableString(server.name + "\n" + server.host);
-        s.setSpan(new RelativeSizeSpan(0.8f), server.name.length() + 1, s.length(),
+        String title = server.name.equals(server.host) ? server.host : server.name;
+        SpannableString s = new SpannableString(title + "\n" + detail);
+        s.setSpan(new RelativeSizeSpan(0.8f), title.length() + 1, s.length(),
                 Spanned.SPAN_EXCLUSIVE_EXCLUSIVE);
         return s;
     }
@@ -245,7 +249,22 @@ public class SmbWizardController {
         }
         stopDiscovery();
         loginTitle.setText(selectedName.isEmpty() ? selectedHost : selectedName);
+        prefillDomain();
         show(stepLogin);
+    }
+
+    /**
+     * Gehört der Server einer anderen Arbeitsgruppe/Domäne als der üblichen an, wird das Benutzerfeld mit
+     * {@code DOMÄNE\} vorbelegt – in einer Windows-Domäne scheitert die Anmeldung sonst leicht, obwohl das
+     * Passwort stimmt. Eine eigene Eingabe wird nie überschrieben.
+     */
+    private void prefillDomain() {
+        if (selectedWorkgroup.isEmpty() || !textOf(editUser).isEmpty()
+                || selectedWorkgroup.equalsIgnoreCase("WORKGROUP")) {
+            return;
+        }
+        editUser.setText(selectedWorkgroup + "\\");
+        editUser.setSelection(editUser.getText() == null ? 0 : editUser.getText().length());
     }
 
     private void connect() {

@@ -72,6 +72,21 @@ public class SmbDiscoveryTest {
     @Test
     public void shortReplyIsIgnored() {
         assertNull(SmbDiscovery.parseNodeStatus(new byte[20], 20));
+        assertEquals("", SmbDiscovery.parseWorkgroup(new byte[20], 20));
+    }
+
+    @Test
+    public void readsWorkgroupFromGroupEntry() {
+        byte[] reply = nodeStatusReply(new String[]{"SYNOLOGY", "FIRMA", "SYNOLOGY"},
+                new int[]{0x00, 0x00, 0x20}, new boolean[]{false, true, false});
+        assertEquals("FIRMA", SmbDiscovery.parseWorkgroup(reply, reply.length));
+        assertEquals("SYNOLOGY", SmbDiscovery.parseNodeStatus(reply, reply.length));
+    }
+
+    @Test
+    public void withoutGroupEntryTheWorkgroupStaysEmpty() {
+        byte[] reply = nodeStatusReply(new String[]{"NAS"}, new int[]{0x20}, new boolean[]{false});
+        assertEquals("", SmbDiscovery.parseWorkgroup(reply, reply.length));
     }
 
     /** Baut eine Node-Status-Antwort nach RFC 1002 mit den angegebenen Namen. */

@@ -99,6 +99,11 @@
                     android:inputType="none" />
             </com.google.android.material.textfield.TextInputLayout>
 
+            <!-- Nur bei SMB: Einrichtungsassistent statt URL/Benutzer/Passwort. -->
+            <include
+                android:id="@+id/smbWizard"
+                layout="@layout/view_smb_wizard" />
+
             <com.google.android.material.textfield.TextInputLayout
                 android:id="@+id/urlLayout"
                 android:layout_width="match_parent"
@@ -148,6 +153,15 @@
                 android:layout_height="wrap_content"
                 android:layout_marginTop="8dp"
                 android:text="@string/conn_test" />
+
+            <!-- Zurück zum SMB-Assistenten, wenn zuvor „Server manuell eingeben" gewählt wurde. -->
+            <com.google.android.material.button.MaterialButton
+                android:id="@+id/btnSmbSearch"
+                style="@style/Widget.Material3.Button.TextButton"
+                android:layout_width="wrap_content"
+                android:layout_height="wrap_content"
+                android:text="@string/smb_search_servers"
+                android:visibility="gone" />
 
             <!-- Nur bei CSV: Ordner -->
             <LinearLayout

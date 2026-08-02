@@ -393,6 +393,26 @@
     <string name="nextcloud_user_hint">Username</string>
     <string name="smb_url_hint">SMB share (smb://host/share)</string>
     <string name="smb_user_hint">User (optional, empty = guest; domain as DOMAIN\\user)</string>
+    <string name="smb_password_hint">Password</string>
+    <!-- SMB setup wizard -->
+    <string name="smb_searching">Searching for SMB servers on the network…</string>
+    <string name="smb_search_none">No SMB servers found.</string>
+    <string name="smb_search_again">Search again</string>
+    <string name="smb_manual">Enter server manually</string>
+    <string name="smb_search_servers">Search for servers on the network</string>
+    <string name="smb_next">Next</string>
+    <string name="smb_back">Back</string>
+    <string name="smb_connect">Connect</string>
+    <string name="smb_connecting">Connecting…</string>
+    <string name="smb_shares_loading">Searching for shares…</string>
+    <string name="smb_shares_none">No shares found for this user.</string>
+    <string name="smb_share_manual">Share name</string>
+    <string name="smb_setup_again">Set up again</string>
+    <string name="smb_saved">SMB connection saved: %1$s</string>
+    <string name="smb_err_unreachable">Server not reachable.</string>
+    <string name="smb_err_credentials">Username or password is invalid.</string>
+    <string name="smb_err_share">The selected share is not available.</string>
+    <string name="smb_err_folder_denied">Access to the folder was denied.</string>
     <string name="conn_test">Test connection</string>
     <string name="conn_testing">Testing connection…</string>
     <string name="conn_ok">Connection successful</string>

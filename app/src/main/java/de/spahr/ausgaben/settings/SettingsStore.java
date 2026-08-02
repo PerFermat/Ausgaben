@@ -41,6 +41,10 @@ public class SettingsStore {
     private static final String KEY_DIVIDEND_GROSS = "dividend_gross";
     private static final String KEY_BUDGET_INTERNAL = "budget_internal";
     private static final String KEY_FONT_SIZE = "font_size";
+    private static final String KEY_SMB_KNOWN_HOSTS = "smb_known_hosts";
+
+    /** So viele zuletzt gefundene SMB-Server werden gemerkt. */
+    private static final int MAX_KNOWN_SMB_HOSTS = 10;
 
     /** Schriftgröße klein (Faktor 0,90). */
     public static final String FONT_SIZE_SMALL = "klein";
@@ -192,6 +196,40 @@ public class SettingsStore {
         String share = parts.length > 1 ? parts[1].trim() : "";
         String base = parts.length > 2 ? parts[2].trim() : "";
         return new String[]{host, share, base};
+    }
+
+    /**
+     * Zuletzt im Netz gefundene SMB-Server als {@code Name|Host}-Zeilen (höchstens
+     * {@link #MAX_KNOWN_SMB_HOSTS}). Der Einrichtungsassistent zeigt sie sofort an, während die neue
+     * Suche noch läuft.
+     */
+    public java.util.List<String[]> getKnownSmbHosts() {
+        java.util.List<String[]> out = new java.util.ArrayList<>();
+        for (String line : prefs.getString(KEY_SMB_KNOWN_HOSTS, "").split("\n")) {
+            int sep = line.indexOf('|');
+            if (sep > 0 && sep < line.length() - 1) {
+                out.add(new String[]{line.substring(0, sep), line.substring(sep + 1)});
+            }
+        }
+        return out;
+    }
+
+    public void setKnownSmbHosts(java.util.List<String[]> hosts) {
+        StringBuilder sb = new StringBuilder();
+        int n = 0;
+        for (String[] h : hosts) {
+            if (h.length < 2 || h[1] == null || h[1].isEmpty() || h[1].indexOf('|') >= 0) {
+                continue;
+            }
+            if (n++ >= MAX_KNOWN_SMB_HOSTS) {
+                break;
+            }
+            if (sb.length() > 0) {
+                sb.append('\n');
+            }
+            sb.append(h[0] == null || h[0].isEmpty() ? h[1] : h[0].replace('|', ' ')).append('|').append(h[1]);
+        }
+        prefs.edit().putString(KEY_SMB_KNOWN_HOSTS, sb.toString()).apply();
     }
 
     /** {@link #MODE_CSV} (Standard) oder {@link #MODE_KMY}. */

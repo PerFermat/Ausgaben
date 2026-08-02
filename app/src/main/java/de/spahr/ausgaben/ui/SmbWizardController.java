@@ -1,0 +1,387 @@
+package de.spahr.ausgaben.ui;
+
+import android.app.Activity;
+import android.text.SpannableString;
+import android.text.Spanned;
+import android.text.style.RelativeSizeSpan;
+import android.util.TypedValue;
+import android.view.Gravity;
+import android.view.View;
+import android.widget.RadioGroup;
+import android.widget.TextView;
+
+import com.google.android.material.button.MaterialButton;
+import com.google.android.material.radiobutton.MaterialRadioButton;
+import com.google.android.material.textfield.TextInputEditText;
+
+import java.util.ArrayList;
+import java.util.List;
+
+import de.spahr.ausgaben.R;
+import de.spahr.ausgaben.net.smb.SmbDiscovery;
+import de.spahr.ausgaben.net.smb.SmbErrors;
+import de.spahr.ausgaben.net.smb.SmbSessions;
+import de.spahr.ausgaben.net.smb.SmbShares;
+import de.spahr.ausgaben.settings.SettingsStore;
+
+/**
+ * Steuert den SMB-Einrichtungsassistenten aus {@code view_smb_wizard.xml}: Server suchen → anmelden →
+ * Freigabe wählen → speichern. Den Zielordner wählt danach wie bisher der „Durchsuchen"-Button des
+ * jeweiligen Feldes. Bewusst keine Activity, damit Einstellungen und Onboarding dieselbe Bedienung
+ * teilen; die Activity liefert nur den Speicherpfad und den Rückfall auf die manuelle Eingabe.
+ */
+public class SmbWizardController {
+
+    /** Anbindung an die Activity, in der der Assistent steckt. */
+    public interface Host {
+        /** Fertige Konfiguration übernehmen und speichern (URL im Format {@code smb://Host/Freigabe}). */
+        void onSmbConfigured(String url, String user, String password);
+
+        /** Der Benutzer will die Adresse selbst eintippen: klassische Felder zeigen. */
+        void onSmbManualRequested();
+    }
+
+    private final Activity activity;
+    private final SettingsStore settings;
+    private final Host host;
+
+    private final View root;
+    private final View stepSearch;
+    private final View stepLogin;
+    private final View stepShares;
+    private final View stepDone;
+    private final View searchProgress;
+    private final TextView searchEmpty;
+    private final RadioGroup serverList;
+    private final RadioGroup shareList;
+    private final TextInputEditText editShare;
+    private final TextInputEditText editUser;
+    private final TextInputEditText editPassword;
+    private final TextView loginTitle;
+    private final TextView doneText;
+    private final View busy;
+    private final TextView busyText;
+    private final TextView errorText;
+    private final MaterialButton btnToLogin;
+
+    private SmbDiscovery discovery;
+    private final List<SmbDiscovery.Server> servers = new ArrayList<>();
+    private String selectedHost = "";
+    private String selectedName = "";
+    private String selectedShare = "";
+    private boolean started;
+    private boolean manual;
+    /** Beim nächsten Einblenden direkt suchen, auch wenn schon eine SMB-Verbindung gespeichert ist. */
+    private boolean forceSearch;
+
+    public SmbWizardController(Activity activity, View root, SettingsStore settings, Host host) {
+        this.activity = activity;
+        this.root = root;
+        this.settings = settings;
+        this.host = host;
+
+        stepSearch = root.findViewById(R.id.smbStepSearch);
+        stepLogin = root.findViewById(R.id.smbStepLogin);
+        stepShares = root.findViewById(R.id.smbStepShares);
+        stepDone = root.findViewById(R.id.smbStepDone);
+        searchProgress = root.findViewById(R.id.smbSearchProgress);
+        searchEmpty = root.findViewById(R.id.smbSearchEmpty);
+        serverList = root.findViewById(R.id.smbServerList);
+        shareList = root.findViewById(R.id.smbShareList);
+        editShare = root.findViewById(R.id.smbEditShare);
+        editUser = root.findViewById(R.id.smbEditUser);
+        editPassword = root.findViewById(R.id.smbEditPassword);
+        loginTitle = root.findViewById(R.id.smbLoginTitle);
+        doneText = root.findViewById(R.id.smbDoneText);
+        busy = root.findViewById(R.id.smbBusy);
+        busyText = root.findViewById(R.id.smbBusyText);
+        errorText = root.findViewById(R.id.smbError);
+        btnToLogin = root.findViewById(R.id.smbBtnToLogin);
+
+        root.<MaterialButton>findViewById(R.id.smbBtnRescan).setOnClickListener(v -> search());
+        btnToLogin.setOnClickListener(v -> showLogin());
+        root.<MaterialButton>findViewById(R.id.smbBtnManual).setOnClickListener(v -> {
+            manual = true;
+            setVisible(false);
+            host.onSmbManualRequested();
+        });
+        root.<MaterialButton>findViewById(R.id.smbBtnBackToSearch).setOnClickListener(v -> show(stepSearch));
+        root.<MaterialButton>findViewById(R.id.smbBtnConnect).setOnClickListener(v -> connect());
+        root.<MaterialButton>findViewById(R.id.smbBtnBackToLogin).setOnClickListener(v -> show(stepLogin));
+        root.<MaterialButton>findViewById(R.id.smbBtnSave).setOnClickListener(v -> saveConfig());
+        root.<MaterialButton>findViewById(R.id.smbBtnRestart).setOnClickListener(v -> {
+            restart();
+            setVisible(true);
+        });
+    }
+
+    /**
+     * Zeigt oder verbirgt den Assistenten. Beim ersten Einblenden startet die Suche automatisch – es sei
+     * denn, es ist schon eine SMB-Verbindung eingerichtet; dann erscheint zuerst die Zusammenfassung.
+     */
+    public void setVisible(boolean visible) {
+        root.setVisibility(visible ? View.VISIBLE : View.GONE);
+        if (!visible) {
+            stopDiscovery();
+            return;
+        }
+        if (started) {
+            return;
+        }
+        started = true;
+        if (!forceSearch && settings.isSmbServer() && settings.hasRemoteConfig()) {
+            showDone(settings.getUrl());
+        } else {
+            forceSearch = false;
+            search();
+        }
+    }
+
+    /** true, sobald der Benutzer „Server manuell eingeben" gewählt hat. */
+    public boolean isManual() {
+        return manual;
+    }
+
+    /** Assistent statt manueller Eingabe (z. B. nach einem Wechsel des Server-Typs). */
+    public void resetManual() {
+        manual = false;
+    }
+
+    /** Zurück zum Assistenten: beim nächsten Einblenden beginnt er wieder mit der Serversuche. */
+    public void restart() {
+        manual = false;
+        started = false;
+        forceSearch = true;
+    }
+
+    public void stopDiscovery() {
+        if (discovery != null) {
+            discovery.cancel();
+            discovery = null;
+        }
+    }
+
+    // --------------------------------------------------------- Schritt 1
+
+    private void search() {
+        show(stepSearch);
+        stopDiscovery();
+        servers.clear();
+        serverList.removeAllViews();
+        btnToLogin.setEnabled(false);
+        searchEmpty.setVisibility(View.GONE);
+        searchProgress.setVisibility(View.VISIBLE);
+        for (String[] known : settings.getKnownSmbHosts()) {
+            addServer(new SmbDiscovery.Server(known[0], known[1]));
+        }
+        discovery = new SmbDiscovery(activity);
+        discovery.start(new SmbDiscovery.Listener() {
+            @Override
+            public void onServer(SmbDiscovery.Server server) {
+                if (activity.isFinishing()) {
+                    return;
+                }
+                addServer(server);
+            }
+
+            @Override
+            public void onFinished() {
+                if (activity.isFinishing()) {
+                    return;
+                }
+                searchProgress.setVisibility(View.GONE);
+                searchEmpty.setVisibility(servers.isEmpty() ? View.VISIBLE : View.GONE);
+                List<String[]> keep = new ArrayList<>();
+                for (SmbDiscovery.Server s : servers) {
+                    keep.add(new String[]{s.name, s.host});
+                }
+                settings.setKnownSmbHosts(keep);
+            }
+        });
+    }
+
+    /** Fügt einen Treffer hinzu oder ersetzt den Namen eines bereits gelisteten Hosts. */
+    private void addServer(SmbDiscovery.Server server) {
+        for (int i = 0; i < servers.size(); i++) {
+            if (servers.get(i).host.equals(server.host)) {
+                servers.set(i, server);
+                ((MaterialRadioButton) serverList.getChildAt(i)).setText(serverLabel(server));
+                return;
+            }
+        }
+        servers.add(server);
+        searchEmpty.setVisibility(View.GONE);
+        MaterialRadioButton rb = new MaterialRadioButton(activity);
+        rb.setId(View.generateViewId());
+        rb.setText(serverLabel(server));
+        rb.setMinHeight((int) TypedValue.applyDimension(TypedValue.COMPLEX_UNIT_DIP, 48,
+                activity.getResources().getDisplayMetrics()));
+        rb.setGravity(Gravity.CENTER_VERTICAL);
+        final int index = servers.size() - 1;
+        rb.setOnClickListener(v -> {
+            selectedHost = servers.get(index).host;
+            selectedName = servers.get(index).name;
+            btnToLogin.setEnabled(true);
+        });
+        serverList.addView(rb);
+    }
+
+    /** Name groß, darunter Host/IP kleiner – wie in den Beispielen der Serverliste. */
+    private CharSequence serverLabel(SmbDiscovery.Server server) {
+        if (server.name.equals(server.host)) {
+            return server.host;
+        }
+        SpannableString s = new SpannableString(server.name + "\n" + server.host);
+        s.setSpan(new RelativeSizeSpan(0.8f), server.name.length() + 1, s.length(),
+                Spanned.SPAN_EXCLUSIVE_EXCLUSIVE);
+        return s;
+    }
+
+    // --------------------------------------------------------- Schritt 2
+
+    private void showLogin() {
+        if (selectedHost.isEmpty()) {
+            return;
+        }
+        stopDiscovery();
+        loginTitle.setText(selectedName.isEmpty() ? selectedHost : selectedName);
+        show(stepLogin);
+    }
+
+    private void connect() {
+        final String user = textOf(editUser);
+        final String password = textOf(editPassword);
+        final String h = selectedHost;
+        setBusy(R.string.smb_connecting);
+        new Thread(() -> {
+            try {
+                com.hierynomus.smbj.SMBClient client = SmbSessions.quickClient();
+                try (com.hierynomus.smbj.connection.Connection c = client.connect(h)) {
+                    c.authenticate(SmbSessions.authFor(user, password));
+                } finally {
+                    client.close();
+                }
+                post(() -> loadShares(user, password));
+            } catch (Exception e) {
+                post(() -> fail(SmbErrors.Step.LOGIN, e, stepLogin));
+            }
+        }, "smb-login").start();
+    }
+
+    // --------------------------------------------------------- Schritt 3
+
+    private void loadShares(final String user, final String password) {
+        setBusy(R.string.smb_shares_loading);
+        shareList.removeAllViews();
+        selectedShare = "";
+        editShare.setText("");
+        final String h = selectedHost;
+        new Thread(() -> {
+            List<String> shares;
+            String problem = null;
+            try {
+                shares = SmbShares.list(h, user, password);
+            } catch (Exception e) {
+                shares = new ArrayList<>();
+                problem = SmbErrors.messageFor(activity, SmbErrors.Step.SHARE, e);
+                // Der Benutzer sieht nur die verständliche Meldung; die Ursache landet im Log.
+                android.util.Log.w("SmbWizard", "Freigaben von " + h + " nicht lesbar", e);
+            }
+            final List<String> result = shares;
+            final String message = problem;
+            post(() -> {
+                clearBusy();
+                show(stepShares);
+                for (String share : result) {
+                    addShare(share);
+                }
+                if (result.isEmpty()) {
+                    showError(message == null ? activity.getString(R.string.smb_shares_none) : message);
+                }
+            });
+        }, "smb-shares").start();
+    }
+
+    private void addShare(String share) {
+        MaterialRadioButton rb = new MaterialRadioButton(activity);
+        rb.setId(View.generateViewId());
+        rb.setText(share);
+        rb.setMinHeight((int) TypedValue.applyDimension(TypedValue.COMPLEX_UNIT_DIP, 48,
+                activity.getResources().getDisplayMetrics()));
+        rb.setOnClickListener(v -> {
+            selectedShare = share;
+            editShare.setText(share);   // Auswahl landet im Feld und lässt sich dort noch ändern
+        });
+        shareList.addView(rb);
+    }
+
+    // ------------------------------------------------------------ Speichern
+
+    private void saveConfig() {
+        // Das Feld gewinnt: es zeigt die Auswahl an, kann aber von Hand überschrieben werden.
+        selectedShare = textOf(editShare).isEmpty() ? selectedShare : textOf(editShare);
+        if (selectedShare.isEmpty()) {
+            showError(activity.getString(R.string.smb_err_share));
+            return;
+        }
+        String url = "smb://" + selectedHost + "/" + selectedShare;
+        host.onSmbConfigured(url, textOf(editUser), textOf(editPassword));
+        showDone(url);
+    }
+
+    private void showDone(String url) {
+        clearBusy();
+        doneText.setText(activity.getString(R.string.smb_saved, url));
+        show(stepDone);
+    }
+
+    // ------------------------------------------------------------- Helfer
+
+    private void show(View step) {
+        clearBusy();
+        stepSearch.setVisibility(step == stepSearch ? View.VISIBLE : View.GONE);
+        stepLogin.setVisibility(step == stepLogin ? View.VISIBLE : View.GONE);
+        stepShares.setVisibility(step == stepShares ? View.VISIBLE : View.GONE);
+        stepDone.setVisibility(step == stepDone ? View.VISIBLE : View.GONE);
+    }
+
+    /** Blendet alle Schritte aus und zeigt nur die Fortschrittszeile mit dem passenden Text. */
+    private void setBusy(int textRes) {
+        errorText.setVisibility(View.GONE);
+        stepSearch.setVisibility(View.GONE);
+        stepLogin.setVisibility(View.GONE);
+        stepShares.setVisibility(View.GONE);
+        stepDone.setVisibility(View.GONE);
+        busyText.setText(textRes);
+        busy.setVisibility(View.VISIBLE);
+    }
+
+    private void clearBusy() {
+        busy.setVisibility(View.GONE);
+        errorText.setVisibility(View.GONE);
+    }
+
+    private void fail(SmbErrors.Step step, Exception e, View backTo) {
+        show(backTo);
+        showError(SmbErrors.messageFor(activity, step, e));
+    }
+
+    private void showError(String message) {
+        errorText.setText(message);
+        errorText.setVisibility(View.VISIBLE);
+    }
+
+    private void post(Runnable r) {
+        if (!activity.isFinishing()) {
+            activity.runOnUiThread(() -> {
+                if (!activity.isFinishing()) {
+                    r.run();
+                }
+            });
+        }
+    }
+
+    private static String textOf(TextInputEditText field) {
+        return field.getText() == null ? "" : field.getText().toString().trim();
+    }
+}

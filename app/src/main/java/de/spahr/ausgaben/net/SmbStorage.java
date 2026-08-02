@@ -5,10 +5,7 @@ import com.hierynomus.msfscc.FileAttributes;
 import com.hierynomus.msfscc.fileinformation.FileIdBothDirectoryInformation;
 import com.hierynomus.mssmb2.SMB2CreateDisposition;
 import com.hierynomus.mssmb2.SMB2ShareAccess;
-import com.hierynomus.security.bc.BCSecurityProvider;
 import com.hierynomus.smbj.SMBClient;
-import com.hierynomus.smbj.SmbConfig;
-import com.hierynomus.smbj.auth.AuthenticationContext;
 import com.hierynomus.smbj.connection.Connection;
 import com.hierynomus.smbj.session.Session;
 import com.hierynomus.smbj.share.DiskShare;
@@ -21,7 +18,6 @@ import java.nio.charset.StandardCharsets;
 import java.util.ArrayList;
 import java.util.EnumSet;
 import java.util.List;
-import java.util.concurrent.TimeUnit;
 
 import de.spahr.ausgaben.settings.SettingsStore;
 
@@ -36,7 +32,6 @@ public class SmbStorage implements RemoteStorage {
     private final String host;
     private final String share;
     private final String base;
-    private final String domain;
     private final String user;
     private final String password;
 
@@ -45,18 +40,7 @@ public class SmbStorage implements RemoteStorage {
         this.host = parts[0];
         this.share = parts[1];
         this.base = parts[2];
-        String u = user == null ? "" : user.trim();
-        int sep = u.indexOf('\\');
-        if (sep < 0) {
-            sep = u.indexOf('/');
-        }
-        if (sep >= 0) {
-            this.domain = u.substring(0, sep);
-            this.user = u.substring(sep + 1);
-        } else {
-            this.domain = null;
-            this.user = u;
-        }
+        this.user = user == null ? "" : user.trim();
         this.password = password == null ? "" : password;
     }
 
@@ -68,17 +52,10 @@ public class SmbStorage implements RemoteStorage {
         if (host.isEmpty() || share.isEmpty()) {
             throw new IOException("SMB: Host/Freigabe fehlt (smb://Host/Freigabe)");
         }
-        SmbConfig config = SmbConfig.builder()
-                .withSecurityProvider(new BCSecurityProvider())
-                .withTimeout(30, TimeUnit.SECONDS)
-                .withSoTimeout(45, TimeUnit.SECONDS)
-                .build();
-        SMBClient client = new SMBClient(config);
+        SMBClient client = de.spahr.ausgaben.net.smb.SmbSessions.client();
         try (Connection connection = client.connect(host)) {
-            AuthenticationContext auth = user.isEmpty()
-                    ? AuthenticationContext.guest()
-                    : new AuthenticationContext(user, password.toCharArray(), domain);
-            Session session = connection.authenticate(auth);
+            Session session = connection.authenticate(
+                    de.spahr.ausgaben.net.smb.SmbSessions.authFor(user, password));
             try (DiskShare disk = (DiskShare) session.connectShare(share)) {
                 return action.run(disk);
             }

@@ -749,9 +749,38 @@ p("<b>Der wichtigste Einrichtungsschritt</b>, damit die App mit KMyMoney Daten a
 bullets([
   "<b>Nextcloud</b>: Basis-URL des Servers + App-Passwort (Nextcloud → Sicherheit → App-Passwort).",
   "<b>WebDAV (generisch)</b>: vollständige DAV-Wurzel-URL, Auth per HTTP-Basic.",
-  "<b>SMB/Samba</b>: «smb://Host/Freigabe» im Heimnetz; leerer Benutzer = Gast, Domäne als DOMÄNE\\Benutzer. SMB2/3.",
+  "<b>SMB/Samba</b>: wird per <b>Assistent</b> eingerichtet – siehe unten. SMB2/3.",
   "<b>«Verbindung testen»</b> prüft die Zugangsdaten.",
 ])
+h2("SMB/Samba einrichten (Assistent)")
+p("Bei Server-Typ <b>SMB/Samba</b> erscheint statt der Adressfelder ein Assistent, damit Sie weder "
+  "Rechnernamen noch Freigabenamen auswendig wissen müssen:")
+bullets([
+  "<b>1. Server suchen</b>: die App durchsucht beim Öffnen automatisch das lokale Netz (Bonjour/mDNS, "
+  "NetBIOS-Namensabfrage und ein Verbindungstest auf dem SMB-Port). Gefundene Server erscheinen mit "
+  "Anzeigename und darunter der IP-Adresse. <b>«Erneut suchen»</b> startet die Suche neu, zuletzt "
+  "gefundene Server werden gemerkt und sofort angezeigt.",
+  "<b>2. Anmelden</b>: Benutzername und Passwort des Servers. <b>Leerer Benutzer = Gast.</b> Das Passwort "
+  "wird verschlüsselt gespeichert und nie im Klartext angezeigt.",
+  "<b>3. Freigabe wählen</b>: nach der Anmeldung liest die App die <b>Freigaben</b> des Servers aus und "
+  "zeigt sie zur Auswahl (System-Freigaben wie IPC$ werden ausgeblendet). Ein Klick trägt die Freigabe in "
+  "das Feld <b>«Freigabename»</b> ein; dort lässt sie sich auch von Hand eintippen, falls der Server die "
+  "Liste nicht herausgibt.",
+  "<b>4. Speichern</b>: daraus entsteht die Adresse «smb://Host/Freigabe». Den <b>Zielordner</b> innerhalb "
+  "der Freigabe wählen Sie danach wie gewohnt mit den Schaltflächen «Ordner durchsuchen» bzw. "
+  "«.kmy auswählen».",
+  "<b>«Server manuell eingeben»</b> blendet die klassischen Felder ein (Adresse «smb://Host/Freigabe» "
+  "selbst tippen). Über <b>«Server im Netzwerk suchen»</b> kommen Sie jederzeit zum Assistenten zurück.",
+])
+p("<b>Arbeitsgruppe oder Windows-Domäne:</b> Im Heimnetz heißt die Arbeitsgruppe meist «WORKGROUP» – sie "
+  "spielt für die Anmeldung keine Rolle, Samba-Server und NAS prüfen nur Benutzer und Passwort. Anders ist "
+  "es in einer echten <b>Windows-Domäne (Active Directory)</b>: dort tragen Sie den Benutzer als "
+  "<b>DOMÄNE\\Benutzer</b> ein (alternativ «benutzer@domäne.local»). Fehlt die Domäne, kann die Anmeldung "
+  "mit «Benutzername oder Passwort sind ungültig» scheitern, obwohl das Passwort stimmt. Bei einem "
+  "Windows-PC mit lokalem Konto gilt notfalls «RECHNERNAME\\Benutzer».")
+p("Schlägt etwas fehl, nennt der Assistent den Grund konkret: «Server nicht erreichbar», «Benutzername "
+  "oder Passwort sind ungültig», «Die ausgewählte Freigabe ist nicht verfügbar» oder «Zugriff auf den "
+  "Ordner wurde verweigert».")
 h2("Export-Modus")
 bullets([
   "<b>.kmy-Modus</b>: schreibt neue Buchungen direkt in die KMyMoney-Datei (inkl. Splits und Umbuchungen) "

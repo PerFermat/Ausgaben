@@ -154,7 +154,10 @@ lokal in einen selbst gewählten Ordner exportiert.
 
 - **Nextcloud**: Basis-URL des Servers + ein **App-Passwort** (Nextcloud → Sicherheit → App-Passwort).
 - **WebDAV (generisch)**: vollständige DAV-Wurzel-URL, Auth per HTTP-Basic.
-- **SMB/Samba**: `smb://Host/Freigabe`; leerer Benutzer = Gast, Domäne als `DOMÄNE\Benutzer`. SMB2/3.
+- **SMB/Samba**: **Einrichtungsassistent** – die App sucht die SMB-Server im lokalen Netz (mDNS,
+  NetBIOS und Port 445), danach anmelden, aus den gefundenen **Freigaben** wählen und den Zielordner
+  durchklicken; gespeichert wird daraus `smb://Host/Freigabe/Ordner`. Leerer Benutzer = Gast, Domäne als
+  `DOMÄNE\Benutzer`, SMB2/3. Über „Server manuell eingeben" bleibt die Adresseingabe von Hand möglich.
 
 ## Lizenz
 

@@ -707,9 +707,34 @@ p("<b>The most important setup step</b>, so the app can exchange data with KMyMo
 bullets([
   "<b>Nextcloud</b>: base URL of the server + app password (Nextcloud → Security → App password).",
   "<b>WebDAV (generic)</b>: full DAV root URL, auth via HTTP basic.",
-  "<b>SMB/Samba</b>: «smb://host/share» on your home network; empty user = guest, a domain as DOMAIN\\user. SMB2/3.",
+  "<b>SMB/Samba</b>: set up through a <b>wizard</b> – see below. SMB2/3.",
   "<b>«Test connection»</b> checks the credentials.",
 ])
+h2("Setting up SMB/Samba (wizard)")
+p("With server type <b>SMB/Samba</b> a wizard replaces the address fields, so you don't have to remember "
+  "host or share names:")
+bullets([
+  "<b>1. Search for servers</b>: on opening, the app scans the local network automatically (Bonjour/mDNS, "
+  "a NetBIOS name query and a connection test on the SMB port). Each hit is listed with its display name "
+  "and the IP address below it. <b>«Search again»</b> restarts the scan; the servers found last time are "
+  "remembered and shown right away.",
+  "<b>2. Log in</b>: username and password of the server. <b>An empty user means guest.</b> The password is "
+  "stored encrypted and never shown in clear text.",
+  "<b>3. Pick the share</b>: after logging in the app reads the server's <b>shares</b> and offers them for "
+  "selection (system shares such as IPC$ are hidden). Clicking one fills the <b>«Share name»</b> field; you "
+  "can also type it there if the server refuses to list them.",
+  "<b>4. Save</b>: this becomes the address «smb://host/share». The <b>target folder</b> inside the share is "
+  "then chosen as usual with the «Browse folder» resp. «Choose .kmy» buttons.",
+  "<b>«Enter server manually»</b> brings back the classic fields (type «smb://host/share» yourself). "
+  "<b>«Search for servers on the network»</b> returns to the wizard at any time.",
+])
+p("<b>Workgroup or Windows domain:</b> at home the workgroup is usually called «WORKGROUP» – it plays no "
+  "role for signing in, Samba servers and NAS boxes only check user and password. It is different in a real "
+  "<b>Windows domain (Active Directory)</b>: there you enter the user as <b>DOMAIN\\user</b> (or as "
+  "«user@domain.local»). Without the domain the login may fail with «Username or password is invalid» even "
+  "though the password is correct. For a Windows PC with a local account, «COMPUTERNAME\\user» helps.")
+p("If something fails, the wizard names the reason: «Server not reachable», «Username or password is "
+  "invalid», «The selected share is not available» or «Access to the folder was denied».")
 h2("Export mode")
 bullets([
   "<b>.kmy mode</b>: writes new bookings straight into the KMyMoney file (including splits and transfers) "

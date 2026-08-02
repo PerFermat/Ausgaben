@@ -154,7 +154,10 @@ folder you choose.
 - **Nextcloud**: base URL of the server + an **app password** (Nextcloud → Settings → Security → App
   password).
 - **WebDAV (generic)**: the full DAV root URL, auth via HTTP basic.
-- **SMB/Samba**: `smb://host/share`; empty user = guest, a Windows domain as `DOMAIN\user`. SMB2/3.
+- **SMB/Samba**: **setup wizard** — the app scans the local network for SMB servers (mDNS, NetBIOS and
+  port 445), then you log in, pick one of the **shares** it lists and browse to the target folder; that
+  becomes `smb://host/share/folder`. Empty user = guest, a Windows domain as `DOMAIN\user`, SMB2/3.
+  "Enter server manually" still allows typing the address yourself.
 
 ## License
 

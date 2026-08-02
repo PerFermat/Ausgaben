@@ -46,7 +46,7 @@ import de.spahr.ausgaben.settings.SettingsStore;
  * On-Boarding importiert eigenständig, damit die kritische Bestandslogik nicht angefasst wird. Da beim
  * ersten Start noch keine Konten existieren, entfällt hier die Filterung schon vorhandener Konten.</p>
  */
-public class OnboardingActivity extends LocalizedActivity {
+public class OnboardingActivity extends LocalizedActivity implements SmbWizardController.Host {
 
     private Repository repository;
     private SettingsStore settings;
@@ -63,6 +63,8 @@ public class OnboardingActivity extends LocalizedActivity {
     private TextInputLayout urlLayout;
     private TextInputLayout userLayout;
     private TextInputLayout passwordLayout;
+    /** Assistent für SMB; ersetzt bei diesem Server-Typ die Felder URL/Benutzer/Passwort. */
+    private SmbWizardController smbWizard;
     private LinearLayout importStatus;
     private View importProgress;
     private TextView importStatusText;
@@ -99,6 +101,8 @@ public class OnboardingActivity extends LocalizedActivity {
         importProgress = findViewById(R.id.importProgress);
         importStatusText = findViewById(R.id.importStatusText);
 
+        smbWizard = new SmbWizardController(this, findViewById(R.id.smbWizard), settings, this);
+
         setupLanguages();
         setupExportMode();
         setupServerType();
@@ -113,6 +117,10 @@ public class OnboardingActivity extends LocalizedActivity {
 
         ((MaterialButton) findViewById(R.id.btnTestConnection))
                 .setOnClickListener(v -> testConnection());
+        findViewById(R.id.btnSmbSearch).setOnClickListener(v -> {
+            smbWizard.restart();
+            applyServerTypeHints();
+        });
         ((MaterialButton) findViewById(R.id.btnBrowseKmy))
                 .setOnClickListener(v -> browseKmy());
         ((MaterialButton) findViewById(R.id.btnBrowseFolder))
@@ -212,10 +220,44 @@ public class OnboardingActivity extends LocalizedActivity {
         return nc;
     }
 
+    /** Wie in den Einstellungen: bei SMB übernimmt der Assistent die Felder URL/Benutzer/Passwort. */
     private void applyServerTypeHints() {
         boolean smb = SettingsStore.SERVER_SMB.equals(selectedServerType);
         urlLayout.setHint(getString(smb ? R.string.smb_url_hint : R.string.nextcloud_url_hint));
         userLayout.setHint(getString(smb ? R.string.smb_user_hint : R.string.nextcloud_user_hint));
+        if (!smb) {
+            smbWizard.resetManual();
+        }
+        boolean wizard = smb && !smbWizard.isManual();
+        int fields = wizard ? View.GONE : View.VISIBLE;
+        urlLayout.setVisibility(fields);
+        userLayout.setVisibility(fields);
+        passwordLayout.setVisibility(fields);
+        findViewById(R.id.btnTestConnection).setVisibility(fields);
+        // Rückweg zum Assistenten nur, solange SMB gewählt und gerade manuell eingegeben wird.
+        findViewById(R.id.btnSmbSearch).setVisibility(smb && !wizard ? View.VISIBLE : View.GONE);
+        smbWizard.setVisible(wizard);
+    }
+
+    @Override
+    protected void onDestroy() {
+        smbWizard.stopDiscovery();
+        super.onDestroy();
+    }
+
+    @Override
+    public void onSmbConfigured(String url, String user, String password) {
+        editUrl.setText(url);
+        editUser.setText(user);
+        if (!password.isEmpty()) {
+            editPassword.setText(password);
+        }
+        saveSettings();
+    }
+
+    @Override
+    public void onSmbManualRequested() {
+        applyServerTypeHints();
     }
 
     private void prefillSyncFields() {

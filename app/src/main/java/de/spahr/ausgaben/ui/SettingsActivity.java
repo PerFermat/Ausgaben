@@ -54,7 +54,7 @@ import de.spahr.ausgaben.security.BiometricAuth;
 import de.spahr.ausgaben.settings.PlacesStore;
 import de.spahr.ausgaben.settings.SettingsStore;
 
-public class SettingsActivity extends LocalizedActivity {
+public class SettingsActivity extends LocalizedActivity implements SmbWizardController.Host {
 
     private SettingsStore settings;
     private Repository repository;
@@ -72,6 +72,8 @@ public class SettingsActivity extends LocalizedActivity {
     private TextInputLayout urlLayout;
     private TextInputLayout userLayout;
     private TextInputLayout passwordLayout;
+    /** Assistent für SMB; ersetzt bei diesem Server-Typ die Felder URL/Benutzer/Passwort. */
+    private SmbWizardController smbWizard;
     private TextInputEditText editFolder;
     private TextInputEditText editImportFolder;
     private MaterialAutoCompleteTextView editExportMode;
@@ -139,6 +141,8 @@ public class SettingsActivity extends LocalizedActivity {
         editCsvSeparator = findViewById(R.id.editCsvSeparator);
         editDefaultAccount = findViewById(R.id.editDefaultAccount);
         switchDarkMode = findViewById(R.id.switchDarkMode);
+
+        smbWizard = new SmbWizardController(this, findViewById(R.id.smbWizard), settings, this);
 
         editUrl.setText(settings.getUrl());
         editUser.setText(settings.getUser());
@@ -241,6 +245,10 @@ public class SettingsActivity extends LocalizedActivity {
         registerLaunchers();
 
         ((MaterialButton) findViewById(R.id.btnTestConnection)).setOnClickListener(v -> testConnection());
+        findViewById(R.id.btnSmbSearch).setOnClickListener(v -> {
+            smbWizard.restart();
+            applyServerTypeHints();
+        });
         ((MaterialButton) findViewById(R.id.btnBrowseKmy)).setOnClickListener(v -> browseKmy());
         ((MaterialButton) findViewById(R.id.btnBrowseFolder)).setOnClickListener(v -> browseFolderInto(editFolder));
         ((MaterialButton) findViewById(R.id.btnBrowseImportFolder)).setOnClickListener(v -> browseFolderInto(editImportFolder));
@@ -324,11 +332,51 @@ public class SettingsActivity extends LocalizedActivity {
         return nc;
     }
 
-    /** Passt die URL-/Benutzer-Hinweise an den Server-Typ an (SMB nutzt smb://Host/Freigabe + Gast). */
+    /**
+     * Passt die URL-/Benutzer-Hinweise an den Server-Typ an (SMB nutzt smb://Host/Freigabe + Gast) und
+     * zeigt bei SMB statt der Felder den Einrichtungsassistenten – außer der Benutzer hat dort
+     * „Server manuell eingeben" gewählt.
+     */
     private void applyServerTypeHints() {
         boolean smb = SettingsStore.SERVER_SMB.equals(selectedServerType);
         urlLayout.setHint(getString(smb ? R.string.smb_url_hint : R.string.nextcloud_url_hint));
         userLayout.setHint(getString(smb ? R.string.smb_user_hint : R.string.nextcloud_user_hint));
+        if (!smb) {
+            smbWizard.resetManual();
+        }
+        boolean wizard = smb && !smbWizard.isManual();
+        int fields = wizard ? View.GONE : View.VISIBLE;
+        urlLayout.setVisibility(fields);
+        userLayout.setVisibility(fields);
+        passwordLayout.setVisibility(fields);
+        findViewById(R.id.btnTestConnection).setVisibility(fields);
+        // Rückweg zum Assistenten nur, solange SMB gewählt und gerade manuell eingegeben wird.
+        findViewById(R.id.btnSmbSearch).setVisibility(smb && !wizard ? View.VISIBLE : View.GONE);
+        smbWizard.setVisible(wizard);
+    }
+
+    @Override
+    protected void onDestroy() {
+        smbWizard.stopDiscovery();
+        super.onDestroy();
+    }
+
+    @Override
+    public void onSmbConfigured(String url, String user, String password) {
+        editUrl.setText(url);
+        editUser.setText(user);
+        if (!password.isEmpty()) {
+            editPassword.setText(password);
+        }
+        String defaultAccount = editDefaultAccount.getText() == null
+                ? "" : editDefaultAccount.getText().toString().trim();
+        settings.save(url, user, password, textOf(editFolder), textOf(editImportFolder),
+                defaultAccount, selectedExportMode, textOf(editKmyPath), SettingsStore.SERVER_SMB);
+    }
+
+    @Override
+    public void onSmbManualRequested() {
+        applyServerTypeHints();
     }
 
     /** Verbindung mit den aktuellen (auch ungespeicherten) Feldwerten testen. */

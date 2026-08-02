@@ -95,6 +95,10 @@
     <!-- Scheduled transactions -->
     <string name="scheduled_title">Scheduled transactions</string>
     <string name="scheduled_empty">No scheduled transactions. They are imported from the KMyMoney file.</string>
+    <string name="scheduled_skip_booking">Skip booking</string>
+    <string name="scheduled_skip_confirm">Skip %1$s „%2$s"? No transaction is created; the schedule moves on to the next date.</string>
+    <string name="scheduled_skipped">Date skipped</string>
+    <string name="scheduled_only_next">Only the next date of a schedule can be entered or skipped.</string>
     <string name="sched_saldo_surplus">Surplus</string>
     <string name="sched_saldo_deficit">Deficit</string>
     <string name="sched_saldo_income">Total deposits</string>
@@ -473,6 +477,7 @@
     <string name="kmy_result_written">Wrote %1$d booking(s) to %2$s</string>
     <string name="kmy_result_new_payees">, %1$d new payee(s)</string>
     <string name="kmy_result_deleted">, %1$d deleted</string>
+    <string name="kmy_result_scheduled">, %1$d schedule(s) moved on</string>
     <string name="kmy_result_backup">Backup: %1$s</string>
     <string name="kmy_conflict">The .kmy was changed in the meantime (probably on the computer). Nothing was written – please re-import the accounts and export again.</string>
     <string name="kmy_skipped">%1$d skipped: %2$s</string>

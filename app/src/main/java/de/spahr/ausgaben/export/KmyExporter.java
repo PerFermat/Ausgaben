@@ -17,6 +17,7 @@ import java.util.regex.Pattern;
 import de.spahr.ausgaben.db.Booking;
 import de.spahr.ausgaben.db.BookingSplit;
 import de.spahr.ausgaben.db.KmyPendingDelete;
+import de.spahr.ausgaben.db.ScheduledAdvance;
 
 /**
  * Fügt App-Buchungen als KMyMoney-Transaktionen in die XML-Struktur einer {@link KmyDocument} ein.
@@ -38,6 +39,15 @@ public class KmyExporter {
         public String xml;
         /** In dieser Runde tatsächlich gefundene und entfernte Vormerkungen (per {@link KmyPendingDelete#id}). */
         public final List<Long> resolvedIds = new ArrayList<>();
+    }
+
+    /** Ergebnis des Weiterstellens erledigter/übersprungener geplanter Buchungen. */
+    public static class ScheduleResult {
+        public String xml;
+        /** Erledigte Vormerkungen (per {@link ScheduledAdvance#id}) – geschriebene und verworfene. */
+        public final List<Long> resolvedIds = new ArrayList<>();
+        /** Tatsächlich in der Datei weitergestellte Vormerkungen (Teilmenge von {@link #resolvedIds}). */
+        public final List<Long> writtenIds = new ArrayList<>();
     }
 
     private final KmyDocument doc;
@@ -167,6 +177,16 @@ public class KmyExporter {
         }
         boolean[] consumed = new boolean[sigAccountId.size()];
 
+        // Nur im Hauptbuch suchen: hinter </TRANSACTIONS> stehen u. a. die geplanten Buchungen, deren
+        // eingebettete <TRANSACTION> sonst zufällig auf eine Vormerkung passen und die Regel zerstören könnte.
+        final String ledgerEnd = "</TRANSACTIONS>";
+        int ledgerIdx = xml.lastIndexOf(ledgerEnd);
+        String tail = "";
+        if (ledgerIdx >= 0) {
+            tail = xml.substring(ledgerIdx);
+            xml = xml.substring(0, ledgerIdx);
+        }
+
         Pattern block = Pattern.compile("<TRANSACTION\\b.*?</TRANSACTION>", Pattern.DOTALL);
         Pattern postdateAttr = Pattern.compile("\\bpostdate=\"([^\"]*)\"");
         Pattern splitTag = Pattern.compile("<SPLIT\\b[^>]*/>");
@@ -216,7 +236,63 @@ public class KmyExporter {
         if (removed > 0) {
             out = bumpCount(out, "TRANSACTIONS", -removed);
         }
-        result.xml = out;
+        result.xml = out + tail;
+        return result;
+    }
+
+    /**
+     * Stellt erledigte bzw. übersprungene geplante Buchungen in der Datei weiter: {@code postdate} der in
+     * {@code <SCHEDULED_TX>} eingebetteten Transaktion (= nächste Fälligkeit) auf den neuen Termin, bei einer
+     * tatsächlich gebuchten Zahlung zusätzlich {@code lastPayment}. Die Regel selbst bleibt erhalten, Splits,
+     * {@code startDate} und alles Übrige unverändert.
+     *
+     * <p>Steht in der Datei nicht mehr der erwartete Termin ({@link ScheduledAdvance#fromDueMs}), hat
+     * KMyMoney die Regel selbst weitergestellt – dann wird nichts geschrieben und die Vormerkung nur
+     * verworfen (die Datei gewinnt). Eine unbekannte Regel-id bleibt vorgemerkt liegen.
+     */
+    public static ScheduleResult applyScheduleAdvances(String xml, List<ScheduledAdvance> advances) {
+        ScheduleResult result = new ScheduleResult();
+        result.xml = xml;
+        if (advances == null || advances.isEmpty()) {
+            return result;
+        }
+        for (ScheduledAdvance a : advances) {
+            if (a.kmyId == null || a.kmyId.trim().isEmpty()) {
+                result.resolvedIds.add(a.id);
+                continue;
+            }
+            Pattern block = Pattern.compile("<SCHEDULED_TX\\b[^>]*\\bid=\"" + Pattern.quote(a.kmyId.trim())
+                    + "\"[^>]*>.*?</SCHEDULED_TX>", Pattern.DOTALL);
+            Matcher m = block.matcher(result.xml);
+            if (!m.find()) {
+                continue; // Regel nicht in dieser Datei – Vormerkung liegen lassen
+            }
+            String tx = m.group();
+            Matcher pd = Pattern.compile("(<TRANSACTION\\b[^>]*\\bpostdate=\")([^\"]*)(\")").matcher(tx);
+            if (!pd.find()) {
+                result.resolvedIds.add(a.id);
+                continue;
+            }
+            if (!kmyDate(a.fromDueMs).equals(pd.group(2))) {
+                result.resolvedIds.add(a.id); // Datei ist weiter als erwartet → nicht überschreiben
+                continue;
+            }
+            // Leeres postdate = keine weitere Fälligkeit (so schreibt es auch KMyMoney bei einmaligen Regeln).
+            String nextDate = a.nextDueMs > 0 ? kmyDate(a.nextDueMs) : "";
+            String updated = tx.substring(0, pd.start()) + pd.group(1) + nextDate + pd.group(3)
+                    + tx.substring(pd.end());
+            if (a.lastPaymentMs > 0) {
+                Matcher lp = Pattern.compile("(<SCHEDULED_TX\\b[^>]*\\blastPayment=\")([^\"]*)(\")")
+                        .matcher(updated);
+                if (lp.find()) {
+                    updated = updated.substring(0, lp.start()) + lp.group(1) + kmyDate(a.lastPaymentMs)
+                            + lp.group(3) + updated.substring(lp.end());
+                }
+            }
+            result.xml = result.xml.substring(0, m.start()) + updated + result.xml.substring(m.end());
+            result.resolvedIds.add(a.id);
+            result.writtenIds.add(a.id);
+        }
         return result;
     }
 
@@ -356,6 +432,11 @@ public class KmyExporter {
 
     private String dateFor(long millis) {
         return dateFormat.format(new Date(millis));
+    }
+
+    /** Datum im KMyMoney-Format {@code yyyy-MM-dd} – für die statischen Helfer. */
+    private static String kmyDate(long millis) {
+        return new SimpleDateFormat("yyyy-MM-dd", Locale.US).format(new Date(millis));
     }
 
     private String label(Booking b) {

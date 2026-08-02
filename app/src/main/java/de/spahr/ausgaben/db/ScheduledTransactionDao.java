@@ -23,4 +23,11 @@ public interface ScheduledTransactionDao {
 
     @Query("SELECT * FROM scheduled_transaction WHERE id = :id")
     ScheduledTransaction getById(long id);
+
+    /**
+     * Setzt die nächste Fälligkeit einer Regel – nach dem Rückschreiben in die .kmy, damit die Liste bis
+     * zum nächsten Import denselben Stand zeigt wie die Datei.
+     */
+    @Query("UPDATE scheduled_transaction SET next_due_ms = :nextDueMs WHERE kmy_id = :kmyId")
+    void updateNextDue(String kmyId, long nextDueMs);
 }

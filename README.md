@@ -82,6 +82,10 @@ Details, screenshots and exact behavior are in the **[user manual](docs/Manual-A
   a built-in calculator keyboard in the amount field.
 - **Analysis**: history chart per account/place/total, category pie chart ("Where does my money go?"),
   budget (actual vs. planned, imported from KMyMoney or computed in-app), scheduled bookings preview.
+- **Scheduled bookings**: imported from KMyMoney and unfolded into their individual dates. Long-press the
+  next date to open it prefilled in the editor — save it as a real booking, or use **"Skip booking"** there.
+  Either way that date disappears from the list and the KMyMoney schedule is moved on by one period on the
+  next `.kmy` export (the schedule itself is kept, later dates stay untouched).
 - **Holdings & portfolio**: several cash **places** per account with their own movement journal and
   reconciliation; portfolio import with the full **price history**, buys/sells/dividends, gain/loss
   analysis. The portfolio value counts like an account in **"Total"** and in the net-worth graph; the

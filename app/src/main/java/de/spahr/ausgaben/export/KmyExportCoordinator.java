@@ -66,7 +66,10 @@ public class KmyExportCoordinator {
             List<Booking> bookings = repository.bookingDao().getUnexported();
             List<de.spahr.ausgaben.db.KmyPendingDelete> pendingDeletes =
                     repository.kmyPendingDeleteDao().getAll();
-            if (bookings.isEmpty() && pendingDeletes.isEmpty()) {
+            // Erledigte/übersprungene geplante Buchungen: die zugehörige KMyMoney-Regel wird weitergestellt.
+            List<de.spahr.ausgaben.db.ScheduledAdvance> advances =
+                    repository.scheduledAdvanceDao().getAll();
+            if (bookings.isEmpty() && pendingDeletes.isEmpty() && advances.isEmpty()) {
                 complete(listener, r.getString(de.spahr.ausgaben.R.string.export_none), false);
                 return;
             }
@@ -97,7 +100,12 @@ public class KmyExportCoordinator {
                 KmyExporter.DeleteResult delRes = exporter.removeTransactions(res.xml, pendingDeletes);
                 res.xml = delRes.xml;
 
-                if (res.writtenIds.isEmpty() && delRes.resolvedIds.isEmpty()) {
+                // Geplante Buchungen weiterstellen (nur postdate/lastPayment – die Regel bleibt bestehen).
+                KmyExporter.ScheduleResult schedRes = exporter.applyScheduleAdvances(res.xml, advances);
+                res.xml = schedRes.xml;
+
+                if (res.writtenIds.isEmpty() && delRes.resolvedIds.isEmpty()
+                        && schedRes.resolvedIds.isEmpty()) {
                     complete(listener, r.getString(de.spahr.ausgaben.R.string.kmy_none_matched)
                             + "\n" + skippedText(r, res), false);
                     return;
@@ -119,7 +127,18 @@ public class KmyExportCoordinator {
                 if (!delRes.resolvedIds.isEmpty()) {
                     repository.kmyPendingDeleteDao().deleteByIds(delRes.resolvedIds);
                 }
-                complete(listener, buildMessage(r, res, delRes.resolvedIds.size(), file, backup), true);
+                if (!schedRes.resolvedIds.isEmpty()) {
+                    // Nur wirklich geschriebene Regeln lokal nachziehen, damit die Liste bis zum nächsten
+                    // Import denselben Stand zeigt wie die Datei.
+                    for (de.spahr.ausgaben.db.ScheduledAdvance a : advances) {
+                        if (schedRes.writtenIds.contains(a.id)) {
+                            repository.scheduledTransactionDao().updateNextDue(a.kmyId, a.nextDueMs);
+                        }
+                    }
+                    repository.scheduledAdvanceDao().deleteByIds(schedRes.resolvedIds);
+                }
+                complete(listener, buildMessage(r, res, delRes.resolvedIds.size(),
+                        schedRes.writtenIds.size(), file, backup), true);
             } catch (de.spahr.ausgaben.net.RemoteConflictException e) {
                 // Fremdänderung erkannt: nichts geschrieben, nichts als exportiert markiert.
                 complete(listener, r.getString(de.spahr.ausgaben.R.string.kmy_conflict), false);
@@ -144,7 +163,8 @@ public class KmyExportCoordinator {
         return map;
     }
 
-    private String buildMessage(Context r, KmyExporter.Result res, int removedCount, String file, String backup) {
+    private String buildMessage(Context r, KmyExporter.Result res, int removedCount, int advancedCount,
+                                String file, String backup) {
         StringBuilder sb = new StringBuilder();
         sb.append(r.getString(de.spahr.ausgaben.R.string.kmy_result_written, res.writtenIds.size(), file));
         if (res.newPayees > 0) {
@@ -152,6 +172,9 @@ public class KmyExportCoordinator {
         }
         if (removedCount > 0) {
             sb.append(r.getString(de.spahr.ausgaben.R.string.kmy_result_deleted, removedCount));
+        }
+        if (advancedCount > 0) {
+            sb.append(r.getString(de.spahr.ausgaben.R.string.kmy_result_scheduled, advancedCount));
         }
         sb.append(".\n").append(r.getString(de.spahr.ausgaben.R.string.kmy_result_backup, backup));
         if (!res.skipped.isEmpty()) {

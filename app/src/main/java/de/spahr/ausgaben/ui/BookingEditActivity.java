@@ -100,6 +100,10 @@ public class BookingEditActivity extends LocalizedActivity {
     // das Datum selbst geändert? Abfrage nur beim Kopieren (Vorlage) mit unverändertem Datum.
     private boolean openedFromExistingBooking;
     private boolean dateChangedByUser;
+    // „Jetzt buchen" aus den geplanten Buchungen: Planung + geplanter Termin, die beim Speichern
+    // weitergestellt werden (null = normale Buchung).
+    private de.spahr.ausgaben.db.ScheduledTransaction bookedSchedule;
+    private long bookedScheduleDueMs;
 
     private MaterialToolbar toolbar;
     private MaterialButtonToggleGroup toggleType;
@@ -127,6 +131,7 @@ public class BookingEditActivity extends LocalizedActivity {
     private com.google.android.material.materialswitch.MaterialSwitch switchExported;
     private MaterialButton btnToday;
     private MaterialButton btnSaveNew;
+    private MaterialButton btnSkipSchedule;
     private MaterialButton btnUpdate;
     private MaterialButton btnDelete;
 
@@ -233,6 +238,7 @@ public class BookingEditActivity extends LocalizedActivity {
         });
 
         btnSaveNew = findViewById(R.id.btnSaveNew);
+        btnSkipSchedule = findViewById(R.id.btnSkipSchedule);
         btnUpdate = findViewById(R.id.btnUpdate);
         btnDelete = findViewById(R.id.btnDelete);
 
@@ -676,7 +682,48 @@ public class BookingEditActivity extends LocalizedActivity {
      * Speichern läuft über den normalen {@code saveAsNew()}-Pfad – inkl. Ort-Bewegung.
      */
     private void bindScheduledBooking(de.spahr.ausgaben.db.ScheduledTransaction st, long dueMs) {
+        // Erst beim tatsächlichen Speichern gilt der Termin als erledigt (siehe finishAfterSave) – wer den
+        // Editor abbricht, lässt die Planung unverändert stehen.
+        bookedSchedule = st;
+        bookedScheduleDueMs = dueMs;
         bindSchedule(st, dueMs, false);
+        if (st != null) {
+            btnSkipSchedule.setVisibility(View.VISIBLE);
+            btnSkipSchedule.setOnClickListener(v -> confirmSkipSchedule(st, dueMs));
+        }
+    }
+
+    /** „Buchung überspringen": keine Buchung, aber die Planung rückt (auch in der .kmy) eine Periode weiter. */
+    private void confirmSkipSchedule(de.spahr.ausgaben.db.ScheduledTransaction st, long dueMs) {
+        String date = java.text.DateFormat.getDateInstance(java.text.DateFormat.SHORT,
+                getResources().getConfiguration().getLocales().get(0)).format(new java.util.Date(dueMs));
+        new MaterialAlertDialogBuilder(this, R.style.ThemeOverlay_Ausgaben_Dialog)
+                .setTitle(R.string.scheduled_skip_booking)
+                .setMessage(getString(R.string.scheduled_skip_confirm, date, st.name))
+                .setPositiveButton(R.string.scheduled_skip_booking, (d, w) -> {
+                    bookedSchedule = null;   // nicht zusätzlich über finishAfterSave weiterstellen
+                    repository.advanceScheduled(st, dueMs, false, () -> {
+                        Toast.makeText(this, R.string.scheduled_skipped, Toast.LENGTH_SHORT).show();
+                        finish();
+                    });
+                })
+                .setNegativeButton(R.string.cancel, null)
+                .show();
+    }
+
+    /**
+     * Nach erfolgreichem Speichern schließen – bei „jetzt buchen" vorher die KMyMoney-Regel um eine Periode
+     * weiterstellen. Maßgeblich ist der <b>geplante</b> Termin, auch wenn im Editor ein anderes Buchungsdatum
+     * gewählt wurde: die Regel hängt am Plan, nicht am Zahltag.
+     */
+    private void finishAfterSave() {
+        if (bookedSchedule == null) {
+            finish();
+            return;
+        }
+        de.spahr.ausgaben.db.ScheduledTransaction st = bookedSchedule;
+        bookedSchedule = null;
+        repository.advanceScheduled(st, bookedScheduleDueMs, true, this::finish);
     }
 
     /**
@@ -1143,7 +1190,7 @@ public class BookingEditActivity extends LocalizedActivity {
                 repository.saveTransferBooking(from, to, cents, payee, note,
                 composeTimestamp(), fromPlace, toPlace, () -> {
                     Toast.makeText(this, R.string.transfer_saved, Toast.LENGTH_SHORT).show();
-                    finish();
+                    finishAfterSave();
                 })));
     }
 
@@ -1152,7 +1199,7 @@ public class BookingEditActivity extends LocalizedActivity {
         final String fp = place;
         Runnable done = () -> {
             Toast.makeText(this, R.string.booking_saved, Toast.LENGTH_SHORT).show();
-            finish();
+            finishAfterSave();
         };
         // Neue Buchung: Notiz = freier Text + aktuelle GPS-Position; Beleg nur, wenn neu angehängt.
         b.note = composeNoteForSave(true);

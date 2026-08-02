@@ -82,6 +82,27 @@ public class ScheduleProjectionTest {
     }
 
     @Test
+    public void nextDueIsOnePeriodAhead() {
+        assertEquals(ymd(2026, 9, 2), ScheduleProjection.nextDue(ymd(2026, 8, 2), 32, 1));   // monatlich
+        assertEquals(ymd(2026, 11, 2), ScheduleProjection.nextDue(ymd(2026, 8, 2), 32, 3));  // vierteljährlich
+        assertEquals(ymd(2027, 8, 2), ScheduleProjection.nextDue(ymd(2026, 8, 2), 16384, 1)); // jährlich
+        assertEquals(ymd(2026, 8, 9), ScheduleProjection.nextDue(ymd(2026, 8, 2), 4, 1));     // wöchentlich
+    }
+
+    @Test
+    public void nextDueMatchesProjection() {
+        long base = ymd(2026, 1, 31);
+        List<Long> occ = ScheduleProjection.occurrences(base, 32, 1, 0, base, plusDays(base, 200), 24);
+        assertEquals((long) occ.get(1), ScheduleProjection.nextDue(base, 32, 1));
+    }
+
+    @Test
+    public void nextDueIsZeroWithoutRepetition() {
+        assertEquals(0, ScheduleProjection.nextDue(ymd(2026, 6, 1), 1, 1));  // einmalig
+        assertEquals(0, ScheduleProjection.nextDue(0, 32, 1));               // kein Basisdatum
+    }
+
+    @Test
     public void onceOnlyWhenInWindow() {
         long base = ymd(2026, 6, 1);
         assertEquals(1, ScheduleProjection.occurrences(base, 1, 1, 0,

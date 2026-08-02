@@ -95,6 +95,10 @@
     <!-- Geplante Buchungen -->
     <string name="scheduled_title">Geplante Buchungen</string>
     <string name="scheduled_empty">Keine geplanten Buchungen. Sie werden aus der KMyMoney-Datei importiert.</string>
+    <string name="scheduled_skip_booking">Buchung überspringen</string>
+    <string name="scheduled_skip_confirm">%1$s „%2$s" überspringen? Es wird keine Buchung erzeugt; die Planung rückt auf den nächsten Termin.</string>
+    <string name="scheduled_skipped">Termin übersprungen</string>
+    <string name="scheduled_only_next">Nur der nächste Termin einer Planung lässt sich buchen oder überspringen.</string>
     <string name="sched_saldo_surplus">Überschuss</string>
     <string name="sched_saldo_deficit">Fehlbetrag</string>
     <string name="sched_saldo_income">Summe Einzahlungen</string>
@@ -473,6 +477,7 @@
     <string name="kmy_result_written">%1$d Buchung(en) in %2$s geschrieben</string>
     <string name="kmy_result_new_payees">, %1$d neue(r) Empfänger</string>
     <string name="kmy_result_deleted">, %1$d gelöscht</string>
+    <string name="kmy_result_scheduled">, %1$d geplante Buchung(en) weitergestellt</string>
     <string name="kmy_result_backup">Backup: %1$s</string>
     <string name="kmy_conflict">Die .kmy wurde zwischenzeitlich geändert (vermutlich am Rechner). Es wurde nichts geschrieben – bitte die Konten neu importieren und dann erneut exportieren.</string>
     <string name="kmy_skipped">%1$d übersprungen: %2$s</string>

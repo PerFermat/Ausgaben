@@ -339,6 +339,18 @@
                 android:layout_marginTop="16dp"
                 android:text="@string/new_booking" />
 
+            <!-- Nur bei „jetzt buchen" aus den geplanten Buchungen: Termin ohne Buchung überspringen. -->
+            <com.google.android.material.button.MaterialButton
+                android:id="@+id/btnSkipSchedule"
+                style="?attr/materialButtonOutlinedStyle"
+                android:layout_width="match_parent"
+                android:layout_height="wrap_content"
+                android:layout_marginTop="8dp"
+                android:textColor="@color/button_accent"
+                app:strokeColor="@color/button_accent"
+                android:text="@string/scheduled_skip_booking"
+                android:visibility="gone" />
+
             <com.google.android.material.button.MaterialButton
                 android:id="@+id/btnUpdate"
                 style="?attr/materialButtonOutlinedStyle"

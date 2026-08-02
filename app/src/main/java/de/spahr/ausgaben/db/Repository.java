@@ -38,6 +38,7 @@ public class Repository {
     private final ScheduledSplitDao scheduledSplitDao;
     private final AnalysisExtraDao analysisExtraDao;
     private final KmyPendingDeleteDao kmyPendingDeleteDao;
+    private final ScheduledAdvanceDao scheduledAdvanceDao;
     private final Context appContext;
     private final ExecutorService executor = Executors.newSingleThreadExecutor();
     private final Handler mainHandler = new Handler(Looper.getMainLooper());
@@ -64,6 +65,7 @@ public class Repository {
         this.scheduledSplitDao = db.scheduledSplitDao();
         this.analysisExtraDao = db.analysisExtraDao();
         this.kmyPendingDeleteDao = db.kmyPendingDeleteDao();
+        this.scheduledAdvanceDao = db.scheduledAdvanceDao();
         this.budgetRepo = new BudgetRepository(bookingDao, budgetDao, categoryTypeDao, executor, mainHandler);
         this.depotRepo = new DepotRepository(securityDao, appContext, executor, mainHandler);
         this.aliasResolver = new AliasResolver(bookingDao, correctionDao, accountDao, executor, mainHandler);
@@ -176,6 +178,67 @@ public class Repository {
         executor.execute(() -> {
             final List<ScheduledTransaction> result = scheduledTransactionDao.getAllByDue();
             mainHandler.post(() -> callback.onResult(result));
+        });
+    }
+
+    /** Geplante Buchungen samt der noch nicht übertragenen Vorrück-Vormerkungen. */
+    public static class ScheduledData {
+        public final List<ScheduledTransaction> transactions;
+        /** {@code kmy_id} → neue nächste Fälligkeit; {@code 0} = Regel ist abgearbeitet. */
+        public final java.util.Map<String, Long> advances;
+
+        ScheduledData(List<ScheduledTransaction> transactions, java.util.Map<String, Long> advances) {
+            this.transactions = transactions;
+            this.advances = advances;
+        }
+    }
+
+    /** Geplante Buchungen + Vormerkungen in einem Zug (für die Seite „Geplante Buchungen"). */
+    public void getScheduledTransactionsWithAdvances(final Callback<ScheduledData> callback) {
+        executor.execute(() -> {
+            final List<ScheduledTransaction> list = scheduledTransactionDao.getAllByDue();
+            final java.util.Map<String, Long> advances = new java.util.HashMap<>();
+            for (ScheduledAdvance a : scheduledAdvanceDao.getAll()) {
+                advances.put(a.kmyId, a.nextDueMs);
+            }
+            final ScheduledData result = new ScheduledData(list, advances);
+            mainHandler.post(() -> callback.onResult(result));
+        });
+    }
+
+    /**
+     * Merkt vor, dass der Termin {@code dueMs} einer geplanten Buchung erledigt ({@code executed}) oder
+     * übersprungen wurde: Die Regel rückt lokal um eine Periode weiter und wird beim nächsten kmy-Export
+     * auch in der Datei weitergestellt. Die Regel selbst bleibt in jedem Fall bestehen.
+     */
+    public void advanceScheduled(final ScheduledTransaction st, final long dueMs, final boolean executed,
+                                 final Runnable onDone) {
+        if (st == null || st.kmyId == null || st.kmyId.trim().isEmpty()) {
+            if (onDone != null) {
+                mainHandler.post(onDone);
+            }
+            return;
+        }
+        final long next = ScheduleProjection.nextDue(dueMs, st.occurrence, st.occurrenceMultiplier);
+        executor.execute(() -> {
+            ScheduledAdvance a = scheduledAdvanceDao.getByKmyId(st.kmyId);
+            long lastPayment = a == null ? 0 : a.lastPaymentMs;
+            if (executed) {
+                lastPayment = dueMs;
+            }
+            if (a == null) {
+                scheduledAdvanceDao.insert(new ScheduledAdvance(st.kmyId, dueMs, next, lastPayment,
+                        System.currentTimeMillis()));
+            } else {
+                a.fromDueMs = dueMs;
+                a.nextDueMs = next;
+                a.lastPaymentMs = lastPayment;
+                a.updatedAt = System.currentTimeMillis();
+                scheduledAdvanceDao.update(a);
+            }
+            if (onDone != null) {
+                mainHandler.post(onDone);
+            }
         });
     }
 
@@ -1541,6 +1604,16 @@ public class Repository {
     /** Liefert die Direktreferenz auf den KmyPendingDeleteDao – nur für Hintergrund-Aufgaben verwenden. */
     public KmyPendingDeleteDao kmyPendingDeleteDao() {
         return kmyPendingDeleteDao;
+    }
+
+    /** Liefert die Direktreferenz auf den ScheduledAdvanceDao – nur für Hintergrund-Aufgaben verwenden. */
+    public ScheduledAdvanceDao scheduledAdvanceDao() {
+        return scheduledAdvanceDao;
+    }
+
+    /** Liefert die Direktreferenz auf den ScheduledTransactionDao – nur für Hintergrund-Aufgaben. */
+    public ScheduledTransactionDao scheduledTransactionDao() {
+        return scheduledTransactionDao;
     }
 
     public ExecutorService executor() {

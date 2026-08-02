@@ -59,6 +59,24 @@ public final class ScheduleProjection {
         return res;
     }
 
+    /**
+     * Der auf {@code baseMs} folgende Fälligkeitstermin (eine Periode weiter) – zum Weiterstellen einer
+     * Regel nach „jetzt buchen"/„überspringen". Rechnet mit derselben Schrittweite wie
+     * {@link #occurrences}, damit Anzeige und Rückschreiben in die .kmy nie auseinanderlaufen.
+     *
+     * @return {@code 0}, wenn es keinen Folgetermin gibt (einmalige/unbekannte Wiederholung)
+     */
+    public static long nextDue(long baseMs, int occurrence, int multiplier) {
+        if (baseMs <= 0) {
+            return 0;
+        }
+        int[] step = stepFor(occurrence);
+        if (step == null) {
+            return 0;
+        }
+        return shift(baseMs, step[0], step[1] * (multiplier <= 0 ? 1 : multiplier));
+    }
+
     private static long shift(long baseMs, int field, int amount) {
         Calendar c = Calendar.getInstance();
         c.setTimeInMillis(baseMs);

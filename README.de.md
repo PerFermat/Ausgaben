@@ -80,6 +80,10 @@ Details, Screenshots und die genaue Bedienung stehen im **[Benutzerhandbuch](doc
   Löschen, eigene Rechentastatur im Betragsfeld.
 - **Auswertungen**: Verlaufsdiagramm je Konto/Ort/gesamt, Kategorien-Kreisdiagramm („Wofür geht mein
   Geld?“), Budget (Ist/Soll aus KMyMoney oder app-intern berechnet), geplante Buchungen als Vorschau.
+- **Geplante Buchungen**: aus KMyMoney importiert und in die einzelnen Termine aufgefaltet. Langer Druck auf
+  den nächsten Termin öffnet ihn vorbefüllt im Editor – dort speichern oder **„Buchung überspringen"**. So
+  oder so verschwindet der Termin aus der Liste und die KMyMoney-Regel wird beim nächsten `.kmy`-Export um
+  eine Periode weitergestellt (die Regel selbst bleibt erhalten, spätere Termine unverändert).
 - **Bestände & Depot**: mehrere Bargeld-**Orte** je Konto mit eigenem Bewegungsjournal und Kassensturz;
   Depot-Import mit vollständiger **Kurshistorie**, Käufen/Verkäufen/Dividenden, Gewinn/Verlust-Auswertung.
   Der Depotwert zählt wie ein Konto in **„Gesamt"** und in die Vermögensgrafik; im Verlauf zusätzlich als

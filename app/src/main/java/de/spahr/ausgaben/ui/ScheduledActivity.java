@@ -72,6 +72,8 @@ public class ScheduledActivity extends LocalizedActivity {
     private TextView importPercent;
 
     private List<ScheduledTransaction> all = new ArrayList<>();
+    /** {@code kmy_id} → bereits erledigte/übersprungene Termine: neue nächste Fälligkeit ({@code 0} = fertig). */
+    private java.util.Map<String, Long> advances = new java.util.HashMap<>();
 
     // Filter (0 gewählte Buchungsarten = alle).
     private boolean fIncome = true;
@@ -93,9 +95,12 @@ public class ScheduledActivity extends LocalizedActivity {
     private static final class Occurrence {
         final long dueMs;
         final ScheduledTransaction st;
-        Occurrence(long dueMs, ScheduledTransaction st) {
+        /** Der nächste offene Termin dieser Planung – nur er lässt sich buchen bzw. überspringen. */
+        final boolean next;
+        Occurrence(long dueMs, ScheduledTransaction st, boolean next) {
             this.dueMs = dueMs;
             this.st = st;
+            this.next = next;
         }
     }
 
@@ -156,8 +161,14 @@ public class ScheduledActivity extends LocalizedActivity {
     @Override
     protected void onResume() {
         super.onResume();
-        repository.getScheduledTransactions(list -> {
-            all = list;
+        reload();
+    }
+
+    /** Planungen + Vormerkungen laden und neu zeichnen. */
+    private void reload() {
+        repository.getScheduledTransactionsWithAdvances(data -> {
+            all = data.transactions;
+            advances = data.advances;
             render();
         });
     }
@@ -195,10 +206,7 @@ public class ScheduledActivity extends LocalizedActivity {
                 setImportProgress(getString(R.string.import_stage_saving),
                         de.spahr.ausgaben.export.ImportPhase.SAVE_FROM);
                 repository.applyScheduledTransactions(list, () -> {
-                    repository.getScheduledTransactions(loaded -> {
-                        all = loaded;
-                        render();
-                    });
+                    reload();
                     importDone();
                 });
             } catch (Exception e) {
@@ -305,6 +313,18 @@ public class ScheduledActivity extends LocalizedActivity {
                 || st.payee.toLowerCase(Locale.GERMANY).contains(needle);
     }
 
+    /**
+     * Nächste Fälligkeit unter Berücksichtigung bereits erledigter/übersprungener Termine, die noch nicht
+     * nach KMyMoney übertragen sind. {@code 0} = nichts (mehr) offen.
+     */
+    private long effectiveDue(ScheduledTransaction st) {
+        Long advanced = advances.get(st.kmyId);
+        if (advanced == null) {
+            return st.nextDueMs;
+        }
+        return advanced <= 0 ? 0 : Math.max(st.nextDueMs, advanced);
+    }
+
     private void render() {
         container.removeAllViews();
         long fromMs = windowFromMs();
@@ -315,10 +335,12 @@ public class ScheduledActivity extends LocalizedActivity {
         sumExpenseCents = 0;
         sumTransferCents = 0;
         for (ScheduledTransaction st : all) {
-            if (st.nextDueMs <= 0 || !kindSelected(st.kind) || !accountMatches(st) || !nameMatches(st)) {
+            // Erledigte/übersprungene Termine sind bereits weitergestellt (noch nicht in der .kmy).
+            long base = effectiveDue(st);
+            if (base <= 0 || !kindSelected(st.kind) || !accountMatches(st) || !nameMatches(st)) {
                 continue;
             }
-            for (long due : ScheduleProjection.occurrences(st.nextDueMs, st.occurrence,
+            for (long due : ScheduleProjection.occurrences(base, st.occurrence,
                     st.occurrenceMultiplier, st.endMs, fromMs, toMs, MAX_PER_SCHEDULE)) {
                 if (fDateFrom != null && due < fDateFrom) {
                     continue;
@@ -326,7 +348,7 @@ public class ScheduledActivity extends LocalizedActivity {
                 if (fDateTo != null && due > fDateTo) {
                     continue;
                 }
-                items.add(new Occurrence(due, st));
+                items.add(new Occurrence(due, st, due == base));
                 if (st.kind == ScheduledTransaction.KIND_INCOME) {
                     sumIncomeCents += st.amountCents;
                 } else if (st.kind == ScheduledTransaction.KIND_EXPENSE) {
@@ -463,10 +485,15 @@ public class ScheduledActivity extends LocalizedActivity {
             startActivity(i);
         });
         // Langer Druck → „jetzt buchen": Editor als NEUE Buchung vorbefüllt (wie in der Buchungsliste:
-        // kurzer Tipp = ansehen, langer Druck = handeln).
+        // kurzer Tipp = ansehen, langer Druck = handeln). Dort steht auch „Buchung überspringen".
+        // Beides stellt die KMyMoney-Regel eine Periode weiter und gilt deshalb nur für den nächsten Termin.
         row.setOnLongClickListener(v -> {
+            if (!o.next) {
+                Toast.makeText(this, R.string.scheduled_only_next, Toast.LENGTH_LONG).show();
+                return true;
+            }
             Intent i = new Intent(this, BookingEditActivity.class);
-            i.putExtra(BookingEditActivity.EXTRA_SCHEDULED_BOOK_ID, st.id);
+            i.putExtra(BookingEditActivity.EXTRA_SCHEDULED_BOOK_ID, o.st.id);
             i.putExtra(BookingEditActivity.EXTRA_SCHEDULED_DUE_MS, o.dueMs);
             startActivity(i);
             return true;

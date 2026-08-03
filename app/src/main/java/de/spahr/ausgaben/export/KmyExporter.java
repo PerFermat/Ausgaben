@@ -89,6 +89,7 @@ public class KmyExporter {
                 continue;
             }
 
+            String commodity = commodityOf(b.account);
             String payeeId = resolvePayee(b.payee, result, newPayeeIds, payeeFragments, nextPayee);
             long signedCents = b.isIncome ? b.amountCents : -b.amountCents;
             String memo = b.note == null ? "" : b.note;
@@ -96,12 +97,14 @@ public class KmyExporter {
             // Splitbuchung (≥2 Kategorien): Konto-Split + je Teil ein Kategorie-Split (Gegen-Vorzeichen).
             List<BookingSplit> parts = splitsMap.get(b.id);
             if (parts != null && parts.size() >= 2) {
-                List<String> splitXmls = buildSplitParts(b, assetId, payeeId, signedCents, memo, parts, result);
+                List<String> splitXmls = buildSplitParts(b, assetId, payeeId, signedCents, memo, parts,
+                        commodity, result);
                 if (splitXmls == null) {
                     continue; // eine Kategorie unbekannt → Buchung übersprungen (in result.skipped vermerkt)
                 }
                 String txId = String.format(Locale.US, "T%018d", nextTx[0]++);
-                txFragments.append(transactionElement(txId, dateFor(b.createdAt), today, memo, splitXmls));
+                txFragments.append(transactionElement(txId, dateFor(b.createdAt), today, memo, commodity,
+                        splitXmls));
                 result.writtenIds.add(b.id);
                 continue;
             }
@@ -116,6 +119,11 @@ public class KmyExporter {
                         + ctx.getString(de.spahr.ausgaben.R.string.skip_category_not_found, cat));
                     continue;
                 }
+                String clash = currencyClash(commodity, categoryId);
+                if (clash != null) {
+                    result.skipped.add(label(b) + ": " + clash);
+                    continue;
+                }
             }
             List<String> splitXmls = new ArrayList<>();
             splitXmls.add(split("S0001", assetId, payeeId, fraction(signedCents), esc(memo)));
@@ -123,18 +131,34 @@ public class KmyExporter {
                 splitXmls.add(split("S0002", categoryId, payeeId, fraction(-signedCents), esc(memo)));
             }
             String txId = String.format(Locale.US, "T%018d", nextTx[0]++);
-            txFragments.append(transactionElement(txId, dateFor(b.createdAt), today, memo, splitXmls));
+            txFragments.append(transactionElement(txId, dateFor(b.createdAt), today, memo, commodity,
+                    splitXmls));
             result.writtenIds.add(b.id);
         }
 
         String xml = doc.xml();
-        if (result.writtenIds.size() > 0) {
-            xml = insertBefore(xml, "</TRANSACTIONS>", txFragments.toString());
-            xml = bumpCount(xml, "TRANSACTIONS", result.writtenIds.size());
-        }
-        if (result.newPayees > 0) {
-            xml = insertBefore(xml, "</PAYEES>", payeeFragments.toString());
-            xml = bumpCount(xml, "PAYEES", result.newPayees);
+        int written = result.writtenIds.size();
+        if (written > 0 || result.newPayees > 0) {
+            String merged = xml;
+            if (result.newPayees > 0) {
+                merged = insertIntoBlock(merged, "PAYEES", payeeFragments.toString());
+                if (merged != null) {
+                    merged = bumpCount(merged, "PAYEES", result.newPayees);
+                }
+            }
+            if (merged != null && written > 0) {
+                String withTx = insertIntoBlock(merged, "TRANSACTIONS", txFragments.toString());
+                merged = withTx == null ? null : bumpCount(withTx, "TRANSACTIONS", written);
+            }
+            if (merged == null) {
+                // Ohne <PAYEES>- bzw. <TRANSACTIONS>-Block lieber gar nichts schreiben als eine Datei,
+                // deren count-Attribut Buchungen behauptet, die nirgends stehen.
+                result.writtenIds.clear();
+                result.newPayees = 0;
+                result.skipped.add(ctx.getString(de.spahr.ausgaben.R.string.err_kmy_read));
+            } else {
+                xml = merged;
+            }
         }
         xml = updateLastModified(xml, today);
         result.xml = xml;
@@ -189,7 +213,9 @@ public class KmyExporter {
 
         Pattern block = Pattern.compile("<TRANSACTION\\b.*?</TRANSACTION>", Pattern.DOTALL);
         Pattern postdateAttr = Pattern.compile("\\bpostdate=\"([^\"]*)\"");
-        Pattern splitTag = Pattern.compile("<SPLIT\\b[^>]*/>");
+        // Öffnendes Tag, mit und ohne „/": Splits können Kindelemente haben (<SPLIT …><TAG id=…/></SPLIT>).
+        // Mit dem alten Muster „<SPLIT …/>" blieben getaggte Buchungen unauffindbar und damit unlöschbar.
+        Pattern splitTag = Pattern.compile("<SPLIT\\b[^>]*>");
         Pattern accountAttr = Pattern.compile("\\baccount=\"([^\"]*)\"");
         Pattern valueAttr = Pattern.compile("\\bvalue=\"([^\"]*)\"");
 
@@ -340,13 +366,21 @@ public class KmyExporter {
                     fromAccount, toAccount, missing));
             return;
         }
+        String commodity = commodityOf(fromAccount);
+        String clash = currencyClash(commodity, toId);
+        if (clash != null) {
+            // Umbuchung über Währungsgrenzen: ohne Kurs nicht schreibbar
+            result.skipped.add(fromAccount + " → " + toAccount + ": " + clash);
+            return;
+        }
         String payeeId = resolvePayee(b.payee, result, newPayeeIds, payeeFragments, nextPayee);
         String memo = b.note == null ? "" : b.note;
         List<String> splitXmls = new ArrayList<>();
         splitXmls.add(split("S0001", fromId, payeeId, fraction(-b.amountCents), esc(memo)));
         splitXmls.add(split("S0002", toId, payeeId, fraction(b.amountCents), esc(memo)));
         String txId = String.format(Locale.US, "T%018d", nextTx[0]++);
-        txFragments.append(transactionElement(txId, dateFor(b.createdAt), today, memo, splitXmls));
+        txFragments.append(transactionElement(txId, dateFor(b.createdAt), today, memo, commodity,
+                splitXmls));
         result.writtenIds.add(b.id);
         if (!group.isEmpty()) {
             doneTransferGroups.add(group);
@@ -358,7 +392,8 @@ public class KmyExporter {
      * Kategorie-Split mit Gegen-Vorzeichen. Gibt {@code null} zurück, wenn eine Kategorie unbekannt ist.
      */
     private List<String> buildSplitParts(Booking b, String assetId, String payeeId, long signedCents,
-                                         String memo, List<BookingSplit> parts, Result result) {
+                                         String memo, List<BookingSplit> parts, String commodity,
+                                         Result result) {
         List<String> splitXmls = new ArrayList<>();
         splitXmls.add(split("S0001", assetId, payeeId, fraction(signedCents), esc(memo)));
         int idx = 2;
@@ -368,6 +403,11 @@ public class KmyExporter {
             if (categoryId == null) {
                 result.skipped.add(label(b) + ": "
                         + ctx.getString(de.spahr.ausgaben.R.string.skip_category_not_found, cat));
+                return null;
+            }
+            String clash = currencyClash(commodity, categoryId);
+            if (clash != null) {
+                result.skipped.add(label(b) + ": " + clash);
                 return null;
             }
             // App-Teilbetrag (in Gesamt-Einheiten) → Kategorie-Split mit Gegen-Vorzeichen zum Konto-Split.
@@ -398,15 +438,42 @@ public class KmyExporter {
         return existing;
     }
 
+    /**
+     * Währung, in der die Buchung geschrieben wird: die des Kontos aus der Datei, sonst die Basiswährung
+     * der Datei, sonst EUR. Ein hartes „EUR" hätte in jeder nicht-EUR-Datei jede Buchung falsch
+     * ausgezeichnet.
+     */
+    private String commodityOf(String accountName) {
+        String c = doc.currencyOfAccount(accountName);
+        if (c.isEmpty()) {
+            c = doc.baseCurrency();
+        }
+        return c.isEmpty() ? "EUR" : c;
+    }
+
+    /**
+     * Prüft, ob das Gegenkonto {@code accountId} in einer anderen Währung als {@code commodity} geführt
+     * wird. Dann bräuchte der Split einen Umrechnungskurs (KMyMoney: {@code price}/{@code shares}), den
+     * die App nicht kennt – Rückgabe ist die fertige Meldung für {@code result.skipped}, sonst
+     * {@code null}.
+     */
+    private String currencyClash(String commodity, String accountId) {
+        String other = doc.accountCurrencyOf(accountId);
+        if (other.isEmpty() || other.equalsIgnoreCase(commodity)) {
+            return null;
+        }
+        return ctx.getString(de.spahr.ausgaben.R.string.skip_currency_mismatch, commodity, other);
+    }
+
     private String transactionElement(String txId, String postdate, String entrydate, String memo,
-                                      List<String> splitXmls) {
+                                      String commodity, List<String> splitXmls) {
         String m = esc(memo);
         StringBuilder splits = new StringBuilder();
         for (String s : splitXmls) {
             splits.append(s);
         }
         return "<TRANSACTION postdate=\"" + postdate + "\" entrydate=\"" + entrydate + "\" memo=\"" + m
-                + "\" id=\"" + txId + "\" commodity=\"EUR\">"
+                + "\" id=\"" + txId + "\" commodity=\"" + esc(commodity) + "\">"
                 + "<SPLITS>"
                 + splits
                 + "</SPLITS>"
@@ -447,12 +514,28 @@ public class KmyExporter {
 
     // ---- String-Manipulation ----
 
-    private static String insertBefore(String xml, String closeTag, String fragment) {
-        int idx = xml.lastIndexOf(closeTag);
-        if (idx < 0) {
-            return xml;
+    /**
+     * Fügt {@code fragment} als letztes Kind in den Block {@code <TAG>…</TAG>} ein. Leere Blöcke schreibt
+     * KMyMoney selbstschließend ({@code <PAYEES/>} bzw. {@code <PAYEES count="0"/>}); die werden hier
+     * aufgeklappt. Ohne das gingen bei einer frischen Datei alle Buchungen lautlos verloren.
+     *
+     * @return das ergänzte XML oder {@code null}, wenn es den Block gar nicht gibt (dann darf auch das
+     *         count-Attribut nicht hochgezählt werden)
+     */
+    static String insertIntoBlock(String xml, String tag, String fragment) {
+        int idx = xml.lastIndexOf("</" + tag + ">");
+        if (idx >= 0) {
+            return xml.substring(0, idx) + fragment + xml.substring(idx);
         }
-        return xml.substring(0, idx) + fragment + xml.substring(idx);
+        Matcher m = Pattern.compile("<" + tag + "\\b[^>]*/>").matcher(xml);
+        if (!m.find()) {
+            return null;
+        }
+        String open = m.group();
+        // „<PAYEES count="0"/>" → „<PAYEES count="0">…</PAYEES>"
+        String opened = open.substring(0, open.length() - 2).trim() + ">";
+        return xml.substring(0, m.start()) + opened + fragment + "</" + tag + ">"
+                + xml.substring(m.end());
     }
 
     /** Erhöht das count-Attribut von {@code <TAG count="N" …>} um {@code delta}. */

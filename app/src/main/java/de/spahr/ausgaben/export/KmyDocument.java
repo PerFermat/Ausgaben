@@ -82,6 +82,8 @@ public class KmyDocument {
     private int maxPayeeNumber = 0;
     /** Anzahl der Buchungen laut {@code <TRANSACTIONS count="…">}; 0 = unbekannt. */
     private int transactionCount = 0;
+    /** Basiswährung der Datei aus {@code <PAIR key="kmm-baseCurrency">}; leer, wenn nicht angegeben. */
+    private String baseCurrency = "";
 
     private final android.content.Context ctx;
 
@@ -98,6 +100,11 @@ public class KmyDocument {
                        de.spahr.ausgaben.util.ProgressListener listener) throws IOException {
         this.ctx = de.spahr.ausgaben.i18n.LocaleManager.localizedContext(context);
         this.xml = gunzip(raw);
+        if (!looksLikeKmyXml(xml)) {
+            // Sonst liefe das hier in einen nichtssagenden XML-Parserfehler (bzw. gar keinen, weil der
+            // Parser einfach nichts findet). Typische Fälle: GPG-verschlüsselte .kmy und SQL-Ablagen.
+            throw new IOException(ctx.getString(de.spahr.ausgaben.R.string.err_kmy_not_xml));
+        }
         step(listener, 1);
         parseHeader();
         step(listener, 2);
@@ -118,6 +125,19 @@ public class KmyDocument {
         if (l != null) {
             l.onProgress(done, PREPARE_STEPS);
         }
+    }
+
+    /**
+     * Grobprüfung, ob {@code content} überhaupt eine KMyMoney-XML-Datei ist: irgendwo in den ersten
+     * Zeilen muss {@code <KMYMONEY-FILE} stehen. Vorher kommen je nach Version XML-Deklaration,
+     * DOCTYPE und Kommentare.
+     */
+    static boolean looksLikeKmyXml(String content) {
+        if (content == null) {
+            return false;
+        }
+        String head = content.length() > 4096 ? content.substring(0, 4096) : content;
+        return head.contains("<KMYMONEY-FILE");
     }
 
     /** Anzahl der Buchungen im Hauptbuch laut Datei-Kopf; {@code 0} = unbekannt. */
@@ -167,6 +187,11 @@ public class KmyDocument {
 
     public String accountId(String name) {
         return name == null ? null : assetNameToId.get(name.trim().toLowerCase(Locale.GERMANY));
+    }
+
+    /** Basiswährung der Datei (z. B. „USD") oder leer, wenn die Datei keine angibt. */
+    public String baseCurrency() {
+        return baseCurrency;
     }
 
     /** Währungskennzeichen des Kontos (z. B. „EUR") oder leer, wenn keins hinterlegt ist. */
@@ -330,6 +355,11 @@ public class KmyDocument {
                                     orEmpty(parser.getAttributeValue(null, "symbol")).trim(),
                                     orEmpty(parser.getAttributeValue(null, "trading-currency")).trim()});
                         }
+                    } else if ("PAIR".equals(tag) && baseCurrency.isEmpty()
+                            && "kmm-baseCurrency".equals(parser.getAttributeValue(null, "key"))) {
+                        // Steht im Datei-KEYVALUEPAIRS ganz am Ende; die Konto-Blöcke davor tragen
+                        // andere Schlüssel (kmm-id, OpeningBalanceAccount …).
+                        baseCurrency = orEmpty(parser.getAttributeValue(null, "value")).trim();
                     } else if ("PRICEPAIR".equals(tag)) {
                         curFrom = parser.getAttributeValue(null, "from");
                         curTo = parser.getAttributeValue(null, "to");
@@ -565,6 +595,25 @@ public class KmyDocument {
     }
 
     private void buildDerivedMaps() {
+        // Doppelte Namen kommen in echten Dateien vor („Ausgabe" in zwei Zweigen, „Girokonto" bei zwei
+        // Banken). Ohne Vorprüfung überschriebe der zweite Eintrag den ersten in den Name→id-Karten und
+        // der Export landete auf dem falschen Konto. Mehrdeutige Namen bekommen deshalb ihren Pfad.
+        Map<String, Integer> accountNameCount = new LinkedHashMap<>();
+        Map<String, Integer> categoryLeafCount = new LinkedHashMap<>();
+        for (Map.Entry<String, String> e : accountName.entrySet()) {
+            String id = e.getKey();
+            if (id.startsWith("AStd::")) {
+                continue;
+            }
+            int type = accountType.get(id) == null ? 0 : accountType.get(id);
+            String key = e.getValue().trim().toLowerCase(Locale.GERMANY);
+            if (type == TYPE_EXPENSE || type == TYPE_INCOME) {
+                count(categoryLeafCount, key);
+            } else if (type != TYPE_EQUITY && type != TYPE_STOCK) {
+                count(accountNameCount, key); // Konten und Depots teilen sich die Anzeigenamen
+            }
+        }
+
         for (Map.Entry<String, String> e : accountName.entrySet()) {
             String id = e.getKey();
             String name = e.getValue();
@@ -575,17 +624,49 @@ public class KmyDocument {
             if (type == TYPE_EXPENSE || type == TYPE_INCOME) {
                 String path = buildPath(id);
                 categoryToId.put(path.toLowerCase(Locale.GERMANY), id);
-                categoryToId.put(name.trim().toLowerCase(Locale.GERMANY), id); // Blatt-Fallback
+                String leaf = name.trim().toLowerCase(Locale.GERMANY);
+                if (one(categoryLeafCount, leaf)) {
+                    categoryToId.put(leaf, id); // Blatt-Fallback nur, wenn er eindeutig ist
+                }
                 categoryIdToPath.put(id, path);
                 categoryIncomeByPath.put(path, type == TYPE_INCOME);
             } else if (type == TYPE_INVESTMENT) {
-                depotAccounts.put(name, id); // Depot – eigener Import-Pfad (Wertpapiere)
+                String label = displayName(id, name, accountNameCount, depotAccounts);
+                depotAccounts.put(label, id); // Depot – eigener Import-Pfad (Wertpapiere)
             } else if (type != TYPE_EQUITY && type != TYPE_STOCK) {
                 // Wertpapier-Unterkonten (Typ 15) NICHT als wählbare Konten führen.
-                selectableAccounts.put(name, id);
-                assetNameToId.put(name.trim().toLowerCase(Locale.GERMANY), id);
+                String label = displayName(id, name, accountNameCount, selectableAccounts);
+                selectableAccounts.put(label, id);
+                assetNameToId.put(label.trim().toLowerCase(Locale.GERMANY), id);
             }
         }
+    }
+
+    /**
+     * Anzeigename eines Kontos: der schlichte Name, solange er in der Datei eindeutig ist, sonst der
+     * Pfad („Sparen:Ausgabe"). Sind auch die Pfade gleich (zwei Geschwister gleichen Namens), hängt die
+     * id an – Hauptsache, jedes Konto bleibt einzeln ansprechbar.
+     */
+    private String displayName(String id, String name, Map<String, Integer> nameCount,
+                               Map<String, String> taken) {
+        if (one(nameCount, name.trim().toLowerCase(Locale.GERMANY)) && !taken.containsKey(name)) {
+            return name;
+        }
+        String path = buildPath(id);
+        if (path.isEmpty()) {
+            path = name;
+        }
+        return taken.containsKey(path) ? path + " (" + id + ")" : path;
+    }
+
+    private static void count(Map<String, Integer> counts, String key) {
+        Integer n = counts.get(key);
+        counts.put(key, n == null ? 1 : n + 1);
+    }
+
+    private static boolean one(Map<String, Integer> counts, String key) {
+        Integer n = counts.get(key);
+        return n != null && n == 1;
     }
 
     /** Baut den Pfad „Haupt:Unter" durch Hochlaufen der parentaccount-Kette (ohne AStd::-Wurzel). */
@@ -606,14 +687,16 @@ public class KmyDocument {
 
     /** Höchste vorhandene Transaktions- und Payee-Nummer per Regex über das ganze Dokument. */
     private void scanMaxNumbers() {
-        Matcher tm = Pattern.compile("id=\"T(\\d+)\"").matcher(xml);
+        // Überlange Ziffernfolgen kommen in gültigen Dateien nicht vor, dürfen aber auch nicht den
+        // ganzen Import mit einer NumberFormatException abbrechen – solche Treffer werden übergangen.
+        Matcher tm = Pattern.compile("id=\"T(\\d{1,18})\"").matcher(xml);
         while (tm.find()) {
             long n = Long.parseLong(tm.group(1));
             if (n > maxTransactionNumber) {
                 maxTransactionNumber = n;
             }
         }
-        Matcher pm = Pattern.compile("id=\"P(\\d+)\"").matcher(xml);
+        Matcher pm = Pattern.compile("id=\"P(\\d{1,9})\"").matcher(xml);
         while (pm.find()) {
             int n = Integer.parseInt(pm.group(1));
             if (n > maxPayeeNumber) {

@@ -126,6 +126,12 @@ public class CsvImporter {
             b.exported = true;
             result.add(b);
         }
+        if (result.isEmpty()) {
+            // Aufbau passte oberflächlich (irgendein „:" in Zeile 1), aber keine einzige Zeile war eine
+            // Buchung – typisch für fremde CSV (Kontoauszug einer Bank, Berichts-Export). Ohne diese
+            // Meldung käme ein beruhigendes „0 Buchungen importiert" zurück.
+            throw new IllegalArgumentException(ctx.getString(R.string.err_csv_no_bookings));
+        }
         return result;
     }
 

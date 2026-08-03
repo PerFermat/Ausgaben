@@ -1,0 +1,6 @@
+Kontentyp:Girokonto,Kontoname:Sparkasse
+
+Datum;Zahlungsempfänger;Betrag;Konto/Kategorie;Notiz;Status
+06.12.2010;"Meisters";"-40,00";"Unterhaltung";"Kino";"R"
+07.12.2010;"Arbeitgeber";"1.250,00";"Einnahmen:Gehalt";"Dezember";"R"
+08.12.2010;"Bäcker";"-2,50";"Lebensmittel";"";""

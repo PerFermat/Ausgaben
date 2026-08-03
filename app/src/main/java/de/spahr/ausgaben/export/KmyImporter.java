@@ -304,6 +304,7 @@ public class KmyImporter {
             String postdate = null;
             String entrydate = null;
             String txMemo = "";
+            String txCommodity = "";
             List<String[]> splits = null;
             int seen = 0;
             while (event != XmlPullParser.END_DOCUMENT) {
@@ -315,13 +316,15 @@ public class KmyImporter {
                         postdate = parser.getAttributeValue(null, "postdate");
                         entrydate = parser.getAttributeValue(null, "entrydate");
                         txMemo = orEmpty(parser.getAttributeValue(null, "memo"));
+                        txCommodity = orEmpty(parser.getAttributeValue(null, "commodity")).trim();
                         splits = new ArrayList<>();
                     } else if (inLedger && "SPLIT".equals(tag) && splits != null) {
                         splits.add(new String[]{
                                 orEmpty(parser.getAttributeValue(null, "account")),
                                 orEmpty(parser.getAttributeValue(null, "value")),
                                 orEmpty(parser.getAttributeValue(null, "payee")),
-                                orEmpty(parser.getAttributeValue(null, "memo"))});
+                                orEmpty(parser.getAttributeValue(null, "memo")),
+                                orEmpty(parser.getAttributeValue(null, "shares"))});
                     }
                 } else if (event == XmlPullParser.END_TAG) {
                     String tag = parser.getName();
@@ -330,7 +333,7 @@ public class KmyImporter {
                     } else if (inLedger && "TRANSACTION".equals(tag)) {
                         for (java.util.Map.Entry<String, String> e : ids.entrySet()) {
                             Booking b = toBooking(e.getValue(), e.getKey(), postdate, entrydate, txMemo,
-                                    splits);
+                                    txCommodity, splits);
                             if (b != null) {
                                 out.get(e.getKey()).add(b);
                             }
@@ -367,7 +370,8 @@ public class KmyImporter {
             String postdate = null;
             String entrydate = null;
             String txMemo = "";
-            List<String[]> splits = null; // je Split: {account, value, payeeId, memo}
+            String txCommodity = "";
+            List<String[]> splits = null; // je Split: {account, value, payeeId, memo, shares}
             while (event != XmlPullParser.END_DOCUMENT) {
                 if (event == XmlPullParser.START_TAG) {
                     String tag = parser.getName();
@@ -377,20 +381,23 @@ public class KmyImporter {
                         postdate = parser.getAttributeValue(null, "postdate");
                         entrydate = parser.getAttributeValue(null, "entrydate");
                         txMemo = orEmpty(parser.getAttributeValue(null, "memo"));
+                        txCommodity = orEmpty(parser.getAttributeValue(null, "commodity")).trim();
                         splits = new ArrayList<>();
                     } else if (inLedger && "SPLIT".equals(tag) && splits != null) {
                         splits.add(new String[]{
                                 orEmpty(parser.getAttributeValue(null, "account")),
                                 orEmpty(parser.getAttributeValue(null, "value")),
                                 orEmpty(parser.getAttributeValue(null, "payee")),
-                                orEmpty(parser.getAttributeValue(null, "memo"))});
+                                orEmpty(parser.getAttributeValue(null, "memo")),
+                                orEmpty(parser.getAttributeValue(null, "shares"))});
                     }
                 } else if (event == XmlPullParser.END_TAG) {
                     String tag = parser.getName();
                     if ("TRANSACTIONS".equals(tag)) {
                         break; // Hauptbuch vollständig gelesen; <SCHEDULES> (geplante Buchungen) ignorieren
                     } else if (inLedger && "TRANSACTION".equals(tag)) {
-                        Booking b = toBooking(accountId, accountName, postdate, entrydate, txMemo, splits);
+                        Booking b = toBooking(accountId, accountName, postdate, entrydate, txMemo,
+                                txCommodity, splits);
                         if (b != null) {
                             out.add(b);
                         }
@@ -405,8 +412,26 @@ public class KmyImporter {
         return out;
     }
 
+    /**
+     * Betrag eines Splits in der Währung <b>seines</b> Kontos. KMyMoney führt {@code value} in der Währung
+     * der Transaktion ({@code commodity}) und {@code shares} in der des Kontos – bei einem Konto in
+     * Fremdwährung sind das zwei verschiedene Zahlen (value=-10123/1, shares=-218677/25). Für die App
+     * zählt, was auf dem Konto ankommt, also {@code shares}.
+     */
+    private long amountOf(String[] split, String commodity) {
+        if (doc.accountTypeOf(split[0]) == 15) {
+            return valueToCents(split[1]); // Wertpapierkonto: shares ist die Stückzahl, kein Geldbetrag
+        }
+        String own = doc.accountCurrencyOf(split[0]);
+        boolean foreign = !own.isEmpty() && !commodity.isEmpty() && !own.equalsIgnoreCase(commodity);
+        if (foreign && split.length > 4 && !split[4].isEmpty()) {
+            return valueToCents(split[4]);
+        }
+        return valueToCents(split[1]);
+    }
+
     private Booking toBooking(String accountId, String accountName, String postdate, String entrydate,
-                              String txMemo, List<String[]> splits) {
+                              String txMemo, String commodity, List<String[]> splits) {
         if (splits == null) {
             return null;
         }
@@ -421,7 +446,7 @@ public class KmyImporter {
             return null; // Buchung betrifft dieses Konto nicht
         }
 
-        long signedCents = valueToCents(own[1]);
+        long signedCents = amountOf(own, commodity);
         Booking b = new Booking();
         b.amountCents = Math.abs(signedCents);
         b.isIncome = signedCents > 0;
@@ -453,7 +478,7 @@ public class KmyImporter {
         // Wertpapier-Split mit Wert 0 und bleiben dadurch normale Einnahmen.
         String[] stockSplit = null;
         for (String[] s : nonCatCounters) {
-            if (doc.accountTypeOf(s[0]) == 15 && valueToCents(s[1]) != 0) {
+            if (doc.accountTypeOf(s[0]) == 15 && amountOf(s, commodity) != 0) {
                 stockSplit = s;
                 break;
             }
@@ -467,7 +492,7 @@ public class KmyImporter {
             // In der Umbuchung versteckte Ausgaben/Einnahmen (Gebühr/Steuer): separat sichern, damit sie in
             // den Kategorien-Auswertungen auftauchen, ohne die Umbuchung/Buchungsliste zu verändern.
             for (String[] cs : categorySplits) {
-                long catValue = valueToCents(cs[1]);   // Ausgabe-Kategorie in kMyMoney: > 0
+                long catValue = amountOf(cs, commodity);   // Ausgabe-Kategorie in kMyMoney: > 0
                 if (catValue == 0) {
                     continue;
                 }
@@ -496,7 +521,7 @@ public class KmyImporter {
         if (categorySplits.size() >= 2) {
             b.parts = new ArrayList<>();
             for (String[] cs : categorySplits) {
-                long catValue = valueToCents(cs[1]);
+                long catValue = amountOf(cs, commodity);
                 long partial = b.isIncome ? -catValue : catValue;
                 // Kategorietyp aus der (noch eindeutigen) kMyMoney-Konto-ID dieses Splits – Typ 12 =
                 // Einnahme, 13 = Ausgabe (categorySplits ist bereits auf 12/13 gefiltert).
@@ -589,6 +614,7 @@ public class KmyImporter {
             String postdate = null;
             String entrydate = null;
             String txMemo = "";
+            String txCommodity = "";
             List<String[]> splits = null;
             while (event != XmlPullParser.END_DOCUMENT) {
                 if (event == XmlPullParser.START_TAG) {
@@ -609,13 +635,15 @@ public class KmyImporter {
                         postdate = parser.getAttributeValue(null, "postdate");
                         entrydate = parser.getAttributeValue(null, "entrydate");
                         txMemo = orEmpty(parser.getAttributeValue(null, "memo"));
+                        txCommodity = orEmpty(parser.getAttributeValue(null, "commodity")).trim();
                         splits = new ArrayList<>();
                     } else if (inSchedules && "SPLIT".equals(tag) && splits != null) {
                         splits.add(new String[]{
                                 orEmpty(parser.getAttributeValue(null, "account")),
                                 orEmpty(parser.getAttributeValue(null, "value")),
                                 orEmpty(parser.getAttributeValue(null, "payee")),
-                                orEmpty(parser.getAttributeValue(null, "memo"))});
+                                orEmpty(parser.getAttributeValue(null, "memo")),
+                                orEmpty(parser.getAttributeValue(null, "shares"))});
                     }
                 } else if (event == XmlPullParser.END_TAG) {
                     String tag = parser.getName();
@@ -623,7 +651,7 @@ public class KmyImporter {
                         break; // Block vollständig
                     } else if (inSchedules && "SCHEDULED_TX".equals(tag)) {
                         ScheduledTransaction st = buildScheduled(schedId, schedName, schedEnd, schedOcc,
-                                schedMult, postdate, entrydate, txMemo, splits);
+                                schedMult, postdate, entrydate, txMemo, txCommodity, splits);
                         if (st != null) {
                             out.add(st);
                         }
@@ -646,7 +674,8 @@ public class KmyImporter {
      */
     private ScheduledTransaction buildScheduled(String schedId, String name, String endDate,
                                                 int occurrence, int occurrenceMultiplier, String postdate,
-                                                String entrydate, String txMemo, List<String[]> splits) {
+                                                String entrydate, String txMemo, String commodity,
+                                                List<String[]> splits) {
         if (splits == null || splits.isEmpty()) {
             return null;
         }
@@ -668,7 +697,7 @@ public class KmyImporter {
             return null; // kein Kontobezug
         }
         String primaryName = orEmpty(doc.accountNameById(primaryId)).trim();
-        Booking b = toBooking(primaryId, primaryName, postdate, entrydate, txMemo, splits);
+        Booking b = toBooking(primaryId, primaryName, postdate, entrydate, txMemo, commodity, splits);
         if (b == null) {
             return null;
         }

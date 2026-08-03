@@ -90,7 +90,9 @@ Details, Screenshots und die genaue Bedienung stehen im **[Benutzerhandbuch](doc
   eigene Sichten **„Gesamt ohne Depot"** und **„Depot"**.
 - **Synchronisierung**: Nextcloud/WebDAV/SMB, `.kmy`-Modus (direktes Schreiben/Lesen der KMyMoney-Datei
   inkl. Splits, Umbuchungen und Depot) oder CSV-Export; automatische Sicherung vor jedem Export, Schutz vor
-  gleichzeitigem Überschreiben.
+  gleichzeitigem Überschreiben. Der `.kmy`-Modus kommt auch mit fremden Dateien zurecht: frisch angelegte
+  Dateien ohne Buchungen, Konten in **Fremdwährung** (Beträge in der Kontowährung), Buchungen mit
+  Schlagwörtern und mehrfach vergebene Kontonamen (dann mit ihrem Pfad, z. B. „Bank B:Girokonto").
 - **Mehrsprachig**: Deutsch/Englisch eingebaut, weitere Sprachen per Übersetzungsdatei nachrüstbar (auch
   für die Uhr).
 - **Darstellung**: dunkles Design und app-weite **Schriftgröße** (Klein/Normal/Groß/Sehr groß) – wirkt

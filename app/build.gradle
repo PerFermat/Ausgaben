@@ -64,6 +64,15 @@ android {
     testOptions {
         // JVM-Unit-Tests reiner Logik (kein Android-Runtime); Android-Stubs liefern Defaults statt Fehler.
         unitTests.returnDefaultValues = true
+        // Die kmy-Tests laufen unter Robolectric und brauchen dafür echte Ressourcen (Fehlertexte).
+        unitTests.includeAndroidResources = true
+        // Ordner mit KMyMoney-Dateien für KmyCorpusTest durchreichen: ./gradlew … -Dkmy.corpus=/pfad
+        unitTests.all {
+            if (System.getProperty('kmy.corpus')) {
+                it.systemProperty 'kmy.corpus', System.getProperty('kmy.corpus')
+                it.outputs.upToDateWhen { false }
+            }
+        }
     }
 }
 
@@ -100,4 +109,8 @@ dependencies {
     fullImplementation 'com.google.android.gms:play-services-wearable:18.2.0'
 
     testImplementation 'junit:junit:4.13.2'
+    // Nur für Tests: KmyDocument/KmyImporter/KmyExporter brauchen android.util.Xml, TextUtils und einen
+    // Context. Robolectric stellt die auf der JVM bereit; im APK landet davon nichts.
+    testImplementation 'org.robolectric:robolectric:4.13'
+    testImplementation 'androidx.test:core:1.6.1'
 }

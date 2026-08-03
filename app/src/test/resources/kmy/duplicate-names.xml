@@ -1,0 +1,32 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!DOCTYPE KMYMONEY-FILE>
+<!-- Zweimal „Girokonto" (zwei Banken) und zweimal „Sonstiges" (unter Auto und unter Haus).
+     Solche Doppelnamen kommen in echten Dateien vor (KMyMoney verlangt nur je Elternknoten Eindeutigkeit). -->
+<KMYMONEY-FILE>
+  <FILEINFO>
+    <CREATION_DATE date="2026-01-01"/>
+    <LAST_MODIFIED_DATE date="2026-01-01"/>
+    <VERSION id="1"/>
+    <FIXVERSION id="11"/>
+  </FILEINFO>
+  <PAYEES/>
+  <ACCOUNTS count="8">
+    <ACCOUNT id="A000001" parentaccount="AStd::Asset" lastreconciled="" lastmodified="2026-01-01" institution="" opened="2026-01-01" number="" type="9" name="Bank A" description="" currency="EUR"/>
+    <ACCOUNT id="A000002" parentaccount="A000001" lastreconciled="" lastmodified="2026-01-01" institution="" opened="2026-01-01" number="" type="1" name="Girokonto" description="" currency="EUR"/>
+    <ACCOUNT id="A000003" parentaccount="AStd::Asset" lastreconciled="" lastmodified="2026-01-01" institution="" opened="2026-01-01" number="" type="9" name="Bank B" description="" currency="EUR"/>
+    <ACCOUNT id="A000004" parentaccount="A000003" lastreconciled="" lastmodified="2026-01-01" institution="" opened="2026-01-01" number="" type="1" name="Girokonto" description="" currency="EUR"/>
+    <ACCOUNT id="A000005" parentaccount="AStd::Expense" lastreconciled="" lastmodified="2026-01-01" institution="" opened="2026-01-01" number="" type="13" name="Auto" description="" currency="EUR"/>
+    <ACCOUNT id="A000006" parentaccount="A000005" lastreconciled="" lastmodified="2026-01-01" institution="" opened="2026-01-01" number="" type="13" name="Sonstiges" description="" currency="EUR"/>
+    <ACCOUNT id="A000007" parentaccount="AStd::Expense" lastreconciled="" lastmodified="2026-01-01" institution="" opened="2026-01-01" number="" type="13" name="Haus" description="" currency="EUR"/>
+    <ACCOUNT id="A000008" parentaccount="A000007" lastreconciled="" lastmodified="2026-01-01" institution="" opened="2026-01-01" number="" type="13" name="Sonstiges" description="" currency="EUR"/>
+  </ACCOUNTS>
+  <TRANSACTIONS count="0"/>
+  <SCHEDULES/>
+  <SECURITIES/>
+  <CURRENCIES/>
+  <PRICES/>
+  <BUDGETS/>
+  <KEYVALUEPAIRS>
+    <PAIR key="kmm-baseCurrency" value="EUR"/>
+  </KEYVALUEPAIRS>
+</KMYMONEY-FILE>

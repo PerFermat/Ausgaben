@@ -1,0 +1,35 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!DOCTYPE KMYMONEY-FILE>
+<!-- Basiswährung EUR, ein Konto in USD. Im USD-Konto-Split ist value (EUR) ≠ shares (USD);
+     die Zahlen stammen aus test-transactions-multi-currency.xml von KMyMoney. -->
+<KMYMONEY-FILE>
+  <FILEINFO>
+    <CREATION_DATE date="2026-01-01"/>
+    <LAST_MODIFIED_DATE date="2026-01-01"/>
+    <VERSION id="1"/>
+    <FIXVERSION id="11"/>
+  </FILEINFO>
+  <PAYEES/>
+  <ACCOUNTS count="4">
+    <ACCOUNT id="A000001" parentaccount="AStd::Asset" lastreconciled="" lastmodified="2026-01-01" institution="" opened="2026-01-01" number="" type="3" name="Kasse EUR" description="" currency="EUR"/>
+    <ACCOUNT id="A000002" parentaccount="AStd::Expense" lastreconciled="" lastmodified="2026-01-01" institution="" opened="2026-01-01" number="" type="13" name="Essen EUR" description="" currency="EUR"/>
+    <ACCOUNT id="A000005" parentaccount="AStd::Asset" lastreconciled="" lastmodified="2026-01-01" institution="" opened="2026-01-01" number="" type="1" name="Konto USD" description="" currency="USD"/>
+    <ACCOUNT id="A000006" parentaccount="AStd::Expense" lastreconciled="" lastmodified="2026-01-01" institution="" opened="2026-01-01" number="" type="13" name="Essen USD" description="" currency="USD"/>
+  </ACCOUNTS>
+  <TRANSACTIONS count="1">
+    <TRANSACTION id="T000000000000000001" postdate="2026-01-05" memo="" entrydate="2026-01-05" commodity="EUR">
+      <SPLITS>
+        <SPLIT id="S0001" payee="" reconciledate="" action="" reconcileflag="0" value="-10123/1" shares="-218677/25" price="253075/218677" memo="" account="A000005" number="" bankid=""/>
+        <SPLIT id="S0002" payee="" reconciledate="" action="" reconcileflag="0" value="10123/1" shares="10123/1" price="1/1" memo="" account="A000002" number="" bankid=""/>
+      </SPLITS>
+    </TRANSACTION>
+  </TRANSACTIONS>
+  <SCHEDULES/>
+  <SECURITIES/>
+  <CURRENCIES/>
+  <PRICES/>
+  <BUDGETS/>
+  <KEYVALUEPAIRS>
+    <PAIR key="kmm-baseCurrency" value="EUR"/>
+  </KEYVALUEPAIRS>
+</KMYMONEY-FILE>

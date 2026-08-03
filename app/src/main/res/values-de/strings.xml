@@ -523,15 +523,18 @@
 
     <!-- Import-/Export-Detailmeldungen -->
     <string name="err_kmy_read">KMyMoney-Datei konnte nicht gelesen werden</string>
+    <string name="err_kmy_not_xml">Das ist keine KMyMoney-XML-Datei. Verschlüsselte (GPG) Dateien und SQL-Ablagen werden nicht unterstützt.</string>
     <string name="err_target_not_writable">Zielordner nicht beschreibbar</string>
     <string name="err_file_create">Datei konnte nicht angelegt werden</string>
     <string name="err_no_write_access">Kein Schreibzugriff</string>
     <string name="err_csv_empty">Datei ist leer</string>
     <string name="err_csv_account_missing">Kontozeile nicht gefunden</string>
     <string name="err_csv_header_missing">Kopfzeile nicht gefunden</string>
+    <string name="err_csv_no_bookings">Keine Buchungen gefunden – ist das ein Ledger-Export aus KMyMoney oder Ausgaben?</string>
     <string name="skip_account_not_found">Konto nicht gefunden (%1$s)</string>
     <string name="skip_category_not_found">Kategorie nicht gefunden (%1$s)</string>
     <string name="skip_transfer_account_not_found">Umbuchung %1$s → %2$s: Konto nicht gefunden (%3$s)</string>
+    <string name="skip_currency_mismatch">Unterschiedliche Währungen (%1$s / %2$s) – Umrechnungskurs unbekannt</string>
     <string name="no_payee">(ohne Empfänger)</string>
 
     <!-- CSV-Export (Kopfzeile + Kontotyp-Marker) -->

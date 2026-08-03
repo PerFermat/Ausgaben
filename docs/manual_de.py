@@ -8,6 +8,7 @@ from reportlab.lib.styles import getSampleStyleSheet, ParagraphStyle
 from reportlab.lib.enums import TA_LEFT, TA_CENTER
 from reportlab.platypus import (SimpleDocTemplate, Paragraph, Spacer, PageBreak,
                                 Table, TableStyle, Image, KeepTogether)
+from reportlab.platypus.tableofcontents import TableOfContents
 from reportlab.pdfbase import pdfmetrics
 from reportlab.pdfbase.ttfonts import TTFont
 from reportlab.lib.utils import ImageReader
@@ -49,14 +50,25 @@ st_note    = S("n",  fontSize=9, leading=13, textColor=GREY)
 
 story = []
 _first_h1 = [True]
+
+# Überschriften bekommen einen unsichtbaren Anker (<a name=…/>), damit das Inhaltsverzeichnis
+# echte Sprungziele im PDF hat; das Attribut _toc meldet den Eintrag später an das Verzeichnis.
+_bm = [0]
+def _heading(t, style, level):
+    _bm[0] += 1
+    key = "sec%d" % _bm[0]
+    para = Paragraph('<a name="%s"/>%s' % (key, t), style)
+    para._toc = (level, t, key)
+    return para
+
 def h1(t):
     # Jedes Kapitel beginnt auf einer neuen Seite (keine verwaisten Überschriften am Seitenende).
     if _first_h1[0]:
         _first_h1[0] = False
     else:
         story.append(PageBreak())
-    story.append(Paragraph(t, st_h1))
-def h2(t): story.append(Paragraph(t, st_h2))
+    story.append(_heading(t, st_h1, 0))
+def h2(t): story.append(_heading(t, st_h2, 1))
 def p(t):  story.append(Paragraph(t, st_body))
 def bullets(items):
     for it in items:
@@ -126,6 +138,21 @@ def Paragraph(_t, *a, **k):
 # werden per Canvas in den dafür vorgesehenen gestrichelten Rahmen gezeichnet (siehe cover_page()
 # weiter unten). Seite 1 bleibt im Flowable-Sinn leer, direkt weiter zu Kapitel 1.
 COVER_PATH_DE = os.path.join(SHOTS, "Handbuch Titelseite-de.png")
+story.append(PageBreak())
+
+# ---------------------------------------------------------------- Inhaltsverzeichnis
+# Direkt hinter dem Titelblatt; die Einträge sind anklickbar (Sprung zum Kapitel), die
+# Seitenzahlen entstehen im zweiten Durchlauf von multiBuild.
+toc = TableOfContents()
+toc.levelStyles = [
+    S("toc0", fontName="DejaVu-Bold", fontSize=10.5, leading=15, textColor=GREEN,
+      spaceBefore=5, firstLineIndent=0, leftIndent=0, rightIndent=14),
+    S("toc1", fontSize=9.5, leading=12.5, textColor=colors.HexColor("#333333"),
+      firstLineIndent=0, leftIndent=16, rightIndent=14),
+]
+toc.dotsMinLevel = 0
+story.append(Paragraph("Inhalt", st_h1))
+story.append(toc)
 story.append(PageBreak())
 
 # ---------------------------------------------------------------- 1 Einführung
@@ -900,8 +927,28 @@ def _keep_headings_with_next(flowables):
     return out
 story = _keep_headings_with_next(story)
 
-doc = SimpleDocTemplate(OUT, pagesize=A4,
-                        leftMargin=2*cm, rightMargin=2*cm, topMargin=1.8*cm, bottomMargin=1.8*cm,
-                        title="Ausgaben – Benutzerhandbuch", author="Ausgaben")
-doc.build(story, onFirstPage=cover_page, onLaterPages=footer)
+class ManualDoc(SimpleDocTemplate):
+    """Meldet jede gesetzte Überschrift mit ihrer Seitenzahl an das Inhaltsverzeichnis."""
+
+    def beforeDocument(self):
+        self._seen_toc = set()   # je Durchlauf neu (multiBuild baut mehrfach)
+
+    def afterFlowable(self, flowable):
+        # h2-Überschriften stecken in einem KeepTogether (siehe _keep_headings_with_next).
+        entries = getattr(flowable, "_content", None) or [flowable]
+        for f in entries:
+            entry = getattr(f, "_toc", None)
+            if entry is None or entry[2] in self._seen_toc:
+                continue
+            self._seen_toc.add(entry[2])
+            level, text, key = entry
+            text = text.replace('«', '„').replace('»', '“')
+            self.notify("TOCEntry", (level, text, self.page, key))
+
+
+doc = ManualDoc(OUT, pagesize=A4,
+                leftMargin=2*cm, rightMargin=2*cm, topMargin=1.8*cm, bottomMargin=1.8*cm,
+                title="Ausgaben – Benutzerhandbuch", author="Ausgaben")
+# multiBuild: erster Durchlauf sammelt die Seitenzahlen, der zweite setzt sie ins Verzeichnis.
+doc.multiBuild(story, onFirstPage=cover_page, onLaterPages=footer)
 print("OK ->", OUT)

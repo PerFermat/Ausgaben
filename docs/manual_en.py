@@ -10,6 +10,7 @@ from reportlab.lib.styles import getSampleStyleSheet, ParagraphStyle
 from reportlab.lib.enums import TA_LEFT, TA_CENTER
 from reportlab.platypus import (SimpleDocTemplate, Paragraph, Spacer, PageBreak,
                                 Table, TableStyle, Image, KeepTogether)
+from reportlab.platypus.tableofcontents import TableOfContents
 from reportlab.pdfbase import pdfmetrics
 from reportlab.pdfbase.ttfonts import TTFont
 from reportlab.lib.utils import ImageReader
@@ -49,13 +50,24 @@ st_note   = S("n",  fontSize=9, leading=13, textColor=GREY)
 
 story = []
 _first_h1 = [True]
+
+# Headings get an invisible anchor (<a name=…/>) so the table of contents can link to them;
+# the _toc attribute is what reports the entry to the contents page later on.
+_bm = [0]
+def _heading(t, style, level):
+    _bm[0] += 1
+    key = "sec%d" % _bm[0]
+    para = Paragraph('<a name="%s"/>%s' % (key, t), style)
+    para._toc = (level, t, key)
+    return para
+
 def h1(t):
     if _first_h1[0]:
         _first_h1[0] = False
     else:
         story.append(PageBreak())
-    story.append(Paragraph(t, st_h1))
-def h2(t): story.append(Paragraph(t, st_h2))
+    story.append(_heading(t, st_h1, 0))
+def h2(t): story.append(_heading(t, st_h2, 1))
 def p(t):  story.append(Paragraph(t, st_body))
 def bullets(items):
     for it in items:
@@ -121,6 +133,21 @@ def Paragraph(_t, *a, **k):
 # version/date are drawn onto the dashed placeholder box (see cover_page() further below). Page 1
 # stays empty as far as flowables go, then straight on to chapter 1.
 COVER_PATH_EN = os.path.join(SHOTS, "Handbuch Titelseite-eng.png")
+story.append(PageBreak())
+
+# ---------------------------------------------------------------- Table of contents
+# Right after the cover; entries are clickable (jump to the chapter), the page numbers are
+# filled in by the second pass of multiBuild.
+toc = TableOfContents()
+toc.levelStyles = [
+    S("toc0", fontName="DejaVu-Bold", fontSize=10.5, leading=15, textColor=GREEN,
+      spaceBefore=5, firstLineIndent=0, leftIndent=0, rightIndent=14),
+    S("toc1", fontSize=9.5, leading=12.5, textColor=colors.HexColor("#333333"),
+      firstLineIndent=0, leftIndent=16, rightIndent=14),
+]
+toc.dotsMinLevel = 0
+story.append(Paragraph("Contents", st_h1))
+story.append(toc)
 story.append(PageBreak())
 
 # ---------------------------------------------------------------- 1
@@ -843,8 +870,28 @@ def _keep_headings_with_next(flowables):
     return out
 story = _keep_headings_with_next(story)
 
-doc = SimpleDocTemplate(OUT, pagesize=A4, leftMargin=2*cm, rightMargin=2*cm,
-                        topMargin=1.8*cm, bottomMargin=1.8*cm,
-                        title="Ausgaben – User Manual", author="Ausgaben")
-doc.build(story, onFirstPage=cover_page, onLaterPages=footer)
+class ManualDoc(SimpleDocTemplate):
+    """Reports every heading, with its page number, to the table of contents."""
+
+    def beforeDocument(self):
+        self._seen_toc = set()   # fresh for every pass (multiBuild builds more than once)
+
+    def afterFlowable(self, flowable):
+        # h2 headings sit inside a KeepTogether (see _keep_headings_with_next).
+        entries = getattr(flowable, "_content", None) or [flowable]
+        for f in entries:
+            entry = getattr(f, "_toc", None)
+            if entry is None or entry[2] in self._seen_toc:
+                continue
+            self._seen_toc.add(entry[2])
+            level, text, key = entry
+            text = text.replace('\u00ab', '\u201c').replace('\u00bb', '\u201d')
+            self.notify("TOCEntry", (level, text, self.page, key))
+
+
+doc = ManualDoc(OUT, pagesize=A4, leftMargin=2*cm, rightMargin=2*cm,
+                topMargin=1.8*cm, bottomMargin=1.8*cm,
+                title="Ausgaben – User Manual", author="Ausgaben")
+# multiBuild: the first pass collects the page numbers, the second one fills them in.
+doc.multiBuild(story, onFirstPage=cover_page, onLaterPages=footer)
 print("OK ->", OUT)

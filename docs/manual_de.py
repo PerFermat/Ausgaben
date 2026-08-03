@@ -471,9 +471,17 @@ bullets([
   "<b>Jetzt buchen</b>: Ein <b>langer Druck</b> auf eine Zeile öffnet den Buchungs-Editor als <b>neue "
   "Buchung</b>, vorbefüllt aus der Planung (Datum = Fälligkeit, Betrag, Empfänger, Konto, Kategorien bzw. "
   "Von/Nach). Sie prüfen, ändern bei Bedarf und speichern mit «Neue Buchung» – die Buchung landet im Konto "
-  "und (bei gewähltem Ort) in den Beständen. Die Planung selbst bleibt unberührt; sie stammt aus KMyMoney "
-  "und wird von der App nicht zurückgeschrieben. Kurzer Tipp = ansehen, langer Druck = buchen – wie in der "
+  "und (bei gewähltem Ort) in den Beständen. Kurzer Tipp = ansehen, langer Druck = buchen – wie in der "
   "Buchungsliste.",
+  "<b>Buchung überspringen</b>: Im vorbefüllten Editor steht zusätzlich der Knopf <b>«Buchung "
+  "überspringen»</b> (mit Rückfrage) – es entsteht <b>keine</b> Buchung, der Termin gilt trotzdem als "
+  "erledigt.",
+  "<b>Die Planung rückt weiter.</b> Ob gebucht oder übersprungen: Der Termin verschwindet sofort aus der "
+  "Liste, und beim <b>nächsten .kmy-Export</b> wird die Regel in KMyMoney um <b>eine Periode</b> "
+  "weitergestellt (bei einer tatsächlichen Buchung zusätzlich das Datum der letzten Zahlung). Die Regel "
+  "selbst – Betrag, Rhythmus, Splits, Startdatum – bleibt unverändert, spätere Termine ebenso. Hat "
+  "KMyMoney die Regel inzwischen selbst weitergestellt, <b>gewinnt die Datei</b>: die App schreibt dann "
+  "nichts und verwirft ihre Vormerkung. Bricht man den Editor ab, bleibt die Planung stehen.",
 ])
 h2("Erinnerung an fällige Buchungen")
 p("Auf Wunsch meldet sich die App einmal täglich, wenn <b>heute</b> etwas fällig ist («3 geplante Buchungen "

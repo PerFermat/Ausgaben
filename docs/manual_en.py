@@ -446,8 +446,15 @@ bullets([
   "<b>Book now</b>: a <b>long press</b> on a row opens the booking editor as a <b>new booking</b>, prefilled "
   "from the schedule (date = due date, amount, payee, account, categories resp. from/to). Check it, adjust "
   "if needed and save with «New booking» – it lands in the account and (with a place chosen) in the "
-  "holdings. The schedule itself is untouched; it comes from KMyMoney and is never written back by the app. "
-  "Tap = view, long press = book – just like in the booking list.",
+  "holdings. Tap = view, long press = book – just like in the booking list.",
+  "<b>Skip booking</b>: the prefilled editor also offers a <b>«Skip booking»</b> button (with a "
+  "confirmation) – <b>no</b> transaction is created, but the date still counts as done.",
+  "<b>The schedule moves on.</b> Booked or skipped, the date disappears from the list right away, and on "
+  "the <b>next .kmy export</b> the KMyMoney schedule is moved on by <b>one period</b> (for an actual "
+  "booking the date of the last payment is written as well). The schedule itself – amount, rhythm, splits, "
+  "start date – stays unchanged, and so do later dates. If KMyMoney has meanwhile moved the schedule on "
+  "itself, <b>the file wins</b>: the app writes nothing and drops its pending change. Cancelling the "
+  "editor leaves the schedule as it is.",
 ])
 h2("Reminder for due transactions")
 p("If you want, the app reports once a day when something is due <b>today</b> («3 scheduled transactions due "

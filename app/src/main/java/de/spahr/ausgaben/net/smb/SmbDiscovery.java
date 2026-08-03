@@ -35,18 +35,25 @@ import java.util.concurrent.TimeUnit;
 public final class SmbDiscovery {
 
     /**
-     * Ein gefundener Server: Anzeigename (kann gleich dem Host sein), Host/IP zum Verbinden und – sofern
-     * der Server ihn per NetBIOS nennt – seine Arbeitsgruppe bzw. Domäne (sonst leer).
+     * Ein gefundener Server: Anzeigename (kann gleich dem Host sein), Host/IP zum Verbinden, – sofern
+     * der Server sie per NetBIOS nennt – seine Arbeitsgruppe bzw. Domäne (sonst leer) und der Port,
+     * falls er per mDNS einen anderen als 445 meldet ({@code 0} = Standardport).
      */
     public static final class Server {
         public final String name;
         public final String host;
         public final String workgroup;
+        public final int port;
 
         public Server(String name, String host, String workgroup) {
+            this(name, host, workgroup, 0);
+        }
+
+        public Server(String name, String host, String workgroup, int port) {
             this.name = name;
             this.host = host;
             this.workgroup = workgroup == null ? "" : workgroup;
+            this.port = port;
         }
     }
 
@@ -65,6 +72,8 @@ public final class SmbDiscovery {
     private final Handler main = new Handler(Looper.getMainLooper());
     private final Map<String, String> found = new ConcurrentHashMap<>();
     private final Map<String, String> workgroups = new ConcurrentHashMap<>();
+    /** Nur Hosts, die per mDNS einen anderen Port als 445 melden. */
+    private final Map<String, Integer> ports = new ConcurrentHashMap<>();
     private final Context context;
     private volatile boolean cancelled;
     private ExecutorService pool;
@@ -80,6 +89,7 @@ public final class SmbDiscovery {
         cancelled = false;
         found.clear();
         workgroups.clear();
+        ports.clear();
         pool = Executors.newFixedThreadPool(48);
         startMdns(listener);
         new Thread(() -> {
@@ -117,12 +127,16 @@ public final class SmbDiscovery {
         }
     }
 
-    /**
-     * Meldet einen Treffer. Ein echter Name gewinnt gegen einen zuvor gemeldeten reinen IP-Namen, und eine
-     * nachgereichte Arbeitsgruppe ergänzt einen schon gemeldeten Server – gemeldet wird nur, wenn dabei
-     * wirklich etwas Neues dazukommt.
-     */
     private void publish(Listener listener, String host, String name, String workgroup) {
+        publish(listener, host, name, workgroup, 0);
+    }
+
+    /**
+     * Meldet einen Treffer. Ein echter Name gewinnt gegen einen zuvor gemeldeten reinen IP-Namen; eine
+     * nachgereichte Arbeitsgruppe oder ein abweichender Port ergänzen einen schon gemeldeten Server –
+     * gemeldet wird nur, wenn dabei wirklich etwas Neues dazukommt.
+     */
+    private void publish(Listener listener, String host, String name, String workgroup, int port) {
         if (cancelled || host == null || host.isEmpty()) {
             return;
         }
@@ -130,9 +144,11 @@ public final class SmbDiscovery {
         String wg = workgroup == null ? "" : workgroup.trim();
         String knownName = found.get(host);
         String knownWg = workgroups.containsKey(host) ? workgroups.get(host) : "";
+        int knownPort = ports.containsKey(host) ? ports.get(host) : 0;
         boolean betterName = knownName == null || (knownName.equals(host) && !label.equals(host));
         boolean betterGroup = !wg.isEmpty() && !wg.equals(knownWg);
-        if (!betterName && !betterGroup) {
+        boolean betterPort = port > 0 && port != SMB_PORT && port != knownPort;
+        if (!betterName && !betterGroup && !betterPort) {
             return;
         }
         if (betterName) {
@@ -145,9 +161,15 @@ public final class SmbDiscovery {
         } else {
             wg = knownWg;
         }
+        if (betterPort) {
+            ports.put(host, port);
+        } else {
+            port = knownPort;
+        }
         final String outName = label;
         final String outGroup = wg;
-        main.post(() -> listener.onServer(new Server(outName, host, outGroup)));
+        final int outPort = port;
+        main.post(() -> listener.onServer(new Server(outName, host, outGroup, outPort)));
     }
 
     // ------------------------------------------------------------------ mDNS
@@ -202,7 +224,9 @@ public final class SmbDiscovery {
                     InetAddress addr = resolved.getHost();
                     if (addr != null) {
                         // Bonjour nennt keine Arbeitsgruppe – die liefert bei Bedarf NetBIOS nach.
-                        publish(listener, addr.getHostAddress(), resolved.getServiceName(), "");
+                        // Den Port dagegen kennt nur mDNS; er zählt, wenn der Server nicht auf 445 hört.
+                        publish(listener, addr.getHostAddress(), resolved.getServiceName(), "",
+                                resolved.getPort());
                     }
                 }
             });

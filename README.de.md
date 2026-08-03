@@ -157,7 +157,9 @@ lokal in einen selbst gewählten Ordner exportiert.
 - **SMB/Samba**: **Einrichtungsassistent** – die App sucht die SMB-Server im lokalen Netz (mDNS,
   NetBIOS und Port 445), danach anmelden, aus den gefundenen **Freigaben** wählen und den Zielordner
   durchklicken; gespeichert wird daraus `smb://Host/Freigabe/Ordner`. Leerer Benutzer = Gast, Domäne als
-  `DOMÄNE\Benutzer`, SMB2/3. Über „Server manuell eingeben" bleibt die Adresseingabe von Hand möglich.
+  `DOMÄNE\Benutzer`, SMB2/3. Lauscht der Server nicht auf dem Standardport 445, trägt man den Port im
+  Assistenten ein bzw. schreibt ihn in die Adresse (`smb://Host:7777/Freigabe`).
+  Über „Server manuell eingeben" bleibt die Adresseingabe von Hand möglich.
 
 ## Lizenz
 

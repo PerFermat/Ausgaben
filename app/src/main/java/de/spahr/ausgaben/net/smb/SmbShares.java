@@ -58,9 +58,15 @@ public final class SmbShares {
      * erreichbar ist, die Anmeldung scheitert oder der RPC-Dienst die Auskunft verweigert.
      */
     public static List<String> list(String host, String user, String password) throws IOException {
+        return list(host, 0, user, password);
+    }
+
+    /** Wie {@link #list(String, String, String)}, aber mit eigenem Port ({@code 0} = Standard 445). */
+    public static List<String> list(String host, int port, String user, String password)
+            throws IOException {
         SMBClient client = SmbSessions.quickClient();
-        try (Connection connection = client.connect(host)) {
-            Session session = connection.authenticate(SmbSessions.authFor(user, password));
+        try (Connection connection = SmbSessions.connect(client, host, port)) {
+            Session session = SmbSessions.authenticate(connection, user, password);
             try (PipeShare ipc = (PipeShare) session.connectShare("IPC$")) {
                 NamedPipe pipe = ipc.open("srvsvc", SMB2ImpersonationLevel.Impersonation,
                         EnumSet.of(AccessMask.GENERIC_READ, AccessMask.GENERIC_WRITE), null,

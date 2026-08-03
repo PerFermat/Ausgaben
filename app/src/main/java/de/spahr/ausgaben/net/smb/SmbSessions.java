@@ -4,7 +4,10 @@ import com.hierynomus.security.bc.BCSecurityProvider;
 import com.hierynomus.smbj.SMBClient;
 import com.hierynomus.smbj.SmbConfig;
 import com.hierynomus.smbj.auth.AuthenticationContext;
+import com.hierynomus.smbj.connection.Connection;
+import com.hierynomus.smbj.session.Session;
 
+import java.io.IOException;
 import java.util.concurrent.TimeUnit;
 
 /**
@@ -35,6 +38,36 @@ public final class SmbSessions {
                 .withSoTimeout(12, TimeUnit.SECONDS)
                 .build();
         return new SMBClient(config);
+    }
+
+    /**
+     * Verbindung zum Server; {@code port} kleiner 1 bedeutet den SMB-Standardport 445. Lauscht der
+     * Server woanders, steht die Portnummer in der Adresse ({@code smb://Host:Port/Freigabe}).
+     */
+    public static Connection connect(SMBClient client, String host, int port) throws IOException {
+        return port > 0 ? client.connect(host, port) : client.connect(host);
+    }
+
+    /**
+     * Meldet sich an und deckt dabei den stillen Gast-Rückfall auf: Samba mit
+     * {@code map to guest = bad password} nimmt ein falsches Passwort an und stuft die Sitzung auf
+     * <em>Gast</em> herunter. Die Anmeldung „gelingt" dann, das Auflisten der Freigaben auch – erst der
+     * Dateizugriff scheitert mit einem nichtssagenden {@code STATUS_ACCESS_DENIED}. Wer einen Benutzer
+     * angegeben hat, will kein Gast sein; deshalb hier abbrechen.
+     */
+    public static Session authenticate(Connection connection, String user, String password)
+            throws IOException {
+        Session session = connection.authenticate(authFor(user, password));
+        if (user != null && !user.trim().isEmpty() && session.isGuest()) {
+            try {
+                session.close();
+            } catch (Exception ignored) {
+                // Die Sitzung ist ohnehin unbrauchbar.
+            }
+            throw new IOException("STATUS_LOGON_FAILURE: Der Server hat die Anmeldung als Gast"
+                    + " behandelt – Benutzername oder Passwort stimmen nicht.");
+        }
+        return session;
     }
 
     /** Anmeldekontext: leerer Benutzer → Gast, sonst Benutzer/Passwort mit optionaler Domäne. */

@@ -391,7 +391,7 @@
     <string name="server_type_smb">SMB/Samba</string>
     <string name="nextcloud_url_hint">Basis-URL (Nextcloud: https://cloud.example.com – WebDAV: vollständige DAV-URL)</string>
     <string name="nextcloud_user_hint">Benutzername</string>
-    <string name="smb_url_hint">SMB-Freigabe (smb://Host/Freigabe)</string>
+    <string name="smb_url_hint">SMB-Freigabe (smb://Host[:Port]/Freigabe)</string>
     <string name="smb_user_hint">Benutzer (optional, leer = Gast; Domäne als DOMÄNE\\Benutzer)</string>
     <string name="smb_password_hint">Passwort</string>
     <!-- Assistent für die SMB-Einrichtung -->
@@ -407,11 +407,13 @@
     <string name="smb_shares_loading">Freigaben werden gesucht…</string>
     <string name="smb_shares_none">Für diesen Benutzer wurden keine Freigaben gefunden.</string>
     <string name="smb_share_manual">Freigabename</string>
+    <string name="smb_port_hint">Port (optional, Standard 445)</string>
     <string name="smb_setup_again">Neu einrichten</string>
     <string name="smb_saved">SMB-Verbindung gespeichert: %1$s</string>
     <string name="smb_err_unreachable">Server nicht erreichbar.</string>
     <string name="smb_err_credentials">Benutzername oder Passwort sind ungültig.</string>
     <string name="smb_err_share">Die ausgewählte Freigabe ist nicht verfügbar.</string>
+    <string name="smb_err_port">Der Port muss eine Zahl zwischen 1 und 65535 sein.</string>
     <string name="smb_err_folder_denied">Zugriff auf den Ordner wurde verweigert.</string>
     <string name="conn_test">Verbindung testen</string>
     <string name="conn_testing">Verbindung wird getestet…</string>

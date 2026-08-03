@@ -718,15 +718,19 @@ bullets([
   "a NetBIOS name query and a connection test on the SMB port). Each hit is listed with its display name "
   "and the IP address below it – plus its <b>workgroup</b> if the server reports one. <b>«Search "
   "again»</b> restarts the scan; the servers found last time are remembered and shown right away.",
-  "<b>2. Log in</b>: username and password of the server. <b>An empty user means guest.</b> If the server "
+  "<b>2. Log in</b>: username and password of the server, with a <b>«Port»</b> field above them – leave it "
+  "empty as long as the server listens on the usual SMB port 445. If it announces a different port over "
+  "Bonjour, that port is already filled in. <b>An empty user means guest.</b> If the server "
   "belongs to a workgroup other than «WORKGROUP», the field is pre-filled with «WORKGROUP\\». The "
   "password is stored encrypted and never shown in clear text.",
   "<b>3. Pick the share</b>: after logging in the app reads the server's <b>shares</b> and offers them for "
   "selection (system shares such as IPC$ are hidden). Clicking one fills the <b>«Share name»</b> field; you "
   "can also type it there if the server refuses to list them.",
-  "<b>4. Save</b>: this becomes the address «smb://host/share». The <b>target folder</b> inside the share is "
+  "<b>4. Save</b>: this becomes the address «smb://host/share» – with a different port "
+  "«smb://host:7777/share». The <b>target folder</b> inside the share is "
   "then chosen as usual with the «Browse folder» resp. «Choose .kmy» buttons.",
-  "<b>«Enter server manually»</b> brings back the classic fields (type «smb://host/share» yourself). "
+  "<b>«Enter server manually»</b> brings back the classic fields (type «smb://host/share» resp. "
+  "«smb://host:port/share» yourself). "
   "<b>«Search for servers on the network»</b> returns to the wizard at any time.",
 ])
 p("<b>Workgroup or Windows domain:</b> at home the workgroup is usually called «WORKGROUP» – it plays no "
@@ -735,7 +739,8 @@ p("<b>Workgroup or Windows domain:</b> at home the workgroup is usually called �
   "«user@domain.local»). Without the domain the login may fail with «Username or password is invalid» even "
   "though the password is correct. For a Windows PC with a local account, «COMPUTERNAME\\user» helps.")
 p("If something fails, the wizard names the reason: «Server not reachable», «Username or password is "
-  "invalid», «The selected share is not available» or «Access to the folder was denied».")
+  "invalid», «The selected share is not available» or «Access to the folder was denied». If the port field "
+  "does not hold a number between 1 and 65535, it says so right away without trying to connect.")
 h2("Export mode")
 bullets([
   "<b>.kmy mode</b>: writes new bookings straight into the KMyMoney file (including splits and transfers) "

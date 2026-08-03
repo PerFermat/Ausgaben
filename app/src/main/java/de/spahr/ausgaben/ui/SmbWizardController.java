@@ -55,6 +55,7 @@ public class SmbWizardController {
     private final RadioGroup serverList;
     private final RadioGroup shareList;
     private final TextInputEditText editShare;
+    private final TextInputEditText editPort;
     private final TextInputEditText editUser;
     private final TextInputEditText editPassword;
     private final TextView loginTitle;
@@ -68,6 +69,10 @@ public class SmbWizardController {
     private final List<SmbDiscovery.Server> servers = new ArrayList<>();
     private String selectedHost = "";
     private String selectedName = "";
+    /** Port des gewählten Servers; 0 bedeutet den Standardport 445. */
+    private int selectedPort;
+    /** Zuletzt selbst ins Portfeld geschriebener Wert – nur der darf wieder ersetzt werden. */
+    private int prefilledPort;
     private String selectedWorkgroup = "";
     private String selectedShare = "";
     private boolean started;
@@ -90,6 +95,7 @@ public class SmbWizardController {
         serverList = root.findViewById(R.id.smbServerList);
         shareList = root.findViewById(R.id.smbShareList);
         editShare = root.findViewById(R.id.smbEditShare);
+        editPort = root.findViewById(R.id.smbEditPort);
         editUser = root.findViewById(R.id.smbEditUser);
         editPassword = root.findViewById(R.id.smbEditPassword);
         loginTitle = root.findViewById(R.id.smbLoginTitle);
@@ -173,7 +179,8 @@ public class SmbWizardController {
         searchEmpty.setVisibility(View.GONE);
         searchProgress.setVisibility(View.VISIBLE);
         for (String[] known : settings.getKnownSmbHosts()) {
-            addServer(new SmbDiscovery.Server(known[0], known[1], known[2]));
+            addServer(new SmbDiscovery.Server(known[0], known[1], known[2],
+                    Math.max(0, portOf(known[3]))));
         }
         discovery = new SmbDiscovery(activity);
         discovery.start(new SmbDiscovery.Listener() {
@@ -194,7 +201,7 @@ public class SmbWizardController {
                 searchEmpty.setVisibility(servers.isEmpty() ? View.VISIBLE : View.GONE);
                 List<String[]> keep = new ArrayList<>();
                 for (SmbDiscovery.Server s : servers) {
-                    keep.add(new String[]{s.name, s.host, s.workgroup});
+                    keep.add(new String[]{s.name, s.host, s.workgroup, portText(s.port)});
                 }
                 settings.setKnownSmbHosts(keep);
             }
@@ -223,15 +230,17 @@ public class SmbWizardController {
             selectedHost = servers.get(index).host;
             selectedName = servers.get(index).name;
             selectedWorkgroup = servers.get(index).workgroup;
+            selectedPort = servers.get(index).port;
             btnToLogin.setEnabled(true);
         });
         serverList.addView(rb);
     }
 
-    /** Name groß, darunter Host/IP und – falls bekannt – die Arbeitsgruppe kleiner. */
+    /** Name groß, darunter Host/IP (mit Port, falls abweichend) und – falls bekannt – die Arbeitsgruppe. */
     private CharSequence serverLabel(SmbDiscovery.Server server) {
-        String detail = server.workgroup.isEmpty() ? server.host : server.host + " · " + server.workgroup;
-        if (server.name.equals(server.host) && server.workgroup.isEmpty()) {
+        String address = server.port > 0 ? server.host + ":" + server.port : server.host;
+        String detail = server.workgroup.isEmpty() ? address : address + " · " + server.workgroup;
+        if (server.name.equals(server.host) && server.workgroup.isEmpty() && server.port == 0) {
             return server.host;
         }
         String title = server.name.equals(server.host) ? server.host : server.name;
@@ -249,6 +258,13 @@ public class SmbWizardController {
         }
         stopDiscovery();
         loginTitle.setText(selectedName.isEmpty() ? selectedHost : selectedName);
+        // Den per mDNS gemeldeten Port vorbelegen – aber nur, solange das Feld leer ist oder noch die
+        // Vorbelegung des zuvor gewählten Servers enthält; eine eigene Eingabe bleibt stehen.
+        String typed = textOf(editPort);
+        if (typed.isEmpty() || typed.equals(portText(prefilledPort))) {
+            editPort.setText(portText(selectedPort));
+            prefilledPort = selectedPort;
+        }
         prefillDomain();
         show(stepLogin);
     }
@@ -271,12 +287,20 @@ public class SmbWizardController {
         final String user = textOf(editUser);
         final String password = textOf(editPassword);
         final String h = selectedHost;
+        int typed = portOf(textOf(editPort));
+        if (typed < 0) {
+            showError(activity.getString(R.string.smb_err_port));
+            return;
+        }
+        selectedPort = typed;
+        final int p = selectedPort;
         setBusy(R.string.smb_connecting);
         new Thread(() -> {
             try {
                 com.hierynomus.smbj.SMBClient client = SmbSessions.quickClient();
-                try (com.hierynomus.smbj.connection.Connection c = client.connect(h)) {
-                    c.authenticate(SmbSessions.authFor(user, password));
+                try (com.hierynomus.smbj.connection.Connection c =
+                             SmbSessions.connect(client, h, p)) {
+                    SmbSessions.authenticate(c, user, password);
                 } finally {
                     client.close();
                 }
@@ -295,11 +319,12 @@ public class SmbWizardController {
         selectedShare = "";
         editShare.setText("");
         final String h = selectedHost;
+        final int p = selectedPort;
         new Thread(() -> {
             List<String> shares;
             String problem = null;
             try {
-                shares = SmbShares.list(h, user, password);
+                shares = SmbShares.list(h, p, user, password);
             } catch (Exception e) {
                 shares = new ArrayList<>();
                 problem = SmbErrors.messageFor(activity, SmbErrors.Step.SHARE, e);
@@ -343,7 +368,8 @@ public class SmbWizardController {
             showError(activity.getString(R.string.smb_err_share));
             return;
         }
-        String url = "smb://" + selectedHost + "/" + selectedShare;
+        String address = selectedPort > 0 ? selectedHost + ":" + selectedPort : selectedHost;
+        String url = "smb://" + address + "/" + selectedShare;
         host.onSmbConfigured(url, textOf(editUser), textOf(editPassword));
         showDone(url);
     }
@@ -398,6 +424,31 @@ public class SmbWizardController {
                 }
             });
         }
+    }
+
+    /**
+     * Portnummer aus einer Eingabe: {@code 0} bei leerem Feld oder dem Standardport 445 (dann bleibt er
+     * aus Adresse und Aufruf heraus), {@code -1} bei einer unbrauchbaren Eingabe.
+     */
+    private static int portOf(String text) {
+        String t = text.trim();
+        if (t.isEmpty()) {
+            return 0;
+        }
+        try {
+            int value = Integer.parseInt(t);
+            if (value < 1 || value > 65535) {
+                return -1;
+            }
+            return value == 445 ? 0 : value;
+        } catch (NumberFormatException e) {
+            return -1;
+        }
+    }
+
+    /** Portnummer für Anzeige und Adresse; der Standardport bleibt leer. */
+    private static String portText(int port) {
+        return port > 0 ? String.valueOf(port) : "";
     }
 
     private static String textOf(TextInputEditText field) {

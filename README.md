@@ -157,7 +157,8 @@ folder you choose.
 - **SMB/Samba**: **setup wizard** — the app scans the local network for SMB servers (mDNS, NetBIOS and
   port 445), then you log in, pick one of the **shares** it lists and browse to the target folder; that
   becomes `smb://host/share/folder`. Empty user = guest, a Windows domain as `DOMAIN\user`, SMB2/3.
-  "Enter server manually" still allows typing the address yourself.
+  If the server does not listen on the default port 445, enter the port in the wizard or put it into the
+  address (`smb://host:7777/share`). "Enter server manually" still allows typing the address yourself.
 
 ## License
 

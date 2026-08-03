@@ -379,6 +379,19 @@ public class SettingsActivity extends LocalizedActivity implements SmbWizardCont
         applyServerTypeHints();
     }
 
+    /**
+     * Grund einer fehlgeschlagenen Server-Aktion. Bei SMB dieselben klaren Meldungen wie im Assistenten
+     * („Server nicht erreichbar", „Zugriff auf den Ordner wurde verweigert" …) statt der rohen
+     * smbj-Texte; für WebDAV/Nextcloud bleibt es beim bisherigen Text.
+     */
+    private String serverError(Exception e) {
+        if (SettingsStore.SERVER_SMB.equals(selectedServerType)) {
+            return de.spahr.ausgaben.net.smb.SmbErrors.messageFor(this,
+                    de.spahr.ausgaben.net.smb.SmbErrors.Step.FOLDER, e);
+        }
+        return e.getMessage() == null ? e.toString() : e.getMessage();
+    }
+
     /** Verbindung mit den aktuellen (auch ungespeicherten) Feldwerten testen. */
     private void testConnection() {
         final String serverType = selectedServerType;
@@ -392,7 +405,7 @@ public class SettingsActivity extends LocalizedActivity implements SmbWizardCont
                 RemoteStorage.from(serverType, url, user, password).testConnection();
                 runOnUiThread(() -> Toast.makeText(this, R.string.conn_ok, Toast.LENGTH_LONG).show());
             } catch (Exception e) {
-                final String msg = e.getMessage() == null ? e.toString() : e.getMessage();
+                final String msg = serverError(e);
                 runOnUiThread(() -> Toast.makeText(this,
                         getString(R.string.conn_failed, msg), Toast.LENGTH_LONG).show());
             }
@@ -431,7 +444,7 @@ public class SettingsActivity extends LocalizedActivity implements SmbWizardCont
                     }
                 });
             } catch (Exception e) {
-                final String msg = e.getMessage() == null ? e.toString() : e.getMessage();
+                final String msg = serverError(e);
                 runOnUiThread(() -> Toast.makeText(this,
                         getString(R.string.conn_failed, msg), Toast.LENGTH_LONG).show());
             }
@@ -486,7 +499,7 @@ public class SettingsActivity extends LocalizedActivity implements SmbWizardCont
                 java.util.Collections.sort(folders, String.CASE_INSENSITIVE_ORDER);
                 runOnUiThread(() -> showFolderPick(folder, folders, target));
             } catch (Exception e) {
-                final String msg = e.getMessage() == null ? e.toString() : e.getMessage();
+                final String msg = serverError(e);
                 runOnUiThread(() -> Toast.makeText(this,
                         getString(R.string.conn_failed, msg), Toast.LENGTH_LONG).show());
             }

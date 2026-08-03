@@ -23,13 +23,15 @@ import de.spahr.ausgaben.settings.SettingsStore;
 
 /**
  * {@link RemoteStorage} über eine SMB/Samba-Freigabe (SMB2/3, via smbj). Die „URL" hat die Form
- * {@code smb://Host/Freigabe[/Basis]}. Benutzer/Passwort aus den Einstellungen; leerer Benutzer → Gast.
+ * {@code smb://Host[:Port]/Freigabe[/Basis]}; ohne Port gilt der Standardport 445.
+ * Benutzer/Passwort aus den Einstellungen; leerer Benutzer → Gast.
  * Ein {@code DOMÄNE\\Benutzer}-Präfix wird als Windows-Domäne interpretiert. Verbindung wird je Aufruf
  * geöffnet und wieder geschlossen (wie der WebDAV-Pfad zustandslos).
  */
 public class SmbStorage implements RemoteStorage {
 
     private final String host;
+    private final int port;
     private final String share;
     private final String base;
     private final String user;
@@ -38,6 +40,7 @@ public class SmbStorage implements RemoteStorage {
     public SmbStorage(String url, String user, String password) {
         String[] parts = SettingsStore.parseSmb(url);
         this.host = parts[0];
+        this.port = parts[3].isEmpty() ? 0 : Integer.parseInt(parts[3]);
         this.share = parts[1];
         this.base = parts[2];
         this.user = user == null ? "" : user.trim();
@@ -53,9 +56,10 @@ public class SmbStorage implements RemoteStorage {
             throw new IOException("SMB: Host/Freigabe fehlt (smb://Host/Freigabe)");
         }
         SMBClient client = de.spahr.ausgaben.net.smb.SmbSessions.client();
-        try (Connection connection = client.connect(host)) {
-            Session session = connection.authenticate(
-                    de.spahr.ausgaben.net.smb.SmbSessions.authFor(user, password));
+        try (Connection connection =
+                     de.spahr.ausgaben.net.smb.SmbSessions.connect(client, host, port)) {
+            Session session =
+                    de.spahr.ausgaben.net.smb.SmbSessions.authenticate(connection, user, password);
             try (DiskShare disk = (DiskShare) session.connectShare(share)) {
                 return action.run(disk);
             }

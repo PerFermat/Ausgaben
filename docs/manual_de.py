@@ -761,18 +761,22 @@ bullets([
   "Anzeigename und darunter der IP-Adresse – und, sofern der Server sie nennt, seiner "
   "<b>Arbeitsgruppe</b>. <b>«Erneut suchen»</b> startet die Suche neu, zuletzt gefundene Server "
   "werden gemerkt und sofort angezeigt.",
-  "<b>2. Anmelden</b>: Benutzername und Passwort des Servers. <b>Leerer Benutzer = Gast.</b> Gehört der "
+  "<b>2. Anmelden</b>: Benutzername und Passwort des Servers, darüber das Feld <b>«Port»</b> – es bleibt "
+  "leer, solange der Server auf dem üblichen SMB-Port 445 lauscht. Meldet er per Bonjour einen anderen "
+  "Port, ist er schon eingetragen. <b>Leerer Benutzer = Gast.</b> Gehört der "
   "Server einer anderen Arbeitsgruppe als «WORKGROUP» an, ist das Feld bereits mit «ARBEITSGRUPPE\\» "
   "vorbelegt. Das Passwort wird verschlüsselt gespeichert und nie im Klartext angezeigt.",
   "<b>3. Freigabe wählen</b>: nach der Anmeldung liest die App die <b>Freigaben</b> des Servers aus und "
   "zeigt sie zur Auswahl (System-Freigaben wie IPC$ werden ausgeblendet). Ein Klick trägt die Freigabe in "
   "das Feld <b>«Freigabename»</b> ein; dort lässt sie sich auch von Hand eintippen, falls der Server die "
   "Liste nicht herausgibt.",
-  "<b>4. Speichern</b>: daraus entsteht die Adresse «smb://Host/Freigabe». Den <b>Zielordner</b> innerhalb "
+  "<b>4. Speichern</b>: daraus entsteht die Adresse «smb://Host/Freigabe» – mit abweichendem Port "
+  "«smb://Host:7777/Freigabe». Den <b>Zielordner</b> innerhalb "
   "der Freigabe wählen Sie danach wie gewohnt mit den Schaltflächen «Ordner durchsuchen» bzw. "
   "«.kmy auswählen».",
   "<b>«Server manuell eingeben»</b> blendet die klassischen Felder ein (Adresse «smb://Host/Freigabe» "
-  "selbst tippen). Über <b>«Server im Netzwerk suchen»</b> kommen Sie jederzeit zum Assistenten zurück.",
+  "bzw. «smb://Host:Port/Freigabe» selbst tippen). Über <b>«Server im Netzwerk suchen»</b> kommen Sie "
+  "jederzeit zum Assistenten zurück.",
 ])
 p("<b>Arbeitsgruppe oder Windows-Domäne:</b> Im Heimnetz heißt die Arbeitsgruppe meist «WORKGROUP» – sie "
   "spielt für die Anmeldung keine Rolle, Samba-Server und NAS prüfen nur Benutzer und Passwort. Anders ist "
@@ -782,7 +786,8 @@ p("<b>Arbeitsgruppe oder Windows-Domäne:</b> Im Heimnetz heißt die Arbeitsgrup
   "Windows-PC mit lokalem Konto gilt notfalls «RECHNERNAME\\Benutzer».")
 p("Schlägt etwas fehl, nennt der Assistent den Grund konkret: «Server nicht erreichbar», «Benutzername "
   "oder Passwort sind ungültig», «Die ausgewählte Freigabe ist nicht verfügbar» oder «Zugriff auf den "
-  "Ordner wurde verweigert».")
+  "Ordner wurde verweigert». Steht im Portfeld keine Zahl zwischen 1 und 65535, meldet er das sofort, "
+  "ohne einen Verbindungsversuch.")
 h2("Export-Modus")
 bullets([
   "<b>.kmy-Modus</b>: schreibt neue Buchungen direkt in die KMyMoney-Datei (inkl. Splits und Umbuchungen) "

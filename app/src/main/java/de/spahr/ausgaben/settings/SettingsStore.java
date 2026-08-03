@@ -173,8 +173,10 @@ public class SettingsStore {
     }
 
     /**
-     * Zerlegt {@code smb://Host/Freigabe/Basis} (auch {@code //Host/...} oder {@code Host/...}) in
-     * {@code [host, share, base]} – leere Strings bei fehlenden Teilen.
+     * Zerlegt {@code smb://Host[:Port]/Freigabe/Basis} (auch {@code //Host/...} oder {@code Host/...})
+     * in {@code [host, share, base, port]} – leere Strings bei fehlenden Teilen. Der Port wird nur
+     * abgetrennt, wenn dort wirklich eine gültige Portnummer steht; sonst bleibt er Teil des Hosts,
+     * damit ein Tippfehler als „Server nicht erreichbar" auffällt statt still zu verschwinden.
      */
     public static String[] parseSmb(String url) {
         String s = url == null ? "" : url.trim();
@@ -189,26 +191,48 @@ public class SettingsStore {
             s = s.substring(0, s.length() - 1);
         }
         if (s.isEmpty()) {
-            return new String[]{"", "", ""};
+            return new String[]{"", "", "", ""};
         }
         String[] parts = s.split("/", 3);
         String host = parts.length > 0 ? parts[0].trim() : "";
         String share = parts.length > 1 ? parts[1].trim() : "";
         String base = parts.length > 2 ? parts[2].trim() : "";
-        return new String[]{host, share, base};
+        String port = "";
+        // Bei IPv6 in Klammern erst hinter der schließenden Klammer nach dem Port suchen.
+        int colon = host.lastIndexOf(':');
+        if (colon > 0 && colon > host.lastIndexOf(']') && isPort(host.substring(colon + 1))) {
+            port = host.substring(colon + 1);
+            host = host.substring(0, colon);
+        }
+        return new String[]{host, share, base, port};
+    }
+
+    /** true, wenn {@code text} nur aus Ziffern besteht und eine gültige Portnummer ergibt. */
+    private static boolean isPort(String text) {
+        if (text.isEmpty() || text.length() > 5) {
+            return false;
+        }
+        for (int i = 0; i < text.length(); i++) {
+            if (text.charAt(i) < '0' || text.charAt(i) > '9') {
+                return false;
+            }
+        }
+        int value = Integer.parseInt(text);
+        return value >= 1 && value <= 65535;
     }
 
     /**
-     * Zuletzt im Netz gefundene SMB-Server als {@code Name|Host|Arbeitsgruppe}-Zeilen (höchstens
-     * {@link #MAX_KNOWN_SMB_HOSTS}; die Arbeitsgruppe darf fehlen). Der Einrichtungsassistent zeigt sie
-     * sofort an, während die neue Suche noch läuft.
+     * Zuletzt im Netz gefundene SMB-Server als {@code Name|Host|Arbeitsgruppe|Port}-Zeilen (höchstens
+     * {@link #MAX_KNOWN_SMB_HOSTS}; Arbeitsgruppe und Port dürfen fehlen – ältere dreiteilige Zeilen
+     * bleiben so lesbar). Der Einrichtungsassistent zeigt sie sofort an, während die neue Suche läuft.
      */
     public java.util.List<String[]> getKnownSmbHosts() {
         java.util.List<String[]> out = new java.util.ArrayList<>();
         for (String line : prefs.getString(KEY_SMB_KNOWN_HOSTS, "").split("\n")) {
-            String[] parts = line.split("\\|", 3);
+            String[] parts = line.split("\\|", 4);
             if (parts.length >= 2 && !parts[1].isEmpty()) {
-                out.add(new String[]{parts[0], parts[1], parts.length > 2 ? parts[2] : ""});
+                out.add(new String[]{parts[0], parts[1], parts.length > 2 ? parts[2] : "",
+                        parts.length > 3 ? parts[3] : ""});
             }
         }
         return out;
@@ -229,7 +253,8 @@ public class SettingsStore {
             }
             sb.append(h[0] == null || h[0].isEmpty() ? h[1] : h[0].replace('|', ' '))
                     .append('|').append(h[1])
-                    .append('|').append(h.length > 2 && h[2] != null ? h[2].replace('|', ' ') : "");
+                    .append('|').append(h.length > 2 && h[2] != null ? h[2].replace('|', ' ') : "")
+                    .append('|').append(h.length > 3 && h[3] != null ? h[3].replace('|', ' ') : "");
         }
         prefs.edit().putString(KEY_SMB_KNOWN_HOSTS, sb.toString()).apply();
     }

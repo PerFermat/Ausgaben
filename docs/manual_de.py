@@ -860,7 +860,7 @@ def cover_page(canvas, doc):
     box_x = 7.8*mm + 3*mm
     canvas.setFont("DejaVu-Bold", 13)
     canvas.setFillColor(colors.HexColor("#1b1b1b"))
-    canvas.drawString(box_x, 34.5*mm - 9*mm, "Version 1.5")
+    canvas.drawString(box_x, 34.5*mm - 9*mm, "Version 1.6")
     canvas.setFont("DejaVu", 10)
     canvas.setFillColor(GREY)
     canvas.drawString(box_x, 34.5*mm - 17*mm, "Stand: August 2026")
@@ -871,7 +871,7 @@ def footer(canvas, doc):
     canvas.saveState()
     canvas.setFont("DejaVu", 8)
     canvas.setFillColor(GREY)
-    canvas.drawString(2*cm, 1.2*cm, "Ausgaben · Benutzerhandbuch (Version 1.5)")
+    canvas.drawString(2*cm, 1.2*cm, "Ausgaben · Benutzerhandbuch (Version 1.6)")
     canvas.drawRightString(A4[0]-2*cm, 1.2*cm, "Seite %d" % doc.page)
     canvas.restoreState()
 

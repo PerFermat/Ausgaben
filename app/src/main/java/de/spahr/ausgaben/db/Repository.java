@@ -1449,33 +1449,41 @@ public class Repository {
 
     /**
      * Kassensturz: setzt den Saldo eines Ortes (im Konto {@code account}) auf {@code targetCents} und
-     * bucht die Differenz optional als Buchung auf dieses Konto (Empfänger „Unbekannt", Kategorie
-     * „Sonstiges").
+     * bucht die Differenz optional als Buchung auf dieses Konto. Empfänger und Kategorie kommen aus den
+     * Einstellungen (siehe {@code SettingsStore#getReconcilePayee()}).
      */
     public void saveReconcile(final String account, final String place, final long targetCents,
-                              final boolean createBooking, final Runnable onDone) {
+                              final boolean createBooking, final String payee, final String category,
+                              final Runnable onDone) {
         executor.execute(() -> {
             String acct = account == null ? "" : account;
-            // Ist-Saldo aus dem Ort-Journal (Summe der Bewegungen dieses Orts).
-            long current = placeEntryDao.getBalance(acct, place);
+            String pl = place == null ? "" : place.trim();
+            // Mit Ort: Ist-Saldo aus dem Ort-Journal. Ohne Ort (Konto ohne angelegte Orte): Kontosaldo –
+            // die Ausgleichsbuchung landet dann im Rest „ohne Ort" und stimmt das Konto als Ganzes ab.
+            long current = pl.isEmpty() ? bookingDao.getBalanceByAccount(acct)
+                    : placeEntryDao.getBalance(acct, pl);
             long diff = targetCents - current;
             if (diff != 0) {
                 long now = System.currentTimeMillis();
-                placeEntryDao.insert(new PlaceEntry(account, place, diff, now, "reconcile"));
+                if (!pl.isEmpty()) {
+                    placeEntryDao.insert(new PlaceEntry(account, pl, diff, now, "reconcile"));
+                }
                 if (createBooking) {
                     Booking b = new Booking();
                     b.amountCents = Math.abs(diff);
                     b.isIncome = diff >= 0;
-                    b.payee = "Unbekannt";
+                    b.payee = payee == null ? "" : payee.trim();
                     b.account = account == null ? "" : account;
-                    b.category = "Sonstiges";
-                    b.note = "Kassensturz " + place;
+                    b.category = category == null ? "" : category.trim();
+                    b.note = pl.isEmpty() ? "Kassensturz" : "Kassensturz " + pl;
                     b.createdAt = now;
                     b.exported = false;
                     if (!b.account.isEmpty()) {
                         accountDao.insertIfAbsent(new Account(b.account));
                     }
-                    payeeDao.insertIfAbsent(new Payee(b.payee));
+                    if (!b.payee.isEmpty()) {
+                        payeeDao.insertIfAbsent(new Payee(b.payee));
+                    }
                     bookingDao.insert(b);
                 }
             }

@@ -281,7 +281,8 @@ bullets([
   "Öffnen über das ☰-Symbol oben links oder durch Wischen vom linken Rand.",
   "<b>«Alle Konten»</b> zeigt alle Buchungen zusammen; ein einzelnes Konto filtert die Liste darauf.",
   "<b>Langer Druck auf ein Konto</b>: dieses Konto aus der .kmy importieren/aktualisieren.",
-  "<b>Langer Druck auf «Alle Konten»</b>: importiert <b>alle</b> vorhandenen Konten neu (Komplett-Import).",
+  "<b>Langer Druck auf «Alle Konten»</b> – oder in dieser Ansicht nach unten ziehen: liest <b>alles</b> neu ein "
+  "(Konten, Depots und geplante Buchungen) in einem Durchgang.",
   "<b>Depots</b> stehen unten unter der Überschrift «Depots» und verhalten sich wie Konten: kurzer Tipp öffnet die Depot-Ansicht (das gewählte Depot bleibt markiert), langer Tipp aktualisiert das Depot.",
   "<b>«Konto hinzufügen»</b> (unten): lädt die .kmy und bietet die enthaltenen Konten zur Auswahl.",
 ])
@@ -592,6 +593,11 @@ p("Ein besonderer Vorteil: Der <b>Kassensturz</b> (Soll-Ist-Abgleich) lässt sic
   "gezählten Betrag ein, und die App bucht automatisch die Differenz als Ausgleichs-Bewegung. Sie müssen "
   "also nicht das gesamte Konto auf einmal abstimmen; das <b>vereinfacht den Abgleich erheblich</b>. "
   "Importierte Buchungen tragen keine Ort-Verknüpfung.")
+p("Neben dem Schalter <b>«Buchung erzeugen»</b> steht ein Knopf für <b>Empfänger und Kategorie</b> dieser "
+  "Ausgleichsbuchung. Anfangs ist beides leer und der Knopf sagt «Empfänger/Kategorie festlegen»; solange "
+  "nichts festgelegt ist, bleibt <b>«Übernehmen»</b> ausgegraut. Der Knopf öffnet ein kleines Fenster mit "
+  "beiden Feldern (mit denselben Vorschlagslisten wie im Editor); <b>«Speichern»</b> merkt die Angaben "
+  "dauerhaft, sodass sie beim nächsten Kassensturz bereits vorbelegt sind.")
 h2("Anlage- und Verbindlichkeitskonten")
 p("Konten werden anhand ihres KMyMoney-Typs in <b>Anlagekonten</b>, <b>Verbindlichkeitskonten</b> "
   "(Kredite, Kreditkarten) und <b>Depots</b> gruppiert – mit farbcodierten Überschriften (Anlage = grün, "
@@ -668,7 +674,8 @@ h2("Konten (neu) importieren")
 p("Der Import erfolgt gezielt über die Kontenschublade (langer Druck):")
 bullets([
   "<b>Langer Druck auf ein Konto</b>: importiert/aktualisiert genau dieses Konto aus der .kmy.",
-  "<b>Langer Druck auf «Alle Konten»</b>: importiert <b>alle</b> vorhandenen Konten neu.",
+  "<b>Langer Druck auf «Alle Konten»</b> (oder Herunterziehen in der Ansicht «Alle Konten»): liest <b>alles</b> "
+  "neu ein – Konten, Depots und geplante Buchungen, aus einem einzigen Ladevorgang.",
   "<b>«Konto hinzufügen»</b>: holt ein noch nicht vorhandenes Konto aus der .kmy. Im Auswahldialog lassen "
   "sich <b>mehrere Konten (und Depots) auf einmal</b> anhaken; <b>bereits importierte Konten (auch "
   "geschlossene) und Depots werden ausgeblendet</b>.",
@@ -886,7 +893,7 @@ bullets([
 ])
 h2("Daten")
 bullets([
-  "<b>Alles exportieren</b> sowie <b>Backup/Restore</b> der Datenbank.",
+  "<b>Alles exportieren</b> sowie <b>Sicherung erstellen/einspielen</b> (siehe unten).",
   "<b>Konten verwalten (löschen/schließen)</b>: Eine <b>Mehrfachauswahl</b> listet alle Konten mit Status "
   "(Aktiv/Geschlossen). Unten stehen <b>Löschen</b> und (kontextabhängig) <b>Schließen/Öffnen</b> vor "
   "<b>Abbrechen</b>; <b>Schließen</b> nur bei Saldo 0, <b>Öffnen</b> nur bei geschlossenen Konten. Ein "
@@ -895,6 +902,22 @@ bullets([
   "<b>Daten zurücksetzen</b>: löscht die lokale Datenbank (Neustart wie beim ersten Mal – danach erscheint "
   "wieder der Willkommen-Assistent).",
 ])
+h2("Sicherung erstellen und einspielen")
+p("<b>«Sicherung erstellen»</b> schreibt <b>Daten und Einstellungen</b> in eine ZIP-Datei: die Datenbank "
+  "(Buchungen, Konten, Orte-Journal, Depot, Planungen) <i>und</i> sämtliche Einstellungen – darunter die "
+  "Orte je Konto, die Kategoriefarben und der Serverzugang. Vorher fragt die App zweierlei:")
+bullets([
+  "<b>Server-Passwort mitsichern?</b> Standardmäßig <b>nein</b> – dann steht das Passwort in keiner Form in "
+  "der Datei und wird nach dem Einspielen einmal neu eingetragen.",
+  "<b>Sicherungspasswort</b> (freiwillig, zweimal einzugeben): Damit wird die <b>ganze Datei</b> "
+  "verschlüsselt (AES-256-GCM, Dateiendung <i>.abk</i> statt <i>.zip</i>). Ohne Passwort bleibt es ein "
+  "normales ZIP.",
+])
+p("Beim <b>«Sicherung einspielen»</b> fragt die App zuerst – falls nötig – das Sicherungspasswort ab und "
+  "dann, <b>was</b> zurückkommen soll: <b>nur Daten</b>, <b>nur Einstellungen</b> oder <b>beides</b>. So "
+  "lässt sich z. B. eine kaputte Konfiguration reparieren, ohne die erfassten Buchungen anzufassen. "
+  "Danach startet die App neu. Belegfotos sind nicht Teil der Sicherung – sie liegen nach dem Hochladen "
+  "auf dem Server. Sicherungen älterer Versionen (reine <i>.db</i>-Dateien) werden nicht mehr angenommen.")
 h2("Haftungsausschluss")
 p("Diese App wird ohne Gewähr bereitgestellt. Insbesondere gibt es keine Garantie, dass die .kmy-Datei "
   "nach einem Export vollständig gültig bleibt. Dank der automatischen Sicherung vor jedem Export haben Sie "

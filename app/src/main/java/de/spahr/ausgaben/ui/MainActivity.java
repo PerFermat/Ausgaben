@@ -283,9 +283,9 @@ public class MainActivity extends LocalizedActivity {
         swipeRefresh = findViewById(R.id.swipeRefresh);
         swipeRefresh.setOnRefreshListener(() -> {
             swipeRefresh.setRefreshing(false);
-            if (settings.isKmyMode() && !selectedAccount.isEmpty()
-                    && settings.hasRemoteConfig() && !settings.getKmyPath().isEmpty()) {
-                runKmyImport(selectedAccount);
+            // „Alle Konten" (leerer selectedAccount) zieht alles nach: Konten, Depots und Planungen.
+            if (settings.isKmyMode() && settings.hasRemoteConfig() && !settings.getKmyPath().isEmpty()) {
+                runKmyImport(selectedAccount.isEmpty() ? null : selectedAccount);
             } else {
                 refreshBookings();
             }
@@ -1579,7 +1579,9 @@ public class MainActivity extends LocalizedActivity {
     /** Lädt die .kmy und importiert ein Konto ({@code null} = alle bereits vorhandenen App-Konten). */
     private void runKmyImport(final String account) {
         importStarted();
+        // „Alle Konten" (account == null) heißt: Konten, Depots und geplante Buchungen in einem Zug.
         de.spahr.ausgaben.export.KmyAccountImport.start(this, settings, repository, appAccounts, account,
+                account == null ? appDepots : java.util.Collections.emptyList(), account == null,
                 new de.spahr.ausgaben.export.KmyAccountImport.Ui() {
                     @Override
                     public de.spahr.ausgaben.util.ProgressListener phase(String label, int from, int to) {

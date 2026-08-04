@@ -146,7 +146,7 @@
     <string name="drawer_close">Close accounts</string>
     <string name="add_account">Add new account</string>
     <string name="kmy_import_all_title">Import all accounts?</string>
-    <string name="kmy_import_all_message">All accounts are updated from the KMyMoney file (already exported bookings are replaced).</string>
+    <string name="kmy_import_all_message">All accounts, portfolios and scheduled transactions are updated from the KMyMoney file (already exported bookings are replaced).</string>
     <string name="kmy_import_done_multi">Imported %1$d booking(s) into %2$d account(s)</string>
     <string name="import_running_banner">Importing account…</string>
     <string name="import_stage_download">Loading file…</string>
@@ -155,6 +155,7 @@
     <string name="import_stage_bookings">Reading bookings…</string>
     <string name="import_stage_saving">Saving bookings…</string>
     <string name="import_stage_depot">Portfolio: %1$s</string>
+    <string name="import_stage_scheduled">Scheduled transactions…</string>
     <string name="import_stage_done">Done</string>
     <string name="kmy_account_not_found">Account not in the KMyMoney file</string>
 
@@ -171,7 +172,12 @@
     <string name="reconcile_do">Apply</string>
     <string name="reconcile_place">Place</string>
     <string name="reconcile_actual">Actual amount</string>
-    <string name="reconcile_create_booking">Create booking (Unknown/Other)</string>
+    <string name="reconcile_create_booking">Create booking</string>
+    <string name="reconcile_target_empty">Set payee/category</string>
+    <string name="reconcile_target_title">Payee and category</string>
+    <string name="reconcile_target_payee">Payee</string>
+    <string name="reconcile_target_category">Category</string>
+    <string name="reconcile_target_save">Save</string>
     <string name="no_places_defined">Please add places in the settings first</string>
     <string name="no_movements">No movements</string>
     <string name="movement_booking">Booking</string>
@@ -303,14 +309,27 @@
     <string name="biometric_no_hardware">This device does not offer a supported authentication method.</string>
     <string name="import_csv">Import CSV (kMyMoney)</string>
     <string name="export_all">Full export to Nextcloud</string>
-    <string name="backup_db">Back up database</string>
-    <string name="restore_db">Restore database</string>
+    <string name="backup_db">Create backup</string>
+    <string name="restore_db">Restore backup</string>
     <string name="reset_db">Reset database</string>
-    <string name="restore_confirm_title">Restore database?</string>
-    <string name="restore_confirm_message">The current data is replaced by the backup.</string>
-    <string name="restore_done">Database restored</string>
+    <string name="restore_confirm_title">Restore backup?</string>
+    <string name="restore_confirm_message">The selected parts are replaced by the backup.</string>
+    <string name="restore_done">Backup restored</string>
     <string name="restore_failed">Restore failed: %1$s</string>
-    <string name="restore_invalid">Not a valid database file</string>
+    <string name="restore_invalid">Not a valid backup file</string>
+    <string name="backup_options_title">Create backup</string>
+    <string name="backup_options_message">The backup contains all data and all settings (accounts, places, colours, server).</string>
+    <string name="backup_include_password">Include server password</string>
+    <string name="backup_password_optional">Backup password (empty = none)</string>
+    <string name="backup_password_hint">Backup password</string>
+    <string name="backup_password_repeat">Repeat</string>
+    <string name="backup_password_mismatch">The passwords do not match</string>
+    <string name="restore_what_title">What should be restored?</string>
+    <string name="restore_what_data">Data only</string>
+    <string name="restore_what_settings">Settings only</string>
+    <string name="restore_what_both">Data and settings</string>
+    <string name="restore_password_title">Backup is encrypted</string>
+    <string name="restore_password_wrong">Wrong password or damaged file</string>
     <string name="reset_confirm_title">Reset database?</string>
     <string name="reset_confirm_message">All bookings as well as the account and payee lists are deleted. Settings are kept.</string>
     <string name="reset_done">Database reset</string>

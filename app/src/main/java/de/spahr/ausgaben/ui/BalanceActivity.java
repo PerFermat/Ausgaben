@@ -29,6 +29,7 @@ import de.spahr.ausgaben.db.Booking;
 import de.spahr.ausgaben.db.PlaceBalance;
 import de.spahr.ausgaben.db.Repository;
 import de.spahr.ausgaben.settings.PlacesStore;
+import de.spahr.ausgaben.settings.ReconcileTarget;
 import de.spahr.ausgaben.settings.SettingsStore;
 
 /** Bestands-Übersicht: Saldo je Ort, „ohne Ort", Gesamt; Umbuchen und Kassensturz; Ort → Verlauf. */
@@ -407,17 +408,70 @@ public class BalanceActivity extends LocalizedActivity {
             fillReconcilePlaces(place, account[0]);
         });
 
+        // Empfänger/Kategorie der Ausgleichsbuchung: dauerhaft gemerkte Vorgabe, anfangs leer.
+        MaterialButton target = view.findViewById(R.id.btnReconcileTarget);
+        final String[] payee = {settings.getReconcilePayee()};
+        final String[] category = {settings.getReconcileCategory()};
+        showReconcileTarget(target, payee[0], category[0]);
+
+        androidx.appcompat.app.AlertDialog dialog =
+                new MaterialAlertDialogBuilder(this, R.style.ThemeOverlay_Ausgaben_Dialog)
+                        .setTitle(R.string.reconcile_title)
+                        .setView(view)
+                        .setPositiveButton(R.string.reconcile_do, (d, w) -> {
+                            // Ort bleibt frei: Konten ohne angelegte Orte werden als Ganzes abgestimmt.
+                            String p = textOf(place);
+                            Long cents = parseCents(textOf(amount));
+                            if (cents == null) {
+                                Toast.makeText(this, R.string.error_amount, Toast.LENGTH_SHORT).show();
+                                return;
+                            }
+                            repository.saveReconcile(account[0], p, cents, createBooking.isChecked(),
+                                    payee[0], category[0], this::refresh);
+                        })
+                        .setNegativeButton(R.string.cancel, null)
+                        .create();
+        // „Übernehmen" bleibt gesperrt, solange eine Buchung erzeugt werden soll, aber Empfänger oder
+        // Kategorie fehlen.
+        dialog.setOnShowListener(d -> {
+            final Runnable update = () -> dialog.getButton(androidx.appcompat.app.AlertDialog.BUTTON_POSITIVE)
+                    .setEnabled(ReconcileTarget.canApply(createBooking.isChecked(), payee[0], category[0]));
+            createBooking.setOnCheckedChangeListener((b, checked) -> update.run());
+            target.setOnClickListener(v -> showReconcileTargetDialog(payee, category, target, update));
+            update.run();
+        });
+        dialog.show();
+    }
+
+    /** Beschriftet den Festlegen-Knopf mit „Empfänger / Kategorie" bzw. der Aufforderung. */
+    private void showReconcileTarget(MaterialButton button, String payee, String category) {
+        String label = ReconcileTarget.label(payee, category);
+        button.setText(label == null ? getString(R.string.reconcile_target_empty) : label);
+    }
+
+    /** Empfänger und Kategorie der Ausgleichsbuchung festlegen – „Speichern" merkt sie dauerhaft. */
+    private void showReconcileTargetDialog(String[] payee, String[] category, MaterialButton button,
+                                           Runnable onSaved) {
+        View view = LayoutInflater.from(this).inflate(R.layout.dialog_reconcile_target, null, false);
+        MaterialAutoCompleteTextView payeeField = view.findViewById(R.id.reconcileTargetPayee);
+        MaterialAutoCompleteTextView categoryField = view.findViewById(R.id.reconcileTargetCategory);
+        payeeField.setText(payee[0]);
+        categoryField.setText(category[0]);
+        repository.getPayeeNames(names -> payeeField.setAdapter(
+                new ArrayAdapter<>(this, android.R.layout.simple_list_item_1, names)));
+        repository.getCategoriesGrouped(g -> categoryField.setAdapter(new CategoryFilterAdapter(this, null,
+                getString(R.string.category_group_expense), g.expense,
+                getString(R.string.category_group_income), g.income)));
+
         new MaterialAlertDialogBuilder(this, R.style.ThemeOverlay_Ausgaben_Dialog)
-                .setTitle(R.string.reconcile_title)
+                .setTitle(R.string.reconcile_target_title)
                 .setView(view)
-                .setPositiveButton(R.string.reconcile_do, (d, w) -> {
-                    String p = textOf(place);
-                    Long cents = parseCents(textOf(amount));
-                    if (p.isEmpty() || cents == null) {
-                        Toast.makeText(this, R.string.error_amount, Toast.LENGTH_SHORT).show();
-                        return;
-                    }
-                    repository.saveReconcile(account[0], p, cents, createBooking.isChecked(), this::refresh);
+                .setPositiveButton(R.string.reconcile_target_save, (d, w) -> {
+                    payee[0] = textOf(payeeField);
+                    category[0] = textOf(categoryField);
+                    settings.setReconcileTarget(payee[0], category[0]);
+                    showReconcileTarget(button, payee[0], category[0]);
+                    onSaved.run();
                 })
                 .setNegativeButton(R.string.cancel, null)
                 .show();

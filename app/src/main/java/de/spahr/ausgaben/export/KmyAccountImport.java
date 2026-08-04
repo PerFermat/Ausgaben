@@ -47,9 +47,12 @@ public final class KmyAccountImport {
      *
      * @param knownAccounts in der App vorhandene Konten (Grundlage für „alle Konten")
      * @param account       einzelnes Konto oder {@code null} für alle vorhandenen Konten
+     * @param depots        zusätzlich zu aktualisierende Depots (leer/{@code null} = keine)
+     * @param schedules     zusätzlich die geplanten Buchungen neu einlesen
      */
     public static void start(Context context, SettingsStore settings, Repository repository,
-                             List<String> knownAccounts, final String account, final Ui ui) {
+                             List<String> knownAccounts, final String account,
+                             final List<String> depots, final boolean schedules, final Ui ui) {
         final Context app = context.getApplicationContext();
         new Thread(() -> {
             try {
@@ -74,8 +77,21 @@ public final class KmyAccountImport {
                 } else if (containsIgnoreCase(available, account)) {
                     targets.add(account);
                 }
-                if (targets.isEmpty()) {
+                final List<String> depotTargets = new ArrayList<>();
+                if (depots != null) {
+                    for (String d : depots) {
+                        if (containsIgnoreCase(importer.depotNames(), d)) {
+                            depotTargets.add(d);
+                        }
+                    }
+                }
+                if (targets.isEmpty() && depotTargets.isEmpty() && !schedules) {
                     ui.noMatchingAccount();
+                    return;
+                }
+                if (targets.isEmpty()) {
+                    // Nur Depots und/oder Planungen – die Buchungsphase entfällt.
+                    afterAccounts(app, repository, importer, depotTargets, schedules, ui);
                     return;
                 }
                 // Ein Lesedurchlauf für ALLE Konten (vorher: einer je Konto über die ganze Datei).
@@ -95,11 +111,49 @@ public final class KmyAccountImport {
                 repository.replaceImportAccounts(map,
                         ui.phase(app.getString(R.string.import_running_banner),
                                 ImportPhase.SAVE_FROM, ImportPhase.SAVE_TO),
-                        res -> ui.finished());
+                        res -> afterAccounts(app, repository, importer, depotTargets, schedules, ui));
             } catch (Exception e) {
                 ui.failed(e);
             }
         }).start();
+    }
+
+    /**
+     * Nach den Konten: Depots der Reihe nach, danach die geplanten Buchungen – alles aus derselben,
+     * bereits geladenen Datei. Läuft rekursiv über die Rückrufe des Repositorys (Main-Thread), die
+     * eigentliche Arbeit jeweils in einem Hintergrund-Thread.
+     */
+    private static void afterAccounts(Context app, Repository repository, KmyImporter importer,
+                                      List<String> depots, boolean schedules, Ui ui) {
+        if (!depots.isEmpty()) {
+            final String depot = depots.get(0);
+            final List<String> rest = new ArrayList<>(depots.subList(1, depots.size()));
+            ui.phase(app.getString(R.string.import_stage_depot, depot),
+                    ImportPhase.SAVE_TO, ImportPhase.SAVE_TO).onProgress(0, 1);
+            new Thread(() -> {
+                try {
+                    KmyImporter.DepotData data = importer.importDepot(depot);
+                    repository.replaceDepotImport(depot, data.securities, data.transactions, data.prices,
+                            () -> afterAccounts(app, repository, importer, rest, schedules, ui));
+                } catch (Exception e) {
+                    ui.failed(e);
+                }
+            }).start();
+            return;
+        }
+        if (schedules) {
+            ui.phase(app.getString(R.string.import_stage_scheduled),
+                    ImportPhase.SAVE_TO, ImportPhase.SAVE_TO).onProgress(0, 1);
+            new Thread(() -> {
+                try {
+                    repository.applyScheduledTransactions(importer.scheduledTransactions(), ui::finished);
+                } catch (Exception e) {
+                    ui.failed(e);
+                }
+            }).start();
+            return;
+        }
+        ui.finished();
     }
 
     private static boolean containsIgnoreCase(List<String> list, String name) {

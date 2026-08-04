@@ -87,7 +87,8 @@ Details, screenshots and exact behavior are in the **[user manual](docs/Manual-A
   Either way that date disappears from the list and the KMyMoney schedule is moved on by one period on the
   next `.kmy` export (the schedule itself is kept, later dates stay untouched).
 - **Holdings & portfolio**: several cash **places** per account with their own movement journal and
-  reconciliation; portfolio import with the full **price history**, buys/sells/dividends, gain/loss
+  reconciliation (you set the payee and category of the balancing booking once, they are prefilled from
+  then on); portfolio import with the full **price history**, buys/sells/dividends, gain/loss
   analysis. The portfolio value counts like an account in **"Total"** and in the net-worth graph; the
   history additionally offers the views **"Total without portfolio"** and **"Portfolio"**.
 - **Sync**: Nextcloud/WebDAV/SMB, `.kmy` mode (writes/reads the KMyMoney file directly, including splits,
@@ -98,6 +99,12 @@ Details, screenshots and exact behavior are in the **[user manual](docs/Manual-A
 - **Multilingual**: English/German built in, more languages via a translation file (also on the watch).
 - **Appearance**: dark theme and an app-wide **font size** (Small/Normal/Large/Very large) — applied on
   top of the system font size; long account names/booking titles marquee-scroll when they no longer fit.
+- **Backup**: "Create backup" writes **data and settings** (accounts, places, category colours, server
+  access) into a ZIP file. The server password is only included if you ask for it, and the whole file can be
+  encrypted with a backup password of your own (AES-256-GCM, extension `.abk`). When restoring, the app asks
+  what should come back: data only, settings only or both.
+- **Reload everything**: a long press on "All accounts" — or pulling down in that view — reloads accounts,
+  portfolios and scheduled transactions from the `.kmy` in one go (kmy mode only).
 - **Security**: optional biometric app lock, GPS off by default, encrypted credentials.
 
 ## Wear OS (voice quick capture)

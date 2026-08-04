@@ -84,7 +84,8 @@ Details, Screenshots und die genaue Bedienung stehen im **[Benutzerhandbuch](doc
   den nächsten Termin öffnet ihn vorbefüllt im Editor – dort speichern oder **„Buchung überspringen"**. So
   oder so verschwindet der Termin aus der Liste und die KMyMoney-Regel wird beim nächsten `.kmy`-Export um
   eine Periode weitergestellt (die Regel selbst bleibt erhalten, spätere Termine unverändert).
-- **Bestände & Depot**: mehrere Bargeld-**Orte** je Konto mit eigenem Bewegungsjournal und Kassensturz;
+- **Bestände & Depot**: mehrere Bargeld-**Orte** je Konto mit eigenem Bewegungsjournal und Kassensturz
+  (Empfänger und Kategorie der Ausgleichsbuchung legt man einmal selbst fest, danach sind sie vorbelegt);
   Depot-Import mit vollständiger **Kurshistorie**, Käufen/Verkäufen/Dividenden, Gewinn/Verlust-Auswertung.
   Der Depotwert zählt wie ein Konto in **„Gesamt"** und in die Vermögensgrafik; im Verlauf zusätzlich als
   eigene Sichten **„Gesamt ohne Depot"** und **„Depot"**.
@@ -97,6 +98,12 @@ Details, Screenshots und die genaue Bedienung stehen im **[Benutzerhandbuch](doc
   für die Uhr).
 - **Darstellung**: dunkles Design und app-weite **Schriftgröße** (Klein/Normal/Groß/Sehr groß) – wirkt
   zusätzlich zur System-Schriftgröße; lange Kontonamen/Buchungstitel laufen bei Bedarf als Laufschrift.
+- **Sicherung**: „Sicherung erstellen" schreibt **Daten und Einstellungen** (Konten, Orte, Kategoriefarben,
+  Server-Zugang) in eine ZIP-Datei. Das Server-Passwort kommt nur auf Nachfrage mit; auf Wunsch wird die
+  ganze Datei mit einem eigenen Sicherungspasswort verschlüsselt (AES-256-GCM, Endung `.abk`). Beim
+  Einspielen fragt die App, was zurückkommen soll: nur Daten, nur Einstellungen oder beides.
+- **Alles neu einlesen**: langer Druck auf „Alle Konten" – oder in dieser Ansicht nach unten ziehen – liest
+  Konten, Depots und geplante Buchungen in einem Zug neu aus der `.kmy` (nur im kmy-Modus).
 - **Sicherheit**: optionale biometrische App-Sperre, GPS standardmäßig aus, verschlüsselte Zugangsdaten.
 
 ## Wear OS (Sprach-Schnellerfassung)

@@ -71,6 +71,8 @@ public class DepotActivity extends LocalizedActivity {
 
     /** Konten der Schublade – Grundlage für „Alle Konten aktualisieren". */
     private final List<String> appAccounts = new ArrayList<>();
+    /** In der App vorhandene Depots – Grundlage für „alles neu importieren". */
+    private final List<String> appDepots = new ArrayList<>();
 
     private String depot;
     private Repository.DepotMetrics metrics;
@@ -192,7 +194,11 @@ public class DepotActivity extends LocalizedActivity {
             openMainAccount("");
         });
         loadDrawerAccounts();
-        repository.getDepots(accountAdapter::setDepots);
+        repository.getDepots(depots -> {
+            appDepots.clear();
+            appDepots.addAll(depots);
+            accountAdapter.setDepots(depots);
+        });
     }
 
     /** Kontenliste der Schublade laden und dabei die Grundlage für „Alle Konten" merken. */
@@ -481,7 +487,9 @@ public class DepotActivity extends LocalizedActivity {
     /** Konto-Import mit dem gelben Banner dieser Ansicht (gleiche Logik wie im Hauptbildschirm). */
     private void runAccountImport(final String account) {
         importStarted();
+        // „Alle Konten" (account == null) heißt: Konten, Depots und geplante Buchungen in einem Zug.
         KmyAccountImport.start(this, settings, repository, appAccounts, account,
+                account == null ? appDepots : java.util.Collections.emptyList(), account == null,
                 new KmyAccountImport.Ui() {
                     @Override
                     public de.spahr.ausgaben.util.ProgressListener phase(String label, int from, int to) {

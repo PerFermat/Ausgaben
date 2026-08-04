@@ -42,6 +42,8 @@ public class SettingsStore {
     private static final String KEY_BUDGET_INTERNAL = "budget_internal";
     private static final String KEY_FONT_SIZE = "font_size";
     private static final String KEY_SMB_KNOWN_HOSTS = "smb_known_hosts";
+    private static final String KEY_RECONCILE_PAYEE = "reconcile_payee";
+    private static final String KEY_RECONCILE_CATEGORY = "reconcile_category";
 
     /** So viele zuletzt gefundene SMB-Server werden gemerkt. */
     private static final int MAX_KNOWN_SMB_HOSTS = 10;
@@ -138,6 +140,28 @@ public class SettingsStore {
 
     public boolean hasPassword() {
         return !getPassword().isEmpty();
+    }
+
+    /** Nur das Server-Passwort setzen (Wiederherstellen einer Sicherung); alles andere bleibt stehen. */
+    public void setPassword(String password) {
+        secret.edit().putString(KEY_PASSWORD, password == null ? "" : password).apply();
+    }
+
+    /** Empfänger für die Kassensturz-Ausgleichsbuchung (leer = noch nicht festgelegt). */
+    public String getReconcilePayee() {
+        return prefs.getString(KEY_RECONCILE_PAYEE, "").trim();
+    }
+
+    /** Kategorie für die Kassensturz-Ausgleichsbuchung (leer = noch nicht festgelegt). */
+    public String getReconcileCategory() {
+        return prefs.getString(KEY_RECONCILE_CATEGORY, "").trim();
+    }
+
+    public void setReconcileTarget(String payee, String category) {
+        prefs.edit()
+                .putString(KEY_RECONCILE_PAYEE, payee == null ? "" : payee.trim())
+                .putString(KEY_RECONCILE_CATEGORY, category == null ? "" : category.trim())
+                .apply();
     }
 
     public String getFolder() {

@@ -55,4 +55,12 @@
         android:checked="true"
         android:text="@string/reconcile_create_booking" />
 
+    <com.google.android.material.button.MaterialButton
+        android:id="@+id/btnReconcileTarget"
+        style="?attr/materialButtonOutlinedStyle"
+        android:layout_width="match_parent"
+        android:layout_height="wrap_content"
+        android:layout_marginTop="4dp"
+        android:text="@string/reconcile_target_empty" />
+
 </LinearLayout>

@@ -265,7 +265,8 @@ bullets([
   "Open it via the ☰ symbol at the top left, or by swiping in from the left edge.",
   "<b>«All accounts»</b> shows all bookings together; a single account filters the list to it.",
   "<b>Long press on an account</b>: import/update that account from the .kmy.",
-  "<b>Long press on «All accounts»</b>: re-imports <b>all</b> existing accounts (full import).",
+  "<b>Long press on «All accounts»</b> – or pull down in that view: reloads <b>everything</b> "
+  "(accounts, portfolios and scheduled transactions) in one pass.",
   "<b>Portfolios</b> sit at the bottom under the «Portfolios» heading and behave just like accounts: a short tap opens the portfolio view (the selected portfolio stays highlighted), a long press updates it.",
   "<b>«Add account»</b> (at the bottom): loads the .kmy and offers the contained accounts for selection.",
 ])
@@ -560,6 +561,11 @@ p("A particular advantage: the <b>cash count</b> (reconciliation) can be done <b
   "only the cash of <i>one</i> place – say the wallet – enter the counted amount, and the app automatically "
   "books the difference as a balancing movement. So you don't have to reconcile the whole account at once; "
   "this <b>simplifies reconciliation considerably</b>. Imported bookings carry no place link.")
+p("Next to the <b>«Create booking»</b> switch there is a button for the <b>payee and category</b> of that "
+  "balancing booking. Both are empty at first and the button reads «Set payee/category»; as long as nothing "
+  "is set, <b>«Apply»</b> stays greyed out. The button opens a small dialog with both fields (with the same "
+  "suggestion lists as in the editor); <b>«Save»</b> keeps them permanently, so the next cash count already "
+  "has them prefilled.")
 h2("Asset and liability accounts")
 p("Accounts are grouped by their KMyMoney type into <b>asset accounts</b>, <b>liability accounts</b> "
   "(loans, credit cards) and <b>portfolios</b> – with colour-coded section headers (assets green, "
@@ -631,7 +637,8 @@ h2("(Re-)importing accounts")
 p("Import is done selectively via the account drawer (long press):")
 bullets([
   "<b>Long press on an account</b>: imports/updates exactly that account from the .kmy.",
-  "<b>Long press on «All accounts»</b>: re-imports <b>all</b> existing accounts.",
+  "<b>Long press on «All accounts»</b> (or pull down in the «All accounts» view): reloads <b>everything</b> – "
+  "accounts, portfolios and scheduled transactions, from a single download.",
   "<b>«Add account»</b>: fetches an account not yet present from the .kmy. In the picker you can tick "
   "<b>several accounts (and portfolios) at once</b>; <b>already-imported accounts (including closed) and portfolios are hidden</b>.",
   "<b>Long press on the portfolio</b> (or pull-to-refresh in the portfolio view): updates securities and "
@@ -836,7 +843,7 @@ bullets([
 ])
 h2("Data")
 bullets([
-  "<b>Export all</b> and <b>Backup/restore</b> of the database.",
+  "<b>Export all</b> and <b>Create/restore backup</b> (see below).",
   "<b>Manage accounts (delete/close)</b>: a <b>multi-select</b> lists all accounts with status "
   "(Active/Closed). The bottom row has <b>Delete</b> and (context-dependent) <b>Close/Reopen</b> before "
   "<b>Cancel</b>; <b>Close</b> only at balance 0, <b>Reopen</b> only for closed accounts. A closed account "
@@ -844,6 +851,21 @@ bullets([
   "<b>Reset data</b>: deletes the local database (a fresh start like the first time – the welcome assistant "
   "appears again afterwards).",
 ])
+h2("Creating and restoring a backup")
+p("<b>«Create backup»</b> writes <b>data and settings</b> into a ZIP file: the database (bookings, accounts, "
+  "place journal, portfolio, schedules) <i>and</i> all settings – including the places per account, the "
+  "category colours and the server access. Beforehand the app asks two things:")
+bullets([
+  "<b>Include the server password?</b> <b>No</b> by default – then the password appears nowhere in the file "
+  "and is entered once after restoring.",
+  "<b>Backup password</b> (optional, entered twice): it encrypts the <b>whole file</b> (AES-256-GCM, file "
+  "extension <i>.abk</i> instead of <i>.zip</i>). Without a password it stays a plain ZIP.",
+])
+p("On <b>«Restore backup»</b> the app first asks for the backup password if needed, and then <b>what</b> "
+  "should come back: <b>data only</b>, <b>settings only</b> or <b>both</b>. That way a broken configuration "
+  "can be repaired without touching the recorded bookings. The app restarts afterwards. Receipt photos are "
+  "not part of the backup – once uploaded they live on the server. Backups of older versions (plain "
+  "<i>.db</i> files) are no longer accepted.")
 h2("Disclaimer")
 p("This app is provided as-is, with no warranty. In particular, there is no guarantee that the .kmy file "
   "remains fully valid after an export. Thanks to the automatic backup before every export, however, you "

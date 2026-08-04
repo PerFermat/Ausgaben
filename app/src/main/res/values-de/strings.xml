@@ -146,7 +146,7 @@
     <string name="drawer_close">Konten schließen</string>
     <string name="add_account">Neues Konto hinzufügen</string>
     <string name="kmy_import_all_title">Alle Konten importieren?</string>
-    <string name="kmy_import_all_message">Alle Konten werden aus der KMyMoney-Datei aktualisiert (bereits exportierte Buchungen werden ersetzt).</string>
+    <string name="kmy_import_all_message">Alle Konten, Depots und geplanten Buchungen werden aus der KMyMoney-Datei aktualisiert (bereits exportierte Buchungen werden ersetzt).</string>
     <string name="kmy_import_done_multi">%1$d Buchung(en) in %2$d Konto/Konten importiert</string>
     <string name="import_running_banner">Konto wird importiert…</string>
     <string name="import_stage_download">Datei wird geladen…</string>
@@ -155,6 +155,7 @@
     <string name="import_stage_bookings">Buchungen werden gelesen…</string>
     <string name="import_stage_saving">Buchungen werden gespeichert…</string>
     <string name="import_stage_depot">Depot: %1$s</string>
+    <string name="import_stage_scheduled">Geplante Buchungen…</string>
     <string name="import_stage_done">Fertig</string>
     <string name="kmy_account_not_found">Konto nicht in der KMyMoney-Datei</string>
 
@@ -171,7 +172,12 @@
     <string name="reconcile_do">Übernehmen</string>
     <string name="reconcile_place">Ort</string>
     <string name="reconcile_actual">Ist-Betrag</string>
-    <string name="reconcile_create_booking">Buchung erzeugen (Unbekannt/Sonstiges)</string>
+    <string name="reconcile_create_booking">Buchung erzeugen</string>
+    <string name="reconcile_target_empty">Empfänger/Kategorie festlegen</string>
+    <string name="reconcile_target_title">Empfänger und Kategorie</string>
+    <string name="reconcile_target_payee">Empfänger</string>
+    <string name="reconcile_target_category">Kategorie</string>
+    <string name="reconcile_target_save">Speichern</string>
     <string name="no_places_defined">Bitte zuerst Orte in den Einstellungen anlegen</string>
     <string name="no_movements">Keine Bewegungen</string>
     <string name="movement_booking">Buchung</string>
@@ -303,14 +309,27 @@
     <string name="biometric_no_hardware">Dieses Gerät bietet keine unterstützte Authentifizierungsmethode.</string>
     <string name="import_csv">CSV importieren (kMyMoney)</string>
     <string name="export_all">Kompletter Export auf Nextcloud</string>
-    <string name="backup_db">Datenbank sichern</string>
-    <string name="restore_db">Datenbank wiederherstellen</string>
+    <string name="backup_db">Sicherung erstellen</string>
+    <string name="restore_db">Sicherung einspielen</string>
     <string name="reset_db">Datenbank zurücksetzen</string>
-    <string name="restore_confirm_title">Datenbank wiederherstellen?</string>
-    <string name="restore_confirm_message">Die aktuellen Daten werden durch das Backup ersetzt.</string>
-    <string name="restore_done">Datenbank wiederhergestellt</string>
+    <string name="restore_confirm_title">Sicherung einspielen?</string>
+    <string name="restore_confirm_message">Die gewählten Bereiche werden durch die Sicherung ersetzt.</string>
+    <string name="restore_done">Sicherung eingespielt</string>
     <string name="restore_failed">Wiederherstellung fehlgeschlagen: %1$s</string>
-    <string name="restore_invalid">Keine gültige Datenbank-Datei</string>
+    <string name="restore_invalid">Keine gültige Sicherungsdatei</string>
+    <string name="backup_options_title">Sicherung erstellen</string>
+    <string name="backup_options_message">Gesichert werden alle Daten und alle Einstellungen (Konten, Orte, Farben, Server).</string>
+    <string name="backup_include_password">Server-Passwort mitsichern</string>
+    <string name="backup_password_optional">Sicherungspasswort (leer = ohne)</string>
+    <string name="backup_password_hint">Sicherungspasswort</string>
+    <string name="backup_password_repeat">Wiederholen</string>
+    <string name="backup_password_mismatch">Die Passwörter stimmen nicht überein</string>
+    <string name="restore_what_title">Was soll eingespielt werden?</string>
+    <string name="restore_what_data">Nur Daten</string>
+    <string name="restore_what_settings">Nur Einstellungen</string>
+    <string name="restore_what_both">Daten und Einstellungen</string>
+    <string name="restore_password_title">Sicherung ist verschlüsselt</string>
+    <string name="restore_password_wrong">Passwort falsch oder Datei beschädigt</string>
     <string name="reset_confirm_title">Datenbank zurücksetzen?</string>
     <string name="reset_confirm_message">Alle Buchungen sowie die Konto- und Empfängerlisten werden gelöscht. Einstellungen bleiben erhalten.</string>
     <string name="reset_done">Datenbank zurückgesetzt</string>

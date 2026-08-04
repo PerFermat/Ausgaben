@@ -7,6 +7,7 @@ import android.net.Uri;
 import android.os.Build;
 import android.os.Bundle;
 import android.view.Gravity;
+import android.view.LayoutInflater;
 import android.view.View;
 import android.widget.ArrayAdapter;
 import android.widget.Button;
@@ -32,8 +33,6 @@ import com.google.android.material.textfield.TextInputEditText;
 import com.google.android.material.textfield.TextInputLayout;
 
 import java.io.ByteArrayOutputStream;
-import java.io.File;
-import java.io.FileInputStream;
 import java.io.InputStream;
 import java.io.OutputStream;
 import java.nio.charset.StandardCharsets;
@@ -46,7 +45,9 @@ import java.util.Map;
 
 import de.spahr.ausgaben.AusgabenApp;
 import de.spahr.ausgaben.R;
-import de.spahr.ausgaben.db.AppDatabase;
+import de.spahr.ausgaben.backup.BackupArchive;
+import de.spahr.ausgaben.backup.BackupCrypto;
+import de.spahr.ausgaben.backup.BackupStore;
 import de.spahr.ausgaben.db.Repository;
 import de.spahr.ausgaben.export.ExportCoordinator;
 import de.spahr.ausgaben.net.RemoteStorage;
@@ -112,6 +113,9 @@ public class SettingsActivity extends LocalizedActivity implements SmbWizardCont
     private ActivityResultLauncher<String> notificationPermissionLauncher;
     private ActivityResultLauncher<String> backupLauncher;
     private ActivityResultLauncher<String[]> restoreLauncher;
+    /** Antworten aus dem Sichern-Dialog – gelten bis der Dateiname gewählt ist. */
+    private boolean backupIncludeServerPassword;
+    private String backupPassword = "";
     private ActivityResultLauncher<Uri> exportTreeLauncher;
     private ActivityResultLauncher<String> templateExportLauncher;
     private ActivityResultLauncher<String[]> languageUploadLauncher;
@@ -257,8 +261,7 @@ public class SettingsActivity extends LocalizedActivity implements SmbWizardCont
         MaterialButton btnSave = findViewById(R.id.btnSaveSettings);
         btnSave.setOnClickListener(v -> save());
         ((MaterialButton) findViewById(R.id.btnExportAll)).setOnClickListener(v -> exportAll());
-        ((MaterialButton) findViewById(R.id.btnBackup)).setOnClickListener(
-                v -> backupLauncher.launch("ausgaben-backup-" + timestamp() + ".db"));
+        ((MaterialButton) findViewById(R.id.btnBackup)).setOnClickListener(v -> askBackupOptions());
         ((MaterialButton) findViewById(R.id.btnRestore)).setOnClickListener(v -> confirmRestore());
         ((MaterialButton) findViewById(R.id.btnDeleteAccount)).setOnClickListener(v -> manageAccounts());
         ((MaterialButton) findViewById(R.id.btnReset)).setOnClickListener(v -> confirmReset());
@@ -1043,33 +1046,122 @@ public class SettingsActivity extends LocalizedActivity implements SmbWizardCont
     }
 
     private void confirmRestore() {
-        new MaterialAlertDialogBuilder(this, R.style.ThemeOverlay_Ausgaben_Dialog)
-                .setTitle(R.string.restore_confirm_title)
-                .setMessage(R.string.restore_confirm_message)
-                .setPositiveButton(R.string.restore_db, (d, w) ->
-                        restoreLauncher.launch(new String[]{"application/octet-stream", "application/x-sqlite3", "*/*"}))
-                .setNegativeButton(R.string.cancel, null)
-                .show();
+        // Alles anbieten: je nach Gerät meldet der Dateianbieter ZIP mal als application/zip, mal als
+        // octet-stream, und verschlüsselte Sicherungen (.abk) haben gar keinen bekannten Typ. Ob es eine
+        // Sicherung ist, entscheidet ohnehin der Dateiinhalt (Kopf bzw. Manifest).
+        restoreLauncher.launch(new String[]{"*/*"});
     }
 
+    /**
+     * Sicherung einlesen: bei Bedarf Passwort abfragen, dann fragen, was eingespielt werden soll (Daten,
+     * Einstellungen oder beides) und erst danach die Sicherheitsabfrage stellen.
+     */
     private void doRestore(Uri uri) {
         new Thread(() -> {
             try {
                 byte[] data = readBytes(uri);
-                if (!isSqlite(data)) {
-                    runOnUiThread(() -> Toast.makeText(this, R.string.restore_invalid, Toast.LENGTH_LONG).show());
+                if (BackupCrypto.isEncrypted(data)) {
+                    runOnUiThread(() -> askBackupPassword(data));
                     return;
                 }
-                AppDatabase.closeInstance();
-                File dbFile = getDatabasePath("ausgaben.db");
-                deleteIfExists(dbFile);
-                deleteIfExists(new File(dbFile.getPath() + "-wal"));
-                deleteIfExists(new File(dbFile.getPath() + "-shm"));
-                try (java.io.FileOutputStream out = new java.io.FileOutputStream(dbFile)) {
-                    out.write(data);
+                openRestore(data);
+            } catch (Exception e) {
+                postRestoreError(e);
+            }
+        }).start();
+    }
+
+    /** Passwort der verschlüsselten Sicherung erfragen und die Datei damit öffnen. */
+    private void askBackupPassword(byte[] data) {
+        final TextInputEditText field = new TextInputEditText(this);
+        field.setHint(getString(R.string.backup_password_hint));
+        field.setInputType(android.text.InputType.TYPE_CLASS_TEXT
+                | android.text.InputType.TYPE_TEXT_VARIATION_PASSWORD);
+        int pad = Math.round(24 * getResources().getDisplayMetrics().density);
+        LinearLayout box = new LinearLayout(this);
+        box.setOrientation(LinearLayout.VERTICAL);
+        box.setPadding(pad, pad / 2, pad, 0);
+        box.addView(field);
+        new MaterialAlertDialogBuilder(this, R.style.ThemeOverlay_Ausgaben_Dialog)
+                .setTitle(R.string.restore_password_title)
+                .setView(box)
+                .setPositiveButton(R.string.restore_db, (d, w) -> {
+                    String pw = field.getText() == null ? "" : field.getText().toString();
+                    new Thread(() -> {
+                        byte[] plain;
+                        try {
+                            plain = BackupCrypto.decrypt(data, pw);
+                        } catch (Exception e) {
+                            runOnUiThread(() -> Toast.makeText(this, R.string.restore_password_wrong,
+                                    Toast.LENGTH_LONG).show());
+                            return;
+                        }
+                        try {
+                            openRestore(plain);
+                        } catch (Exception e) {
+                            postRestoreError(e);
+                        }
+                    }).start();
+                })
+                .setNegativeButton(R.string.cancel, null)
+                .show();
+    }
+
+    /** Archiv lesen und die Auswahl anbieten (läuft im Hintergrund-Thread). */
+    private void openRestore(byte[] zip) throws Exception {
+        final BackupArchive.Content content =
+                BackupArchive.read(zip);
+        if (!content.hasData() && !content.hasSettings()) {
+            runOnUiThread(() -> Toast.makeText(this, R.string.restore_invalid, Toast.LENGTH_LONG).show());
+            return;
+        }
+        runOnUiThread(() -> chooseRestoreScope(content));
+    }
+
+    /** „Daten", „Einstellungen" oder „Beides" – nur was die Sicherung auch enthält. */
+    private void chooseRestoreScope(BackupArchive.Content content) {
+        final List<String> labels = new ArrayList<>();
+        final List<Integer> scopes = new ArrayList<>();   // 0 = Daten, 1 = Einstellungen, 2 = beides
+        if (content.hasData()) {
+            labels.add(getString(R.string.restore_what_data));
+            scopes.add(0);
+        }
+        if (content.hasSettings()) {
+            labels.add(getString(R.string.restore_what_settings));
+            scopes.add(1);
+        }
+        if (content.hasData() && content.hasSettings()) {
+            labels.add(getString(R.string.restore_what_both));
+            scopes.add(2);
+        }
+        final int[] choice = {scopes.size() - 1};   // Vorgabe: der umfassendste Eintrag
+        new MaterialAlertDialogBuilder(this, R.style.ThemeOverlay_Ausgaben_Dialog)
+                .setTitle(R.string.restore_what_title)
+                .setSingleChoiceItems(labels.toArray(new String[0]), choice[0], (d, w) -> choice[0] = w)
+                .setPositiveButton(R.string.restore_db, (d, w) ->
+                        confirmAndRestore(content, scopes.get(choice[0])))
+                .setNegativeButton(R.string.cancel, null)
+                .show();
+    }
+
+    private void confirmAndRestore(BackupArchive.Content content, int scope) {
+        new MaterialAlertDialogBuilder(this, R.style.ThemeOverlay_Ausgaben_Dialog)
+                .setTitle(R.string.restore_confirm_title)
+                .setMessage(R.string.restore_confirm_message)
+                .setPositiveButton(R.string.restore_db, (d, w) -> applyRestore(content, scope))
+                .setNegativeButton(R.string.cancel, null)
+                .show();
+    }
+
+    private void applyRestore(BackupArchive.Content content, int scope) {
+        new Thread(() -> {
+            try {
+                if (scope == 0 || scope == 2) {
+                    BackupStore.restoreData(this, content.db);
                 }
-                // Neu öffnen (führt ggf. Migration aus)
-                AppDatabase.getInstance(this);
+                if (scope == 1 || scope == 2) {
+                    BackupStore.restoreSettings(this, content);
+                }
                 runOnUiThread(() -> {
                     Toast.makeText(this, R.string.restore_done, Toast.LENGTH_LONG).show();
                     Intent i = new Intent(this, MainActivity.class);
@@ -1077,32 +1169,15 @@ public class SettingsActivity extends LocalizedActivity implements SmbWizardCont
                     startActivity(i);
                 });
             } catch (Exception e) {
-                String msg = e.getMessage() == null ? e.toString() : e.getMessage();
-                runOnUiThread(() -> Toast.makeText(this,
-                        getString(R.string.restore_failed, msg), Toast.LENGTH_LONG).show());
+                postRestoreError(e);
             }
         }).start();
     }
 
-    private boolean isSqlite(byte[] data) {
-        // SQLite-Magic: "SQLite format 3" gefolgt von einem Null-Byte (16 Bytes).
-        byte[] header = "SQLite format 3".getBytes(StandardCharsets.US_ASCII);
-        if (data.length < header.length + 1) {
-            return false;
-        }
-        for (int i = 0; i < header.length; i++) {
-            if (data[i] != header[i]) {
-                return false;
-            }
-        }
-        return data[header.length] == 0;
-    }
-
-    private void deleteIfExists(File f) {
-        if (f.exists()) {
-            //noinspection ResultOfMethodCallIgnored
-            f.delete();
-        }
+    private void postRestoreError(Exception e) {
+        String msg = e.getMessage() == null ? e.toString() : e.getMessage();
+        runOnUiThread(() -> Toast.makeText(this,
+                getString(R.string.restore_failed, msg), Toast.LENGTH_LONG).show());
     }
 
     private byte[] readBytes(Uri uri) throws Exception {
@@ -1164,23 +1239,45 @@ public class SettingsActivity extends LocalizedActivity implements SmbWizardCont
                 (message, refreshNeeded) -> Toast.makeText(this, message, Toast.LENGTH_LONG).show());
     }
 
+    /**
+     * Vor dem Sichern fragen: Server-Passwort mitsichern? Und soll die Datei mit einem eigenen Passwort
+     * verschlüsselt werden? Erst danach den Dateinamen wählen lassen.
+     */
+    private void askBackupOptions() {
+        View view = LayoutInflater.from(this).inflate(R.layout.dialog_backup_options, null, false);
+        com.google.android.material.checkbox.MaterialCheckBox include =
+                view.findViewById(R.id.backupIncludePassword);
+        TextInputEditText pw = view.findViewById(R.id.backupPassword);
+        TextInputEditText repeat = view.findViewById(R.id.backupPasswordRepeat);
+        AlertDialog dialog =
+                new MaterialAlertDialogBuilder(this, R.style.ThemeOverlay_Ausgaben_Dialog)
+                        .setTitle(R.string.backup_options_title)
+                        .setView(view)
+                        .setPositiveButton(R.string.backup_db, null)   // erst prüfen, dann schließen
+                        .setNegativeButton(R.string.cancel, null)
+                        .create();
+        dialog.setOnShowListener(d -> dialog.getButton(AlertDialog.BUTTON_POSITIVE)
+                .setOnClickListener(v -> {
+                    String p1 = textOf(pw);
+                    if (!p1.equals(textOf(repeat))) {
+                        Toast.makeText(this, R.string.backup_password_mismatch, Toast.LENGTH_LONG).show();
+                        return;
+                    }
+                    backupIncludeServerPassword = include.isChecked();
+                    backupPassword = p1;
+                    dialog.dismiss();
+                    backupLauncher.launch("ausgaben-backup-" + timestamp() + (p1.isEmpty() ? ".zip" : ".abk"));
+                }));
+        dialog.show();
+    }
+
     private void doBackup(Uri uri) {
         new Thread(() -> {
             try {
-                // WAL-Checkpoint erzwingen, damit alle Daten in der Hauptdatei liegen.
-                // Der Cursor muss gelesen werden, sonst führt SQLite das PRAGMA nicht aus.
-                android.database.Cursor cp = AppDatabase.getInstance(this).getOpenHelper()
-                        .getWritableDatabase().query("PRAGMA wal_checkpoint(TRUNCATE)");
-                cp.moveToFirst();
-                cp.close();
-                File dbFile = getDatabasePath("ausgaben.db");
-                try (FileInputStream in = new FileInputStream(dbFile);
-                     OutputStream out = getContentResolver().openOutputStream(uri)) {
-                    byte[] buf = new byte[8192];
-                    int n;
-                    while ((n = in.read(buf)) > 0) {
-                        out.write(buf, 0, n);
-                    }
+                byte[] file = BackupStore.create(this,
+                        backupIncludeServerPassword, backupPassword);
+                try (OutputStream out = getContentResolver().openOutputStream(uri)) {
+                    out.write(file);
                 }
                 runOnUiThread(() -> Toast.makeText(this, R.string.backup_done, Toast.LENGTH_LONG).show());
             } catch (Exception e) {

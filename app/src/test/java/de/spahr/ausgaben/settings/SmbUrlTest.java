@@ -1,6 +1,7 @@
 package de.spahr.ausgaben.settings;
 
 import static org.junit.Assert.assertArrayEquals;
+import static org.junit.Assert.assertEquals;
 
 import org.junit.Test;
 
@@ -49,5 +50,20 @@ public class SmbUrlTest {
                 SettingsStore.parseSmb("smb://nas:99999/public"));
         assertArrayEquals(new String[]{"nas:", "public", "", ""},
                 SettingsStore.parseSmb("smb://nas:/public"));
+    }
+
+    /**
+     * Der Port lässt sich nachträglich korrigieren, ohne dass Freigabe oder Basisordner leiden – das
+     * passiert, wenn die Verbindung nur über den Standardport zustande kam.
+     */
+    @Test
+    public void portCanBeCorrectedInPlace() {
+        assertEquals("smb://nas/public/kmy", SettingsStore.withPort("smb://nas:7777/public/kmy", 0));
+        assertEquals("smb://nas/public/kmy", SettingsStore.withPort("smb://nas:7777/public/kmy", 445));
+        assertEquals("smb://nas:8445/public", SettingsStore.withPort("smb://nas/public", 8445));
+        assertEquals("smb://nas:8445/public", SettingsStore.withPort("smb://nas:7777/public", 8445));
+        assertEquals("smb://nas", SettingsStore.withPort("smb://nas:7777", 0));
+        // Ohne brauchbaren Host bleibt die Eingabe unangetastet.
+        assertEquals("", SettingsStore.withPort("", 445));
     }
 }

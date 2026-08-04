@@ -798,7 +798,10 @@ bullets([
   "werden gemerkt und sofort angezeigt.",
   "<b>2. Anmelden</b>: Benutzername und Passwort des Servers, darüber das Feld <b>«Port»</b> – es bleibt "
   "leer, solange der Server auf dem üblichen SMB-Port 445 lauscht. Meldet er per Bonjour einen anderen "
-  "Port, ist er schon eingetragen. <b>Leerer Benutzer = Gast.</b> Gehört der "
+  "Port, ist er schon eingetragen; antwortet dort niemand, versucht die App zusätzlich den <b>Standardport "
+  "445</b> und korrigiert die gespeicherte Adresse. <b>Leerer Benutzer = Gast.</b> Bei einer Freigabe "
+  "<b>ohne Passwort</b> lassen Sie das Passwortfeld einfach leer – die App arbeitet dann als Gast weiter, "
+  "auch wenn ein Benutzername eingetragen ist. Gehört der "
   "Server einer anderen Arbeitsgruppe als «WORKGROUP» an, ist das Feld bereits mit «ARBEITSGRUPPE\\» "
   "vorbelegt. Das Passwort wird verschlüsselt gespeichert und nie im Klartext angezeigt.",
   "<b>3. Freigabe wählen</b>: nach der Anmeldung liest die App die <b>Freigaben</b> des Servers aus und "
@@ -821,8 +824,28 @@ p("<b>Arbeitsgruppe oder Windows-Domäne:</b> Im Heimnetz heißt die Arbeitsgrup
   "Windows-PC mit lokalem Konto gilt notfalls «RECHNERNAME\\Benutzer».")
 p("Schlägt etwas fehl, nennt der Assistent den Grund konkret: «Server nicht erreichbar», «Benutzername "
   "oder Passwort sind ungültig», «Die ausgewählte Freigabe ist nicht verfügbar» oder «Zugriff auf den "
-  "Ordner wurde verweigert». Steht im Portfeld keine Zahl zwischen 1 und 65535, meldet er das sofort, "
+  "Ordner wurde verweigert» – dazu in Klammern der <b>rohe Statuscode</b> des Servers, damit eine "
+  "Rückmeldung zuzuordnen ist. «Server nicht erreichbar» erscheint nur, solange wirklich noch keine "
+  "Verbindung stand. Steht im Portfeld keine Zahl zwischen 1 und 65535, meldet er das sofort, "
   "ohne einen Verbindungsversuch.")
+h2("Verbindung prüfen (Diagnose)")
+p("Der Knopf <b>«Verbindung prüfen (Diagnose)»</b> – in den Einstellungen <b>und</b> im "
+  "Erststart-Assistenten – geht die ganze Kette in <b>einer</b> Anmeldung durch und zeigt je Schritt, ob "
+  "er geklappt hat, wie lange er gedauert hat und im Fehlerfall den rohen Statuscode:")
+bullets([
+  "<b>Verbinden</b> (mit Hinweis, falls über den Standardport statt des eingetragenen),",
+  "<b>Aushandeln</b>: welcher SMB-Dialekt, ob der Server Signierung verlangt und ob Verschlüsselung "
+  "ausgehandelt wurde,",
+  "<b>Anmelden</b>: als Benutzer oder als Gast, verschlüsselt oder nicht,",
+  "<b>Freigaben lesen</b>, <b>Freigabe öffnen</b>, <b>Ordner lesen</b>,",
+  "<b>Schreiben im Ordner</b> – die App legt eine winzige Testdatei an und löscht sie sofort wieder. Ein "
+  "<b>nur lesbares</b> Verzeichnis fällt sonst erst beim Rückschreiben auf, also nachdem Sie schon "
+  "gebucht haben.",
+  "<b>Datei prüfen</b> und, wenn sie existiert, ob sie <b>beschreibbar</b> ist (nur .kmy-Modus).",
+])
+p("<b>«Bericht kopieren»</b> legt das Ergebnis in die Zwischenablage – gedacht zum Weiterschicken bei "
+  "einer Fehlermeldung. Der Bericht enthält <b>weder Passwort noch Benutzernamen</b> (nur «gesetzt» oder "
+  "«leer»).")
 h2("Export-Modus")
 bullets([
   "<b>.kmy-Modus</b>: schreibt neue Buchungen direkt in die KMyMoney-Datei (inkl. Splits und Umbuchungen) "
@@ -895,7 +918,7 @@ def cover_page(canvas, doc):
     box_x = 7.8*mm + 3*mm
     canvas.setFont("DejaVu-Bold", 13)
     canvas.setFillColor(colors.HexColor("#1b1b1b"))
-    canvas.drawString(box_x, 34.5*mm - 9*mm, "Version 1.6")
+    canvas.drawString(box_x, 34.5*mm - 9*mm, "Version 1.7")
     canvas.setFont("DejaVu", 10)
     canvas.setFillColor(GREY)
     canvas.drawString(box_x, 34.5*mm - 17*mm, "Stand: August 2026")
@@ -906,7 +929,7 @@ def footer(canvas, doc):
     canvas.saveState()
     canvas.setFont("DejaVu", 8)
     canvas.setFillColor(GREY)
-    canvas.drawString(2*cm, 1.2*cm, "Ausgaben · Benutzerhandbuch (Version 1.6)")
+    canvas.drawString(2*cm, 1.2*cm, "Ausgaben · Benutzerhandbuch (Version 1.7)")
     canvas.drawRightString(A4[0]-2*cm, 1.2*cm, "Seite %d" % doc.page)
     canvas.restoreState()
 

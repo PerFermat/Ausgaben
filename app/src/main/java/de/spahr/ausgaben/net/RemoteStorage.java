@@ -44,6 +44,27 @@ public interface RemoteStorage {
         return java.util.Collections.emptyList();
     }
 
+    /** Ordner und Dateien eines Verzeichnisses – das, was ein Datei-Browser pro Schritt braucht. */
+    final class Entries {
+        public final List<String> folders;
+        public final List<String> files;
+
+        public Entries(List<String> folders, List<String> files) {
+            this.folders = folders;
+            this.files = files;
+        }
+    }
+
+    /**
+     * Ordner <b>und</b> Dateien in einem Aufruf. Backends, die je Aufruf eine eigene Verbindung
+     * aufbauen (SMB), sparen damit die Hälfte: der Browser fragte bisher zweimal hintereinander und
+     * meldete sich dafür zweimal an – Server mit Sitzungsgrenzen lehnen die zweite Anmeldung schon mal
+     * ab. Standard: die beiden Einzelmethoden nacheinander.
+     */
+    default Entries listEntries(String folder, String ext) throws IOException {
+        return new Entries(listFolders(folder), listFiles(folder, ext));
+    }
+
     /**
      * Stellt sicher, dass {@code folder} existiert (legt ihn ggf. an). Standard: nichts zu tun – Backends,
      * deren Upload den Ordner ohnehin anlegt (SMB), brauchen keine eigene Implementierung.
@@ -67,8 +88,18 @@ public interface RemoteStorage {
     /** Prüft die Verbindung (Verbinden + Auflisten der Basis); wirft bei Fehler eine {@link IOException}. */
     void testConnection() throws IOException;
 
-    /** Erstellt das passende Backend nach Server-Typ; Zugangsdaten aus den Einstellungen. */
+    /**
+     * Erstellt das passende Backend nach Server-Typ; Zugangsdaten aus den Einstellungen.
+     *
+     * <p>Kam eine SMB-Verbindung nur über den Standardport zustande (der eingetragene Port stammt oft
+     * aus der mDNS-Auskunft des Servers und ist manchmal falsch), wird die gespeicherte Adresse hier
+     * gleich korrigiert – sonst liefe jeder weitere Zugriff wieder in den Fehlversuch.</p>
+     */
     static RemoteStorage from(SettingsStore s) {
+        if (SettingsStore.SERVER_SMB.equals(s.getServerType())) {
+            return new SmbStorage(s.getUrl(), s.getUser(), s.getPassword())
+                    .withPortCorrection(port -> s.setUrl(SettingsStore.withPort(s.getUrl(), port)));
+        }
         return from(s.getServerType(), s.getUrl(), s.getUser(), s.getPassword());
     }
 

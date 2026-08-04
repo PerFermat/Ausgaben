@@ -1759,9 +1759,10 @@ public class MainActivity extends LocalizedActivity {
         Toast.makeText(this, R.string.loading_files, Toast.LENGTH_SHORT).show();
         new Thread(() -> {
             try {
-                RemoteStorage storage = RemoteStorage.from(settings);
-                List<String> folders = storage.listFolders(folder);
-                List<String> files = storage.listFiles(folder, "csv");
+                // Ordner und Dateien in einem Aufruf: SMB meldet sich sonst zweimal hintereinander an.
+                RemoteStorage.Entries entries = RemoteStorage.from(settings).listEntries(folder, "csv");
+                List<String> folders = entries.folders;
+                List<String> files = entries.files;
                 java.util.Collections.sort(folders, String.CASE_INSENSITIVE_ORDER);
                 java.util.Collections.sort(files, String.CASE_INSENSITIVE_ORDER);
                 runOnUiThread(() -> {

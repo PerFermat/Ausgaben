@@ -393,7 +393,8 @@
     <string name="nextcloud_user_hint">Benutzername</string>
     <string name="smb_url_hint">SMB-Freigabe (smb://Host[:Port]/Freigabe)</string>
     <string name="smb_user_hint">Benutzer (optional, leer = Gast; Domäne als DOMÄNE\\Benutzer)</string>
-    <string name="smb_password_hint">Passwort</string>
+    <string name="smb_password_hint">Passwort (leer = ohne Passwort/Gast)</string>
+    <string name="smb_port_corrected">Verbindung über Port %1$d hergestellt; die Adresse wurde angepasst.</string>
     <!-- Assistent für die SMB-Einrichtung -->
     <string name="smb_searching">Suche nach SMB-Servern im Netzwerk…</string>
     <string name="smb_search_none">Es wurden keine SMB-Server gefunden.</string>
@@ -415,6 +416,17 @@
     <string name="smb_err_share">Die ausgewählte Freigabe ist nicht verfügbar.</string>
     <string name="smb_err_port">Der Port muss eine Zahl zwischen 1 und 65535 sein.</string>
     <string name="smb_err_folder_denied">Zugriff auf den Ordner wurde verweigert.</string>
+    <string name="smb_err_guest_signing">Der Server verlangt signierte Verbindungen, hat die Anmeldung aber als Gast eingestuft. Bitte Benutzername und Passwort angeben.</string>
+    <string name="smb_err_encryption">Die Freigabe verlangt Verschlüsselung, die dieser Server so nicht aushandelt (SMB 3 nötig).</string>
+    <string name="smb_err_dfs">Die Freigabe verweist auf ein anderes Ziel (DFS), das nicht erreichbar ist.</string>
+    <string name="smb_err_smb1">Der Server spricht nur SMB1. Bitte am Server SMB2 oder SMB3 aktivieren.</string>
+    <string name="smb_err_unknown">Unerwarteter SMB-Fehler.</string>
+    <string name="smb_diagnose">Verbindung prüfen (Diagnose)</string>
+    <string name="smb_diagnose_running">Diagnose läuft…</string>
+    <string name="smb_diagnose_title">SMB-Diagnose</string>
+    <string name="smb_diagnose_copy">Bericht kopieren</string>
+    <string name="smb_diagnose_copied">Bericht in die Zwischenablage kopiert</string>
+    <string name="dialog_close">Schließen</string>
     <string name="conn_test">Verbindung testen</string>
     <string name="conn_testing">Verbindung wird getestet…</string>
     <string name="conn_ok">Verbindung erfolgreich</string>

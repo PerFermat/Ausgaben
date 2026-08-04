@@ -297,14 +297,25 @@ public class SmbWizardController {
         setBusy(R.string.smb_connecting);
         new Thread(() -> {
             try {
-                com.hierynomus.smbj.SMBClient client = SmbSessions.quickClient();
-                try (com.hierynomus.smbj.connection.Connection c =
-                             SmbSessions.connect(client, h, p)) {
-                    SmbSessions.authenticate(c, user, password);
-                } finally {
-                    client.close();
+                final int used;
+                try (SmbSessions.Link link = SmbSessions.open(h, p, true)) {
+                    SmbSessions.authenticate(link.connection, user, password);
+                    used = link.usedPort;
                 }
-                post(() -> loadShares(user, password));
+                post(() -> {
+                    // Kam die Verbindung nur über 445 zustande, gilt ab jetzt dieser Port – sonst
+                    // stünde in der gespeicherten Adresse weiter der (falsche) gemeldete Port.
+                    if (used != p) {
+                        // 445 ist der Standard und bleibt aus Adresse und Feld heraus.
+                        selectedPort = used == SmbSessions.DEFAULT_PORT ? 0 : used;
+                        prefilledPort = selectedPort;
+                        editPort.setText(portText(selectedPort));
+                        android.widget.Toast.makeText(activity,
+                                activity.getString(R.string.smb_port_corrected, used),
+                                android.widget.Toast.LENGTH_LONG).show();
+                    }
+                    loadShares(user, password);
+                });
             } catch (Exception e) {
                 post(() -> fail(SmbErrors.Step.LOGIN, e, stepLogin));
             }
@@ -355,6 +366,9 @@ public class SmbWizardController {
         rb.setOnClickListener(v -> {
             selectedShare = share;
             editShare.setText(share);   // Auswahl landet im Feld und lässt sich dort noch ändern
+            // Sofort übernehmen: „.kmy auswählen" arbeitet mit den Feldern der Activity und würde
+            // sonst noch die alte Adresse benutzen – bis dahin ein Fehler ohne erkennbaren Grund.
+            apply();
         });
         shareList.addView(rb);
     }
@@ -362,16 +376,28 @@ public class SmbWizardController {
     // ------------------------------------------------------------ Speichern
 
     private void saveConfig() {
-        // Das Feld gewinnt: es zeigt die Auswahl an, kann aber von Hand überschrieben werden.
-        selectedShare = textOf(editShare).isEmpty() ? selectedShare : textOf(editShare);
-        if (selectedShare.isEmpty()) {
+        String url = apply();
+        if (url.isEmpty()) {
             showError(activity.getString(R.string.smb_err_share));
             return;
+        }
+        showDone(url);
+    }
+
+    /**
+     * Übernimmt Host/Port/Freigabe in die Einstellungen und liefert die gebaute Adresse (leer, wenn
+     * noch keine Freigabe feststeht). Wird sowohl beim Antippen einer Freigabe als auch beim
+     * „Speichern" aufgerufen – das Feld gewinnt, es kann von Hand überschrieben werden.
+     */
+    private String apply() {
+        selectedShare = textOf(editShare).isEmpty() ? selectedShare : textOf(editShare);
+        if (selectedShare.isEmpty()) {
+            return "";
         }
         String address = selectedPort > 0 ? selectedHost + ":" + selectedPort : selectedHost;
         String url = "smb://" + address + "/" + selectedShare;
         host.onSmbConfigured(url, textOf(editUser), textOf(editPassword));
-        showDone(url);
+        return url;
     }
 
     private void showDone(String url) {

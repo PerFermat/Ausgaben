@@ -117,6 +117,8 @@ public class OnboardingActivity extends LocalizedActivity implements SmbWizardCo
 
         ((MaterialButton) findViewById(R.id.btnTestConnection))
                 .setOnClickListener(v -> testConnection());
+        ((MaterialButton) findViewById(R.id.btnSmbDiagnose))
+                .setOnClickListener(v -> runSmbDiagnostics());
         findViewById(R.id.btnSmbSearch).setOnClickListener(v -> {
             smbWizard.restart();
             applyServerTypeHints();
@@ -234,6 +236,9 @@ public class OnboardingActivity extends LocalizedActivity implements SmbWizardCo
         userLayout.setVisibility(fields);
         passwordLayout.setVisibility(fields);
         findViewById(R.id.btnTestConnection).setVisibility(fields);
+        // Die Diagnose gilt der eingerichteten Verbindung – gerade beim Erststart ist sie das
+        // Werkzeug, mit dem man überhaupt herausfindet, woran es hakt.
+        findViewById(R.id.btnSmbDiagnose).setVisibility(smb ? View.VISIBLE : View.GONE);
         // Rückweg zum Assistenten nur, solange SMB gewählt und gerade manuell eingegeben wird.
         findViewById(R.id.btnSmbSearch).setVisibility(smb && !wizard ? View.VISIBLE : View.GONE);
         smbWizard.setVisible(wizard);
@@ -322,6 +327,21 @@ public class OnboardingActivity extends LocalizedActivity implements SmbWizardCo
         }).start();
     }
 
+    /**
+     * SMB-Diagnose: läuft die ganze Kette in einer Anmeldung durch und zeigt je Schritt Ergebnis und
+     * rohen Statuscode – beim Erststart die schnellste Antwort auf „warum geht es nicht?".
+     */
+    private void runSmbDiagnostics() {
+        String pw = textOf(editPassword);
+        // Geprüft wird der Ordner, in den die App wirklich schreibt: im .kmy-Modus der Ordner der
+        // Datei (samt Datei), im CSV-Modus der Export-Ordner.
+        boolean kmy = SettingsStore.MODE_KMY.equals(selectedExportMode);
+        String path = kmy ? textOf(editKmyPath) : textOf(editFolder);
+        SmbDiagnosticsDialog.run(this, textOf(editUrl), textOf(editUser),
+                pw.isEmpty() ? settings.getPassword() : pw,
+                kmy ? folderOf(path) : path, kmy ? fileOf(path) : "");
+    }
+
     private void browseKmy() {
         browseKmyAt(folderOf(textOf(editKmyPath)));
     }
@@ -335,9 +355,11 @@ public class OnboardingActivity extends LocalizedActivity implements SmbWizardCo
         Toast.makeText(this, R.string.loading_files, Toast.LENGTH_SHORT).show();
         new Thread(() -> {
             try {
-                RemoteStorage storage = RemoteStorage.from(serverType, url, user, password);
-                List<String> folders = storage.listFolders(folder);
-                List<String> files = storage.listFiles(folder, "kmy");
+                // Ordner und Dateien in einem Aufruf: SMB meldet sich sonst zweimal hintereinander an.
+                RemoteStorage.Entries entries = RemoteStorage.from(serverType, url, user, password)
+                        .listEntries(folder, "kmy");
+                List<String> folders = entries.folders;
+                List<String> files = entries.files;
                 java.util.Collections.sort(folders, String.CASE_INSENSITIVE_ORDER);
                 java.util.Collections.sort(files, String.CASE_INSENSITIVE_ORDER);
                 runOnUiThread(() -> {

@@ -393,7 +393,8 @@
     <string name="nextcloud_user_hint">Username</string>
     <string name="smb_url_hint">SMB share (smb://host[:port]/share)</string>
     <string name="smb_user_hint">User (optional, empty = guest; domain as DOMAIN\\user)</string>
-    <string name="smb_password_hint">Password</string>
+    <string name="smb_password_hint">Password (empty = no password/guest)</string>
+    <string name="smb_port_corrected">Connected via port %1$d; the address has been adjusted.</string>
     <!-- SMB setup wizard -->
     <string name="smb_searching">Searching for SMB servers on the network…</string>
     <string name="smb_search_none">No SMB servers found.</string>
@@ -415,6 +416,17 @@
     <string name="smb_err_share">The selected share is not available.</string>
     <string name="smb_err_port">The port must be a number between 1 and 65535.</string>
     <string name="smb_err_folder_denied">Access to the folder was denied.</string>
+    <string name="smb_err_guest_signing">The server requires signed connections but treated the login as guest. Please enter a user name and password.</string>
+    <string name="smb_err_encryption">The share requires encryption that this server does not negotiate (SMB 3 needed).</string>
+    <string name="smb_err_dfs">The share points to another target (DFS) that cannot be reached.</string>
+    <string name="smb_err_smb1">The server only speaks SMB1. Please enable SMB2 or SMB3 on the server.</string>
+    <string name="smb_err_unknown">Unexpected SMB error.</string>
+    <string name="smb_diagnose">Check connection (diagnostics)</string>
+    <string name="smb_diagnose_running">Running diagnostics…</string>
+    <string name="smb_diagnose_title">SMB diagnostics</string>
+    <string name="smb_diagnose_copy">Copy report</string>
+    <string name="smb_diagnose_copied">Report copied to the clipboard</string>
+    <string name="dialog_close">Close</string>
     <string name="conn_test">Test connection</string>
     <string name="conn_testing">Testing connection…</string>
     <string name="conn_ok">Connection successful</string>

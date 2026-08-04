@@ -13,50 +13,95 @@ import de.spahr.ausgaben.R;
 /**
  * Übersetzt die Ausnahmen der SMB-Schicht in Meldungen, die dem Benutzer sagen, was zu tun ist –
  * statt der rohen smbj-Texte („Authentication failed for …", „STATUS_BAD_NETWORK_NAME").
+ *
+ * <p>Zwei Regeln, aus einem Fehlerbericht gelernt: „Server nicht erreichbar" darf nur kommen, wenn
+ * wirklich noch keine Verbindung stand – wer schon Freigaben gesehen hat, wird von diesem Satz in die
+ * Irre geschickt. Und der <b>rohe Grund</b> hängt immer hinten dran, damit ein Bericht aus der Ferne
+ * überhaupt zuzuordnen ist.</p>
  */
 public final class SmbErrors {
 
     /** In welchem Schritt der Fehler auftrat; entscheidet über die Deutung von „Zugriff verweigert". */
     public enum Step { CONNECT, LOGIN, SHARE, FOLDER }
 
+    /** Länge des angehängten Rohtexts – genug für einen Statuscode, kurz genug für einen Toast. */
+    private static final int RAW_LIMIT = 120;
+
     private SmbErrors() {
     }
 
     public static String messageFor(Context context, Step step, Throwable error) {
+        return withRaw(context.getString(reasonFor(step, error)), textOf(error));
+    }
+
+    /**
+     * Die passende Textressource – ohne den angehängten Rohtext. Getrennt, damit die Auswahl in
+     * {@code SmbErrorsTest} ohne Android-Ressourcen prüfbar bleibt.
+     */
+    static int reasonFor(Step step, Throwable error) {
         String raw = textOf(error);
         String upper = raw.toUpperCase(java.util.Locale.ROOT);
-        if (hasCause(error, UnknownHostException.class, SocketTimeoutException.class,
+        // Ab SHARE steht die Verbindung nachweislich – dann ist „nicht erreichbar" schlicht falsch.
+        boolean connected = step == Step.SHARE || step == Step.FOLDER;
+        if (!connected && (hasCause(error, UnknownHostException.class, SocketTimeoutException.class,
                 ConnectException.class, NoRouteToHostException.class)
                 || upper.contains("STATUS_IO_TIMEOUT")
-                || upper.contains("STATUS_BAD_NETWORK_PATH")) {
-            return context.getString(R.string.smb_err_unreachable);
+                || upper.contains("STATUS_BAD_NETWORK_PATH"))) {
+            return R.string.smb_err_unreachable;
         }
         if (upper.contains("STATUS_LOGON_FAILURE") || upper.contains("STATUS_ACCOUNT_")
                 || upper.contains("STATUS_PASSWORD_") || upper.contains("STATUS_WRONG_PASSWORD")
                 || upper.contains("STATUS_NO_SUCH_USER") || upper.contains("AUTHENTICATION")) {
-            return context.getString(R.string.smb_err_credentials);
+            return R.string.smb_err_credentials;
+        }
+        // Der Server verlangt Signierung, hat die Anmeldung aber als Gast eingestuft.
+        if (upper.contains("GUESTSIGNINGREQUIRED") || upper.contains("SMB2GUEST")) {
+            return R.string.smb_err_guest_signing;
+        }
+        if (upper.contains("ENCRYPTION IS REQUIRED") || upper.contains("STATUS_DATA_ERROR")
+                || upper.contains("NO ENCRYPTION KEY")) {
+            return R.string.smb_err_encryption;
+        }
+        if (upper.contains("STATUS_PATH_NOT_COVERED") || upper.contains("STATUS_DFS_")) {
+            return R.string.smb_err_dfs;
+        }
+        // smbj spricht kein SMB1: ein Server ohne SMB2/3 scheitert schon beim Aushandeln.
+        if (upper.contains("SMB1") || upper.contains("NOT AN SMB2")
+                || upper.contains("NO SUPPORTED DIALECT") || upper.contains("COULD NOT NEGOTIATE")) {
+            return R.string.smb_err_smb1;
         }
         if (upper.contains("STATUS_BAD_NETWORK_NAME") || upper.contains("STATUS_OBJECT_PATH_NOT_FOUND")
                 || upper.contains("STATUS_NETWORK_NAME_DELETED")) {
-            return context.getString(R.string.smb_err_share);
+            return R.string.smb_err_share;
         }
         if (upper.contains("STATUS_ACCESS_DENIED") || upper.contains("STATUS_SHARING_VIOLATION")) {
-            return context.getString(step == Step.FOLDER || step == Step.SHARE
-                    ? R.string.smb_err_folder_denied : R.string.smb_err_credentials);
+            return connected ? R.string.smb_err_folder_denied : R.string.smb_err_credentials;
         }
         switch (step) {
             case CONNECT:
-                return context.getString(R.string.smb_err_unreachable);
+                return R.string.smb_err_unreachable;
             case LOGIN:
-                return context.getString(R.string.smb_err_credentials);
+                return R.string.smb_err_credentials;
             case SHARE:
-                return context.getString(R.string.smb_err_share);
+                return R.string.smb_err_share;
             default:
-                return context.getString(R.string.conn_failed, raw);
+                return R.string.smb_err_unknown;
         }
     }
 
-    private static String textOf(Throwable error) {
+    /** Hängt den rohen Grund in Klammern an – einzeilig und gekürzt. */
+    static String withRaw(String message, String raw) {
+        String one = raw.replaceAll("\\s+", " ").trim();
+        if (one.isEmpty() || message.contains(one)) {
+            return message;
+        }
+        if (one.length() > RAW_LIMIT) {
+            one = one.substring(0, RAW_LIMIT) + "…";
+        }
+        return message + " (" + one + ")";
+    }
+
+    static String textOf(Throwable error) {
         StringBuilder sb = new StringBuilder();
         for (Throwable t = error; t != null && sb.length() < 500; t = t.getCause()) {
             if (t.getMessage() != null) {

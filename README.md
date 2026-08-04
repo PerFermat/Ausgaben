@@ -160,7 +160,20 @@ folder you choose.
   port 445), then you log in, pick one of the **shares** it lists and browse to the target folder; that
   becomes `smb://host/share/folder`. Empty user = guest, a Windows domain as `DOMAIN\user`, SMB2/3.
   If the server does not listen on the default port 445, enter the port in the wizard or put it into the
-  address (`smb://host:7777/share`). "Enter server manually" still allows typing the address yourself.
+  address (`smb://host:7777/share`). If nothing answers there, the app also tries the **default port
+  445** and corrects the stored address — a port picked up from the server's own mDNS announcement can
+  no longer lead you astray. "Enter server manually" still allows typing the address yourself.
+  **Shares without a password**: leave the password field empty and the app continues as guest, even
+  with a user name filled in. Only if you do enter a password and are still downgraded to guest do you
+  get an error (the guard against silent guest downgrades).
+  Shares with **SMB3 encryption** (`smb encrypt = required`), **DFS** and purely **anonymous** shares
+  work as well; if the server requires signing, traffic is signed.
+- **Diagnostics**: the button "Check connection (diagnostics)" — in the settings **and** in the
+  first-start wizard — walks the whole chain (connect → negotiate → log in → shares → share → read
+  folder → **write permission** → file) and shows, per step, the result, the duration and — on
+  failure — the raw status code. It also checks that the target folder is **writable**: a read-only
+  directory would otherwise only surface when writing back. The report can be copied and contains
+  neither the password nor the user name.
 
 ## License
 

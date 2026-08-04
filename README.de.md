@@ -160,8 +160,21 @@ lokal in einen selbst gewählten Ordner exportiert.
   NetBIOS und Port 445), danach anmelden, aus den gefundenen **Freigaben** wählen und den Zielordner
   durchklicken; gespeichert wird daraus `smb://Host/Freigabe/Ordner`. Leerer Benutzer = Gast, Domäne als
   `DOMÄNE\Benutzer`, SMB2/3. Lauscht der Server nicht auf dem Standardport 445, trägt man den Port im
-  Assistenten ein bzw. schreibt ihn in die Adresse (`smb://Host:7777/Freigabe`).
+  Assistenten ein bzw. schreibt ihn in die Adresse (`smb://Host:7777/Freigabe`). Antwortet dort
+  niemand, versucht die App zusätzlich den **Standardport 445** und korrigiert die gespeicherte
+  Adresse – ein aus der Server-Auskunft (mDNS) übernommener Port führt so nicht mehr in die Irre.
   Über „Server manuell eingeben" bleibt die Adresseingabe von Hand möglich.
+  **Passwortlose Freigaben**: Passwortfeld leer lassen – die App arbeitet dann als Gast weiter, auch
+  wenn ein Benutzername eingetragen ist. Nur wer ein Passwort eingibt und trotzdem als Gast
+  eingestuft wird, bekommt weiterhin eine Fehlermeldung (Schutz vor stiller Gast-Herabstufung).
+  Unterstützt werden auch Freigaben mit **SMB3-Verschlüsselung** (`smb encrypt = required`), **DFS**
+  und rein **anonyme** Freigaben; verlangt der Server Signierung, wird signiert.
+- **Diagnose**: Der Knopf „Verbindung prüfen (Diagnose)" – in den Einstellungen **und** im
+  Erststart-Assistenten – geht die ganze Kette durch (Verbinden → Aushandeln → Anmelden → Freigaben →
+  Freigabe → Ordner lesen → **Schreibrecht** → Datei) und zeigt je Schritt Ergebnis, Dauer und – im
+  Fehlerfall – den rohen Statuscode. Geprüft wird auch, ob der Zielordner **beschreibbar** ist: ein
+  nur lesbares Verzeichnis fällt sonst erst beim Rückschreiben auf. Der Bericht lässt sich kopieren
+  und enthält weder Passwort noch Benutzernamen.
 
 ## Lizenz
 

@@ -4,8 +4,6 @@ import com.hierynomus.msdtyp.AccessMask;
 import com.hierynomus.mssmb2.SMB2CreateDisposition;
 import com.hierynomus.mssmb2.SMB2ImpersonationLevel;
 import com.hierynomus.mssmb2.SMB2ShareAccess;
-import com.hierynomus.smbj.SMBClient;
-import com.hierynomus.smbj.connection.Connection;
 import com.hierynomus.smbj.session.Session;
 import com.hierynomus.smbj.share.NamedPipe;
 import com.hierynomus.smbj.share.PipeShare;
@@ -64,38 +62,47 @@ public final class SmbShares {
     /** Wie {@link #list(String, String, String)}, aber mit eigenem Port ({@code 0} = Standard 445). */
     public static List<String> list(String host, int port, String user, String password)
             throws IOException {
-        SMBClient client = SmbSessions.quickClient();
-        try (Connection connection = SmbSessions.connect(client, host, port)) {
-            Session session = SmbSessions.authenticate(connection, user, password);
-            try (PipeShare ipc = (PipeShare) session.connectShare("IPC$")) {
-                NamedPipe pipe = ipc.open("srvsvc", SMB2ImpersonationLevel.Impersonation,
-                        EnumSet.of(AccessMask.GENERIC_READ, AccessMask.GENERIC_WRITE), null,
-                        SMB2ShareAccess.ALL, SMB2CreateDisposition.FILE_OPEN, null);
-                try {
-                    byte[] bindAck = transact(pipe, buildBind(1));
-                    if (pduType(bindAck) != PTYPE_BIND_ACK) {
-                        throw new IOException("srvsvc: unerwartete Antwort auf den Bind: " + hex(bindAck));
-                    }
-                    byte[] stub = stubOf(transact(pipe, buildEnumRequest(2, host)));
-                    List<Entry> entries = parseEnumResponse(stub);
-                    List<String> names = new ArrayList<>();
-                    for (Entry e : entries) {
-                        if ((e.type & STYPE_SPECIAL) == 0 && (e.type & STYPE_MASK) == STYPE_DISKTREE) {
-                            names.add(e.name);
-                        }
-                    }
-                    java.util.Collections.sort(names, String.CASE_INSENSITIVE_ORDER);
-                    return names;
-                } finally {
-                    pipe.close();
+        try (SmbSessions.Link link = SmbSessions.open(host, port, true)) {
+            Session session = SmbSessions.authenticate(link.connection, user, password);
+            return listOn(session, host);
+        } catch (IOException e) {
+            throw e;
+        } catch (Exception e) {
+            throw new IOException(e.getMessage() == null ? e.toString() : e.getMessage(), e);
+        }
+    }
+
+    /**
+     * Freigaben über eine <b>bestehende</b> Sitzung auflisten – so kann die Diagnose die ganze Kette
+     * in einer einzigen Anmeldung durchlaufen.
+     */
+    public static List<String> listOn(Session session, String host) throws IOException {
+        try (PipeShare ipc = (PipeShare) session.connectShare("IPC$")) {
+            NamedPipe pipe = ipc.open("srvsvc", SMB2ImpersonationLevel.Impersonation,
+                    EnumSet.of(AccessMask.GENERIC_READ, AccessMask.GENERIC_WRITE), null,
+                    SMB2ShareAccess.ALL, SMB2CreateDisposition.FILE_OPEN, null);
+            try {
+                byte[] bindAck = transact(pipe, buildBind(1));
+                if (pduType(bindAck) != PTYPE_BIND_ACK) {
+                    throw new IOException("srvsvc: unerwartete Antwort auf den Bind: " + hex(bindAck));
                 }
+                byte[] stub = stubOf(transact(pipe, buildEnumRequest(2, host)));
+                List<Entry> entries = parseEnumResponse(stub);
+                List<String> names = new ArrayList<>();
+                for (Entry e : entries) {
+                    if ((e.type & STYPE_SPECIAL) == 0 && (e.type & STYPE_MASK) == STYPE_DISKTREE) {
+                        names.add(e.name);
+                    }
+                }
+                java.util.Collections.sort(names, String.CASE_INSENSITIVE_ORDER);
+                return names;
+            } finally {
+                pipe.close();
             }
         } catch (IOException e) {
             throw e;
         } catch (Exception e) {
             throw new IOException(e.getMessage() == null ? e.toString() : e.getMessage(), e);
-        } finally {
-            client.close();
         }
     }
 

@@ -5,8 +5,6 @@ import com.hierynomus.msfscc.FileAttributes;
 import com.hierynomus.msfscc.fileinformation.FileIdBothDirectoryInformation;
 import com.hierynomus.mssmb2.SMB2CreateDisposition;
 import com.hierynomus.mssmb2.SMB2ShareAccess;
-import com.hierynomus.smbj.SMBClient;
-import com.hierynomus.smbj.connection.Connection;
 import com.hierynomus.smbj.session.Session;
 import com.hierynomus.smbj.share.DiskShare;
 
@@ -36,6 +34,13 @@ public class SmbStorage implements RemoteStorage {
     private final String base;
     private final String user;
     private final String password;
+    /** Wird gerufen, wenn die Verbindung nur über einen anderen Port als den eingetragenen zustande kam. */
+    private PortCorrection portCorrection;
+
+    /** Rückmeldung eines abweichenden Ports, damit die Einstellungen ihn übernehmen können. */
+    public interface PortCorrection {
+        void onPortChanged(int usedPort);
+    }
 
     public SmbStorage(String url, String user, String password) {
         String[] parts = SettingsStore.parseSmb(url);
@@ -47,6 +52,12 @@ public class SmbStorage implements RemoteStorage {
         this.password = password == null ? "" : password;
     }
 
+    /** Meldet abweichende Ports an den Aufrufer; {@code null} = niemand hört zu. */
+    public SmbStorage withPortCorrection(PortCorrection correction) {
+        this.portCorrection = correction;
+        return this;
+    }
+
     private interface Action<T> {
         T run(DiskShare share) throws Exception;
     }
@@ -55,11 +66,13 @@ public class SmbStorage implements RemoteStorage {
         if (host.isEmpty() || share.isEmpty()) {
             throw new IOException("SMB: Host/Freigabe fehlt (smb://Host/Freigabe)");
         }
-        SMBClient client = de.spahr.ausgaben.net.smb.SmbSessions.client();
-        try (Connection connection =
-                     de.spahr.ausgaben.net.smb.SmbSessions.connect(client, host, port)) {
-            Session session =
-                    de.spahr.ausgaben.net.smb.SmbSessions.authenticate(connection, user, password);
+        try (de.spahr.ausgaben.net.smb.SmbSessions.Link link =
+                     de.spahr.ausgaben.net.smb.SmbSessions.open(host, port, false)) {
+            if (portCorrection != null && link.usedPort != port) {
+                portCorrection.onPortChanged(link.usedPort);
+            }
+            Session session = de.spahr.ausgaben.net.smb.SmbSessions.authenticate(
+                    link.connection, user, password);
             try (DiskShare disk = (DiskShare) session.connectShare(share)) {
                 return action.run(disk);
             }
@@ -67,8 +80,6 @@ public class SmbStorage implements RemoteStorage {
             throw e;
         } catch (Exception e) {
             throw new IOException(e.getMessage() == null ? e.toString() : e.getMessage(), e);
-        } finally {
-            client.close();
         }
     }
 
@@ -144,44 +155,38 @@ public class SmbStorage implements RemoteStorage {
 
     @Override
     public List<String> listFiles(String folder, String ext) throws IOException {
-        final String dir = joinPath(base, folder);
-        final String suffix = "." + ext.toLowerCase();
-        return withShare(disk -> {
-            List<String> names = new ArrayList<>();
-            long dirFlag = FileAttributes.FILE_ATTRIBUTE_DIRECTORY.getValue();
-            for (FileIdBothDirectoryInformation info : disk.list(dir)) {
-                String name = info.getFileName();
-                if (name == null || name.equals(".") || name.equals("..")) {
-                    continue;
-                }
-                if ((info.getFileAttributes() & dirFlag) != 0) {
-                    continue;
-                }
-                if (name.toLowerCase().endsWith(suffix)) {
-                    names.add(name);
-                }
-            }
-            return names;
-        });
+        return withShare(disk -> collect(disk, joinPath(base, folder), ext).files);
     }
 
     @Override
     public List<String> listFolders(String folder) throws IOException {
-        final String dir = joinPath(base, folder);
-        return withShare(disk -> {
-            List<String> names = new ArrayList<>();
-            long dirFlag = FileAttributes.FILE_ATTRIBUTE_DIRECTORY.getValue();
-            for (FileIdBothDirectoryInformation info : disk.list(dir)) {
-                String name = info.getFileName();
-                if (name == null || name.equals(".") || name.equals("..")) {
-                    continue;
-                }
-                if ((info.getFileAttributes() & dirFlag) != 0) {
-                    names.add(name);
-                }
+        return withShare(disk -> collect(disk, joinPath(base, folder), "").folders);
+    }
+
+    /** Ordner und Dateien in <b>einer</b> Verbindung – der Datei-Browser braucht immer beides. */
+    @Override
+    public Entries listEntries(String folder, String ext) throws IOException {
+        return withShare(disk -> collect(disk, joinPath(base, folder), ext));
+    }
+
+    /** Ein Verzeichnis lesen und in Ordner/Dateien trennen; leere {@code ext} = keine Dateien. */
+    private static Entries collect(DiskShare disk, String dir, String ext) {
+        List<String> folders = new ArrayList<>();
+        List<String> files = new ArrayList<>();
+        String suffix = ext.isEmpty() ? "" : "." + ext.toLowerCase();
+        long dirFlag = FileAttributes.FILE_ATTRIBUTE_DIRECTORY.getValue();
+        for (FileIdBothDirectoryInformation info : disk.list(dir)) {
+            String name = info.getFileName();
+            if (name == null || name.equals(".") || name.equals("..")) {
+                continue;
             }
-            return names;
-        });
+            if ((info.getFileAttributes() & dirFlag) != 0) {
+                folders.add(name);
+            } else if (!suffix.isEmpty() && name.toLowerCase().endsWith(suffix)) {
+                files.add(name);
+            }
+        }
+        return new Entries(folders, files);
     }
 
     @Override

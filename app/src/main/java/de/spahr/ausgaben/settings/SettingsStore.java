@@ -123,6 +123,11 @@ public class SettingsStore {
         return prefs.getString(KEY_URL, "").trim();
     }
 
+    /** Nur die Adresse ändern (z. B. korrigierter SMB-Port); alles andere bleibt stehen. */
+    public void setUrl(String url) {
+        prefs.edit().putString(KEY_URL, url == null ? "" : url.trim()).apply();
+    }
+
     public String getUser() {
         return prefs.getString(KEY_USER, "").trim();
     }
@@ -205,6 +210,29 @@ public class SettingsStore {
             host = host.substring(0, colon);
         }
         return new String[]{host, share, base, port};
+    }
+
+    /**
+     * Setzt in einer SMB-Adresse den Port neu; {@code 0} oder 445 lassen ihn ganz weg (Standardport).
+     * Freigabe und Basisordner bleiben unverändert – gebraucht, wenn die Verbindung nur über den
+     * Standardport zustande kam und die gespeicherte Adresse das künftig widerspiegeln soll.
+     */
+    public static String withPort(String url, int port) {
+        String[] parts = parseSmb(url);
+        if (parts[0].isEmpty()) {
+            return url == null ? "" : url.trim();
+        }
+        StringBuilder sb = new StringBuilder("smb://").append(parts[0]);
+        if (port > 0 && port != 445) {
+            sb.append(':').append(port);
+        }
+        if (!parts[1].isEmpty()) {
+            sb.append('/').append(parts[1]);
+        }
+        if (!parts[2].isEmpty()) {
+            sb.append('/').append(parts[2]);
+        }
+        return sb.toString();
     }
 
     /** true, wenn {@code text} nur aus Ziffern besteht und eine gültige Portnummer ergibt. */

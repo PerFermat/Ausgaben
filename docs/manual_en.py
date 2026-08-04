@@ -754,7 +754,10 @@ bullets([
   "again»</b> restarts the scan; the servers found last time are remembered and shown right away.",
   "<b>2. Log in</b>: username and password of the server, with a <b>«Port»</b> field above them – leave it "
   "empty as long as the server listens on the usual SMB port 445. If it announces a different port over "
-  "Bonjour, that port is already filled in. <b>An empty user means guest.</b> If the server "
+  "Bonjour, that port is already filled in; if nothing answers there, the app also tries the <b>default "
+  "port 445</b> and corrects the stored address. <b>An empty user means guest.</b> For a share "
+  "<b>without a password</b> simply leave the password field empty – the app then continues as guest, even "
+  "with a user name filled in. If the server "
   "belongs to a workgroup other than «WORKGROUP», the field is pre-filled with «WORKGROUP\\». The "
   "password is stored encrypted and never shown in clear text.",
   "<b>3. Pick the share</b>: after logging in the app reads the server's <b>shares</b> and offers them for "
@@ -773,8 +776,27 @@ p("<b>Workgroup or Windows domain:</b> at home the workgroup is usually called �
   "«user@domain.local»). Without the domain the login may fail with «Username or password is invalid» even "
   "though the password is correct. For a Windows PC with a local account, «COMPUTERNAME\\user» helps.")
 p("If something fails, the wizard names the reason: «Server not reachable», «Username or password is "
-  "invalid», «The selected share is not available» or «Access to the folder was denied». If the port field "
+  "invalid», «The selected share is not available» or «Access to the folder was denied» – followed, in "
+  "brackets, by the server's <b>raw status code</b>, so a report can actually be traced. «Server not "
+  "reachable» only ever appears while no connection has been established yet. If the port field "
   "does not hold a number between 1 and 65535, it says so right away without trying to connect.")
+h2("Check connection (diagnostics)")
+p("The button <b>«Check connection (diagnostics)»</b> – in the settings <b>and</b> in the first-start "
+  "wizard – walks the whole chain in <b>one</b> login and shows, for every step, whether it worked, how "
+  "long it took and, on failure, the raw status code:")
+bullets([
+  "<b>Connect</b> (noting it if the default port was used instead of the configured one),",
+  "<b>Negotiate</b>: which SMB dialect, whether the server requires signing and whether encryption was "
+  "negotiated,",
+  "<b>Log in</b>: as a user or as guest, encrypted or not,",
+  "<b>Read shares</b>, <b>open share</b>, <b>read folder</b>,",
+  "<b>Write in the folder</b> – the app creates a tiny test file and deletes it right away. A "
+  "<b>read-only</b> directory would otherwise only surface when writing back, that is after you have "
+  "already recorded bookings.",
+  "<b>Check the file</b> and, if it exists, whether it is <b>writable</b> (.kmy mode only).",
+])
+p("<b>«Copy report»</b> puts the result on the clipboard – meant for sending along with a bug report. The "
+  "report contains <b>neither the password nor the user name</b> (only «set» or «empty»).")
 h2("Export mode")
 bullets([
   "<b>.kmy mode</b>: writes new bookings straight into the KMyMoney file (including splits and transfers) "
@@ -845,7 +867,7 @@ def cover_page(canvas, doc):
     box_x = 7.8*mm + 3*mm
     canvas.setFont("DejaVu-Bold", 13)
     canvas.setFillColor(colors.HexColor("#1b1b1b"))
-    canvas.drawString(box_x, 34.5*mm - 9*mm, "Version 1.6")
+    canvas.drawString(box_x, 34.5*mm - 9*mm, "Version 1.7")
     canvas.setFont("DejaVu", 10)
     canvas.setFillColor(GREY)
     canvas.drawString(box_x, 34.5*mm - 17*mm, "Updated: August 2026")
@@ -855,7 +877,7 @@ def cover_page(canvas, doc):
 def footer(canvas, doc):
     canvas.saveState()
     canvas.setFont("DejaVu", 8); canvas.setFillColor(GREY)
-    canvas.drawString(2*cm, 1.2*cm, "Ausgaben · User Manual (Version 1.6)")
+    canvas.drawString(2*cm, 1.2*cm, "Ausgaben · User Manual (Version 1.7)")
     canvas.drawRightString(A4[0]-2*cm, 1.2*cm, "Page %d" % doc.page)
     canvas.restoreState()
 

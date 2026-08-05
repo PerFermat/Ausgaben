@@ -333,6 +333,37 @@ p("The reference to the image is stored in the note as a <b>«BELEG: …»</b> t
   "re-import</b>. In the editor the note field shows only your free text; <b>GPS and the receipt appear as two "
   "separate read-only rows below it</b>, each with an icon – the map icon opens the location, the receipt icon "
   "opens the photo (view) or the camera/gallery chooser (edit).")
+h2("Multi-page receipts")
+p("A booking can hold <b>several pages</b> – for the second half of a till roll or an invoice spanning "
+  "multiple sheets. The camera icon in the receipt row <b>appends another page</b> every time; while "
+  "editing, each page gets its own line with crop and delete. When merely <b>viewing</b> a booking one line "
+  "is enough: on the right sits one image icon per page – tapping it opens that very image.")
+p("All pages of a booking share <b>the same UUID</b> and differ only by the suffix «_p1», «_p2» and so on. "
+  "The note – and therefore the KMyMoney memo – only holds <b>«BELEG: &lt;uuid&gt;»</b>; the app looks for "
+  "the pages itself, first in the phone's receipt folder, then on the network share. Older receipts without "
+  "a page suffix count as page 1 and are not renamed; a new shot added to them becomes page 2.")
+p("The images are uploaded into a <b>«Belege»</b> folder with one subfolder per year. It sits <b>next to the "
+  "KMyMoney file</b> (in CSV mode inside the configured sync folder) – the same place the «Backup» folder "
+  "appears in. The year folder follows the <b>booking date</b>; move a booking across new year and its "
+  "images follow on the server. After switching phones the app fetches each receipt from there when you "
+  "open the booking.")
+p("Delete a booking and its images disappear on the <b>next app start</b> – not right away, so that the "
+  "«Undo» offered straight after deleting still brings the receipt back.")
+p("If you delete a page in the middle, the following ones move up when you save, so the numbering stays "
+  "gapless. Even deleting <b>page 1</b> keeps the booking linked to its receipt – the former page 2 simply "
+  "becomes page 1.")
+h2("Cropping and straightening receipt photos")
+p("Right after the shot the app asks whether you want to <b>edit</b> the image. <b>«Keep as is»</b> leaves the "
+  "photo untouched – so you never have to bother. Later you can reopen the editor at any time via the "
+  "<b>crop icon</b> in the receipt row.")
+p("In the editor you drag the <b>four corners</b> onto the bill. There are two modes: <b>«Rectangle»</b> cuts "
+  "straight, leaving just a section of the image; <b>«Trapezoid»</b> lets you place each corner freely and then "
+  "<b>straightens</b> a skewed photo into a clean rectangle. Two sliders adjust <b>brightness</b> and "
+  "<b>contrast</b> – handy for faded till receipts. The preview follows every change immediately, and "
+  "<b>«Reset»</b> restores the starting state.")
+p("The <b>untouched original</b> is not lost: it is kept as a separate file carrying <b>«_original»</b> in its "
+  "name and is uploaded as well. When you edit again, the app starts from that original – so a crop set too "
+  "tightly can be widened later. Deleting the receipt removes the original too.")
 h2("Alias names (learned mappings)")
 p("If you change the recognized payee while saving, the app asks whether to remember the mapping as an "
   "alias – together with account, category and <b>place</b> (for transfers the from/to accounts and "

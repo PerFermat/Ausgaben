@@ -174,6 +174,21 @@ public class NextcloudUploader {
         }
     }
 
+    /** Löscht eine Datei per WebDAV-DELETE; ein 404 (gibt es nicht mehr) gilt als Erfolg. */
+    public void delete(String baseUrl, String user, String password, String folder, String fileName)
+            throws IOException {
+        Request request = new Request.Builder()
+                .url(buildUrl(baseUrl, user, folder, fileName))
+                .header("Authorization", Credentials.basic(user, password))
+                .delete()
+                .build();
+        try (Response response = client.newCall(request).execute()) {
+            if (!response.isSuccessful() && response.code() != 404) {
+                throw new IOException("HTTP " + response.code() + " " + response.message());
+            }
+        }
+    }
+
     /** Listet die Dateinamen mit der angegebenen Endung (ohne Punkt, z. B. "csv" oder "kmy"). */
     public List<String> listFiles(String baseUrl, String user, String password, String folder,
                                   String ext) throws IOException {

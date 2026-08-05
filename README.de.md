@@ -76,6 +76,16 @@ Details, Screenshots und die genaue Bedienung stehen im **[Benutzerhandbuch](doc
 - **Buchungen erfassen**: Ausgabe/Umbuchung/Einnahme, Splitbuchungen, Belegfoto, Spracheingabe
   („Frisör 20 €“), stille Betrag-only-Erfassung per GPS-Standort, lernende Alias-Namen für
   Zahlungsempfänger.
+- **Belegfotos nachbearbeiten**: direkt nach der Aufnahme (oder später über die Beleg-Zeile) lässt sich
+  das Bild rechteckig zuschneiden, im Trapez-Modus eine schräg fotografierte Rechnung begradigen und
+  Helligkeit/Kontrast anpassen. Das unbearbeitete Original bleibt als `…_original.jpg` erhalten, sodass
+  ein Zuschnitt später wieder aufgezogen werden kann; wer nichts ändern will, übernimmt das Foto wie es ist.
+- **Mehrseitige Belege**: eine Buchung nimmt beliebig viele Seiten auf (`<uuid>_p1.jpg`, `<uuid>_p2.jpg`, …
+  mit gemeinsamer UUID), jede einzeln ansehbar, zuschneidbar und löschbar. In der KMyMoney-Notiz steht nur
+  `BELEG: <uuid>` – die Seiten findet die App selbst. Hochgeladen wird nach `Belege/<Jahr>/` **neben der
+  KMyMoney-Datei** (im CSV-Modus im Sync-Ordner); das Jahr folgt dem Buchungsdatum, und wird es über einen
+  Jahreswechsel geändert, wandern die Bilder mit. Belege gelöschter Buchungen räumt die App beim nächsten
+  Start selbst weg.
 - **Liste & Filter**: Suche über Empfänger/Notiz/Kategorie, Betrags- und Zeitraumfilter, Rückgängig nach
   Löschen, eigene Rechentastatur im Betragsfeld.
 - **Auswertungen**: Verlaufsdiagramm je Konto/Ort/gesamt, Kategorien-Kreisdiagramm („Wofür geht mein

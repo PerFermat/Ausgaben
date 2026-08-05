@@ -46,6 +46,11 @@ public class WebDavStorage implements RemoteStorage {
         uploader.createFolder(baseUrl, user, password, folder);
     }
 
+    @Override
+    public void delete(String folder, String fileName) throws IOException {
+        uploader.delete(baseUrl, user, password, folder, fileName);
+    }
+
     /** Herunterladen mit Rückmeldung der gelesenen Bytes (Fortschrittsanzeige). */
     @Override
     public byte[] downloadBytes(String folder, String fileName,

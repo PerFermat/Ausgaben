@@ -443,6 +443,9 @@ public class MainActivity extends LocalizedActivity {
         de.spahr.ausgaben.settings.MoneyFormat.refresh(this);
         // Offene Belegfotos im Hintergrund ins Netzlaufwerk hochladen (No-op ohne offene/ohne Config).
         de.spahr.ausgaben.receipt.ReceiptSync.syncPending(this);
+        // Belege gelöschter Buchungen entsorgen – nur einmal je App-Start, damit das „Rückgängig" nach
+        // dem Löschen (onResume läuft auch beim Zurückkommen aus dem Editor) seine Bilder behält.
+        de.spahr.ausgaben.receipt.ReceiptGc.runOncePerStart(this);
         boolean gps = settings.isGpsEnabled();
         // Ziffern-Button (stille Betrag-only-Erfassung) nur bei aktivem Standort anbieten.
         findViewById(R.id.fabNumber).setVisibility(gps ? View.VISIBLE : View.GONE);

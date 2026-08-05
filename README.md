@@ -78,6 +78,16 @@ Details, screenshots and exact behavior are in the **[user manual](docs/Manual-A
 
 - **Record bookings**: expense/transfer/income, split bookings, receipt photos, voice input
   ("hairdresser 20 €"), silent amount-only entry resolved via GPS location, learning payee aliases.
+- **Edit receipt photos**: right after the shot (or later from the receipt row) you can crop the image to a
+  rectangle, straighten a skewed bill in trapezoid mode and adjust brightness/contrast. The untouched
+  original is kept as `…_original.jpg`, so a crop can be widened again later; if you don't want to change
+  anything, keep the photo as it is.
+- **Multi-page receipts**: a booking takes as many pages as you like (`<uuid>_p1.jpg`, `<uuid>_p2.jpg`, …
+  sharing one UUID), each one viewable, croppable and removable on its own. The KMyMoney note only holds
+  `BELEG: <uuid>` — the app finds the pages by itself. They are uploaded to `Belege/<year>/` **next to the
+  KMyMoney file** (in CSV mode into the sync folder); the year follows the booking date, and moving that
+  date across new year takes the images along. Receipts of deleted bookings are cleaned up on the next
+  app start.
 - **List & filter**: search across payee/note/category, amount and date-range filters, undo after delete,
   a built-in calculator keyboard in the amount field.
 - **Analysis**: history chart per account/place/total, category pie chart ("Where does my money go?"),

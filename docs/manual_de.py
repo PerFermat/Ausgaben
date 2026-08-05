@@ -351,6 +351,40 @@ p("Der Verweis auf das Bild wird – wie die GPS-Koordinaten – als Kürzel <b>
   "nach einem Neu-Import</b> wieder. Im Editor zeigt das Notizfeld nur den freien Text; <b>GPS und Beleg stehen "
   "als zwei eigene, nicht änderbare Zeilen darunter</b> – je mit Symbol: das Karten-Symbol öffnet den Standort, "
   "das Beleg-Symbol das Foto (Ansicht) bzw. die Kamera/Galerie-Auswahl (Bearbeiten).")
+h2("Mehrseitige Belege")
+p("Eine Buchung kann <b>mehrere Seiten</b> haben – für die zweite Seite eines Kassenbons oder eine Rechnung "
+  "über mehrere Blätter. Das Kamera-Symbol in der Beleg-Zeile <b>hängt jedes Mal eine weitere Seite an</b>; "
+  "darunter erscheint beim Bearbeiten je Seite eine eigene Zeile mit Zuschneiden und Löschen. Beim reinen "
+  "<b>Ansehen</b> genügt eine Zeile: rechts steht ein Bild-Symbol je Seite – ein Tipp darauf öffnet genau "
+  "dieses Bild.")
+p("Alle Seiten einer Buchung teilen sich <b>dieselbe UUID</b> und unterscheiden sich nur durch den Zusatz "
+  "«_p1», «_p2» und so fort. In der Notiz – und damit im KMyMoney-Memo – steht nur noch "
+  "<b>«BELEG: &lt;uuid&gt;»</b>; die Seiten sucht die App selbst, erst im Beleg-Ordner des Handys, dann auf "
+  "dem Netzlaufwerk. Ältere Belege ohne Seitenzusatz gelten dabei als Seite 1 und werden nicht umbenannt; "
+  "eine neue Aufnahme dazu wird zur Seite 2.")
+p("Hochgeladen werden die Bilder in den Ordner <b>«Belege»</b> mit einem Unterordner je Jahr. Er liegt "
+  "<b>neben der KMyMoney-Datei</b> (im CSV-Modus im eingestellten Sync-Ordner) – dort, wo auch der "
+  "«Backup»-Ordner entsteht. Der Jahresordner richtet sich nach dem <b>Buchungsdatum</b>; verschieben Sie "
+  "eine Buchung über einen Jahreswechsel, wandern ihre Bilder auf dem Server mit. Nach einem Handywechsel "
+  "holt die App jeden Beleg beim Öffnen der Buchung von dort nach.")
+p("Löschen Sie eine Buchung, verschwinden ihre Bilder beim <b>nächsten App-Start</b> – nicht sofort, damit "
+  "das «Rückgängig» direkt nach dem Löschen den Beleg noch mitbringt.")
+p("Löschen Sie eine Seite in der Mitte, rücken die folgenden beim Speichern nach, damit die Nummerierung "
+  "lückenlos bleibt. Auch wenn Sie <b>Seite 1</b> löschen, bleibt die Buchung mit ihrem Beleg verbunden – "
+  "die frühere Seite 2 wird dann zur Seite 1.")
+h2("Belegfotos zuschneiden und begradigen")
+p("Gleich nach der Aufnahme fragt die App, ob Sie das Bild <b>bearbeiten</b> möchten. Mit <b>«So übernehmen»</b> "
+  "bleibt das Foto unverändert – Sie müssen also nichts tun. Später kommen Sie über das <b>Zuschneide-Symbol</b> "
+  "in der Beleg-Zeile jederzeit wieder in die Bearbeitung.")
+p("Im Bearbeitungsbildschirm ziehen Sie die <b>vier Ecken</b> auf die Rechnung. Es gibt zwei Betriebsarten: "
+  "<b>«Rechteck»</b> schneidet gerade zu, sodass nur ein Ausschnitt übrig bleibt; <b>«Trapez»</b> lässt jede Ecke "
+  "frei setzen und <b>begradigt</b> eine schräg fotografierte Rechnung anschließend zu einem sauberen Rechteck. "
+  "Zwei Schieberegler stellen <b>Helligkeit</b> und <b>Kontrast</b> ein – nützlich bei blassen Kassenzetteln. "
+  "Die Vorschau zeigt jede Änderung sofort; <b>«Zurücksetzen»</b> stellt den Ausgangszustand wieder her.")
+p("Das <b>unbearbeitete Original</b> geht dabei nicht verloren: Es wird als eigene Datei mit dem Zusatz "
+  "<b>«_original»</b> im Namen behalten und ebenfalls hochgeladen. Beim erneuten Bearbeiten arbeitet die App "
+  "wieder auf dem Original – ein zu eng gesetzter Zuschnitt lässt sich also später wieder aufziehen. Löschen Sie "
+  "den Beleg, verschwindet auch das Original.")
 h2("Alias-Namen (gelernte Zuordnungen)")
 p("Ändern Sie beim Speichern den erkannten Empfänger, fragt die App, ob sie sich die Zuordnung als Alias "
   "merken soll – samt Konto, Kategorie und <b>Ort</b> (bei Umbuchungen Von-/Nach-Konto und Von-/Nach-Ort). "

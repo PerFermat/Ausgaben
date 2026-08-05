@@ -39,22 +39,59 @@ public final class Receipts {
         return ctx.getApplicationContext().getSharedPreferences(PREFS, Context.MODE_PRIVATE);
     }
 
-    /** Dateinamen, die noch aufs Netzlaufwerk hochzuladen sind. */
+    /**
+     * Offene Einträge in der Form {@code <jahr>|<datei>}. Seit die Dateinamen kein Jahr mehr tragen, muss
+     * der Jahresordner mitgeführt werden; Einträge aus älteren Versionen stehen ohne {@code |} darin und
+     * werden weiter gelesen (Jahr dann aus dem Dateinamen).
+     */
     public static synchronized Set<String> pending(Context ctx) {
         return new HashSet<>(prefs(ctx).getStringSet(KEY_PENDING, new HashSet<>()));
     }
 
-    public static synchronized void addPending(Context ctx, String file) {
+    /** Dateiname eines Merklisten-Eintrags. */
+    public static String entryFile(String entry) {
+        int bar = entry == null ? -1 : entry.indexOf('|');
+        return bar < 0 ? entry : entry.substring(bar + 1);
+    }
+
+    /** Jahresordner eines Merklisten-Eintrags; {@code -1}, wenn er sich nicht ermitteln lässt. */
+    public static int entryYear(String entry) {
+        int bar = entry == null ? -1 : entry.indexOf('|');
+        if (bar > 0) {
+            try {
+                return Integer.parseInt(entry.substring(0, bar));
+            } catch (NumberFormatException ignored) {
+                // fällt unten auf den Dateinamen zurück
+            }
+        }
+        return NoteReceipt.yearOf(entryFile(entry));
+    }
+
+    /** Merkt eine Datei zum Hochladen vor; das Jahr bestimmt den Zielordner auf dem Server. */
+    public static synchronized void addPending(Context ctx, String file, int year) {
         Set<String> s = pending(ctx);
-        if (s.add(file)) {
+        removeFile(s, file);
+        if (s.add(year + "|" + file)) {
             prefs(ctx).edit().putStringSet(KEY_PENDING, s).apply();
         }
     }
 
     public static synchronized void removePending(Context ctx, String file) {
         Set<String> s = pending(ctx);
-        if (s.remove(file)) {
+        if (removeFile(s, file)) {
             prefs(ctx).edit().putStringSet(KEY_PENDING, s).apply();
         }
+    }
+
+    /** Entfernt alle Einträge zu {@code file} – mit und ohne Jahresangabe. */
+    private static boolean removeFile(Set<String> entries, String file) {
+        boolean changed = false;
+        for (java.util.Iterator<String> it = entries.iterator(); it.hasNext(); ) {
+            if (entryFile(it.next()).equals(file)) {
+                it.remove();
+                changed = true;
+            }
+        }
+        return changed;
     }
 }

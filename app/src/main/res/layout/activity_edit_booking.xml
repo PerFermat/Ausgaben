@@ -288,7 +288,7 @@
                     android:contentDescription="@string/alias_map" />
             </LinearLayout>
 
-            <!-- Beleg-Dateiname als eigene Ausgabezeile (Wert + Bild-/Kamera-Icon). -->
+            <!-- Beleg-Kopfzeile (Beschriftung + Kamera-Icon, das eine weitere Seite anhängt). -->
             <LinearLayout
                 android:id="@+id/rowReceipt"
                 android:layout_width="match_parent"
@@ -306,14 +306,13 @@
                     android:textColor="?android:attr/textColorSecondary"
                     android:textSize="14sp" />
 
-                <ImageButton
-                    android:id="@+id/btnReceiptDelete"
-                    android:layout_width="48dp"
-                    android:layout_height="48dp"
-                    android:background="?attr/selectableItemBackgroundBorderless"
-                    android:src="@android:drawable/ic_menu_delete"
-                    android:contentDescription="@string/receipt_remove"
-                    android:visibility="gone" />
+                <!-- Nur-Ansicht: ein Bild-Symbol je Seite, rechtsbündig. -->
+                <LinearLayout
+                    android:id="@+id/receiptPageIcons"
+                    android:layout_width="wrap_content"
+                    android:layout_height="wrap_content"
+                    android:gravity="end|center_vertical"
+                    android:orientation="horizontal" />
 
                 <ImageButton
                     android:id="@+id/btnReceipt"
@@ -321,8 +320,15 @@
                     android:layout_height="48dp"
                     android:background="?attr/selectableItemBackgroundBorderless"
                     android:src="@android:drawable/ic_menu_camera"
-                    android:contentDescription="@string/receipt_view_title" />
+                    android:contentDescription="@string/receipt_add_page" />
             </LinearLayout>
+
+            <!-- Eine Zeile je Belegseite; wird in updateNoteTagRows() gefüllt. -->
+            <LinearLayout
+                android:id="@+id/receiptPages"
+                android:layout_width="match_parent"
+                android:layout_height="wrap_content"
+                android:orientation="vertical" />
 
             <com.google.android.material.materialswitch.MaterialSwitch
                 android:id="@+id/switchExported"

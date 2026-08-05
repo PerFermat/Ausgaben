@@ -1,6 +1,7 @@
 package de.spahr.ausgaben.receipt;
 
 import static org.junit.Assert.assertEquals;
+import static org.junit.Assert.assertFalse;
 import static org.junit.Assert.assertNull;
 import static org.junit.Assert.assertTrue;
 
@@ -46,16 +47,102 @@ public class NoteReceiptTest {
     }
 
     @Test
-    public void newFileName_yearPrefixAndRoundTrip() {
-        String f = NoteReceipt.newFileName(2025);
-        assertTrue(f.startsWith("2025_"));
-        assertTrue(f.endsWith(".jpg"));
-        assertEquals(2025, NoteReceipt.yearOf(f));
+    public void newFileName_isPageOneWithoutYear() {
+        String f = NoteReceipt.newFileName();
+        assertTrue(f.endsWith("_p1.jpg"));
+        // Das Jahr steckt nicht mehr im Namen, sondern im Jahresordner auf dem Server.
+        assertEquals(-1, NoteReceipt.yearOf(f));
+    }
+
+    @Test
+    public void newBase_isABareUuid() {
+        String base = NoteReceipt.newBase();
+        assertEquals(32, base.length());
+        assertTrue(base.matches("[0-9a-f]{32}"));
+    }
+
+    @Test
+    public void pageName_sharesTheBase() {
+        String base = NoteReceipt.newBase();
+        assertEquals(base + "_p1.jpg", NoteReceipt.pageName(base, 1));
+        assertEquals(base + "_p7.jpg", NoteReceipt.pageName(base, 7));
+        assertEquals(base, NoteReceipt.baseOf(NoteReceipt.pageName(base, 7)));
+    }
+
+    @Test
+    public void tagOf_shortForNewLongForLegacy() {
+        // Neu: in die Notiz kommt nur die UUID.
+        assertEquals("abc123", NoteReceipt.tagOf("abc123_p1.jpg"));
+        // Altbeleg mit Jahres-Präfix behält seinen vollen Dateinamen, damit das Memo stabil bleibt.
+        assertEquals("2026_abc.jpg", NoteReceipt.tagOf("2026_abc.jpg"));
+    }
+
+    @Test
+    public void baseOf_handlesTheBareUuidFromTheNote() {
+        assertEquals("abc123", NoteReceipt.baseOf("abc123"));
+        assertEquals("abc123", NoteReceipt.baseOf("abc123_p3.jpg"));
+        assertEquals("abc123", NoteReceipt.baseOf("abc123_p3_original.jpg"));
+    }
+
+    @Test
+    public void pageSuffix_bothNotationsAreRead() {
+        // Geschrieben wird das sprachneutrale _p; _Seite stammt aus einer früheren Fassung.
+        assertEquals(2, NoteReceipt.pageOf("abc_p2.jpg"));
+        assertEquals(2, NoteReceipt.pageOf("abc_Seite2.jpg"));
+        assertEquals("abc", NoteReceipt.baseOf("abc_Seite2.jpg"));
+        assertTrue(NoteReceipt.hasPageSuffix("abc_p2.jpg"));
+        assertTrue(NoteReceipt.hasPageSuffix("abc_Seite2.jpg"));
+        // Ein Altbeleg der ersten Stunde trägt gar keinen Zusatz.
+        assertFalse(NoteReceipt.hasPageSuffix("2026_abc.jpg"));
+    }
+
+    @Test
+    public void baseOf_stripsPageAndOriginal() {
+        assertEquals("2026_abc", NoteReceipt.baseOf("2026_abc.jpg"));
+        assertEquals("2026_abc", NoteReceipt.baseOf("2026_abc_Seite2.jpg"));
+        assertEquals("2026_abc", NoteReceipt.baseOf("2026_abc_Seite2_original.jpg"));
+        assertEquals("2026_abc", NoteReceipt.baseOf("2026_abc_original.jpg"));
+        assertNull(NoteReceipt.baseOf(null));
+    }
+
+    @Test
+    public void pageOf_defaultsToOneForTheOldNotation() {
+        assertEquals(1, NoteReceipt.pageOf("2026_abc.jpg"));
+        assertEquals(1, NoteReceipt.pageOf("2026_abc_Seite1.jpg"));
+        assertEquals(3, NoteReceipt.pageOf("2026_abc_Seite3.jpg"));
+        assertEquals(3, NoteReceipt.pageOf("2026_abc_Seite3_original.jpg"));
+        assertEquals(1, NoteReceipt.pageOf(null));
+    }
+
+    @Test
+    public void originalName_ofAPage() {
+        assertEquals("2026_abc_Seite2_original.jpg", NoteReceipt.originalName("2026_abc_Seite2.jpg"));
     }
 
     @Test
     public void yearOf_invalid() {
         assertEquals(-1, NoteReceipt.yearOf("noprefix.jpg"));
         assertEquals(-1, NoteReceipt.yearOf(null));
+    }
+
+    @Test
+    public void originalName_insertsBeforeExtension() {
+        assertEquals("2026_ab12_original.jpg", NoteReceipt.originalName("2026_ab12.jpg"));
+        // Das Jahres-Präfix bleibt lesbar – davon hängt der Jahresordner beim Hochladen ab.
+        assertEquals(2026, NoteReceipt.yearOf(NoteReceipt.originalName("2026_ab12.jpg")));
+    }
+
+    @Test
+    public void originalName_idempotentAndLenient() {
+        assertEquals("2026_ab12_original.jpg", NoteReceipt.originalName("2026_ab12_original.jpg"));
+        assertEquals("ohneEndung_original", NoteReceipt.originalName("ohneEndung"));
+        assertNull(NoteReceipt.originalName(null));
+    }
+
+    @Test
+    public void isOriginal_onlyForTheCopy() {
+        assertTrue(NoteReceipt.isOriginal("2026_ab12_original.jpg"));
+        assertFalse(NoteReceipt.isOriginal("2026_ab12.jpg"));
+        assertFalse(NoteReceipt.isOriginal(null));
     }
 }

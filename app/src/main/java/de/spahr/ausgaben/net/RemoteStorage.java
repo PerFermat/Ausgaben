@@ -72,6 +72,13 @@ public interface RemoteStorage {
     default void ensureFolder(String folder) throws IOException {
     }
 
+    /**
+     * Löscht eine Datei. Standard: nicht unterstützt – die Implementierungen überschreiben das. Fehlt die
+     * Datei, ist das kein Fehler.
+     */
+    default void delete(String folder, String fileName) throws IOException {
+    }
+
     String downloadText(String folder, String fileName) throws IOException;
 
     byte[] downloadBytes(String folder, String fileName) throws IOException;

@@ -1,0 +1,35 @@
+<?xml version="1.0" encoding="utf-8"?>
+<!-- Eine Belegseite: Beschriftung (öffnet das Bild) + Zuschneiden + Löschen. -->
+<LinearLayout xmlns:android="http://schemas.android.com/apk/res/android"
+    android:layout_width="match_parent"
+    android:layout_height="wrap_content"
+    android:gravity="center_vertical"
+    android:orientation="horizontal">
+
+    <TextView
+        android:id="@+id/textReceiptPage"
+        android:layout_width="0dp"
+        android:layout_height="wrap_content"
+        android:layout_weight="1"
+        android:paddingStart="16dp"
+        android:paddingEnd="0dp"
+        android:textColor="?android:attr/textColorSecondary"
+        android:textSize="14sp" />
+
+    <ImageButton
+        android:id="@+id/btnReceiptPageEdit"
+        android:layout_width="48dp"
+        android:layout_height="48dp"
+        android:background="?attr/selectableItemBackgroundBorderless"
+        android:contentDescription="@string/receipt_edit_action"
+        android:src="@android:drawable/ic_menu_crop" />
+
+    <ImageButton
+        android:id="@+id/btnReceiptPageDelete"
+        android:layout_width="48dp"
+        android:layout_height="48dp"
+        android:background="?attr/selectableItemBackgroundBorderless"
+        android:contentDescription="@string/receipt_remove"
+        android:src="@android:drawable/ic_menu_delete" />
+
+</LinearLayout>

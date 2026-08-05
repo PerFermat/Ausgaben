@@ -5,6 +5,7 @@ import android.app.DatePickerDialog;
 import android.content.Intent;
 import android.content.pm.PackageManager;
 import android.os.Bundle;
+import android.view.LayoutInflater;
 import android.view.View;
 import android.widget.ArrayAdapter;
 import android.widget.Toast;
@@ -36,6 +37,7 @@ import de.spahr.ausgaben.db.Repository;
 import de.spahr.ausgaben.location.LocationTagger;
 import de.spahr.ausgaben.receipt.NoteReceipt;
 import de.spahr.ausgaben.receipt.ReceiptImage;
+import de.spahr.ausgaben.receipt.ReceiptPages;
 import de.spahr.ausgaben.receipt.ReceiptSync;
 import de.spahr.ausgaben.receipt.Receipts;
 import de.spahr.ausgaben.settings.PlacesStore;
@@ -145,7 +147,8 @@ public class BookingEditActivity extends LocalizedActivity {
     private android.widget.TextView textGps;
     private android.widget.TextView textReceipt;
     private android.widget.ImageButton btnReceipt;   // btnNoteMap ist ein eigenes Feld
-    private android.widget.ImageButton btnReceiptDelete;
+    private android.widget.LinearLayout receiptPagesView;
+    private android.widget.LinearLayout receiptPageIcons;
     private boolean receiptEnabled;
     /** Zu speichernde Koordinaten „lat, lon" (aus Standort bzw. bestehender Buchung); null = keine. */
     private String gpsRowCoords;
@@ -153,16 +156,38 @@ public class BookingEditActivity extends LocalizedActivity {
     private boolean gpsEditedByUser;
     /** Karten-Auswahl (OpenStreetMap) für den Standort der Buchung. */
     private ActivityResultLauncher<Intent> gpsMapLauncher;
-    /** Dateiname eines bereits verknüpften Belegs; null = keiner. */
-    private String receiptFileName;
-    /** Bereits komprimiertes Beleg-Temp, das beim Speichern final benannt und verlinkt wird. */
-    private java.io.File pendingReceiptFile;
-    /** Nutzer will den vorhandenen Beleg beim Speichern entfernen. */
-    private boolean removeReceipt;
+    /**
+     * Eine Belegseite: entweder bereits gespeichert ({@code savedName}) oder frisch aufgenommen
+     * ({@code pending}, ein komprimiertes Temp, das beim Speichern seinen endgültigen Namen bekommt).
+     */
+    private static final class Page {
+        String savedName;
+        java.io.File pending;
+
+        Page(String savedName, java.io.File pending) {
+            this.savedName = savedName;
+            this.pending = pending;
+        }
+
+        java.io.File file(android.content.Context ctx) {
+            return pending != null ? pending : Receipts.localFile(ctx, savedName);
+        }
+    }
+
+    /** Die Seiten des Belegs in Seitenreihenfolge; leer = kein Beleg. */
+    private final java.util.List<Page> receiptPages = new java.util.ArrayList<>();
+    /** Beim Speichern zu löschende, bereits gespeicherte Seiten. */
+    private final java.util.List<String> removedReceipts = new java.util.ArrayList<>();
     private android.net.Uri cameraTempUri;
     private java.io.File cameraTempFile;
     private ActivityResultLauncher<android.net.Uri> takePictureLauncher;
     private ActivityResultLauncher<String> pickImageLauncher;
+    /** Zuschneiden/Begradigen/Aufhellen eines Belegs ({@link ReceiptEditActivity}). */
+    private ActivityResultLauncher<Intent> receiptEditLauncher;
+    /** Beim Bearbeiten einer bereits gespeicherten Seite: deren Name für das Hochladen danach. */
+    private String editingSavedReceipt;
+    /** Jahresordner der Belege beim Öffnen der Buchung; {@code -1} = keine gespeicherten Belege. */
+    private int origReceiptYear = -1;
 
     private static final java.util.regex.Pattern GPS_PAIR = java.util.regex.Pattern.compile(
             "GPS:\\s*(-?\\d+(?:\\.\\d+)?\\s*,\\s*-?\\d+(?:\\.\\d+)?)", java.util.regex.Pattern.CASE_INSENSITIVE);
@@ -306,6 +331,22 @@ public class BookingEditActivity extends LocalizedActivity {
                         ingestReceipt(uri, null);
                     }
                 });
+        receiptEditLauncher = registerForActivityResult(
+                new ActivityResultContracts.StartActivityForResult(), result -> {
+                    String saved = editingSavedReceipt;
+                    editingSavedReceipt = null;
+                    if (result.getResultCode() != RESULT_OK) {
+                        return;
+                    }
+                    if (saved != null) {
+                        // Bereits gespeicherter Beleg: Datei ist ersetzt, also samt Original neu hochladen.
+                        Receipts.addPending(this, saved, receiptYear());
+                        Receipts.addPending(this, NoteReceipt.originalName(saved), receiptYear());
+                        ReceiptSync.syncPending(this);
+                    }
+                    updateNoteTagRows();
+                    Toast.makeText(this, R.string.receipt_edit_done, Toast.LENGTH_SHORT).show();
+                });
         // Standort auf der Karte (OpenStreetMap) wählen/ändern – wie beim Alias. Die manuelle Wahl gewinnt
         // ab jetzt gegen den Live-GPS-Wert (siehe gpsEditedByUser).
         gpsMapLauncher = registerForActivityResult(
@@ -323,12 +364,8 @@ public class BookingEditActivity extends LocalizedActivity {
         textGps = findViewById(R.id.textGps);
         textReceipt = findViewById(R.id.textReceipt);
         btnReceipt = findViewById(R.id.btnReceipt);
-        btnReceiptDelete = findViewById(R.id.btnReceiptDelete);
-        btnReceiptDelete.setOnClickListener(v -> {
-            clearPendingReceipt();
-            removeReceipt = true;
-            updateNoteTagRows();
-        });
+        receiptPagesView = findViewById(R.id.receiptPages);
+        receiptPageIcons = findViewById(R.id.receiptPageIcons);
         receiptEnabled = settings.isReceiptEnabled();
         // Klick-Verhalten (Karte / Bild öffnen bzw. Kamera) wird je nach Modus in updateNoteTagRows() gesetzt.
 
@@ -434,7 +471,7 @@ public class BookingEditActivity extends LocalizedActivity {
     @Override
     protected void onDestroy() {
         super.onDestroy();
-        clearPendingReceipt(); // nicht gespeichertes Beleg-Temp aufräumen
+        clearReceiptPages(); // nicht gespeicherte Beleg-Temps aufräumen
     }
 
     private boolean hasLocationPermission() {
@@ -614,7 +651,7 @@ public class BookingEditActivity extends LocalizedActivity {
     private void setupNewMode() {
         booking = null;
         gpsRowCoords = null;
-        receiptFileName = null;
+        clearReceiptPages();
         origIsTransfer = false;
         origTransferGroup = "";
         origPlaceManaged = true; // neue Buchung ist immer ort-verknüpft (Standardort)
@@ -660,7 +697,7 @@ public class BookingEditActivity extends LocalizedActivity {
         btnDelete.setVisibility(View.VISIBLE);
         // Bestehende Buchung: GPS/Beleg aus der Notiz in die zwei Zeilen (bleiben beim Aktualisieren erhalten).
         gpsRowCoords = parseGpsCoords(b.note);
-        receiptFileName = NoteReceipt.fileName(b.note);
+        loadReceiptPages(NoteReceipt.fileName(b.note), yearFromMillis(b.createdAt));
         populateFrom(b, null);
         updateNoteTagRows();
         if (readOnly) {
@@ -843,7 +880,7 @@ public class BookingEditActivity extends LocalizedActivity {
 
         // GPS-/Beleg-Ausgabezeilen (Werte aus der Notiz; nicht editierbar, mit Karten- bzw. Bild-Icon).
         gpsRowCoords = parseGpsCoords(booking.note);
-        receiptFileName = NoteReceipt.fileName(booking.note);
+        loadReceiptPages(NoteReceipt.fileName(booking.note), yearFromMillis(booking.createdAt));
         updateNoteTagRows();
     }
 
@@ -904,7 +941,7 @@ public class BookingEditActivity extends LocalizedActivity {
         booking = null; // Neu-Modus → Speichern legt eine neue Buchung an
         // Kopie aus einer Vorlage: GPS/Beleg NICHT übernehmen (GPS wird frisch bestimmt, Beleg nur bei neuem Bild).
         gpsRowCoords = null;
-        receiptFileName = null;
+        clearReceiptPages();
         origIsTransfer = false;
         origTransferGroup = "";
         origPlaceManaged = true;
@@ -1266,37 +1303,81 @@ public class BookingEditActivity extends LocalizedActivity {
         } else {
             rowGps.setVisibility(View.GONE);
         }
-        // Beleg-Zeile
-        btnReceiptDelete.setVisibility(View.GONE);
+        // Beleg-Kopfzeile + eine Zeile je Seite
         if (readOnly) {
-            if (receiptFileName != null) {
-                textReceipt.setText(getString(R.string.receipt_row_label, receiptFileName));
-                btnReceipt.setImageResource(android.R.drawable.ic_menu_gallery);
-                final String f = receiptFileName;
-                btnReceipt.setOnClickListener(v -> openReceipt(f));
-                rowReceipt.setVisibility(View.VISIBLE);
-            } else {
-                rowReceipt.setVisibility(View.GONE);
-            }
+            rowReceipt.setVisibility(receiptPages.isEmpty() ? View.GONE : View.VISIBLE);
+            textReceipt.setText(getString(R.string.receipt_row_label,
+                    getString(R.string.receipt_pages_count, receiptPages.size())));
+            btnReceipt.setVisibility(View.GONE);
         } else if (receiptEnabled && !isTransferType()) {
-            boolean hasReceipt = !removeReceipt && (pendingReceiptFile != null || receiptFileName != null);
-            String name;
-            if (removeReceipt) {
-                name = getString(R.string.receipt_none);
-            } else if (pendingReceiptFile != null) {
-                name = getString(R.string.receipt_new);
-            } else {
-                name = receiptFileName != null ? receiptFileName : getString(R.string.receipt_none);
-            }
-            textReceipt.setText(getString(R.string.receipt_row_label, name));
+            rowReceipt.setVisibility(View.VISIBLE);
+            textReceipt.setText(getString(R.string.receipt_row_label, receiptPages.isEmpty()
+                    ? getString(R.string.receipt_none)
+                    : getString(R.string.receipt_pages_count, receiptPages.size())));
+            btnReceipt.setVisibility(View.VISIBLE);
             btnReceipt.setImageResource(android.R.drawable.ic_menu_camera);
             btnReceipt.setOnClickListener(v -> showReceiptSourceDialog());
-            // Lösch-Knopf nur, wenn ein Beleg vorhanden/angehängt ist.
-            btnReceiptDelete.setVisibility(hasReceipt ? View.VISIBLE : View.GONE);
-            rowReceipt.setVisibility(View.VISIBLE);
         } else {
             rowReceipt.setVisibility(View.GONE);
         }
+        fillReceiptPages();
+    }
+
+    /**
+     * Baut die Anzeige der Belegseiten neu auf. In der <b>Ansicht</b> genügt ein Bild-Symbol je Seite,
+     * rechtsbündig in der Kopfzeile; im <b>Bearbeiten</b>-Modus steht je Seite eine eigene Zeile mit
+     * Beschriftung, Zuschneiden und Löschen darunter.
+     */
+    private void fillReceiptPages() {
+        receiptPagesView.removeAllViews();
+        receiptPageIcons.removeAllViews();
+        if (rowReceipt.getVisibility() != View.VISIBLE) {
+            return;
+        }
+        if (readOnly) {
+            for (Page page : receiptPages) {
+                if (page.savedName == null) {
+                    continue;
+                }
+                final String f = page.savedName;
+                android.widget.ImageButton icon = new android.widget.ImageButton(this);
+                icon.setLayoutParams(new android.widget.LinearLayout.LayoutParams(dp(44), dp(44)));
+                icon.setImageResource(android.R.drawable.ic_menu_gallery);
+                icon.setBackgroundResource(backgroundBorderless());
+                icon.setContentDescription(getString(R.string.receipt_page_label,
+                        receiptPages.indexOf(page) + 1));
+                icon.setOnClickListener(v -> openReceipt(f));
+                receiptPageIcons.addView(icon);
+            }
+            return;
+        }
+        LayoutInflater inflater = LayoutInflater.from(this);
+        for (int i = 0; i < receiptPages.size(); i++) {
+            final Page page = receiptPages.get(i);
+            View row = inflater.inflate(R.layout.item_receipt_page, receiptPagesView, false);
+            android.widget.TextView label = row.findViewById(R.id.textReceiptPage);
+            label.setText(getString(page.pending != null ? R.string.receipt_page_new
+                    : R.string.receipt_page_label, i + 1));
+            // Eine bereits gespeicherte Seite lässt sich ansehen; ein frisches Bild liegt nur als Temp vor.
+            if (page.savedName != null) {
+                final String f = page.savedName;
+                label.setOnClickListener(v -> openReceipt(f));
+            }
+            row.findViewById(R.id.btnReceiptPageEdit).setOnClickListener(v -> editReceipt(page));
+            row.findViewById(R.id.btnReceiptPageDelete).setOnClickListener(v -> removeReceiptPage(page));
+            receiptPagesView.addView(row);
+        }
+    }
+
+    private int dp(int value) {
+        return Math.round(value * getResources().getDisplayMetrics().density);
+    }
+
+    /** Der randlose Tipp-Hintergrund des Themes – wie bei den Knöpfen im Layout. */
+    private int backgroundBorderless() {
+        android.util.TypedValue out = new android.util.TypedValue();
+        getTheme().resolveAttribute(androidx.appcompat.R.attr.selectableItemBackgroundBorderless, out, true);
+        return out.resourceId;
     }
 
     /** Anzeigeform der Koordinaten, z. B. „50.1109° N, 8.6821° O". */
@@ -1404,11 +1485,11 @@ public class BookingEditActivity extends LocalizedActivity {
             final boolean fok = ok;
             runOnUiThread(() -> {
                 if (fok) {
-                    clearPendingReceipt();
-                    pendingReceiptFile = tmp;
-                    removeReceipt = false;
+                    Page page = new Page(null, tmp);
+                    receiptPages.add(page);
                     updateNoteTagRows();
                     Toast.makeText(this, R.string.receipt_attached, Toast.LENGTH_SHORT).show();
+                    askEditReceipt(page);
                 } else {
                     tmp.delete();
                     Toast.makeText(this, R.string.receipt_error, Toast.LENGTH_SHORT).show();
@@ -1417,10 +1498,167 @@ public class BookingEditActivity extends LocalizedActivity {
         }).start();
     }
 
-    private void clearPendingReceipt() {
-        if (pendingReceiptFile != null) {
-            pendingReceiptFile.delete();
-            pendingReceiptFile = null;
+    /** Alle Seiten vergessen (Neu-Modus/Kopie); noch nicht gespeicherte Temps werden gelöscht. */
+    private void clearReceiptPages() {
+        for (Page p : receiptPages) {
+            if (p.pending != null) {
+                originalOf(p.pending).delete();
+                p.pending.delete();
+            }
+        }
+        receiptPages.clear();
+        removedReceipts.clear();
+    }
+
+    /**
+     * Ermittelt zum Beleg-Tag einer Buchung alle Seiten (siehe {@link ReceiptPages#find}) und zeigt sie an.
+     * Das Suchen kann den Server befragen und läuft deshalb im Hintergrund.
+     */
+    private void loadReceiptPages(String tagName, int year) {
+        clearReceiptPages();
+        origReceiptYear = -1;
+        if (tagName == null) {
+            return;
+        }
+        origReceiptYear = year;
+        // Seite 1 steht sofort fest, damit die Zeile nicht erst leer aufblitzt.
+        receiptPages.add(new Page(tagName, null));
+        new Thread(() -> {
+            final java.util.List<String> found = ReceiptPages.find(this, tagName, year);
+            runOnUiThread(() -> {
+                // Nichts gefunden (Datei weg oder offline) → die Vorbelegung mit dem Tag-Namen bleibt stehen.
+                if (isFinishing() || found.isEmpty() || found.equals(savedNames())) {
+                    return;
+                }
+                receiptPages.clear();
+                for (String name : found) {
+                    receiptPages.add(new Page(name, null));
+                }
+                updateNoteTagRows();
+            });
+        }).start();
+    }
+
+    /**
+     * Jahresordner der Belege dieser Buchung – aus dem (ggf. gerade geänderten) Buchungsdatum, denn der
+     * Dateiname trägt das Jahr nicht mehr.
+     */
+    private int receiptYear() {
+        return selectedDate.get(Calendar.YEAR);
+    }
+
+    /**
+     * Wurde das Buchungsdatum über einen Jahreswechsel geschoben, wandern die bereits hochgeladenen Bilder
+     * auf dem Server in den neuen Jahresordner. Läuft im Hintergrund; misslingt es (offline), findet der
+     * Rückfall in {@code ReceiptSync.ensureLocal} die Dateien weiterhin.
+     */
+    private void moveReceiptYear(int newYear) {
+        if (booking == null || origReceiptYear < 0 || origReceiptYear == newYear) {
+            return;
+        }
+        final java.util.List<String> names = new java.util.ArrayList<>(savedNames());
+        names.removeIf(java.util.Objects::isNull);
+        final int from = origReceiptYear;
+        origReceiptYear = newYear;
+        if (!names.isEmpty()) {
+            new Thread(() -> ReceiptPages.moveYear(getApplicationContext(), names, from, newYear)).start();
+        }
+    }
+
+    /** Die Namen der bereits gespeicherten Seiten in Reihenfolge (neue Seiten liefern {@code null}). */
+    private java.util.List<String> savedNames() {
+        java.util.List<String> names = new java.util.ArrayList<>(receiptPages.size());
+        for (Page p : receiptPages) {
+            names.add(p.savedName);
+        }
+        return names;
+    }
+
+    /** Nimmt eine Seite aus der Liste; gespeicherte Dateien werden erst beim Speichern gelöscht. */
+    private void removeReceiptPage(Page page) {
+        if (page.pending != null) {
+            originalOf(page.pending).delete();
+            page.pending.delete();
+        } else if (page.savedName != null) {
+            removedReceipts.add(page.savedName);
+        }
+        receiptPages.remove(page);
+        updateNoteTagRows();
+    }
+
+    /** Fragt direkt nach der Aufnahme, ob das Bild noch zugeschnitten/begradigt werden soll. */
+    private void askEditReceipt(Page page) {
+        new MaterialAlertDialogBuilder(this, R.style.ThemeOverlay_Ausgaben_Dialog)
+                .setTitle(R.string.receipt_edit_title)
+                .setMessage(R.string.receipt_edit_question)
+                .setPositiveButton(R.string.receipt_edit_yes, (d, w) -> editReceipt(page))
+                .setNegativeButton(R.string.receipt_edit_no, null)
+                .show();
+    }
+
+    /**
+     * Öffnet den Bild-Editor für eine Seite. Eine noch nicht gespeicherte wird direkt bearbeitet; bei einer
+     * bereits gespeicherten holt {@link ReceiptSync#ensureLocal} Bild und Original bei Bedarf erst vom
+     * Netzlaufwerk. Vor der ersten Bearbeitung entsteht die Sicherheitskopie {@code …_original.jpg}.
+     */
+    private void editReceipt(Page page) {
+        if (page.pending != null && page.pending.exists()) {
+            startReceiptEditor(page.pending, originalOf(page.pending), null);
+            return;
+        }
+        if (page.savedName == null) {
+            return;
+        }
+        final String file = page.savedName;
+        final String originalName = NoteReceipt.originalName(file);
+        final int year = receiptYear();
+        Toast.makeText(this, R.string.receipt_opening, Toast.LENGTH_SHORT).show();
+        new Thread(() -> {
+            final java.io.File local = ReceiptSync.ensureLocal(this, file, year);
+            // Altbelege haben kein Original auf dem Server – dann dient der Beleg selbst als Vorlage.
+            final java.io.File original = ReceiptSync.ensureLocal(this, originalName, year);
+            runOnUiThread(() -> {
+                if (local == null || !local.exists()) {
+                    Toast.makeText(this, R.string.receipt_not_found, Toast.LENGTH_SHORT).show();
+                    return;
+                }
+                startReceiptEditor(local,
+                        original != null && original.exists() ? original : Receipts.localFile(this, originalName),
+                        file);
+            });
+        }).start();
+    }
+
+    /** Legt bei Bedarf die Kopie des Originals an und startet den Editor darauf. */
+    private void startReceiptEditor(java.io.File target, java.io.File original, String savedName) {
+        if (!original.exists() && !copyFile(target, original)) {
+            Toast.makeText(this, R.string.receipt_error, Toast.LENGTH_SHORT).show();
+            return;
+        }
+        editingSavedReceipt = savedName;
+        Intent i = new Intent(this, ReceiptEditActivity.class)
+                .putExtra(ReceiptEditActivity.EXTRA_PATH, target.getAbsolutePath())
+                .putExtra(ReceiptEditActivity.EXTRA_ORIGINAL, original.getAbsolutePath());
+        receiptEditLauncher.launch(i);
+    }
+
+    /** Datei des unbearbeiteten Originals zu einem Beleg-Temp bzw. einer gespeicherten Datei. */
+    private java.io.File originalOf(java.io.File file) {
+        return new java.io.File(file.getParentFile(), NoteReceipt.originalName(file.getName()));
+    }
+
+    private static boolean copyFile(java.io.File from, java.io.File to) {
+        try (java.io.InputStream in = new java.io.FileInputStream(from);
+             java.io.OutputStream out = new java.io.FileOutputStream(to)) {
+            byte[] buf = new byte[8192];
+            int n;
+            while ((n = in.read(buf)) > 0) {
+                out.write(buf, 0, n);
+            }
+            return true;
+        } catch (Exception e) {
+            to.delete();
+            return false;
         }
     }
 
@@ -1430,47 +1668,79 @@ public class BookingEditActivity extends LocalizedActivity {
      * angehängtes Bild verlinkt. Danach {@code then} (der eigentliche Speichervorgang).
      */
     private void attachReceipt(Booking b, boolean asNew, Runnable then) {
+        // Der Jahresordner der Belege folgt dem Buchungsdatum – er steckt nicht mehr im Dateinamen.
+        final int year = yearFromMillis(b.createdAt);
         if (asNew) {
-            if (pendingReceiptFile != null && pendingReceiptFile.exists()) {
-                String file = NoteReceipt.newFileName(yearFromMillis(b.createdAt));
-                if (pendingReceiptFile.renameTo(Receipts.localFile(this, file))) {
-                    b.note = NoteReceipt.withFileName(b.note, file);
-                    Receipts.addPending(this, file);
-                    ReceiptSync.syncPending(this);
+            // Kopie/Neu: bestehende Seiten gehören zur Vorlage und werden nicht übernommen.
+            for (java.util.Iterator<Page> it = receiptPages.iterator(); it.hasNext(); ) {
+                if (it.next().pending == null) {
+                    it.remove();
                 }
-                pendingReceiptFile = null;
             }
-            then.run();
-            return;
+            removedReceipts.clear();
+        } else {
+            for (String name : removedReceipts) {
+                ReceiptPages.delete(this, name);
+            }
+            removedReceipts.clear();
         }
-        // Update einer bestehenden Buchung.
-        if (removeReceipt) {
-            if (receiptFileName != null) {
-                Receipts.localFile(this, receiptFileName).delete();
-                Receipts.removePending(this, receiptFileName);
+        // Die Basis stammt von der ersten bereits gespeicherten Seite – so bleibt die UUID der Buchung
+        // erhalten, auch wenn genau diese Seite gerade gelöscht wurde.
+        String base = null;
+        for (Page p : receiptPages) {
+            if (p.savedName != null) {
+                base = NoteReceipt.baseOf(p.savedName);
+                break;
             }
-            receiptFileName = null;
-            removeReceipt = false;
         }
-        if (pendingReceiptFile != null && pendingReceiptFile.exists()) {
-            String old = receiptFileName;
-            String file = NoteReceipt.newFileName(yearFromMillis(b.createdAt));
-            if (pendingReceiptFile.renameTo(Receipts.localFile(this, file))) {
-                b.note = NoteReceipt.withFileName(b.note, file);
-                Receipts.addPending(this, file);
-                if (old != null && !old.equals(file)) {
-                    Receipts.localFile(this, old).delete();
-                    Receipts.removePending(this, old);
-                }
-                receiptFileName = file;
-                ReceiptSync.syncPending(this);
+        if (base == null) {
+            base = NoteReceipt.newBase();
+        }
+        // Neuen Seiten die kleinste freie Nummer geben …
+        java.util.List<String> taken = new java.util.ArrayList<>(savedNames());
+        taken.removeIf(java.util.Objects::isNull);
+        for (Page p : receiptPages) {
+            if (p.pending == null) {
+                continue;
             }
-            pendingReceiptFile = null;
-        } else if (receiptFileName != null) {
-            // Beleg unverändert → Tag wieder anhängen (die Notiz wurde aus dem freien Text neu gebaut).
-            b.note = NoteReceipt.withFileName(b.note, receiptFileName);
+            String name = NoteReceipt.pageName(base, ReceiptPages.nextFreePage(taken));
+            if (finalizeReceipt(p, name, year)) {
+                taken.add(name);
+            }
+        }
+        receiptPages.removeIf(p -> p.savedName == null);
+        // … und danach lückenlos durchnummerieren, damit die Suche bei der ersten Lücke aufhören kann.
+        java.util.List<String> names = savedNames();
+        java.util.List<String> target = ReceiptPages.renumber(names);
+        for (int i = 0; i < receiptPages.size(); i++) {
+            ReceiptPages.rename(this, names.get(i), target.get(i), year);
+            receiptPages.get(i).savedName = target.get(i);
+        }
+        // In die Notiz kommt nur die Basis (die UUID); die Seiten findet die App darüber selbst.
+        if (!receiptPages.isEmpty()) {
+            b.note = NoteReceipt.withFileName(b.note, NoteReceipt.tagOf(receiptPages.get(0).savedName));
+            moveReceiptYear(year);
+            ReceiptSync.syncPending(this);
         }
         then.run();
+    }
+
+    /**
+     * Benennt das Temp einer Seite auf ihren endgültigen Namen um und merkt sie zum Hochladen vor – zusammen
+     * mit dem unbearbeiteten Original, falls die Aufnahme nachbearbeitet wurde.
+     */
+    private boolean finalizeReceipt(Page page, String file, int year) {
+        if (!page.pending.renameTo(Receipts.localFile(this, file))) {
+            return false;
+        }
+        Receipts.addPending(this, file, year);
+        java.io.File original = originalOf(page.pending);
+        if (original.exists() && original.renameTo(Receipts.localFile(this, NoteReceipt.originalName(file)))) {
+            Receipts.addPending(this, NoteReceipt.originalName(file), year);
+        }
+        page.pending = null;
+        page.savedName = file;
+        return true;
     }
 
     private int yearFromMillis(long ms) {
@@ -1483,7 +1753,7 @@ public class BookingEditActivity extends LocalizedActivity {
     private void openReceipt(String file) {
         Toast.makeText(this, R.string.receipt_opening, Toast.LENGTH_SHORT).show();
         new Thread(() -> {
-            java.io.File f = ReceiptSync.ensureLocal(this, file);
+            java.io.File f = ReceiptSync.ensureLocal(this, file, receiptYear());
             final java.io.File ready = f;
             runOnUiThread(() -> {
                 if (ready == null || !ready.exists()) {

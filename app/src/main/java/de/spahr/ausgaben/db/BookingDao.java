@@ -135,6 +135,14 @@ public interface BookingDao {
             + "FROM booking WHERE created_at < :ms")
     List<Integer> getDataYearsBefore(long ms);
 
+    /** Anzahl aller Buchungen – Sicherheitsleine vor dem Aufräumen (leere Tabelle = frische Installation). */
+    @Query("SELECT COUNT(*) FROM booking")
+    int countAll();
+
+    /** Nur die Notizen mit Beleg-Verweis – Grundlage für das Aufräumen verwaister Belegdateien. */
+    @Query("SELECT note FROM booking WHERE note LIKE '%BELEG:%'")
+    List<String> getReceiptNotes();
+
     /** Buchungen mit Standort in der Notiz (neueste zuerst) – Vorlagen für die Betrag-only-Erfassung. */
     @Query("SELECT * FROM booking WHERE note LIKE '%GPS:%' ORDER BY created_at DESC, id DESC LIMIT 500")
     List<Booking> getWithGpsNote();

@@ -134,6 +134,12 @@
             android:parentActivityName=".ui.BalanceActivity" />
 
         <activity
+            android:name=".ui.ReceiptEditActivity"
+            android:exported="false"
+            android:label="@string/receipt_edit_title"
+            android:parentActivityName=".ui.BookingEditActivity" />
+
+        <activity
             android:name=".ui.LockActivity"
             android:exported="false"
             android:theme="@style/Theme.Ausgaben" />

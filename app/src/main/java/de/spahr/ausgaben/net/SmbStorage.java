@@ -104,6 +104,17 @@ public class SmbStorage implements RemoteStorage {
         });
     }
 
+    @Override
+    public void delete(String folder, String fileName) throws IOException {
+        final String path = joinPath(joinPath(base, folder), fileName);
+        withShare(disk -> {
+            if (disk.fileExists(path)) {
+                disk.rm(path);
+            }
+            return null;
+        });
+    }
+
     /** Dateistand als {@code "changeTime:size"}; leer, wenn die Datei (noch) nicht lesbar ist. */
     @Override
     public String fileVersion(String folder, String fileName) throws IOException {

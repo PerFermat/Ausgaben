@@ -80,8 +80,11 @@ Details, screenshots and exact behavior are in the **[user manual](docs/Manual-A
   ("hairdresser 20 €"), silent amount-only entry resolved via GPS location, learning payee aliases.
 - **Edit receipt photos**: right after the shot (or later from the receipt row) you can crop the image to a
   rectangle, straighten a skewed bill in trapezoid mode and adjust brightness/contrast. The untouched
-  original is kept as `…_original.jpg`, so a crop can be widened again later; if you don't want to change
-  anything, keep the photo as it is.
+  original is kept as `…_original.jpg` for good; editing again asks whether to continue from the current
+  version or start over from that original. If you don't want to change anything, keep the photo as it is.
+- **View receipts**: a viewer built into the app — swipe to page through a multi-page receipt, pinch and
+  double-tap to zoom. Deliberately not an external photo app: those tend to serve the pre-edit version
+  from their cache.
 - **Multi-page receipts**: a booking takes as many pages as you like (`<uuid>_p1.jpg`, `<uuid>_p2.jpg`, …
   sharing one UUID), each one viewable, croppable and removable on its own. The KMyMoney note only holds
   `BELEG: <uuid>` — the app finds the pages by itself. They are uploaded to `Belege/<year>/` **next to the

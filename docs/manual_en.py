@@ -337,7 +337,11 @@ h2("Multi-page receipts")
 p("A booking can hold <b>several pages</b> – for the second half of a till roll or an invoice spanning "
   "multiple sheets. The camera icon in the receipt row <b>appends another page</b> every time; while "
   "editing, each page gets its own line with crop and delete. When merely <b>viewing</b> a booking one line "
-  "is enough: on the right sits one image icon per page – tapping it opens that very image.")
+  "is enough: the page count on the left, a single image icon on the right that opens the viewer.")
+p("The <b>viewer</b> is part of the app itself. <b>Swiping</b> pages through the receipt (the header counts "
+  "along: «Page 2 of 3»), <b>pinching</b> and a <b>double tap</b> zoom in to read the small print; another "
+  "double tap fits the image back in. No external photo app is called on purpose: those remember images by "
+  "file name and would still show the pre-edit version from their cache.")
 p("All pages of a booking share <b>the same UUID</b> and differ only by the suffix «_p1», «_p2» and so on. "
   "The note – and therefore the KMyMoney memo – only holds <b>«BELEG: &lt;uuid&gt;»</b>; the app looks for "
   "the pages itself, first in the phone's receipt folder, then on the network share. Older receipts without "
@@ -361,9 +365,13 @@ p("In the editor you drag the <b>four corners</b> onto the bill. There are two m
   "<b>straightens</b> a skewed photo into a clean rectangle. Two sliders adjust <b>brightness</b> and "
   "<b>contrast</b> – handy for faded till receipts. The preview follows every change immediately, and "
   "<b>«Reset»</b> restores the starting state.")
-p("The <b>untouched original</b> is not lost: it is kept as a separate file carrying <b>«_original»</b> in its "
-  "name and is uploaded as well. When you edit again, the app starts from that original – so a crop set too "
-  "tightly can be widened later. Deleting the receipt removes the original too.")
+p("The <b>untouched original</b> is not lost: on «Apply» the app keeps a separate file carrying "
+  "<b>«_original»</b> in its name and uploads it as well. That backup stays <b>for good</b> – even after "
+  "several rounds of editing the starting image is still there. Deleting the receipt removes the original too.")
+p("So when you edit an image <b>a second time</b>, the app asks: <b>«Continue editing»</b> works on the "
+  "current version – handy to nudge the brightness without losing your crop. <b>«Start from original»</b> "
+  "brings back the untouched photo when a crop turned out too tight. For an image never edited before, the "
+  "question does not appear.")
 h2("Alias names (learned mappings)")
 p("If you change the recognized payee while saving, the app asks whether to remember the mapping as an "
   "alias – together with account, category and <b>place</b> (for transfers the from/to accounts and "

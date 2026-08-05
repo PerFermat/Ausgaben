@@ -291,8 +291,8 @@
     <string name="receipt_view_title">Beleg</string>
     <string name="receipt_opening">Beleg wird geöffnet…</string>
     <string name="receipt_not_found">Beleg nicht gefunden</string>
-    <string name="receipt_no_viewer">Kein Bildbetrachter gefunden</string>
     <string name="receipt_error">Bild konnte nicht verarbeitet werden</string>
+    <string name="receipt_view_page">Seite %1$d von %2$d</string>
     <string name="receipt_edit_question">Beleg jetzt bearbeiten? Zuschneiden, schräge Rechnungen begradigen und Helligkeit anpassen.</string>
     <string name="receipt_edit_yes">Bearbeiten</string>
     <string name="receipt_edit_no">So übernehmen</string>
@@ -306,6 +306,10 @@
     <string name="receipt_edit_done">Beleg bearbeitet</string>
     <string name="receipt_edit_hint">Die Ecken auf die Rechnung ziehen. Im Trapez-Modus wird ein schräges Foto begradigt.</string>
     <string name="receipt_edit_action">Beleg bearbeiten</string>
+    <string name="receipt_edit_again_title">Erneut bearbeiten</string>
+    <string name="receipt_edit_again_message">Dieser Beleg wurde bereits bearbeitet. Mit der bisherigen Fassung weitermachen oder wieder beim unbearbeiteten Original beginnen?</string>
+    <string name="receipt_edit_resume">Bearbeitung fortsetzen</string>
+    <string name="receipt_edit_from_original">Mit Original beginnen</string>
     <string name="receipt_page_label">Seite %1$d</string>
     <string name="receipt_page_new">Seite %1$d (neu)</string>
     <string name="receipt_add_page">Seite hinzufügen</string>

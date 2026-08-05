@@ -355,8 +355,13 @@ h2("Mehrseitige Belege")
 p("Eine Buchung kann <b>mehrere Seiten</b> haben – für die zweite Seite eines Kassenbons oder eine Rechnung "
   "über mehrere Blätter. Das Kamera-Symbol in der Beleg-Zeile <b>hängt jedes Mal eine weitere Seite an</b>; "
   "darunter erscheint beim Bearbeiten je Seite eine eigene Zeile mit Zuschneiden und Löschen. Beim reinen "
-  "<b>Ansehen</b> genügt eine Zeile: rechts steht ein Bild-Symbol je Seite – ein Tipp darauf öffnet genau "
-  "dieses Bild.")
+  "<b>Ansehen</b> genügt eine Zeile: links steht die Seitenzahl, rechts ein einzelnes Bild-Symbol, das den "
+  "Betrachter öffnet.")
+p("Der <b>Betrachter</b> gehört zur App selbst. <b>Wischen</b> blättert von Seite zu Seite (die Kopfzeile "
+  "zählt mit: «Seite 2 von 3»), <b>Zusammenziehen/Aufziehen</b> und ein <b>Doppeltipp</b> vergrößern das "
+  "Bild, um Kleingedrucktes zu lesen; ein weiterer Doppeltipp passt es wieder ein. Bewusst wird keine "
+  "fremde Foto-App aufgerufen: die merkt sich Bilder anhand des Dateinamens und zeigte nach einer "
+  "Bearbeitung noch die alte Fassung aus ihrem Zwischenspeicher.")
 p("Alle Seiten einer Buchung teilen sich <b>dieselbe UUID</b> und unterscheiden sich nur durch den Zusatz "
   "«_p1», «_p2» und so fort. In der Notiz – und damit im KMyMoney-Memo – steht nur noch "
   "<b>«BELEG: &lt;uuid&gt;»</b>; die Seiten sucht die App selbst, erst im Beleg-Ordner des Handys, dann auf "
@@ -381,10 +386,14 @@ p("Im Bearbeitungsbildschirm ziehen Sie die <b>vier Ecken</b> auf die Rechnung. 
   "frei setzen und <b>begradigt</b> eine schräg fotografierte Rechnung anschließend zu einem sauberen Rechteck. "
   "Zwei Schieberegler stellen <b>Helligkeit</b> und <b>Kontrast</b> ein – nützlich bei blassen Kassenzetteln. "
   "Die Vorschau zeigt jede Änderung sofort; <b>«Zurücksetzen»</b> stellt den Ausgangszustand wieder her.")
-p("Das <b>unbearbeitete Original</b> geht dabei nicht verloren: Es wird als eigene Datei mit dem Zusatz "
-  "<b>«_original»</b> im Namen behalten und ebenfalls hochgeladen. Beim erneuten Bearbeiten arbeitet die App "
-  "wieder auf dem Original – ein zu eng gesetzter Zuschnitt lässt sich also später wieder aufziehen. Löschen Sie "
-  "den Beleg, verschwindet auch das Original.")
+p("Das <b>unbearbeitete Original</b> geht dabei nicht verloren: Beim Übernehmen legt die App eine eigene "
+  "Datei mit dem Zusatz <b>«_original»</b> im Namen an und lädt sie ebenfalls hoch. Diese Sicherung bleibt "
+  "<b>dauerhaft</b> erhalten – auch nach mehreren Bearbeitungsrunden ist das Ausgangsbild noch da. Löschen "
+  "Sie den Beleg, verschwindet auch das Original.")
+p("Bearbeiten Sie ein Bild <b>ein zweites Mal</b>, fragt die App deshalb: <b>«Bearbeitung fortsetzen»</b> "
+  "arbeitet auf der aktuellen Fassung weiter – etwa um nur die Helligkeit nachzuziehen, ohne den Zuschnitt "
+  "zu verlieren. <b>«Mit Original beginnen»</b> holt das unbearbeitete Foto zurück, wenn ein Zuschnitt zu eng "
+  "geraten ist. Bei einem Bild, das noch nie bearbeitet wurde, erscheint die Frage nicht.")
 h2("Alias-Namen (gelernte Zuordnungen)")
 p("Ändern Sie beim Speichern den erkannten Empfänger, fragt die App, ob sie sich die Zuordnung als Alias "
   "merken soll – samt Konto, Kategorie und <b>Ort</b> (bei Umbuchungen Von-/Nach-Konto und Von-/Nach-Ort). "

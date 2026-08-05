@@ -1335,20 +1335,18 @@ public class BookingEditActivity extends LocalizedActivity {
             return;
         }
         if (readOnly) {
-            for (Page page : receiptPages) {
-                if (page.savedName == null) {
-                    continue;
-                }
-                final String f = page.savedName;
-                android.widget.ImageButton icon = new android.widget.ImageButton(this);
-                icon.setLayoutParams(new android.widget.LinearLayout.LayoutParams(dp(44), dp(44)));
-                icon.setImageResource(android.R.drawable.ic_menu_gallery);
-                icon.setBackgroundResource(backgroundBorderless());
-                icon.setContentDescription(getString(R.string.receipt_page_label,
-                        receiptPages.indexOf(page) + 1));
-                icon.setOnClickListener(v -> openReceipt(f));
-                receiptPageIcons.addView(icon);
+            // Ein einziges Symbol – wie viele Seiten es sind, steht schon im Text daneben; im Betrachter
+            // wird dann geblättert.
+            if (savedPageNames().isEmpty()) {
+                return;
             }
+            android.widget.ImageButton icon = new android.widget.ImageButton(this);
+            icon.setLayoutParams(new android.widget.LinearLayout.LayoutParams(dp(44), dp(44)));
+            icon.setImageResource(android.R.drawable.ic_menu_gallery);
+            icon.setBackgroundResource(backgroundBorderless());
+            icon.setContentDescription(getString(R.string.receipt_view_title));
+            icon.setOnClickListener(v -> openReceiptViewer(0));
+            receiptPageIcons.addView(icon);
             return;
         }
         LayoutInflater inflater = LayoutInflater.from(this);
@@ -1360,8 +1358,8 @@ public class BookingEditActivity extends LocalizedActivity {
                     : R.string.receipt_page_label, i + 1));
             // Eine bereits gespeicherte Seite lässt sich ansehen; ein frisches Bild liegt nur als Temp vor.
             if (page.savedName != null) {
-                final String f = page.savedName;
-                label.setOnClickListener(v -> openReceipt(f));
+                final int index = savedPageNames().indexOf(page.savedName);
+                label.setOnClickListener(v -> openReceiptViewer(index));
             }
             row.findViewById(R.id.btnReceiptPageEdit).setOnClickListener(v -> editReceipt(page));
             row.findViewById(R.id.btnReceiptPageDelete).setOnClickListener(v -> removeReceiptPage(page));
@@ -1629,17 +1627,35 @@ public class BookingEditActivity extends LocalizedActivity {
         }).start();
     }
 
-    /** Legt bei Bedarf die Kopie des Originals an und startet den Editor darauf. */
+    /**
+     * Startet den Bild-Editor. Gibt es bereits eine Sicherung, wurde dieser Beleg schon einmal bearbeitet –
+     * dann wird gefragt, ob die bisherige Bearbeitung fortgesetzt oder wieder beim Original begonnen wird.
+     * Die Sicherung selbst legt der Editor beim Übernehmen an; sie wird nie überschrieben.
+     */
     private void startReceiptEditor(java.io.File target, java.io.File original, String savedName) {
-        if (!original.exists() && !copyFile(target, original)) {
-            Toast.makeText(this, R.string.receipt_error, Toast.LENGTH_SHORT).show();
+        if (!original.exists()) {
+            launchReceiptEditor(target, original, false, savedName);
             return;
         }
+        new MaterialAlertDialogBuilder(this, R.style.ThemeOverlay_Ausgaben_Dialog)
+                .setTitle(R.string.receipt_edit_again_title)
+                .setMessage(R.string.receipt_edit_again_message)
+                .setPositiveButton(R.string.receipt_edit_resume,
+                        (d, w) -> launchReceiptEditor(target, original, false, savedName))
+                .setNegativeButton(R.string.receipt_edit_from_original,
+                        (d, w) -> launchReceiptEditor(target, original, true, savedName))
+                .show();
+    }
+
+    private void launchReceiptEditor(java.io.File target, java.io.File backup, boolean fromBackup,
+                                     String savedName) {
         editingSavedReceipt = savedName;
-        Intent i = new Intent(this, ReceiptEditActivity.class)
+        String source = de.spahr.ausgaben.receipt.ReceiptEdit.sourceFor(fromBackup,
+                target.getAbsolutePath(), backup.getAbsolutePath(), backup.exists());
+        receiptEditLauncher.launch(new Intent(this, ReceiptEditActivity.class)
                 .putExtra(ReceiptEditActivity.EXTRA_PATH, target.getAbsolutePath())
-                .putExtra(ReceiptEditActivity.EXTRA_ORIGINAL, original.getAbsolutePath());
-        receiptEditLauncher.launch(i);
+                .putExtra(ReceiptEditActivity.EXTRA_SOURCE, source)
+                .putExtra(ReceiptEditActivity.EXTRA_BACKUP, backup.getAbsolutePath()));
     }
 
     /** Datei des unbearbeiteten Originals zu einem Beleg-Temp bzw. einer gespeicherten Datei. */
@@ -1647,20 +1663,6 @@ public class BookingEditActivity extends LocalizedActivity {
         return new java.io.File(file.getParentFile(), NoteReceipt.originalName(file.getName()));
     }
 
-    private static boolean copyFile(java.io.File from, java.io.File to) {
-        try (java.io.InputStream in = new java.io.FileInputStream(from);
-             java.io.OutputStream out = new java.io.FileOutputStream(to)) {
-            byte[] buf = new byte[8192];
-            int n;
-            while ((n = in.read(buf)) > 0) {
-                out.write(buf, 0, n);
-            }
-            return true;
-        } catch (Exception e) {
-            to.delete();
-            return false;
-        }
-    }
 
     /**
      * Hängt den {@code BELEG:}-Tag an die (bereits aus freiem Text + GPS gebaute) Notiz an und finalisiert das
@@ -1749,31 +1751,28 @@ public class BookingEditActivity extends LocalizedActivity {
         return c.get(Calendar.YEAR);
     }
 
-    /** Öffnet den Beleg im System-Bildbetrachter (lädt ihn bei Bedarf zuerst vom Netzlaufwerk nach). */
-    private void openReceipt(String file) {
-        Toast.makeText(this, R.string.receipt_opening, Toast.LENGTH_SHORT).show();
-        new Thread(() -> {
-            java.io.File f = ReceiptSync.ensureLocal(this, file, receiptYear());
-            final java.io.File ready = f;
-            runOnUiThread(() -> {
-                if (ready == null || !ready.exists()) {
-                    Toast.makeText(this, R.string.receipt_not_found, Toast.LENGTH_SHORT).show();
-                    return;
-                }
-                try {
-                    android.net.Uri uri = androidx.core.content.FileProvider.getUriForFile(
-                            this, getPackageName() + ".fileprovider", ready);
-                    Intent i = new Intent(Intent.ACTION_VIEW)
-                            .setDataAndType(uri, "image/jpeg")
-                            .addFlags(Intent.FLAG_GRANT_READ_URI_PERMISSION);
-                    startActivity(i);
-                } catch (android.content.ActivityNotFoundException e) {
-                    Toast.makeText(this, R.string.receipt_no_viewer, Toast.LENGTH_SHORT).show();
-                } catch (Exception e) {
-                    Toast.makeText(this, R.string.receipt_error, Toast.LENGTH_SHORT).show();
-                }
-            });
-        }).start();
+    /** Die Namen der gespeicherten Seiten – die Reihenfolge im Betrachter. */
+    private java.util.List<String> savedPageNames() {
+        java.util.List<String> names = savedNames();
+        names.removeIf(java.util.Objects::isNull);
+        return names;
+    }
+
+    /**
+     * Öffnet die Belegseiten im <b>eigenen</b> Betrachter, beginnend bei {@code index}. Eine fremde Foto-App
+     * kam hier nicht in Frage: sie cacht auf den Dateinamen, und ein bearbeiteter Beleg behält seinen Namen –
+     * angezeigt wurde dann die alte Fassung.
+     */
+    private void openReceiptViewer(int index) {
+        java.util.List<String> names = savedPageNames();
+        if (names.isEmpty()) {
+            Toast.makeText(this, R.string.receipt_not_found, Toast.LENGTH_SHORT).show();
+            return;
+        }
+        startActivity(new Intent(this, ReceiptViewActivity.class)
+                .putExtra(ReceiptViewActivity.EXTRA_FILES, names.toArray(new String[0]))
+                .putExtra(ReceiptViewActivity.EXTRA_YEAR, receiptYear())
+                .putExtra(ReceiptViewActivity.EXTRA_INDEX, Math.max(0, index)));
     }
 
     // ---- Aktualisieren (bestehende Buchung) ----

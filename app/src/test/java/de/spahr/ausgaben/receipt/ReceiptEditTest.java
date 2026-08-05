@@ -99,4 +99,21 @@ public class ReceiptEditTest {
     public void colorMatrix_clampsOutOfRange() {
         assertArrayEquals(ReceiptEdit.colorMatrix(100, 100), ReceiptEdit.colorMatrix(500, 500), EPS);
     }
+
+    @Test
+    public void sourceFor_resumeKeepsTheEditedFile() {
+        assertEquals("a_p1.jpg", ReceiptEdit.sourceFor(false, "a_p1.jpg", "a_p1_original.jpg", true));
+    }
+
+    @Test
+    public void sourceFor_startsOverFromTheBackup() {
+        assertEquals("a_p1_original.jpg", ReceiptEdit.sourceFor(true, "a_p1.jpg", "a_p1_original.jpg", true));
+    }
+
+    @Test
+    public void sourceFor_withoutBackupAlwaysTheFileItself() {
+        // Nie bearbeitet (oder Sicherung verloren): es gibt nichts anderes zu laden.
+        assertEquals("a_p1.jpg", ReceiptEdit.sourceFor(true, "a_p1.jpg", "a_p1_original.jpg", false));
+        assertEquals("a_p1.jpg", ReceiptEdit.sourceFor(true, "a_p1.jpg", null, true));
+    }
 }

@@ -291,8 +291,8 @@
     <string name="receipt_view_title">Receipt</string>
     <string name="receipt_opening">Opening receipt…</string>
     <string name="receipt_not_found">Receipt not found</string>
-    <string name="receipt_no_viewer">No image viewer found</string>
     <string name="receipt_error">Could not process the image</string>
+    <string name="receipt_view_page">Page %1$d of %2$d</string>
     <string name="receipt_edit_question">Edit the receipt now? You can crop it, straighten a skewed bill and adjust brightness.</string>
     <string name="receipt_edit_yes">Edit</string>
     <string name="receipt_edit_no">Keep as is</string>
@@ -306,6 +306,10 @@
     <string name="receipt_edit_done">Receipt edited</string>
     <string name="receipt_edit_hint">Drag the corners onto the bill. In trapezoid mode a skewed photo is straightened.</string>
     <string name="receipt_edit_action">Edit receipt</string>
+    <string name="receipt_edit_again_title">Edit again</string>
+    <string name="receipt_edit_again_message">This receipt has been edited before. Continue from the current version, or start over from the untouched original?</string>
+    <string name="receipt_edit_resume">Continue editing</string>
+    <string name="receipt_edit_from_original">Start from original</string>
     <string name="receipt_page_label">Page %1$d</string>
     <string name="receipt_page_new">Page %1$d (new)</string>
     <string name="receipt_add_page">Add page</string>

@@ -78,8 +78,12 @@ Details, Screenshots und die genaue Bedienung stehen im **[Benutzerhandbuch](doc
   Zahlungsempfänger.
 - **Belegfotos nachbearbeiten**: direkt nach der Aufnahme (oder später über die Beleg-Zeile) lässt sich
   das Bild rechteckig zuschneiden, im Trapez-Modus eine schräg fotografierte Rechnung begradigen und
-  Helligkeit/Kontrast anpassen. Das unbearbeitete Original bleibt als `…_original.jpg` erhalten, sodass
-  ein Zuschnitt später wieder aufgezogen werden kann; wer nichts ändern will, übernimmt das Foto wie es ist.
+  Helligkeit/Kontrast anpassen. Das unbearbeitete Original bleibt dauerhaft als `…_original.jpg` erhalten;
+  beim erneuten Bearbeiten fragt die App, ob die bisherige Bearbeitung fortgesetzt oder wieder beim Original
+  begonnen wird. Wer nichts ändern will, übernimmt das Foto wie es ist.
+- **Belege ansehen**: eigener Betrachter in der App – Wischen blättert durch die Seiten, Pinch und
+  Doppeltipp vergrößern. Bewusst keine fremde Foto-App: die zeigt nach dem Bearbeiten aus ihrem Cache
+  gern noch die alte Fassung.
 - **Mehrseitige Belege**: eine Buchung nimmt beliebig viele Seiten auf (`<uuid>_p1.jpg`, `<uuid>_p2.jpg`, …
   mit gemeinsamer UUID), jede einzeln ansehbar, zuschneidbar und löschbar. In der KMyMoney-Notiz steht nur
   `BELEG: <uuid>` – die Seiten findet die App selbst. Hochgeladen wird nach `Belege/<Jahr>/` **neben der

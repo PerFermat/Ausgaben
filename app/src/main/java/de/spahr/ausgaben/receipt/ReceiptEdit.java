@@ -141,6 +141,36 @@ public final class ReceiptEdit {
         return out;
     }
 
+    /**
+     * Welche Datei der Editor als Vorlage lädt: die Sicherung nur, wenn der Nutzer ausdrücklich wieder beim
+     * Original beginnen will <b>und</b> es sie gibt – sonst die aktuelle (evtl. schon bearbeitete) Datei.
+     */
+    public static String sourceFor(boolean fromBackup, String target, String backup, boolean backupExists) {
+        return fromBackup && backupExists && backup != null && !backup.isEmpty() ? backup : target;
+    }
+
+    /**
+     * Dekodiert ein JPEG unterabgetastet, sodass die lange Kante höchstens {@code maxEdge} misst – für
+     * Vorschau und Betrachter, damit große Aufnahmen den Speicher nicht sprengen. {@code null} bei Fehler.
+     */
+    public static Bitmap decode(java.io.File file, int maxEdge) {
+        try {
+            android.graphics.BitmapFactory.Options bounds = new android.graphics.BitmapFactory.Options();
+            bounds.inJustDecodeBounds = true;
+            android.graphics.BitmapFactory.decodeFile(file.getAbsolutePath(), bounds);
+            int longEdge = Math.max(bounds.outWidth, bounds.outHeight);
+            int sample = 1;
+            while (longEdge / (sample * 2) >= maxEdge) {
+                sample *= 2;
+            }
+            android.graphics.BitmapFactory.Options opt = new android.graphics.BitmapFactory.Options();
+            opt.inSampleSize = sample;
+            return android.graphics.BitmapFactory.decodeFile(file.getAbsolutePath(), opt);
+        } catch (Exception e) {
+            return null;
+        }
+    }
+
     private static float dist(float[] quad, int a, int b) {
         float dx = quad[a * 2] - quad[b * 2];
         float dy = quad[a * 2 + 1] - quad[b * 2 + 1];

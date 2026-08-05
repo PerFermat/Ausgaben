@@ -140,6 +140,12 @@
             android:parentActivityName=".ui.BookingEditActivity" />
 
         <activity
+            android:name=".ui.ReceiptViewActivity"
+            android:exported="false"
+            android:label="@string/receipt_view_title"
+            android:parentActivityName=".ui.BookingEditActivity" />
+
+        <activity
             android:name=".ui.LockActivity"
             android:exported="false"
             android:theme="@style/Theme.Ausgaben" />

@@ -1,7 +1,6 @@
 package de.spahr.ausgaben.ui;
 
 import android.graphics.Bitmap;
-import android.graphics.BitmapFactory;
 import android.os.Bundle;
 import android.widget.Toast;
 
@@ -20,16 +19,20 @@ import de.spahr.ausgaben.receipt.ReceiptEdit;
  * Nachbearbeitung eines Belegfotos: rechteckiger Zuschnitt, Trapezkorrektur für schräg fotografierte
  * Rechnungen sowie Helligkeit und Kontrast.
  *
- * <p>Bearbeitet wird immer das <b>Original</b> ({@link #EXTRA_ORIGINAL}, falls vorhanden), geschrieben wird
- * nach {@link #EXTRA_PATH}. So lässt sich ein einmal enger gezogener Zuschnitt später wieder aufziehen.
- * Abbrechen oder Zurück lässt beide Dateien unberührt.</p>
+ * <p>Geladen wird {@link #EXTRA_SOURCE} (die aktuelle Datei oder die Sicherung – das entscheidet der
+ * Aufrufer), geschrieben wird nach {@link #EXTRA_PATH}. Beim Übernehmen legt der Editor <b>zuvor</b> die
+ * Sicherung {@link #EXTRA_BACKUP} an, falls es sie noch nicht gibt; eine vorhandene bleibt unangetastet.
+ * So ist das unbearbeitete Bild dauerhaft erreichbar, und dass die Sicherung existiert, heißt zugleich:
+ * dieser Beleg wurde schon einmal bearbeitet. Abbrechen oder Zurück lässt alle Dateien unberührt.</p>
  */
 public class ReceiptEditActivity extends LocalizedActivity {
 
     /** Zieldatei – hierhin wird das Ergebnis geschrieben. */
     public static final String EXTRA_PATH = "path";
-    /** Quelle für die Bearbeitung; fehlt sie oder gibt es sie nicht, dient die Zieldatei als Quelle. */
-    public static final String EXTRA_ORIGINAL = "original";
+    /** Was geladen wird; fehlt es oder gibt es die Datei nicht, dient die Zieldatei als Quelle. */
+    public static final String EXTRA_SOURCE = "source";
+    /** Wohin die unbearbeitete Fassung gesichert wird, bevor zum ersten Mal überschrieben wird. */
+    public static final String EXTRA_BACKUP = "backup";
 
     /** Arbeitsauflösung der Vorschau – groß genug zum Zielen, klein genug fürs Bildgedächtnis. */
     private static final int PREVIEW_MAX_EDGE = 1600;
@@ -39,6 +42,7 @@ public class ReceiptEditActivity extends LocalizedActivity {
     private Slider brightness;
     private Slider contrast;
     private File target;
+    private File backup;
 
     @Override
     protected void onCreate(Bundle savedInstanceState) {
@@ -46,13 +50,15 @@ public class ReceiptEditActivity extends LocalizedActivity {
         setContentView(R.layout.activity_receipt_edit);
 
         String path = getIntent().getStringExtra(EXTRA_PATH);
-        String original = getIntent().getStringExtra(EXTRA_ORIGINAL);
+        String src = getIntent().getStringExtra(EXTRA_SOURCE);
+        String back = getIntent().getStringExtra(EXTRA_BACKUP);
         if (path == null || path.isEmpty()) {
             finish();
             return;
         }
         target = new File(path);
-        File source = original == null || original.isEmpty() ? target : new File(original);
+        backup = back == null || back.isEmpty() ? null : new File(back);
+        File source = src == null || src.isEmpty() ? target : new File(src);
         if (!source.exists()) {
             source = target;
         }
@@ -93,7 +99,7 @@ public class ReceiptEditActivity extends LocalizedActivity {
     private void load(File source) {
         final File src = source;
         new Thread(() -> {
-            Bitmap bmp = decode(src, PREVIEW_MAX_EDGE);
+            Bitmap bmp = ReceiptEdit.decode(src, PREVIEW_MAX_EDGE);
             runOnUiThread(() -> {
                 if (isFinishing()) {
                     return;
@@ -124,6 +130,11 @@ public class ReceiptEditActivity extends LocalizedActivity {
             boolean ok;
             try {
                 Bitmap out = ReceiptEdit.apply(src, copy, rect, b, c);
+                // Vor dem ersten Überschreiben die unbearbeitete Fassung sichern; eine vorhandene Sicherung
+                // bleibt, damit auch nach mehreren Runden noch das Ausgangsbild erreichbar ist.
+                if (backup != null && !backup.exists() && !copyFile(target, backup)) {
+                    throw new java.io.IOException("Sicherung fehlgeschlagen");
+                }
                 try (FileOutputStream fos = new FileOutputStream(target)) {
                     out.compress(Bitmap.CompressFormat.JPEG, JPEG_QUALITY, fos);
                 }
@@ -144,22 +155,18 @@ public class ReceiptEditActivity extends LocalizedActivity {
         }).start();
     }
 
-    /** Wie {@code ReceiptImage}: erst die Maße lesen, dann passend unterabgetastet dekodieren. */
-    private static Bitmap decode(File file, int maxEdge) {
-        try {
-            BitmapFactory.Options bounds = new BitmapFactory.Options();
-            bounds.inJustDecodeBounds = true;
-            BitmapFactory.decodeFile(file.getAbsolutePath(), bounds);
-            int longEdge = Math.max(bounds.outWidth, bounds.outHeight);
-            int sample = 1;
-            while (longEdge / (sample * 2) >= maxEdge) {
-                sample *= 2;
+    private static boolean copyFile(File from, File to) {
+        try (java.io.InputStream in = new java.io.FileInputStream(from);
+             java.io.OutputStream out = new java.io.FileOutputStream(to)) {
+            byte[] buf = new byte[8192];
+            int n;
+            while ((n = in.read(buf)) > 0) {
+                out.write(buf, 0, n);
             }
-            BitmapFactory.Options opt = new BitmapFactory.Options();
-            opt.inSampleSize = sample;
-            return BitmapFactory.decodeFile(file.getAbsolutePath(), opt);
+            return true;
         } catch (Exception e) {
-            return null;
+            to.delete();
+            return false;
         }
     }
 }

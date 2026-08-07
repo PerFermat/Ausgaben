@@ -925,8 +925,8 @@ h2("Data")
 bullets([
   "<b>Export all</b> and <b>Create/restore backup</b> (see below).",
   "<b>Manage accounts (delete/close)</b>: a <b>multi-select</b> lists all accounts with status "
-  "(Active/Closed). The bottom row has <b>Delete</b> and (context-dependent) <b>Close/Reopen</b> before "
-  "<b>Cancel</b>; <b>Close</b> only at balance 0, <b>Reopen</b> only for closed accounts. A closed account "
+  "(Active/Closed). The bottom row has (context-dependent) <b>Close/Reopen</b> and, on the right, "
+  "<b>Delete</b>; <b>Close</b> only at balance 0, <b>Reopen</b> only for closed accounts. A closed account "
   "no longer appears anywhere – only in the total analysis view does its historical balance still count.",
   "<b>Reset data</b>: deletes the local database (a fresh start like the first time – the welcome assistant "
   "appears again afterwards).",

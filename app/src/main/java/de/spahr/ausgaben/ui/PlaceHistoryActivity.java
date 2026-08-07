@@ -153,8 +153,7 @@ public class PlaceHistoryActivity extends LocalizedActivity {
         // Betrag über die eigene Rechentastatur (vorzeichenbehaftet: Bewegungen dürfen negativ sein).
         CalcKeyboardView.installToggling(amountField, (android.widget.LinearLayout) view, true);
 
-        MaterialAlertDialogBuilder b = new MaterialAlertDialogBuilder(this,
-                R.style.ThemeOverlay_Ausgaben_Dialog)
+        MaterialAlertDialogBuilder b = new AppDialog(this)
                 .setTitle(existing == null ? R.string.movement_add : R.string.movement_edit)
                 .setView(view)
                 .setPositiveButton(R.string.save, (d, w) -> {

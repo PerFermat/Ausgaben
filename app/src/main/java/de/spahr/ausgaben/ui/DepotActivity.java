@@ -452,7 +452,7 @@ public class DepotActivity extends LocalizedActivity {
         View view = LayoutInflater.from(this).inflate(R.layout.dialog_progress, null, false);
         progressTextView = view.findViewById(R.id.progressText);
         progressTextView.setText(text);
-        progressDialog = new MaterialAlertDialogBuilder(this, R.style.ThemeOverlay_Ausgaben_Dialog)
+        progressDialog = new AppDialog(this)
                 .setView(view)
                 .setCancelable(false)
                 .create();
@@ -491,7 +491,7 @@ public class DepotActivity extends LocalizedActivity {
             return;
         }
         MaterialAlertDialogBuilder b =
-                new MaterialAlertDialogBuilder(this, R.style.ThemeOverlay_Ausgaben_Dialog)
+                new AppDialog(this)
                         .setNegativeButton(R.string.cancel, null);
         if (account == null) {
             b.setTitle(R.string.kmy_import_all_title)
@@ -744,7 +744,7 @@ public class DepotActivity extends LocalizedActivity {
             if (filterTo != null) to.setText(centsPlain(filterTo));
         }
 
-        new MaterialAlertDialogBuilder(this, R.style.ThemeOverlay_Ausgaben_Dialog)
+        new AppDialog(this)
                 .setTitle(R.string.action_filter)
                 .setView(view)
                 .setNeutralButton(R.string.filter_reset, (d, w) -> {
@@ -772,7 +772,6 @@ public class DepotActivity extends LocalizedActivity {
                     }
                     render();
                 })
-                .setNegativeButton(R.string.cancel, null)
                 .show();
     }
 

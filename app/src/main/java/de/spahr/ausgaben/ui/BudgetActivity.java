@@ -13,7 +13,6 @@ import android.widget.Toast;
 import com.google.android.material.button.MaterialButton;
 import com.google.android.material.button.MaterialButtonToggleGroup;
 import com.google.android.material.appbar.MaterialToolbar;
-import com.google.android.material.dialog.MaterialAlertDialogBuilder;
 import com.google.android.material.textfield.TextInputEditText;
 import com.google.android.material.textfield.TextInputLayout;
 
@@ -808,10 +807,9 @@ public class BudgetActivity extends LocalizedActivity {
             }
         });
 
-        androidx.appcompat.app.AlertDialog dialog = new MaterialAlertDialogBuilder(this)
+        androidx.appcompat.app.AlertDialog dialog = new AppDialog(this)
                 .setTitle(getString(R.string.budget_edit_title, category))
                 .setView(box)
-                .setNegativeButton(android.R.string.cancel, null)
                 .create();
         dialogRef[0] = dialog;
         // Das fokussierte Betragsfeld darf nicht die System-Tastatur des Dialogfensters hochziehen –

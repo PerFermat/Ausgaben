@@ -1,0 +1,10 @@
+<?xml version="1.0" encoding="utf-8"?>
+<!-- Grund der Vorschlagslisten unter den Eingabefeldern (Konto, Kategorie, Empfänger, Ort).
+     Derselbe 16dp-Radius wie die Dialoge (ShapeAppearance.Ausgaben.Dialog), damit alles, was sich
+     über die App legt, dieselbe Form hat. Die Flächenfarbe kommt aus dem Theme und wechselt so von
+     selbst zwischen Hell- und Dunkelmodus. -->
+<shape xmlns:android="http://schemas.android.com/apk/res/android"
+    android:shape="rectangle">
+    <solid android:color="?attr/colorSurfaceContainerHigh" />
+    <corners android:radius="16dp" />
+</shape>

@@ -29,6 +29,53 @@
     <!-- Bestätigungs-/Filter-Dialoge: Button-Text grün (hell) / weiß (dunkel) -->
     <style name="ThemeOverlay.Ausgaben.Dialog" parent="ThemeOverlay.Material3.MaterialAlertDialog">
         <item name="colorPrimary">@color/button_accent</item>
+        <item name="alertDialogStyle">@style/MaterialAlertDialog.Ausgaben</item>
+        <item name="materialAlertDialogBodyTextStyle">@style/MaterialAlertDialog.Ausgaben.BodyText</item>
+        <item name="buttonBarPositiveButtonStyle">@style/Widget.Ausgaben.DialogButton.Confirm</item>
+        <item name="buttonBarNeutralButtonStyle">@style/Widget.Ausgaben.DialogButton.Text</item>
+        <item name="buttonBarNegativeButtonStyle">@style/Widget.Ausgaben.DialogButton.Text</item>
+    </style>
+
+    <!-- Zerstörende Abfragen (löschen, zurücksetzen): dieselbe Form, aber die bestätigende Taste rot.
+         Wird über AppDialog.destructive(…) gewählt. -->
+    <style name="ThemeOverlay.Ausgaben.Dialog.Destructive" parent="ThemeOverlay.Ausgaben.Dialog">
+        <item name="buttonBarPositiveButtonStyle">@style/Widget.Ausgaben.DialogButton.Danger</item>
+    </style>
+
+    <!-- Gemeinsame Form aller Pop-ups: 16dp. Dieselbe Rundung trägt popup_background.xml für die
+         Vorschlagslisten der Eingabefelder, damit Dialog und Liste wie aus einem Guss wirken. -->
+    <style name="ShapeAppearance.Ausgaben.Dialog" parent="ShapeAppearance.Material3.Corner.ExtraLarge">
+        <item name="cornerFamily">rounded</item>
+        <item name="cornerSize">16dp</item>
+    </style>
+
+    <!-- Der Text rückt vom Band ab: dessen Innenabstand liegt jetzt im Grünen und trennt deshalb nicht. -->
+    <style name="MaterialAlertDialog.Ausgaben.BodyText" parent="MaterialAlertDialog.Material3.Body.Text">
+        <item name="android:paddingTop">16dp</item>
+    </style>
+
+    <style name="MaterialAlertDialog.Ausgaben" parent="MaterialAlertDialog.Material3">
+        <item name="shapeAppearance">@style/ShapeAppearance.Ausgaben.Dialog</item>
+        <item name="shapeAppearanceOverlay">@null</item>
+    </style>
+
+    <!-- Der Hauptweg ist gefüllt, alles daneben bleibt Text: so ist in einem Blick zu sehen, was die
+         Abfrage von einem will. Knapper als die Material-Vorgabe (24dp, Mindestbreite 58dp), damit
+         auch drei Tasten nebeneinander passen. -->
+    <style name="Widget.Ausgaben.DialogButton.Confirm" parent="Widget.Material3.Button">
+        <item name="backgroundTint">@color/green_primary</item>
+        <item name="android:textColor">@color/white</item>
+        <item name="android:paddingStart">16dp</item>
+        <item name="android:paddingEnd">16dp</item>
+        <item name="android:minWidth">0dp</item>
+    </style>
+
+    <style name="Widget.Ausgaben.DialogButton.Danger" parent="Widget.Ausgaben.DialogButton.Confirm">
+        <item name="backgroundTint">@color/danger_button</item>
+    </style>
+
+    <style name="Widget.Ausgaben.DialogButton.Text" parent="Widget.Material3.Button.TextButton.Dialog">
+        <item name="android:textColor">@color/button_accent</item>
     </style>
 
     <!-- Tasten der eigenen Rechentastatur (CalcKeyboardView). -->

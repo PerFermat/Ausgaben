@@ -1140,6 +1140,23 @@ public class Repository {
         });
     }
 
+    /**
+     * Kontenart je Kontoname – für das Symbol vor jedem Eintrag der Auswahllisten. Der Name ist
+     * kleingeschrieben hinterlegt, weil die Felder mit frei getipptem Text arbeiten.
+     */
+    public void getAccountKinds(final Callback<java.util.Map<String, Integer>> callback) {
+        executor.execute(() -> {
+            final java.util.Map<String, Integer> result = new java.util.HashMap<>();
+            for (Account account : accountDao.getAll()) {
+                if (account.name != null) {
+                    result.put(account.name.toLowerCase(java.util.Locale.ROOT),
+                            AccountKind.of(account.kmyType));
+                }
+            }
+            mainHandler.post(() -> callback.onResult(result));
+        });
+    }
+
     /** Alle Konten mit Status (aktiv/geschlossen) – für die Konto-Verwaltung. */
     public void getAllAccountsWithStatus(final Callback<List<Account>> callback) {
         executor.execute(() -> {

@@ -6,7 +6,6 @@ import android.widget.Toast;
 
 import androidx.appcompat.app.AlertDialog;
 
-import com.google.android.material.dialog.MaterialAlertDialogBuilder;
 
 import java.util.ArrayList;
 import java.util.List;
@@ -43,7 +42,7 @@ final class BudgetImportFlow {
         }
 
         ProgressBar bar = new ProgressBar(activity);
-        AlertDialog progress = new MaterialAlertDialogBuilder(activity)
+        AlertDialog progress = new AppDialog(activity)
                 .setTitle(R.string.progress_download)
                 .setView(bar)
                 .setCancelable(false)
@@ -72,7 +71,7 @@ final class BudgetImportFlow {
                         for (int i = 0; i < years.size(); i++) {
                             labels[i] = String.valueOf(years.get(i));
                         }
-                        new MaterialAlertDialogBuilder(activity)
+                        new AppDialog(activity)
                                 .setTitle(R.string.budget_import)
                                 .setItems(labels, (d, which) ->
                                         store(activity, repository, targetYear, importer,

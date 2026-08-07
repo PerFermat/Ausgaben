@@ -15,7 +15,6 @@ import androidx.appcompat.app.AlertDialog;
 
 import com.google.android.material.appbar.MaterialToolbar;
 import com.google.android.material.checkbox.MaterialCheckBox;
-import com.google.android.material.dialog.MaterialAlertDialogBuilder;
 import com.google.android.material.slider.RangeSlider;
 import com.google.android.material.textfield.TextInputEditText;
 import com.google.android.material.textfield.TextInputLayout;
@@ -178,7 +177,7 @@ public class SecurityHistoryActivity extends LocalizedActivity {
         EditText toField = view.findViewById(R.id.dateTo);
         final MonthRange range = MonthRange.attach(slider, fromField, toField, min, max, filterFrom, filterTo);
 
-        new MaterialAlertDialogBuilder(this, R.style.ThemeOverlay_Ausgaben_Dialog)
+        new AppDialog(this)
                 .setTitle(R.string.action_filter)
                 .setView(view)
                 .setNeutralButton(R.string.filter_reset, (d, w) -> {
@@ -206,7 +205,6 @@ public class SecurityHistoryActivity extends LocalizedActivity {
                     filterTo = range.getToMillis();
                     renderTx();
                 })
-                .setNegativeButton(R.string.cancel, null)
                 .show();
     }
 
@@ -331,10 +329,9 @@ public class SecurityHistoryActivity extends LocalizedActivity {
             }
         });
 
-        AlertDialog dialog = new MaterialAlertDialogBuilder(this)
+        AlertDialog dialog = new AppDialog(this)
                 .setTitle(getString(R.string.depot_tx_value_title, actionLabel(tx.action)))
                 .setView(box)
-                .setNegativeButton(R.string.cancel, null)
                 .create();
         dialogRef[0] = dialog;
         // Das fokussierte Betragsfeld darf nicht die System-Tastatur des Dialogfensters hochziehen –

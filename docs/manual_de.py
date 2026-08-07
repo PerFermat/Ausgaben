@@ -979,8 +979,8 @@ h2("Daten")
 bullets([
   "<b>Alles exportieren</b> sowie <b>Sicherung erstellen/einspielen</b> (siehe unten).",
   "<b>Konten verwalten (löschen/schließen)</b>: Eine <b>Mehrfachauswahl</b> listet alle Konten mit Status "
-  "(Aktiv/Geschlossen). Unten stehen <b>Löschen</b> und (kontextabhängig) <b>Schließen/Öffnen</b> vor "
-  "<b>Abbrechen</b>; <b>Schließen</b> nur bei Saldo 0, <b>Öffnen</b> nur bei geschlossenen Konten. Ein "
+  "(Aktiv/Geschlossen). Unten stehen (kontextabhängig) <b>Schließen/Öffnen</b> und rechts <b>Löschen</b>; "
+  "<b>Schließen</b> nur bei Saldo 0, <b>Öffnen</b> nur bei geschlossenen Konten. Ein "
   "geschlossenes Konto erscheint nirgends mehr – nur in der Auswertung-Gesamtsicht zählt sein historischer "
   "Saldo weiter.",
   "<b>Daten zurücksetzen</b>: löscht die lokale Datenbank (Neustart wie beim ersten Mal – danach erscheint "

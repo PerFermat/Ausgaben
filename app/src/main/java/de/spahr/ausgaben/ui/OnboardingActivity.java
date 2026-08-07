@@ -4,7 +4,6 @@ import android.content.Intent;
 import android.net.Uri;
 import android.os.Bundle;
 import android.view.View;
-import android.widget.ArrayAdapter;
 import android.widget.LinearLayout;
 import android.widget.TextView;
 import android.widget.Toast;
@@ -15,7 +14,6 @@ import androidx.appcompat.app.AppCompatDelegate;
 
 import com.google.android.material.appbar.MaterialToolbar;
 import com.google.android.material.button.MaterialButton;
-import com.google.android.material.dialog.MaterialAlertDialogBuilder;
 import com.google.android.material.textfield.MaterialAutoCompleteTextView;
 import com.google.android.material.textfield.TextInputEditText;
 import com.google.android.material.textfield.TextInputLayout;
@@ -155,7 +153,7 @@ public class OnboardingActivity extends LocalizedActivity implements SmbWizardCo
                     currentName = list.get(i).name;
                 }
             }
-            editLanguage.setAdapter(new ArrayAdapter<>(this, android.R.layout.simple_list_item_1, names));
+            PickerAdapters.plain(editLanguage, java.util.Arrays.asList(names));
             if (!currentName.isEmpty()) {
                 editLanguage.setText(currentName, false);
             }
@@ -178,8 +176,7 @@ public class OnboardingActivity extends LocalizedActivity implements SmbWizardCo
     private void setupExportMode() {
         String csvLabel = getString(R.string.export_mode_csv);
         String kmyLabel = getString(R.string.export_mode_kmy);
-        editExportMode.setAdapter(new ArrayAdapter<>(this, android.R.layout.simple_list_item_1,
-                new String[]{csvLabel, kmyLabel}));
+        PickerAdapters.plain(editExportMode, java.util.Arrays.asList(csvLabel, kmyLabel));
         selectedExportMode = settings.getExportMode();
         editExportMode.setText(
                 SettingsStore.MODE_KMY.equals(selectedExportMode) ? kmyLabel : csvLabel, false);
@@ -200,8 +197,7 @@ public class OnboardingActivity extends LocalizedActivity implements SmbWizardCo
         String ncLabel = getString(R.string.server_type_nextcloud);
         String davLabel = getString(R.string.server_type_webdav);
         String smbLabel = getString(R.string.server_type_smb);
-        editServerType.setAdapter(new ArrayAdapter<>(this, android.R.layout.simple_list_item_1,
-                new String[]{ncLabel, davLabel, smbLabel}));
+        PickerAdapters.plain(editServerType, java.util.Arrays.asList(ncLabel, davLabel, smbLabel));
         selectedServerType = settings.getServerType();
         editServerType.setText(labelForServerType(ncLabel, davLabel, smbLabel), false);
         applyServerTypeHints();
@@ -395,10 +391,9 @@ public class OnboardingActivity extends LocalizedActivity implements SmbWizardCo
             actions.add(() -> editKmyPath.setText(path));
         }
         String title = folder.isEmpty() ? getString(R.string.kmy_browse) : "/" + folder;
-        new MaterialAlertDialogBuilder(this, R.style.ThemeOverlay_Ausgaben_Dialog)
+        new AppDialog(this)
                 .setTitle(title)
                 .setItems(labels.toArray(new String[0]), (d, w) -> actions.get(w).run())
-                .setNegativeButton(R.string.cancel, null)
                 .show();
     }
 
@@ -447,10 +442,9 @@ public class OnboardingActivity extends LocalizedActivity implements SmbWizardCo
             actions.add(() -> browseFolderAt(next, target));
         }
         String title = folder.isEmpty() ? getString(R.string.folder_browse) : "/" + folder;
-        new MaterialAlertDialogBuilder(this, R.style.ThemeOverlay_Ausgaben_Dialog)
+        new AppDialog(this)
                 .setTitle(title)
                 .setItems(labels.toArray(new String[0]), (d, w) -> actions.get(w).run())
-                .setNegativeButton(R.string.cancel, null)
                 .show();
     }
 
@@ -504,7 +498,7 @@ public class OnboardingActivity extends LocalizedActivity implements SmbWizardCo
         final int accountCount = accountList.size();
         final boolean[] checked = new boolean[labels.size()];
         String[] items = labels.toArray(new String[0]);
-        new MaterialAlertDialogBuilder(this, R.style.ThemeOverlay_Ausgaben_Dialog)
+        new AppDialog(this)
                 .setTitle(R.string.kmy_choose_account)
                 .setMultiChoiceItems(items, checked, (d, which, isChecked) -> checked[which] = isChecked)
                 .setPositiveButton(R.string.kmy_import_selected, (d, w) -> {
@@ -525,7 +519,6 @@ public class OnboardingActivity extends LocalizedActivity implements SmbWizardCo
                     }
                     startBatchImport(importer, accountTargets, depotTargets);
                 })
-                .setNegativeButton(R.string.cancel, null)
                 .show();
     }
 
@@ -630,10 +623,9 @@ public class OnboardingActivity extends LocalizedActivity implements SmbWizardCo
             actions.add(() -> downloadAndImportCsv(folder, f));
         }
         String title = folder.isEmpty() ? getString(R.string.choose_import_file) : "/" + folder;
-        new MaterialAlertDialogBuilder(this, R.style.ThemeOverlay_Ausgaben_Dialog)
+        new AppDialog(this)
                 .setTitle(title)
                 .setItems(labels.toArray(new String[0]), (d, w) -> actions.get(w).run())
-                .setNegativeButton(R.string.cancel, null)
                 .show();
     }
 

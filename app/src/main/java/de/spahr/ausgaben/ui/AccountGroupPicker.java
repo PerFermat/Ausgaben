@@ -1,12 +1,10 @@
 package de.spahr.ausgaben.ui;
 
 import android.app.Activity;
-import android.widget.ArrayAdapter;
 import android.widget.ListView;
 
 import androidx.appcompat.app.AlertDialog;
 
-import com.google.android.material.dialog.MaterialAlertDialogBuilder;
 
 import java.util.ArrayList;
 import java.util.List;
@@ -38,12 +36,10 @@ final class AccountGroupPicker {
                 labels.add(g.name);
             }
             ListView list = new ListView(activity);
-            list.setAdapter(new ArrayAdapter<>(activity, android.R.layout.simple_list_item_1, labels));
-            AlertDialog dialog = new MaterialAlertDialogBuilder(activity,
-                    R.style.ThemeOverlay_Ausgaben_Dialog)
+            list.setAdapter(PickerAdapters.plainAdapter(activity, labels));
+            AlertDialog dialog = new AppDialog(activity)
                     .setTitle(R.string.accounts_group_pick)
                     .setView(list)
-                    .setNegativeButton(R.string.cancel, null)
                     .create();
             list.setOnItemClickListener((parent, view, position, id) -> {
                 settings.setAccountGroup(position == 0 ? 0L : entries.get(position - 1).id);
@@ -64,7 +60,7 @@ final class AccountGroupPicker {
 
     private static void confirmDelete(Activity activity, Repository repository, SettingsStore settings,
                                       AccountGroup group, Runnable onChanged) {
-        new MaterialAlertDialogBuilder(activity, R.style.ThemeOverlay_Ausgaben_Dialog)
+        AppDialog.destructive(activity)
                 .setTitle(R.string.accounts_group_delete_title)
                 .setMessage(activity.getString(R.string.accounts_group_delete_message, group.name))
                 .setPositiveButton(R.string.delete, (d, w) -> repository.deleteAccountGroup(group.id, () -> {
@@ -73,7 +69,6 @@ final class AccountGroupPicker {
                     }
                     onChanged.run();
                 }))
-                .setNegativeButton(R.string.cancel, null)
                 .show();
     }
 }

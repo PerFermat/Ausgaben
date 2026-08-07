@@ -18,6 +18,7 @@ import java.util.TreeMap;
 import java.util.TreeSet;
 
 import de.spahr.ausgaben.R;
+import de.spahr.ausgaben.settings.CategoryColorStore;
 
 /**
  * Adapter für die Kategorie-Auswahl. Oberste Ebene: die Gruppen-Überschriften „Ausgabe" und „Einnahme"
@@ -54,14 +55,17 @@ public class CategoryFilterAdapter extends ArrayAdapter<CategoryFilterAdapter.Ca
     private final List<CatItem> all;
     private List<CatItem> shown;
     private final int indentPx;
+    /** Liefert die Farbe, die dieselbe Kategorie auch im Kreisdiagramm trägt. */
+    private final CategoryColorStore colors;
 
     public CategoryFilterAdapter(@NonNull Context context, String allLabel,
                                  String expenseLabel, List<String> expenseCats,
                                  String incomeLabel, List<String> incomeCats) {
-        super(context, android.R.layout.simple_list_item_1);
+        super(context, R.layout.item_picker_row, R.id.pickerText);
         this.all = build(allLabel, expenseLabel, expenseCats, incomeLabel, incomeCats);
         this.shown = new ArrayList<>(all);
         this.indentPx = Math.round(24 * context.getResources().getDisplayMetrics().density);
+        this.colors = new CategoryColorStore(context);
         addAll(this.shown);
     }
 
@@ -109,10 +113,12 @@ public class CategoryFilterAdapter extends ArrayAdapter<CategoryFilterAdapter.Ca
     @NonNull
     @Override
     public View getView(int position, View convertView, @NonNull ViewGroup parent) {
-        TextView tv = (TextView) super.getView(position, convertView, parent);
+        View row = super.getView(position, convertView, parent);
+        TextView tv = row.findViewById(R.id.pickerText);
+        android.widget.ImageView icon = row.findViewById(R.id.pickerIcon);
         CatItem item = getItem(position);
         if (item == null) {
-            return tv;
+            return row;
         }
         tv.setText(item.label);
         int top = tv.getPaddingTop();
@@ -123,14 +129,34 @@ public class CategoryFilterAdapter extends ArrayAdapter<CategoryFilterAdapter.Ca
             tv.setAllCaps(true);
             tv.setTextColor(tv.getResources().getColor(R.color.grey_text, null));
             tv.setPadding(0, top, right, bottom);
+            icon.setImageDrawable(null);
         } else {
             tv.setAllCaps(false);
             tv.setTextColor(primaryText(tv));
             tv.setTypeface(item.kind == KIND_MAIN ? Typeface.DEFAULT_BOLD : Typeface.DEFAULT);
             int left = item.kind == KIND_SUB ? indentPx : 0;
             tv.setPadding(left, top, right, bottom);
+            // Ein Zeichen für zweierlei: die Richtung (Einnahme/Ausgabe) über die Form, die Kategorie
+            // über die Farbe – dieselbe, die sie im Kreisdiagramm trägt. Unterkategorien erben die Farbe
+            // ihrer Hauptkategorie, damit Geschwister zusammengehörig aussehen.
+            if (item.kind == KIND_ALL) {
+                icon.setImageDrawable(null); // „Alle Kategorien" gehört zu keiner Richtung
+            } else {
+                icon.setImageResource(item.groupIsIncome
+                        ? R.drawable.ic_income : R.drawable.ic_expense);
+                icon.setColorFilter(colors.colorFor(mainOf(item.value)));
+            }
         }
-        return tv;
+        return row;
+    }
+
+    /** „Haupt:Unter" → „Haupt"; Hauptkategorien bleiben, wie sie sind. */
+    private static String mainOf(String value) {
+        if (value == null) {
+            return "";
+        }
+        int i = value.indexOf(':');
+        return i >= 0 ? value.substring(0, i).trim() : value;
     }
 
     private static int primaryText(TextView t) {

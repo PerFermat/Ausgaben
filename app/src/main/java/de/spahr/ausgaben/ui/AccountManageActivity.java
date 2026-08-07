@@ -15,7 +15,6 @@ import androidx.recyclerview.widget.LinearLayoutManager;
 import androidx.recyclerview.widget.RecyclerView;
 
 import com.google.android.material.appbar.MaterialToolbar;
-import com.google.android.material.dialog.MaterialAlertDialogBuilder;
 
 import java.util.ArrayList;
 import java.util.HashMap;
@@ -163,10 +162,9 @@ public class AccountManageActivity extends LocalizedActivity {
                 refresh();
             }));
         }
-        new MaterialAlertDialogBuilder(this, R.style.ThemeOverlay_Ausgaben_Dialog)
+        new AppDialog(this)
                 .setTitle(account.name)
                 .setItems(labels.toArray(new String[0]), (d, which) -> actions.get(which).run())
-                .setNegativeButton(R.string.cancel, null)
                 .show();
     }
 
@@ -175,7 +173,7 @@ public class AccountManageActivity extends LocalizedActivity {
         input.setSingleLine(true);
         int pad = Math.round(20 * getResources().getDisplayMetrics().density);
         input.setPadding(pad, pad, pad, pad);
-        new MaterialAlertDialogBuilder(this, R.style.ThemeOverlay_Ausgaben_Dialog)
+        new AppDialog(this)
                 .setTitle(R.string.accounts_group_new)
                 .setView(input)
                 .setPositiveButton(R.string.save, (d, w) -> {
@@ -184,7 +182,6 @@ public class AccountManageActivity extends LocalizedActivity {
                             ? getString(R.string.accounts_group_added, name)
                             : getString(R.string.accounts_group_empty)));
                 })
-                .setNegativeButton(R.string.cancel, null)
                 .show();
     }
 

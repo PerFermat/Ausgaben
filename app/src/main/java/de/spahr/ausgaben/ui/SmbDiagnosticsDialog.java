@@ -6,7 +6,6 @@ import android.content.ClipboardManager;
 import android.content.Context;
 import android.widget.Toast;
 
-import com.google.android.material.dialog.MaterialAlertDialogBuilder;
 
 import de.spahr.ausgaben.R;
 import de.spahr.ausgaben.net.smb.SmbDiagnostics;
@@ -39,7 +38,7 @@ final class SmbDiagnosticsDialog {
     }
 
     private static void show(Activity activity, String report) {
-        new MaterialAlertDialogBuilder(activity, R.style.ThemeOverlay_Ausgaben_Dialog)
+        new AppDialog(activity)
                 .setTitle(R.string.smb_diagnose_title)
                 .setMessage(report)
                 .setPositiveButton(R.string.smb_diagnose_copy, (d, w) -> copy(activity, report))

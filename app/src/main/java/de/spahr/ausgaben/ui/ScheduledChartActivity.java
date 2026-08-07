@@ -3,7 +3,6 @@ package de.spahr.ausgaben.ui;
 import android.content.res.Configuration;
 import android.os.Bundle;
 import android.view.MotionEvent;
-import android.widget.ArrayAdapter;
 import android.widget.TextView;
 
 import com.github.mikephil.charting.charts.CombinedChart;
@@ -164,7 +163,7 @@ public class ScheduledChartActivity extends LocalizedActivity {
         if (!viewKeys.contains(viewKey)) {
             viewKey = MainActivity.VIEW_TOTAL;
         }
-        viewSelector.setAdapter(new ArrayAdapter<>(this, android.R.layout.simple_list_item_1, viewLabels));
+        PickerAdapters.plain(viewSelector, viewLabels);
         viewSelector.setText(viewLabels.get(viewKeys.indexOf(viewKey)), false);
         viewSelector.setOnItemClickListener((parent, view, position, id) -> {
             viewKey = viewKeys.get(position);

@@ -5,7 +5,6 @@ import android.os.Bundle;
 import android.view.Gravity;
 import android.view.LayoutInflater;
 import android.view.View;
-import android.widget.ArrayAdapter;
 import android.widget.LinearLayout;
 import android.widget.TextView;
 import android.widget.Toast;
@@ -14,7 +13,6 @@ import androidx.appcompat.app.AppCompatActivity;
 
 import com.google.android.material.appbar.MaterialToolbar;
 import com.google.android.material.button.MaterialButton;
-import com.google.android.material.dialog.MaterialAlertDialogBuilder;
 import com.google.android.material.textfield.MaterialAutoCompleteTextView;
 import com.google.android.material.textfield.TextInputEditText;
 
@@ -380,7 +378,7 @@ public class BalanceActivity extends LocalizedActivity {
         TextInputEditText amount = view.findViewById(R.id.transferAmount);
         CalcKeyboardView.installToggling(amount, (android.widget.LinearLayout) view, false);
 
-        accountField.setAdapter(new ArrayAdapter<>(this, android.R.layout.simple_list_item_1, accountsOrder));
+        PickerAdapters.accounts(repository, accountField, accountsOrder);
         final String[] account = {startAccount()};
         accountField.setText(account[0], false);
         fillTransferPlaces(from, to, account[0]);
@@ -389,7 +387,7 @@ public class BalanceActivity extends LocalizedActivity {
             fillTransferPlaces(from, to, account[0]);
         });
 
-        new MaterialAlertDialogBuilder(this, R.style.ThemeOverlay_Ausgaben_Dialog)
+        new AppDialog(this)
                 .setTitle(R.string.transfer_title)
                 .setView(view)
                 .setPositiveButton(R.string.transfer_do, (d, w) -> {
@@ -402,7 +400,6 @@ public class BalanceActivity extends LocalizedActivity {
                     }
                     repository.saveTransfer(account[0], f, t, cents, this::refresh);
                 })
-                .setNegativeButton(R.string.cancel, null)
                 .show();
     }
 
@@ -410,8 +407,8 @@ public class BalanceActivity extends LocalizedActivity {
     private void fillTransferPlaces(MaterialAutoCompleteTextView from, MaterialAutoCompleteTextView to,
                                     String account) {
         List<String> options = placeOptions(account);
-        from.setAdapter(new ArrayAdapter<>(this, android.R.layout.simple_list_item_1, options));
-        to.setAdapter(new ArrayAdapter<>(this, android.R.layout.simple_list_item_1, options));
+        PickerAdapters.places(from, options);
+        PickerAdapters.places(to, options);
         String standardort = placesStore.getDefaultPlace(account);
         String toPreset = (!standardort.isEmpty() && options.contains(standardort))
                 ? standardort : options.get(options.size() - 1);
@@ -439,7 +436,7 @@ public class BalanceActivity extends LocalizedActivity {
                 view.findViewById(R.id.reconcileCreateBooking);
         CalcKeyboardView.installToggling(amount, (android.widget.LinearLayout) view, false);
 
-        accountField.setAdapter(new ArrayAdapter<>(this, android.R.layout.simple_list_item_1, accountsOrder));
+        PickerAdapters.accounts(repository, accountField, accountsOrder);
         final String[] account = {startAccount()};
         accountField.setText(account[0], false);
         fillReconcilePlaces(place, account[0]);
@@ -455,7 +452,7 @@ public class BalanceActivity extends LocalizedActivity {
         showReconcileTarget(target, payee[0], category[0]);
 
         androidx.appcompat.app.AlertDialog dialog =
-                new MaterialAlertDialogBuilder(this, R.style.ThemeOverlay_Ausgaben_Dialog)
+                new AppDialog(this)
                         .setTitle(R.string.reconcile_title)
                         .setView(view)
                         .setPositiveButton(R.string.reconcile_do, (d, w) -> {
@@ -469,7 +466,6 @@ public class BalanceActivity extends LocalizedActivity {
                             repository.saveReconcile(account[0], p, cents, createBooking.isChecked(),
                                     payee[0], category[0], this::refresh);
                         })
-                        .setNegativeButton(R.string.cancel, null)
                         .create();
         // „Übernehmen" bleibt gesperrt, solange eine Buchung erzeugt werden soll, aber Empfänger oder
         // Kategorie fehlen.
@@ -497,13 +493,12 @@ public class BalanceActivity extends LocalizedActivity {
         MaterialAutoCompleteTextView categoryField = view.findViewById(R.id.reconcileTargetCategory);
         payeeField.setText(payee[0]);
         categoryField.setText(category[0]);
-        repository.getPayeeNames(names -> payeeField.setAdapter(
-                new ArrayAdapter<>(this, android.R.layout.simple_list_item_1, names)));
-        repository.getCategoriesGrouped(g -> categoryField.setAdapter(new CategoryFilterAdapter(this, null,
+        repository.getPayeeNames(names -> PickerAdapters.payees(payeeField, names));
+        repository.getCategoriesGrouped(g -> PickerAdapters.attach(categoryField, new CategoryFilterAdapter(this, null,
                 getString(R.string.category_group_expense), g.expense,
                 getString(R.string.category_group_income), g.income)));
 
-        new MaterialAlertDialogBuilder(this, R.style.ThemeOverlay_Ausgaben_Dialog)
+        new AppDialog(this)
                 .setTitle(R.string.reconcile_target_title)
                 .setView(view)
                 .setPositiveButton(R.string.reconcile_target_save, (d, w) -> {
@@ -513,13 +508,12 @@ public class BalanceActivity extends LocalizedActivity {
                     showReconcileTarget(button, payee[0], category[0]);
                     onSaved.run();
                 })
-                .setNegativeButton(R.string.cancel, null)
                 .show();
     }
 
     private void fillReconcilePlaces(MaterialAutoCompleteTextView place, String account) {
         List<String> places = placesStore.getPlaces(account);
-        place.setAdapter(new ArrayAdapter<>(this, android.R.layout.simple_list_item_1, places));
+        PickerAdapters.places(place, places);
         place.setText(places.isEmpty() ? "" : places.get(0), false);
     }
 

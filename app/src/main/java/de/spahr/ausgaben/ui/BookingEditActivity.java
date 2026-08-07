@@ -7,7 +7,6 @@ import android.content.pm.PackageManager;
 import android.os.Bundle;
 import android.view.LayoutInflater;
 import android.view.View;
-import android.widget.ArrayAdapter;
 import android.widget.Toast;
 
 import androidx.activity.result.ActivityResultLauncher;
@@ -18,7 +17,6 @@ import androidx.core.content.ContextCompat;
 import com.google.android.material.appbar.MaterialToolbar;
 import com.google.android.material.button.MaterialButton;
 import com.google.android.material.button.MaterialButtonToggleGroup;
-import com.google.android.material.dialog.MaterialAlertDialogBuilder;
 import com.google.android.material.textfield.MaterialAutoCompleteTextView;
 import com.google.android.material.textfield.TextInputEditText;
 import com.google.android.material.textfield.TextInputLayout;
@@ -267,12 +265,9 @@ public class BookingEditActivity extends LocalizedActivity {
         btnUpdate = findViewById(R.id.btnUpdate);
         btnDelete = findViewById(R.id.btnDelete);
 
-        repository.getPayeeNames(names -> editPayee.setAdapter(
-                new ArrayAdapter<>(this, android.R.layout.simple_list_item_1, names)));
-        repository.getAccountNames(names -> {
-            editAccount.setAdapter(new ArrayAdapter<>(this, android.R.layout.simple_list_item_1, names));
-            editAccountTo.setAdapter(new ArrayAdapter<>(this, android.R.layout.simple_list_item_1, names));
-        });
+        repository.getPayeeNames(names -> PickerAdapters.payees(editPayee, names));
+        repository.getAccountNames(names ->
+                PickerAdapters.accounts(repository, names, editAccount, editAccountTo));
         repository.getCategoriesGrouped(g -> {
             // Kategoriefeld nach Ausgabe/Einnahme gruppiert (Überschriften), ohne „alle"-Eintrag.
             splitCtl.setAdapter(new CategoryFilterAdapter(this, null,
@@ -519,7 +514,7 @@ public class BookingEditActivity extends LocalizedActivity {
             proceed.run();
             return;
         }
-        new MaterialAlertDialogBuilder(this, R.style.ThemeOverlay_Ausgaben_Dialog)
+        new AppDialog(this)
                 .setTitle(R.string.correction_title)
                 .setMessage(getString(R.string.correction_message, spoken, corrected))
                 .setCancelable(false)
@@ -734,7 +729,7 @@ public class BookingEditActivity extends LocalizedActivity {
     private void confirmSkipSchedule(de.spahr.ausgaben.db.ScheduledTransaction st, long dueMs) {
         String date = java.text.DateFormat.getDateInstance(java.text.DateFormat.SHORT,
                 getResources().getConfiguration().getLocales().get(0)).format(new java.util.Date(dueMs));
-        new MaterialAlertDialogBuilder(this, R.style.ThemeOverlay_Ausgaben_Dialog)
+        new AppDialog(this)
                 .setTitle(R.string.scheduled_skip_booking)
                 .setMessage(getString(R.string.scheduled_skip_confirm, date, st.name))
                 .setPositiveButton(R.string.scheduled_skip_booking, (d, w) -> {
@@ -744,7 +739,6 @@ public class BookingEditActivity extends LocalizedActivity {
                         finish();
                     });
                 })
-                .setNegativeButton(R.string.cancel, null)
                 .show();
     }
 
@@ -1136,7 +1130,7 @@ public class BookingEditActivity extends LocalizedActivity {
             return;
         }
         String dateStr = dateDisplay.format(selectedDate.getTime());
-        new MaterialAlertDialogBuilder(this, R.style.ThemeOverlay_Ausgaben_Dialog)
+        new AppDialog(this)
                 .setTitle(R.string.date_confirm_title)
                 .setMessage(getString(R.string.date_confirm_message, dateStr))
                 .setPositiveButton(getString(R.string.date_use_given, dateStr), (d, w) -> proceed.run())
@@ -1145,7 +1139,6 @@ public class BookingEditActivity extends LocalizedActivity {
                     updateDateField();
                     proceed.run();
                 })
-                .setNeutralButton(R.string.cancel, null)
                 .show();
     }
 
@@ -1158,7 +1151,7 @@ public class BookingEditActivity extends LocalizedActivity {
     private void setupPlaceDropdown(String account) {
         List<String> options = new ArrayList<>(placesStore.getPlaces(account));
         options.add(PlacesStore.NO_PLACE);
-        editPlace.setAdapter(new ArrayAdapter<>(this, android.R.layout.simple_list_item_1, options));
+        PickerAdapters.places(editPlace, options);
         String def = placesStore.getDefaultPlace(account);
         String preset = (!def.isEmpty() && options.contains(def)) ? def : PlacesStore.NO_PLACE;
         editPlace.setText(preset, false);
@@ -1171,7 +1164,7 @@ public class BookingEditActivity extends LocalizedActivity {
     private void setupPlaceOptions(MaterialAutoCompleteTextView field, String account, boolean keepCurrent) {
         List<String> options = new ArrayList<>(placesStore.getPlaces(account));
         options.add(PlacesStore.NO_PLACE);
-        field.setAdapter(new ArrayAdapter<>(this, android.R.layout.simple_list_item_1, options));
+        PickerAdapters.places(field, options);
         String cur = textOf(field).trim();
         if (!(keepCurrent && !cur.isEmpty() && options.contains(cur))) {
             field.setText(PlacesStore.NO_PLACE, false);
@@ -1442,7 +1435,7 @@ public class BookingEditActivity extends LocalizedActivity {
                 getString(R.string.receipt_source_camera),
                 getString(R.string.receipt_source_gallery)
         };
-        new MaterialAlertDialogBuilder(this, R.style.ThemeOverlay_Ausgaben_Dialog)
+        new AppDialog(this)
                 .setTitle(R.string.receipt_add)
                 .setItems(items, (d, which) -> {
                     if (which == 0) {
@@ -1586,7 +1579,7 @@ public class BookingEditActivity extends LocalizedActivity {
 
     /** Fragt direkt nach der Aufnahme, ob das Bild noch zugeschnitten/begradigt werden soll. */
     private void askEditReceipt(Page page) {
-        new MaterialAlertDialogBuilder(this, R.style.ThemeOverlay_Ausgaben_Dialog)
+        new AppDialog(this)
                 .setTitle(R.string.receipt_edit_title)
                 .setMessage(R.string.receipt_edit_question)
                 .setPositiveButton(R.string.receipt_edit_yes, (d, w) -> editReceipt(page))
@@ -1637,7 +1630,7 @@ public class BookingEditActivity extends LocalizedActivity {
             launchReceiptEditor(target, original, false, savedName);
             return;
         }
-        new MaterialAlertDialogBuilder(this, R.style.ThemeOverlay_Ausgaben_Dialog)
+        new AppDialog(this)
                 .setTitle(R.string.receipt_edit_again_title)
                 .setMessage(R.string.receipt_edit_again_message)
                 .setPositiveButton(R.string.receipt_edit_resume,
@@ -1917,7 +1910,7 @@ public class BookingEditActivity extends LocalizedActivity {
         if (booking == null) {
             return;
         }
-        new MaterialAlertDialogBuilder(this, R.style.ThemeOverlay_Ausgaben_Dialog)
+        AppDialog.destructive(this)
                 .setTitle(R.string.delete_confirm_title)
                 .setMessage(R.string.delete_confirm_message)
                 .setPositiveButton(R.string.delete, (d, w) -> {
@@ -1940,7 +1933,6 @@ public class BookingEditActivity extends LocalizedActivity {
                         repository.deleteBooking(booking.id, done);
                     }
                 })
-                .setNegativeButton(R.string.cancel, null)
                 .show();
     }
 

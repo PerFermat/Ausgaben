@@ -3,7 +3,6 @@ package de.spahr.ausgaben.ui;
 import android.content.Intent;
 import android.os.Bundle;
 import android.view.View;
-import android.widget.ArrayAdapter;
 import android.widget.Toast;
 
 import androidx.activity.result.ActivityResultLauncher;
@@ -12,7 +11,6 @@ import androidx.appcompat.app.AppCompatActivity;
 
 import com.google.android.material.appbar.MaterialToolbar;
 import com.google.android.material.button.MaterialButton;
-import com.google.android.material.dialog.MaterialAlertDialogBuilder;
 import com.google.android.material.textfield.MaterialAutoCompleteTextView;
 import com.google.android.material.textfield.TextInputEditText;
 
@@ -131,27 +129,22 @@ public class AliasEditActivity extends LocalizedActivity {
                 getString(R.string.alias_type_expense),
                 getString(R.string.alias_type_income),
                 getString(R.string.alias_type_transfer)};
-        editType.setAdapter(new ArrayAdapter<>(this, android.R.layout.simple_list_item_1, typeLabels));
+        PickerAdapters.plain(editType, java.util.Arrays.asList(typeLabels));
         selectType(Repository.VOICE_TYPE_EXPENSE);
 
-        repository.getPayeeNames(names -> editCorrected.setAdapter(
-                new ArrayAdapter<>(this, android.R.layout.simple_list_item_1, names)));
-        repository.getAccountNames(names -> {
-            ArrayAdapter<String> a = new ArrayAdapter<>(this, android.R.layout.simple_list_item_1, names);
-            editAccount.setAdapter(a);
-            editFrom.setAdapter(a);
-            editTo.setAdapter(a);
-        });
+        repository.getPayeeNames(names -> PickerAdapters.payees(editCorrected, names));
+        repository.getAccountNames(names ->
+                PickerAdapters.accounts(repository, names, editAccount, editFrom, editTo));
         // Kategorie-Felder wie im Buchungseditor: gruppierte Baum-Anzeige (Überschrift + Einrückung).
         repository.getCategoriesGrouped(g -> {
             CategoryFilterAdapter expenseAdapter = new CategoryFilterAdapter(this, null,
                     getString(R.string.category_group_expense), g.expense, null, new ArrayList<>());
             CategoryFilterAdapter incomeAdapter = new CategoryFilterAdapter(this, null,
                     null, new ArrayList<>(), getString(R.string.category_group_income), g.income);
-            editCatExpense1.setAdapter(expenseAdapter);
-            editCatExpense2.setAdapter(expenseAdapter);
-            editCatIncome1.setAdapter(incomeAdapter);
-            editCatIncome2.setAdapter(incomeAdapter);
+            PickerAdapters.attach(editCatExpense1, expenseAdapter);
+            PickerAdapters.attach(editCatExpense2, expenseAdapter);
+            PickerAdapters.attach(editCatIncome1, incomeAdapter);
+            PickerAdapters.attach(editCatIncome2, incomeAdapter);
         });
 
         long id = getIntent().getLongExtra(EXTRA_ALIAS_ID, -1);
@@ -237,13 +230,12 @@ public class AliasEditActivity extends LocalizedActivity {
         if (loaded == null) {
             return;
         }
-        new MaterialAlertDialogBuilder(this, R.style.ThemeOverlay_Ausgaben_Dialog)
+        AppDialog.destructive(this)
                 .setTitle(R.string.alias_delete_confirm_title)
                 .setPositiveButton(R.string.delete, (d, w) -> repository.deleteAlias(loaded.id, () -> {
                     Toast.makeText(this, R.string.alias_deleted, Toast.LENGTH_SHORT).show();
                     finish();
                 }))
-                .setNegativeButton(R.string.cancel, null)
                 .show();
     }
 
@@ -297,7 +289,7 @@ public class AliasEditActivity extends LocalizedActivity {
     /** Befüllt ein Ort-Dropdown mit den Orten des Kontos und zeigt es nur, wenn das Konto Orte hat. */
     private void setupPlaceField(MaterialAutoCompleteTextView field, View layout, String account) {
         List<String> places = placesStore.getPlaces(account == null ? "" : account.trim());
-        field.setAdapter(new ArrayAdapter<>(this, android.R.layout.simple_list_item_1, places));
+        PickerAdapters.places(field, places);
         layout.setVisibility(places.isEmpty() ? View.GONE : View.VISIBLE);
     }
 

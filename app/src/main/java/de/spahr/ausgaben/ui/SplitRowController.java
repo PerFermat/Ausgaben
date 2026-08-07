@@ -83,7 +83,7 @@ class SplitRowController {
         for (int i = 0; i < container.getChildCount(); i++) {
             MaterialAutoCompleteTextView cat = container.getChildAt(i).findViewById(R.id.splitCategory);
             if (cat != null) {
-                cat.setAdapter(categoryAdapter);
+                PickerAdapters.attach(cat, categoryAdapter);
             }
         }
     }
@@ -113,7 +113,7 @@ class SplitRowController {
         TextInputEditText amt = row.findViewById(R.id.splitAmount);
         View remove = row.findViewById(R.id.btnRemoveSplit);
         if (categoryAdapter != null) {
-            cat.setAdapter(categoryAdapter);
+            PickerAdapters.attach(cat, categoryAdapter);
         }
         // Vorbelegung vor dem Anhängen der Listener, damit sie keine dynamische Logik auslösen.
         if (category != null) {

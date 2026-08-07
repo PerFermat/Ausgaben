@@ -10,7 +10,6 @@ import android.text.style.StyleSpan;
 import android.view.Gravity;
 import android.view.LayoutInflater;
 import android.view.View;
-import android.widget.ArrayAdapter;
 import android.widget.CheckBox;
 import android.widget.LinearLayout;
 import android.widget.ScrollView;
@@ -20,7 +19,6 @@ import android.widget.Toast;
 import androidx.swiperefreshlayout.widget.SwipeRefreshLayout;
 
 import com.google.android.material.appbar.MaterialToolbar;
-import com.google.android.material.dialog.MaterialAlertDialogBuilder;
 import com.google.android.material.floatingactionbutton.FloatingActionButton;
 import com.google.android.material.slider.RangeSlider;
 import com.google.android.material.textfield.MaterialAutoCompleteTextView;
@@ -555,7 +553,7 @@ public class ScheduledActivity extends LocalizedActivity {
         accOptions.add(all);
         accOptions.addAll(accountNames);
         MaterialAutoCompleteTextView acc = view.findViewById(R.id.filterAccount);
-        acc.setAdapter(new ArrayAdapter<>(this, android.R.layout.simple_list_item_1, accOptions));
+        PickerAdapters.accounts(repository, acc, accOptions);
         acc.setText(fAccount.isEmpty() ? all : fAccount, false);
 
         TextInputEditText name = view.findViewById(R.id.filterName);
@@ -569,7 +567,7 @@ public class ScheduledActivity extends LocalizedActivity {
         final MonthRange dateRange = MonthRange.attach(dateSlider, dFrom, dTo, dtMin, dtMax,
                 fDateFrom, fDateTo);
 
-        new MaterialAlertDialogBuilder(this, R.style.ThemeOverlay_Ausgaben_Dialog)
+        new AppDialog(this)
                 .setTitle(R.string.filter_title)
                 .setView(view)
                 .setPositiveButton(R.string.filter_apply, (d, w) -> {
@@ -598,7 +596,6 @@ public class ScheduledActivity extends LocalizedActivity {
                     fDateTo = null;
                     render();
                 })
-                .setNegativeButton(R.string.cancel, null)
                 .show();
     }
 

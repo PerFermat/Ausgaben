@@ -9,7 +9,6 @@ import android.os.Bundle;
 import android.view.Gravity;
 import android.view.LayoutInflater;
 import android.view.View;
-import android.widget.ArrayAdapter;
 import android.widget.Button;
 import android.widget.CompoundButton;
 import android.widget.EditText;
@@ -26,7 +25,6 @@ import androidx.core.content.ContextCompat;
 
 import com.google.android.material.appbar.MaterialToolbar;
 import com.google.android.material.button.MaterialButton;
-import com.google.android.material.dialog.MaterialAlertDialogBuilder;
 import com.google.android.material.materialswitch.MaterialSwitch;
 import com.google.android.material.textfield.MaterialAutoCompleteTextView;
 import com.google.android.material.textfield.TextInputEditText;
@@ -243,8 +241,7 @@ public class SettingsActivity extends LocalizedActivity implements SmbWizardCont
         ((MaterialButton) findViewById(R.id.btnUploadLanguage)).setOnClickListener(
                 v -> languageUploadLauncher.launch(new String[]{"application/json"}));
 
-        repository.getAccountNames(names -> editDefaultAccount.setAdapter(
-                new ArrayAdapter<>(this, android.R.layout.simple_list_item_1, names)));
+        repository.getAccountNames(names -> PickerAdapters.accounts(repository, editDefaultAccount, names));
 
         registerLaunchers();
 
@@ -275,8 +272,7 @@ public class SettingsActivity extends LocalizedActivity implements SmbWizardCont
     private void setupExportMode() {
         String csvLabel = getString(R.string.export_mode_csv);
         String kmyLabel = getString(R.string.export_mode_kmy);
-        editExportMode.setAdapter(new ArrayAdapter<>(this, android.R.layout.simple_list_item_1,
-                new String[]{csvLabel, kmyLabel}));
+        PickerAdapters.plain(editExportMode, java.util.Arrays.asList(csvLabel, kmyLabel));
         selectedExportMode = settings.getExportMode();
         editExportMode.setText(
                 SettingsStore.MODE_KMY.equals(selectedExportMode) ? kmyLabel : csvLabel, false);
@@ -292,7 +288,7 @@ public class SettingsActivity extends LocalizedActivity implements SmbWizardCont
         String[] labels = {
                 getString(R.string.csv_separator_semicolon),
                 getString(R.string.csv_separator_comma)};
-        editCsvSeparator.setAdapter(new ArrayAdapter<>(this, android.R.layout.simple_list_item_1, labels));
+        PickerAdapters.plain(editCsvSeparator, java.util.Arrays.asList(labels));
         selectedCsvSeparator = settings.getCsvSeparator();
         int idx = SettingsStore.CSV_SEP_COMMA.equals(selectedCsvSeparator) ? 1 : 0;
         editCsvSeparator.setText(labels[idx], false);
@@ -314,8 +310,7 @@ public class SettingsActivity extends LocalizedActivity implements SmbWizardCont
         String ncLabel = getString(R.string.server_type_nextcloud);
         String davLabel = getString(R.string.server_type_webdav);
         String smbLabel = getString(R.string.server_type_smb);
-        editServerType.setAdapter(new ArrayAdapter<>(this, android.R.layout.simple_list_item_1,
-                new String[]{ncLabel, davLabel, smbLabel}));
+        PickerAdapters.plain(editServerType, java.util.Arrays.asList(ncLabel, davLabel, smbLabel));
         selectedServerType = settings.getServerType();
         editServerType.setText(labelForServerType(ncLabel, davLabel, smbLabel), false);
         applyServerTypeHints();
@@ -493,10 +488,9 @@ public class SettingsActivity extends LocalizedActivity implements SmbWizardCont
             actions.add(() -> editKmyPath.setText(path));
         }
         String title = folder.isEmpty() ? getString(R.string.kmy_browse) : "/" + folder;
-        new MaterialAlertDialogBuilder(this, R.style.ThemeOverlay_Ausgaben_Dialog)
+        new AppDialog(this)
                 .setTitle(title)
                 .setItems(labels.toArray(new String[0]), (d, w) -> actions.get(w).run())
-                .setNegativeButton(R.string.cancel, null)
                 .show();
     }
 
@@ -545,10 +539,9 @@ public class SettingsActivity extends LocalizedActivity implements SmbWizardCont
             actions.add(() -> browseFolderAt(next, target));
         }
         String title = folder.isEmpty() ? getString(R.string.folder_browse) : "/" + folder;
-        new MaterialAlertDialogBuilder(this, R.style.ThemeOverlay_Ausgaben_Dialog)
+        new AppDialog(this)
                 .setTitle(title)
                 .setItems(labels.toArray(new String[0]), (d, w) -> actions.get(w).run())
-                .setNegativeButton(R.string.cancel, null)
                 .show();
     }
 
@@ -589,7 +582,7 @@ public class SettingsActivity extends LocalizedActivity implements SmbWizardCont
             if (placesAccount.isEmpty() && !names.isEmpty()) {
                 placesAccount = names.get(0);
             }
-            editPlacesAccount.setAdapter(new ArrayAdapter<>(this, android.R.layout.simple_list_item_1, names));
+            PickerAdapters.accounts(repository, editPlacesAccount, names);
             editPlacesAccount.setText(placesAccount, false);
             refreshPlaces();
         });
@@ -651,7 +644,7 @@ public class SettingsActivity extends LocalizedActivity implements SmbWizardCont
         // Standardort-Dropdown (für das gewählte Konto)
         java.util.List<String> options = new java.util.ArrayList<>(places);
         options.add(PlacesStore.NO_PLACE);
-        editDefaultPlace.setAdapter(new ArrayAdapter<>(this, android.R.layout.simple_list_item_1, options));
+        PickerAdapters.places(editDefaultPlace, options);
         String def = placesAccount.isEmpty() ? "" : placesStore.getDefaultPlace(placesAccount);
         editDefaultPlace.setText(def.isEmpty() ? PlacesStore.NO_PLACE : def, false);
     }
@@ -664,7 +657,7 @@ public class SettingsActivity extends LocalizedActivity implements SmbWizardCont
         android.widget.FrameLayout frame = new android.widget.FrameLayout(this);
         frame.setPadding(pad, pad / 2, pad, 0);
         frame.addView(input);
-        new MaterialAlertDialogBuilder(this, R.style.ThemeOverlay_Ausgaben_Dialog)
+        new AppDialog(this)
                 .setTitle(R.string.place_rename_title)
                 .setView(frame)
                 .setPositiveButton(R.string.rename, (d, w) -> {
@@ -674,19 +667,17 @@ public class SettingsActivity extends LocalizedActivity implements SmbWizardCont
                         repository.renamePlaceEntries(placesAccount, oldName, newName, this::refreshPlaces);
                     }
                 })
-                .setNegativeButton(R.string.cancel, null)
                 .show();
     }
 
     private void confirmRemovePlace(String place) {
-        new MaterialAlertDialogBuilder(this, R.style.ThemeOverlay_Ausgaben_Dialog)
+        AppDialog.destructive(this)
                 .setTitle(R.string.place_remove_title)
                 .setMessage(getString(R.string.place_remove_message, place))
                 .setPositiveButton(R.string.remove, (d, w) -> {
                     placesStore.removePlace(placesAccount, place);
                     repository.deletePlaceEntries(placesAccount, place, this::refreshPlaces);
                 })
-                .setNegativeButton(R.string.cancel, null)
                 .show();
     }
 
@@ -699,7 +690,7 @@ public class SettingsActivity extends LocalizedActivity implements SmbWizardCont
                 ((AusgabenApp) getApplication()).markUnlocked();
             } else {
                 buttonView.setChecked(false); // zurücksetzen (löst erneut den Listener aus → „aus")
-                new MaterialAlertDialogBuilder(this, R.style.ThemeOverlay_Ausgaben_Dialog)
+                new AppDialog(this)
                         .setTitle(R.string.app_lock_switch)
                         .setMessage(problem)
                         .setPositiveButton(android.R.string.ok, null)
@@ -774,7 +765,7 @@ public class SettingsActivity extends LocalizedActivity implements SmbWizardCont
                 getString(R.string.number_format_en_group),
                 getString(R.string.number_format_plain_comma),
                 getString(R.string.number_format_plain_dot)};
-        editNumberFormat.setAdapter(new ArrayAdapter<>(this, android.R.layout.simple_list_item_1, labels));
+        PickerAdapters.plain(editNumberFormat, java.util.Arrays.asList(labels));
         for (int i = 0; i < NUMBER_FORMAT_VALUES.length; i++) {
             if (NUMBER_FORMAT_VALUES[i].equals(selectedNumberFormat)) {
                 editNumberFormat.setText(labels[i], false);
@@ -844,7 +835,7 @@ public class SettingsActivity extends LocalizedActivity implements SmbWizardCont
                     currentName = list.get(i).name;
                 }
             }
-            editLanguage.setAdapter(new ArrayAdapter<>(this, android.R.layout.simple_list_item_1, names));
+            PickerAdapters.plain(editLanguage, java.util.Arrays.asList(names));
             if (!currentName.isEmpty()) {
                 editLanguage.setText(currentName, false);
             }
@@ -932,8 +923,10 @@ public class SettingsActivity extends LocalizedActivity implements SmbWizardCont
         }
         final boolean[] checked = new boolean[accounts.size()];
         final Runnable[] updater = new Runnable[1];
-        // Untere Zeile (links→rechts): „Löschen" (Neutral) · „Schließen"/„Öffnen" (Negativ) · „Abbrechen" (Positiv).
-        final AlertDialog dlg = new MaterialAlertDialogBuilder(this, R.style.ThemeOverlay_Ausgaben_Dialog)
+        // Untere Zeile (links→rechts): „Schließen"/„Öffnen" (Neutral) · „Abbrechen" (Negativ) ·
+        // „Löschen" (Positiv, rot gefüllt). „Löschen" gehört auf den bestimmenden Platz: es ist das,
+        // worum es hier geht. Nur eine gefüllte Taste – so bleiben alle drei nebeneinander.
+        final AlertDialog dlg = AppDialog.destructive(this)
                 .setTitle(R.string.account_manage_choose)
                 .setMultiChoiceItems(items, checked, (d, which, isChecked) -> {
                     checked[which] = isChecked;
@@ -941,13 +934,12 @@ public class SettingsActivity extends LocalizedActivity implements SmbWizardCont
                         updater[0].run();
                     }
                 })
-                .setNeutralButton(R.string.delete, null)
-                .setNegativeButton(R.string.account_close, null)
-                .setPositiveButton(R.string.cancel, null)
+                .setNeutralButton(R.string.account_close, null)
+                .setPositiveButton(R.string.delete, null)
                 .create();
         dlg.setOnShowListener(dialog -> {
-            Button delBtn = dlg.getButton(AlertDialog.BUTTON_NEUTRAL);
-            Button actBtn = dlg.getButton(AlertDialog.BUTTON_NEGATIVE); // Schließen/Öffnen (dynamisch)
+            Button delBtn = dlg.getButton(AlertDialog.BUTTON_POSITIVE);
+            Button actBtn = dlg.getButton(AlertDialog.BUTTON_NEUTRAL); // Schließen/Öffnen (dynamisch)
             updater[0] = () -> {
                 List<de.spahr.ausgaben.db.Account> sel = selectedAccounts(accounts, checked);
                 delBtn.setEnabled(!sel.isEmpty());
@@ -1026,7 +1018,7 @@ public class SettingsActivity extends LocalizedActivity implements SmbWizardCont
     }
 
     private void confirmDeleteAccounts(List<String> accounts) {
-        new MaterialAlertDialogBuilder(this, R.style.ThemeOverlay_Ausgaben_Dialog)
+        AppDialog.destructive(this)
                 .setTitle(R.string.delete_account_confirm_title)
                 .setMessage(getString(R.string.delete_accounts_confirm_message, accounts.size()))
                 .setPositiveButton(R.string.delete, (d, w) -> repository.deleteAccounts(accounts, () -> {
@@ -1039,17 +1031,15 @@ public class SettingsActivity extends LocalizedActivity implements SmbWizardCont
                     Toast.makeText(this, getString(R.string.accounts_deleted_done, accounts.size()),
                             Toast.LENGTH_LONG).show();
                 }))
-                .setNegativeButton(R.string.cancel, null)
                 .show();
     }
 
     private void confirmReset() {
-        new MaterialAlertDialogBuilder(this, R.style.ThemeOverlay_Ausgaben_Dialog)
+        AppDialog.destructive(this)
                 .setTitle(R.string.reset_confirm_title)
                 .setMessage(R.string.reset_confirm_message)
                 .setPositiveButton(R.string.reset_db, (d, w) -> repository.resetBookingData(() ->
                         Toast.makeText(this, R.string.reset_done, Toast.LENGTH_LONG).show()))
-                .setNegativeButton(R.string.cancel, null)
                 .show();
     }
 
@@ -1090,7 +1080,7 @@ public class SettingsActivity extends LocalizedActivity implements SmbWizardCont
         box.setOrientation(LinearLayout.VERTICAL);
         box.setPadding(pad, pad / 2, pad, 0);
         box.addView(field);
-        new MaterialAlertDialogBuilder(this, R.style.ThemeOverlay_Ausgaben_Dialog)
+        new AppDialog(this)
                 .setTitle(R.string.restore_password_title)
                 .setView(box)
                 .setPositiveButton(R.string.restore_db, (d, w) -> {
@@ -1111,7 +1101,6 @@ public class SettingsActivity extends LocalizedActivity implements SmbWizardCont
                         }
                     }).start();
                 })
-                .setNegativeButton(R.string.cancel, null)
                 .show();
     }
 
@@ -1143,21 +1132,19 @@ public class SettingsActivity extends LocalizedActivity implements SmbWizardCont
             scopes.add(2);
         }
         final int[] choice = {scopes.size() - 1};   // Vorgabe: der umfassendste Eintrag
-        new MaterialAlertDialogBuilder(this, R.style.ThemeOverlay_Ausgaben_Dialog)
+        new AppDialog(this)
                 .setTitle(R.string.restore_what_title)
                 .setSingleChoiceItems(labels.toArray(new String[0]), choice[0], (d, w) -> choice[0] = w)
                 .setPositiveButton(R.string.restore_db, (d, w) ->
                         confirmAndRestore(content, scopes.get(choice[0])))
-                .setNegativeButton(R.string.cancel, null)
                 .show();
     }
 
     private void confirmAndRestore(BackupArchive.Content content, int scope) {
-        new MaterialAlertDialogBuilder(this, R.style.ThemeOverlay_Ausgaben_Dialog)
+        new AppDialog(this)
                 .setTitle(R.string.restore_confirm_title)
                 .setMessage(R.string.restore_confirm_message)
                 .setPositiveButton(R.string.restore_db, (d, w) -> applyRestore(content, scope))
-                .setNegativeButton(R.string.cancel, null)
                 .show();
     }
 
@@ -1258,11 +1245,10 @@ public class SettingsActivity extends LocalizedActivity implements SmbWizardCont
         TextInputEditText pw = view.findViewById(R.id.backupPassword);
         TextInputEditText repeat = view.findViewById(R.id.backupPasswordRepeat);
         AlertDialog dialog =
-                new MaterialAlertDialogBuilder(this, R.style.ThemeOverlay_Ausgaben_Dialog)
+                new AppDialog(this)
                         .setTitle(R.string.backup_options_title)
                         .setView(view)
                         .setPositiveButton(R.string.backup_db, null)   // erst prüfen, dann schließen
-                        .setNegativeButton(R.string.cancel, null)
                         .create();
         dialog.setOnShowListener(d -> dialog.getButton(AlertDialog.BUTTON_POSITIVE)
                 .setOnClickListener(v -> {

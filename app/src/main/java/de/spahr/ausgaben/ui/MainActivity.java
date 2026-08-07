@@ -5,7 +5,6 @@ import android.net.Uri;
 import android.os.Bundle;
 import android.view.LayoutInflater;
 import android.view.View;
-import android.widget.ArrayAdapter;
 import android.widget.TextView;
 import android.widget.Toast;
 
@@ -657,11 +656,15 @@ public class MainActivity extends LocalizedActivity {
         payeeView.setText(getString(R.string.voice_payee_resolved, "—"));
 
         int pad = Math.round(16 * getResources().getDisplayMetrics().density);
+        // Der Betrag ist das Einzige, was hier eingegeben wird – er darf größer stehen als sonstiger Text.
+        field.setTextSize(android.util.TypedValue.COMPLEX_UNIT_SP, 22);
         android.widget.LinearLayout box = new android.widget.LinearLayout(this);
         box.setOrientation(android.widget.LinearLayout.VERTICAL);
-        box.setPadding(pad, pad / 2, pad, 0);
+        // Oben Luft zum grünen Band, unten unter der OK-Taste – sonst klebt der Inhalt an beiden Rändern.
+        box.setPadding(pad, pad + pad / 4, pad, pad);
         box.addView(field);
-        payeeView.setPadding(0, pad / 2, 0, 0);
+        // Unten Luft, damit der ermittelte Empfänger nicht auf der Rechentastatur sitzt.
+        payeeView.setPadding(0, pad / 2, 0, pad);
         box.addView(payeeView);
 
         // Empfänger anhand der aktuellen Position ermitteln und anzeigen (aktualisiert sich bei neuem Fix).
@@ -716,8 +719,7 @@ public class MainActivity extends LocalizedActivity {
         field.requestFocus();
         box.addView(calc);
 
-        androidx.appcompat.app.AlertDialog dialog = new com.google.android.material.dialog.MaterialAlertDialogBuilder(
-                this, R.style.ThemeOverlay_Ausgaben_Dialog)
+        androidx.appcompat.app.AlertDialog dialog = new AppDialog(this)
                 .setTitle(R.string.new_booking)
                 .setView(box)
                 .setOnDismissListener(d -> {
@@ -725,7 +727,6 @@ public class MainActivity extends LocalizedActivity {
                         locationTagger.setOnLocationUpdate(null);
                     }
                 })
-                .setNegativeButton(R.string.cancel, null)
                 .create();
         dialogRef[0] = dialog;
         // Nur die eigene Rechentastatur zeigen – die System-Tastatur des Dialogs unterdrücken.
@@ -1102,8 +1103,7 @@ public class MainActivity extends LocalizedActivity {
         fFrom.setKeyListener(android.text.method.DigitsKeyListener.getInstance("0123456789.,"));
         fTo.setKeyListener(android.text.method.DigitsKeyListener.getInstance("0123456789.,"));
 
-        repository.getPayeeNames(names -> fPayee.setAdapter(
-                new ArrayAdapter<>(this, android.R.layout.simple_list_item_1, names)));
+        repository.getPayeeNames(names -> PickerAdapters.payees(fPayee, names));
 
         fPayee.setText(filterPayee);
 
@@ -1116,7 +1116,7 @@ public class MainActivity extends LocalizedActivity {
                 getString(R.string.category_all),
                 getString(R.string.category_group_expense), catExpense,
                 getString(R.string.category_group_income), catIncome);
-        fCategory.setAdapter(catAdapter);
+        PickerAdapters.attach(fCategory, catAdapter);
         fCategory.setText(filterCategory, false);
         fCategory.setOnItemClickListener((parent, v, pos, id) -> {
             CategoryFilterAdapter.CatItem it = catAdapter.getItem(pos);
@@ -1220,7 +1220,7 @@ public class MainActivity extends LocalizedActivity {
         final long dtDataMin = dtMin;
         final long dtDataMax = dtMax;
 
-        new MaterialAlertDialogBuilder(this, R.style.ThemeOverlay_Ausgaben_Dialog)
+        new AppDialog(this)
                 .setTitle(R.string.filter_title)
                 .setView(view)
                 .setPositiveButton(R.string.filter_apply, (d, w) -> {
@@ -1279,7 +1279,6 @@ public class MainActivity extends LocalizedActivity {
                     showSaldo();
                     flashSaldoBar();
                 })
-                .setNegativeButton(R.string.cancel, null)
                 .show();
     }
 
@@ -1447,7 +1446,7 @@ public class MainActivity extends LocalizedActivity {
             Toast.makeText(this, R.string.kmy_path_missing, Toast.LENGTH_LONG).show();
             return;
         }
-        MaterialAlertDialogBuilder b = new MaterialAlertDialogBuilder(this, R.style.ThemeOverlay_Ausgaben_Dialog)
+        MaterialAlertDialogBuilder b = new AppDialog(this)
                 .setNegativeButton(R.string.cancel, null);
         if (isAll) {
             b.setTitle(R.string.kmy_import_all_title)
@@ -1528,7 +1527,7 @@ public class MainActivity extends LocalizedActivity {
         final int accountCount = newAccounts.size();
         final boolean[] checked = new boolean[labels.size()];
         String[] items = labels.toArray(new String[0]);
-        new MaterialAlertDialogBuilder(this, R.style.ThemeOverlay_Ausgaben_Dialog)
+        new AppDialog(this)
                 .setTitle(R.string.kmy_choose_account)
                 .setMultiChoiceItems(items, checked, (d, which, isChecked) -> checked[which] = isChecked)
                 .setPositiveButton(R.string.kmy_import_selected, (d, w) -> {
@@ -1549,7 +1548,6 @@ public class MainActivity extends LocalizedActivity {
                     }
                     startBatchImport(importer, accountTargets, depotTargets);
                 })
-                .setNegativeButton(R.string.cancel, null)
                 .show();
     }
 
@@ -1815,7 +1813,7 @@ public class MainActivity extends LocalizedActivity {
         View view = LayoutInflater.from(this).inflate(R.layout.dialog_progress, null, false);
         progressTextView = view.findViewById(R.id.progressText);
         progressTextView.setText(text);
-        progressDialog = new MaterialAlertDialogBuilder(this, R.style.ThemeOverlay_Ausgaben_Dialog)
+        progressDialog = new AppDialog(this)
                 .setView(view)
                 .setCancelable(false)
                 .create();
@@ -1879,10 +1877,9 @@ public class MainActivity extends LocalizedActivity {
             actions.add(() -> downloadAndImport(folder, f));
         }
         String title = folder.isEmpty() ? getString(R.string.choose_import_file) : "/" + folder;
-        new MaterialAlertDialogBuilder(this, R.style.ThemeOverlay_Ausgaben_Dialog)
+        new AppDialog(this)
                 .setTitle(title)
                 .setItems(labels.toArray(new String[0]), (d, w) -> actions.get(w).run())
-                .setNegativeButton(R.string.cancel, null)
                 .show();
     }
 

@@ -11,7 +11,6 @@ import android.widget.TextView;
 import androidx.appcompat.app.AlertDialog;
 
 import com.google.android.material.appbar.MaterialToolbar;
-import com.google.android.material.dialog.MaterialAlertDialogBuilder;
 
 import java.util.List;
 
@@ -82,14 +81,13 @@ public class CategoryColorActivity extends LocalizedActivity {
         int pad = dp(16);
         grid.setPadding(pad, pad, pad, pad);
 
-        AlertDialog dialog = new MaterialAlertDialogBuilder(this)
+        AlertDialog dialog = new AppDialog(this)
                 .setTitle(R.string.category_color_pick)
                 .setView(grid)
                 .setNeutralButton(R.string.category_color_default, (d, w) -> {
                     colors.clear(category);
                     swatch.setBackground(swatchDrawable(colors.colorFor(category)));
                 })
-                .setNegativeButton(android.R.string.cancel, null)
                 .create();
 
         for (int color : CategoryColorStore.PALETTE) {

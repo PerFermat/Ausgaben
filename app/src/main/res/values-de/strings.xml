@@ -142,6 +142,24 @@
     <!-- Konten-Schublade -->
     <string name="account_all">Alle Konten</string>
     <string name="accounts_title">Konten</string>
+    <string name="accounts_search_hint">Konten suchen</string>
+    <string name="accounts_group_pick">Kontengruppe</string>
+    <string name="accounts_group_new">Neue Gruppe…</string>
+    <string name="accounts_group_add">Zu „%1$s" hinzufügen</string>
+    <string name="accounts_group_remove">Aus „%1$s" entfernen</string>
+    <string name="accounts_group_added">Zu „%1$s" hinzugefügt</string>
+    <string name="accounts_group_removed">Aus „%1$s" entfernt</string>
+    <string name="accounts_group_empty">Bitte einen Namen eingeben</string>
+    <string name="accounts_group_delete_title">Gruppe löschen?</string>
+    <string name="accounts_group_delete_message">Die Gruppe „%1$s" wird gelöscht. Die Konten selbst bleiben erhalten.</string>
+    <string name="accounts_group_balance">Saldo %1$s</string>
+    <string name="accounts_manage_title">Konten sortieren und verwalten</string>
+    <string name="accounts_manage_drag">Zum Sortieren ziehen</string>
+    <string name="accounts_manage_menu">Kontomenü</string>
+    <string name="accounts_manage_count">(%1$d Konten)</string>
+    <!-- Menüpunkte der Kontenverwaltung: ausgeschrieben, anders als die schmalen Dialog-Knöpfe. -->
+    <string name="accounts_manage_close">Konto schließen</string>
+    <string name="accounts_manage_reopen">Konto wiedereröffnen</string>
     <string name="drawer_open">Konten öffnen</string>
     <string name="drawer_close">Konten schließen</string>
     <string name="add_account">Neues Konto hinzufügen</string>

@@ -142,6 +142,24 @@
     <!-- Accounts drawer -->
     <string name="account_all">All accounts</string>
     <string name="accounts_title">Accounts</string>
+    <string name="accounts_search_hint">Search accounts</string>
+    <string name="accounts_group_pick">Account group</string>
+    <string name="accounts_group_new">New group…</string>
+    <string name="accounts_group_add">Add to “%1$s”</string>
+    <string name="accounts_group_remove">Remove from “%1$s”</string>
+    <string name="accounts_group_added">Added to “%1$s”</string>
+    <string name="accounts_group_removed">Removed from “%1$s”</string>
+    <string name="accounts_group_empty">Please enter a name</string>
+    <string name="accounts_group_delete_title">Delete group?</string>
+    <string name="accounts_group_delete_message">The group “%1$s” is deleted. The accounts themselves are kept.</string>
+    <string name="accounts_group_balance">%1$s balance</string>
+    <string name="accounts_manage_title">Sort and manage accounts</string>
+    <string name="accounts_manage_drag">Drag to reorder</string>
+    <string name="accounts_manage_menu">Account menu</string>
+    <string name="accounts_manage_count">(%1$d accounts)</string>
+    <!-- Menu entries in the account management view: spelled out, unlike the narrow dialog buttons. -->
+    <string name="accounts_manage_close">Close account</string>
+    <string name="accounts_manage_reopen">Reopen account</string>
     <string name="drawer_open">Open accounts</string>
     <string name="drawer_close">Close accounts</string>
     <string name="add_account">Add new account</string>

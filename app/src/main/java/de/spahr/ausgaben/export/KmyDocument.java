@@ -50,6 +50,10 @@ public class KmyDocument {
     private final Map<String, Integer> accountType = new LinkedHashMap<>();
     /** id → Währungskennzeichen (currency-Attribut, z. B. „EUR"). */
     private final Map<String, String> accountCurrency = new LinkedHashMap<>();
+    /** id → Institut-id (institution-Attribut); leer, wenn dem Konto keine Bank zugeordnet ist. */
+    private final Map<String, String> accountInstitution = new LinkedHashMap<>();
+    /** Institut-id → Name der Bank aus dem INSTITUTIONS-Block. */
+    private final Map<String, String> institutionName = new LinkedHashMap<>();
 
     /** Anzeigename → id der wählbaren Konten (Reihenfolge = Eingabereihenfolge). */
     private final Map<String, String> selectableAccounts = new LinkedHashMap<>();
@@ -249,6 +253,26 @@ public class KmyDocument {
         return c == null ? "" : c;
     }
 
+    /**
+     * Kontoname → Name des Bankinstituts, für alle wählbaren Konten und alle Depots. Konten ohne
+     * hinterlegtes Institut fehlen in der Abbildung – für sie entsteht keine Bank-Kontengruppe.
+     */
+    public Map<String, String> institutionsByAccount() {
+        Map<String, String> out = new LinkedHashMap<>();
+        collectInstitutions(selectableAccounts, out);
+        collectInstitutions(depotAccounts, out);
+        return out;
+    }
+
+    private void collectInstitutions(Map<String, String> nameToId, Map<String, String> out) {
+        for (Map.Entry<String, String> e : nameToId.entrySet()) {
+            String bank = institutionName.get(accountInstitution.get(e.getValue()));
+            if (bank != null && !bank.isEmpty()) {
+                out.put(e.getKey(), bank);
+            }
+        }
+    }
+
     /** Anzeigenamen der Depots (Investment-Konten, Typ 7). */
     public List<String> depotNames() {
         return new ArrayList<>(depotAccounts.keySet());
@@ -311,17 +335,26 @@ public class KmyDocument {
                             payeeNameToId.put(name.trim().toLowerCase(Locale.GERMANY), id);
                             payeeIdToName.put(id, name);
                         }
+                    } else if ("INSTITUTION".equals(tag)) {
+                        // Steht vor dem ACCOUNTS-Block; liefert die Namen der Bank-Kontengruppen.
+                        String id = parser.getAttributeValue(null, "id");
+                        String name = parser.getAttributeValue(null, "name");
+                        if (id != null && name != null && !name.trim().isEmpty()) {
+                            institutionName.put(id, name.trim());
+                        }
                     } else if ("ACCOUNT".equals(tag)) {
                         String id = parser.getAttributeValue(null, "id");
                         String name = parser.getAttributeValue(null, "name");
                         String parent = parser.getAttributeValue(null, "parentaccount");
                         String type = parser.getAttributeValue(null, "type");
                         String currency = parser.getAttributeValue(null, "currency");
+                        String institution = parser.getAttributeValue(null, "institution");
                         if (id != null && name != null) {
                             accountName.put(id, name);
                             accountParent.put(id, parent == null ? "" : parent);
                             accountType.put(id, parseIntSafe(type));
                             accountCurrency.put(id, currency == null ? "" : currency.trim());
+                            accountInstitution.put(id, institution == null ? "" : institution.trim());
                         }
                     }
                 }

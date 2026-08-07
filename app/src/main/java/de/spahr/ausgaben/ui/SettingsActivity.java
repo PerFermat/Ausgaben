@@ -904,7 +904,15 @@ public class SettingsActivity extends LocalizedActivity implements SmbWizardCont
      * nur, wenn <b>alle</b> ausgewählten Konten Saldo 0 haben; „Öffnen", wenn alle ausgewählten geschlossen sind.
      */
     private void manageAccounts() {
-        repository.getAllAccountsWithStatus(accounts -> {
+        repository.getAllAccountsWithStatus(all -> {
+            // Depots gehören in die Kontenverwaltung der Schublade, nicht in diese Liste: ihr Saldo
+            // kommt aus Kursen, und ein Löschen hier ließe die Wertpapiere verwaist zurück.
+            java.util.List<de.spahr.ausgaben.db.Account> accounts = new java.util.ArrayList<>();
+            for (de.spahr.ausgaben.db.Account a : all) {
+                if (!a.isDepot()) {
+                    accounts.add(a);
+                }
+            }
             if (accounts.isEmpty()) {
                 Toast.makeText(this, R.string.no_accounts, Toast.LENGTH_LONG).show();
                 return;

@@ -270,6 +270,45 @@ bullets([
   "<b>Portfolios</b> sit at the bottom under the «Portfolios» heading and behave just like accounts: a short tap opens the portfolio view (the selected portfolio stays highlighted), a long press updates it.",
   "<b>«Add account»</b> (at the bottom): loads the .kmy and offers the contained accounts for selection.",
 ])
+h2("Account groups")
+p("Besides the <b>account kind</b> (asset, liability, portfolio) there are <b>account groups</b> for your "
+  "own ordering – «Favourites», «Joint» or «Savings», say. An account may sit in any number of groups; the "
+  "grouping by account kind is unaffected.")
+bullets([
+  "<b>Tap the «Accounts» heading</b> to pick a group. The drawer then lists only its accounts, and the top "
+  "row carries the group name instead of «All accounts».",
+  "The chosen group applies <b>app-wide</b>: the booking list, the balance bar (as an additional first "
+  "page there; «Total» still means all accounts) and the holdings view all follow it.",
+  "<b>Long-press a group</b> in that picker to delete it; the accounts themselves are kept.",
+  "Removing the <b>last account</b> from a group (or deleting that account) makes the group disappear "
+  "without asking – there are no empty groups.",
+  "Groups holding nothing but <b>closed</b> accounts no longer show up in this picker. They stay "
+  "selectable in an account's «⋮» menu so they can be revived.",
+  "The institutions block of the .kmy additionally yields <b>bank groups</b> (e.g. «Volksbank»). These "
+  "merely mirror the file: only the import writes them, they cannot be edited by hand.",
+])
+h2("Searching accounts")
+p("A <b>magnifier</b> sits on the kMyMoney emblem at the top of the drawer. Tapping it opens the keyboard, "
+  "and for the duration of the search your input takes the place of the «Accounts» heading. What you type "
+  "filters the account list instantly by part of the name – «kasse» thus also finds «Sparkasse» and "
+  "«Barkasse».")
+p("Closing the keyboard puts the heading back in its place – but the term <b>stays in effect</b>, so the "
+  "list still shows only the matches. The magnifier now carries a small cross to signal that a filter is "
+  "on; tapping it lifts the search.")
+p("The search stays inside the chosen account group and is never stored. It also ends by itself as soon as "
+  "you pick an account, close the drawer or leave the app.")
+h2("Sorting and managing accounts")
+p("The <b>gear icon</b> next to «Accounts» opens a view of its own. Unlike the drawer it also shows "
+  "<b>closed accounts</b>, in grey, each with its balance on the right.")
+bullets([
+  "<b>Drag the handle</b> to sort accounts within their account kind. The order applies everywhere "
+  "accounts are listed – including the pickers while recording a booking.",
+  "<b>Drag a whole account kind</b>: its accounts collapse for the duration of the drag and only their "
+  "number is shown. That way even a large block reaches its place in a few movements.",
+  "<b>«⋮» on an account row</b>: add to or remove from groups, create a «New group …», plus «Close "
+  "account» and «Reopen account». <b>Close account</b> is only offered at a zero balance.",
+  "If a closed account regains a balance on import, it reopens by itself.",
+])
 
 # ---------------------------------------------------------------- 6
 h1("6. Recording a booking")
@@ -875,7 +914,9 @@ bullets([
 h2("Security & privacy")
 bullets([
   "<b>App lock</b>: optional via biometrics/device credential (fingerprint, face, PIN, pattern, password) – "
-  "on start and when returning from the background.",
+  "on start and when returning from the background. When the app hands over to another app itself – camera, "
+  "gallery, file picker, speech input – returning within five minutes does not ask again: from the user's "
+  "point of view the app was never left. Stay away longer and the lock is back.",
   "<b>Location (GPS)</b> switch (default <b>off</b>): controls all location use. Off = no permission prompt, "
   "no GPS note, no amount-only entry, no alias location. The position is used locally only, never sent to a "
   "service.",

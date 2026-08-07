@@ -106,6 +106,8 @@ public final class KmyAccountImport {
                 // klassifizieren, nicht nur für die aktualisierten.
                 repository.applyAccountTypes(importer.accountTypes());
                 repository.applyCategoryTypes(importer.categoryTypes());
+                // Bank-Kontengruppen aus dem Institutsblock der Datei nachziehen.
+                repository.applyInstitutions(importer.institutions());
                 // Kein separates „Buchungen werden gespeichert" beim Konto-Aktualisieren – nur die
                 // laufende Phase weiterzählen.
                 repository.replaceImportAccounts(map,
@@ -146,14 +148,16 @@ public final class KmyAccountImport {
                     ImportPhase.SAVE_TO, ImportPhase.SAVE_TO).onProgress(0, 1);
             new Thread(() -> {
                 try {
-                    repository.applyScheduledTransactions(importer.scheduledTransactions(), ui::finished);
+                    repository.applyScheduledTransactions(importer.scheduledTransactions(),
+                            () -> repository.reopenAccountsWithBalance(ui::finished));
                 } catch (Exception e) {
                     ui.failed(e);
                 }
             }).start();
             return;
         }
-        ui.finished();
+        // Zum Schluss: geschlossene Konten, die wieder einen Saldo haben, öffnen sich von selbst.
+        repository.reopenAccountsWithBalance(ui::finished);
     }
 
     private static boolean containsIgnoreCase(List<String> list, String name) {

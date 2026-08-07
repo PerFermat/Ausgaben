@@ -15,6 +15,23 @@
         app:title="@string/balance_title"
         app:titleTextColor="@color/white" />
 
+    <!-- Antippen wählt die Kontengruppe; sie gilt app-weit, also auch für die Kontenschublade. -->
+    <TextView
+        android:id="@+id/balanceGroup"
+        android:layout_width="match_parent"
+        android:layout_height="wrap_content"
+        android:minHeight="48dp"
+        android:gravity="center_vertical"
+        android:paddingHorizontal="16dp"
+        android:background="@color/saldo_bar_bg"
+        android:textSize="16sp"
+        android:textStyle="bold"
+        android:maxLines="1"
+        android:ellipsize="end"
+        android:drawablePadding="2dp"
+        app:drawableEndCompat="@drawable/ic_arrow_drop_down"
+        app:drawableTint="?android:attr/textColorPrimary" />
+
     <ScrollView
         android:layout_width="match_parent"
         android:layout_height="0dp"

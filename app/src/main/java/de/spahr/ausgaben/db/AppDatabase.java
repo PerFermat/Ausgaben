@@ -13,8 +13,8 @@ import androidx.sqlite.db.SupportSQLiteDatabase;
         PayeeCorrection.class, Translation.class, Language.class, Security.class, SecurityTx.class,
         Budget.class, CategoryType.class, ScheduledTransaction.class, ScheduledSplit.class,
         AnalysisExtra.class, SecurityTxValueOverride.class, KmyPendingDelete.class, SecurityPrice.class,
-        ScheduledAdvance.class},
-        version = 38, exportSchema = false)
+        ScheduledAdvance.class, AccountGroup.class, AccountGroupMember.class, AccountKindOrder.class},
+        version = 39, exportSchema = false)
 public abstract class AppDatabase extends RoomDatabase {
 
     /** v1 → v2: Notiz-Spalte ergänzen (bestehende Buchungen bleiben erhalten). */
@@ -468,9 +468,45 @@ public abstract class AppDatabase extends RoomDatabase {
         }
     };
 
+    /**
+     * Kontengruppen: eine zweite, frei wählbare Ordnungsebene neben der Kontenart, dazu ein Sortierplatz
+     * je Konto und je Kontenart. Alle bestehenden Konten bekommen Sortierplatz 0 – solange nichts von Hand
+     * sortiert wurde, entscheidet weiterhin der Name, die Reihenfolge bleibt also unverändert.
+     */
+    static final Migration MIGRATION_38_39 = new Migration(38, 39) {
+        @Override
+        public void migrate(@NonNull SupportSQLiteDatabase db) {
+            db.execSQL("ALTER TABLE account ADD COLUMN sort_pos INTEGER NOT NULL DEFAULT 0");
+            db.execSQL("CREATE TABLE IF NOT EXISTS account_group ("
+                    + "id INTEGER PRIMARY KEY AUTOINCREMENT NOT NULL, "
+                    + "name TEXT NOT NULL, "
+                    + "auto INTEGER NOT NULL, "
+                    + "sort_pos INTEGER NOT NULL)");
+            db.execSQL("CREATE UNIQUE INDEX IF NOT EXISTS index_account_group_name "
+                    + "ON account_group (name)");
+            db.execSQL("CREATE TABLE IF NOT EXISTS account_group_member ("
+                    + "group_id INTEGER NOT NULL, "
+                    + "account_id INTEGER NOT NULL, "
+                    + "PRIMARY KEY(group_id, account_id), "
+                    + "FOREIGN KEY(group_id) REFERENCES account_group(id) ON DELETE CASCADE, "
+                    + "FOREIGN KEY(account_id) REFERENCES account(id) ON DELETE CASCADE)");
+            db.execSQL("CREATE INDEX IF NOT EXISTS index_account_group_member_account_id "
+                    + "ON account_group_member (account_id)");
+            db.execSQL("CREATE TABLE IF NOT EXISTS account_kind_order ("
+                    + "kind INTEGER PRIMARY KEY NOT NULL, "
+                    + "sort_pos INTEGER NOT NULL)");
+            // Trägerzeile je bereits importiertem Depot, damit auch Bestandsnutzer ihre Depots sofort
+            // sortieren und Gruppen zuordnen können. Gleichnamige Konten bleiben unangetastet (OR IGNORE).
+            db.execSQL("INSERT OR IGNORE INTO account (name, currency, closed, acct_type, sort_pos) "
+                    + "SELECT DISTINCT depot, '', 0, 7, 0 FROM security WHERE depot <> ''");
+        }
+    };
+
     public abstract BookingDao bookingDao();
 
     public abstract AccountDao accountDao();
+
+    public abstract AccountGroupDao accountGroupDao();
 
     public abstract PayeeDao payeeDao();
 
@@ -516,7 +552,8 @@ public abstract class AppDatabase extends RoomDatabase {
                                     MIGRATION_25_26, MIGRATION_26_27, MIGRATION_27_28,
                                     MIGRATION_28_29, MIGRATION_29_30, MIGRATION_30_31,
                                     MIGRATION_31_32, MIGRATION_32_33, MIGRATION_33_34, MIGRATION_34_35,
-                                    MIGRATION_35_36, MIGRATION_36_37, MIGRATION_37_38)
+                                    MIGRATION_35_36, MIGRATION_36_37, MIGRATION_37_38,
+                                    MIGRATION_38_39)
                             .build();
                 }
             }

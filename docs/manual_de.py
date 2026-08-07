@@ -286,6 +286,45 @@ bullets([
   "<b>Depots</b> stehen unten unter der Überschrift «Depots» und verhalten sich wie Konten: kurzer Tipp öffnet die Depot-Ansicht (das gewählte Depot bleibt markiert), langer Tipp aktualisiert das Depot.",
   "<b>«Konto hinzufügen»</b> (unten): lädt die .kmy und bietet die enthaltenen Konten zur Auswahl.",
 ])
+h2("Kontengruppen")
+p("Neben der <b>Kontenart</b> (Anlage, Verbindlichkeit, Depot) gibt es <b>Kontengruppen</b> zur eigenen "
+  "Ordnung – etwa «Favoriten», «Gemeinsam» oder «Sparen». Ein Konto kann in beliebig vielen Gruppen stehen; "
+  "die Gliederung nach Kontenart bleibt davon unberührt.")
+bullets([
+  "<b>Tipp auf die Überschrift «Konten»</b>: Auswahl der Gruppe. Danach stehen in der Schublade nur noch "
+  "deren Konten, und die oberste Zeile trägt statt «Alle Konten» den Gruppennamen.",
+  "Die gewählte Gruppe gilt <b>app-weit</b>: Buchungsliste, Saldoleiste (dort als zusätzliche erste Seite; "
+  "«Gesamt» meint weiterhin alle Konten) und die Bestände richten sich danach.",
+  "<b>Langer Druck auf eine Gruppe</b> in dieser Auswahl löscht sie; die Konten selbst bleiben erhalten.",
+  "Nimmt man das <b>letzte Konto</b> aus einer Gruppe heraus (oder löscht es), verschwindet die Gruppe "
+  "kommentarlos – leere Gruppen gibt es nicht.",
+  "Gruppen, in denen nur noch <b>geschlossene</b> Konten stehen, tauchen in dieser Auswahl nicht mehr auf. "
+  "Im «⋮»-Menü eines Kontos bleiben sie wählbar, damit man sie wiederbeleben kann.",
+  "Aus dem Institutsblock der .kmy entstehen zusätzlich <b>Bank-Gruppen</b> (z. B. «Volksbank»). Sie "
+  "spiegeln nur die Datei: nur der Import schreibt sie, von Hand sind sie nicht änderbar.",
+])
+h2("Konten suchen")
+p("Auf dem kMyMoney-Zeichen im Kopf der Schublade liegt eine <b>Lupe</b>. Ein Tipp darauf öffnet die "
+  "Tastatur, und die Eingabe tritt für die Dauer der Suche an die Stelle der Überschrift «Konten». "
+  "Getippte Zeichen filtern die Kontenliste sofort nach Namensteilen – «Kasse» findet also auch "
+  "«Sparkasse» und «Barkasse».")
+p("Schließt man die Tastatur, tritt die Überschrift wieder an ihren Platz – der Begriff <b>wirkt aber "
+  "weiter</b>, die Liste zeigt also nach wie vor nur die Treffer. Daran, daß die Lupe jetzt einen kleinen "
+  "Kreuzstrich trägt, ist zu erkennen, daß gefiltert wird; ein Tipp darauf hebt die Suche auf.")
+p("Die Suche bleibt innerhalb der gewählten Kontengruppe und wird nirgends gespeichert. Sie endet außerdem "
+  "von selbst, sobald man ein Konto auswählt, die Schublade zuschiebt oder die App verläßt.")
+h2("Konten sortieren und verwalten")
+p("Das <b>Zahnrad</b> rechts neben «Konten» öffnet eine eigene Ansicht. Sie zeigt – anders als die "
+  "Schublade – auch <b>geschlossene Konten</b>, diese in grauer Schrift, jeweils mit dem Saldo rechts.")
+bullets([
+  "<b>Ziehen am Griff</b> sortiert Konten innerhalb ihrer Kontenart. Die Reihenfolge gilt überall, wo "
+  "Konten aufgelistet werden – auch in den Auswahllisten beim Buchen.",
+  "<b>Eine ganze Kontenart ziehen</b>: ihre Konten klappen für die Dauer des Ziehens ein und es steht nur "
+  "noch die Anzahl darunter. So wandert auch ein großer Block mit wenigen Bewegungen an seinen Platz.",
+  "<b>«⋮» an einer Kontozeile</b>: Gruppen zuordnen oder entfernen, «Neue Gruppe …» anlegen sowie "
+  "«Konto schließen» bzw. «Konto wiedereröffnen». <b>Konto schließen</b> wird nur bei Saldo 0 angeboten.",
+  "Bekommt ein geschlossenes Konto durch einen Import wieder einen Saldo, öffnet es sich von selbst.",
+])
 
 # ---------------------------------------------------------------- 6 Buchung erfassen
 h1("6. Eine Buchung erfassen")
@@ -929,7 +968,9 @@ bullets([
 h2("Sicherheit & Datenschutz")
 bullets([
   "<b>App-Sperre</b>: optional per Fingerabdruck, Gesicht, PIN, Muster oder Passwort – beim Start und bei "
-  "Rückkehr aus dem Hintergrund.",
+  "Rückkehr aus dem Hintergrund. Startet die App selbst eine fremde App – Kamera, Galerie, Dateiauswahl, "
+  "Spracheingabe –, fragt sie beim Zurückkommen innerhalb von fünf Minuten nicht erneut nach: aus Sicht "
+  "des Nutzers wurde die App ja nie verlassen. Wer länger wegbleibt, muss sich wieder ausweisen.",
   "<b>Standort (GPS)</b>: standardmäßig <b>aus</b>. Aus = keine Berechtigungsabfrage, keine GPS-Notiz, keine "
   "Betrag-only-Erfassung, kein Alias-Standort. Die Position wird nur lokal genutzt, nie an einen Dienst "
   "gesendet.",

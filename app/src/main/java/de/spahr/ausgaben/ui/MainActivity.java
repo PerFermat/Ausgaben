@@ -104,6 +104,16 @@ public class MainActivity extends LocalizedActivity {
     /** true, sobald das On-Boarding in dieser App-Sitzung einmal automatisch gezeigt wurde. */
     private boolean onboardingShown = false;
     private long selectedAccountBalance = 0;
+    /** Gewählte Kontengruppe (0 = alle Konten) und ihre Beschriftung. */
+    private long selectedGroup = 0;
+    private String selectedGroupLabel = "";
+    /** Konten der gewählten Gruppe, kleingeschrieben; leer = keine Einschränkung. */
+    private final java.util.Set<String> groupAccounts = new java.util.HashSet<>();
+    private long groupBalance = 0;
+    /** Depotname (klein) → Wert der gehaltenen Wertpapiere; für die Summe einer Kontengruppe. */
+    private final java.util.Map<String, Long> depotValues = new java.util.HashMap<>();
+    /** Kopf der Schublade: Gruppenauswahl, Kontenverwaltung, Suchfeld. */
+    private AccountDrawerHeader drawerHeader;
     /** Aktuell in der App vorhandene Konten (für „Alle Konten aktualisieren"). */
     private final List<String> appAccounts = new ArrayList<>();
     /** Alle bereits importierten Konten inkl. geschlossener – zum Ausblenden im Import-Auswahldialog. */
@@ -142,6 +152,8 @@ public class MainActivity extends LocalizedActivity {
     public static final String WIDGET_ACTION_BALANCES = "balances";
 
     public static final String VIEW_TOTAL = "TOTAL";
+    /** Summe der Konten der gewählten Kontengruppe (nur bei aktiver Gruppe). */
+    public static final String VIEW_GROUP_TOTAL = "GROUP_TOTAL";
     /** Gesamt ohne Depot = nur Konten (heutiges „Gesamt"-Verhalten). */
     public static final String VIEW_TOTAL_NODEPOT = "TOTAL_NODEPOT";
     /** Nur Depotwert. */
@@ -200,6 +212,7 @@ public class MainActivity extends LocalizedActivity {
                     @Override
                     public void onSelect(String account, boolean isAll) {
                         selectAccount(account);
+                        drawerHeader.clearSearch(); // die Suche ist flüchtig
                         drawerLayout.closeDrawers();
                     }
 
@@ -231,6 +244,15 @@ public class MainActivity extends LocalizedActivity {
                     }
                 });
         accountList.setAdapter(accountAdapter);
+        drawerHeader = new AccountDrawerHeader(this, repository, settings, accountAdapter,
+                this::onGroupChanged);
+        // Schublade zugeschoben (auch per Wischen) beendet eine laufende Kontensuche.
+        drawerLayout.addDrawerListener(new androidx.drawerlayout.widget.DrawerLayout.SimpleDrawerListener() {
+            @Override
+            public void onDrawerClosed(@NonNull View drawerView) {
+                drawerHeader.clearSearch();
+            }
+        });
         findViewById(R.id.addAccount).setOnClickListener(v -> onAddAccountClicked());
 
         textBalance = findViewById(R.id.textBalance);
@@ -452,12 +474,14 @@ public class MainActivity extends LocalizedActivity {
         if (gps && locationTagger != null && hasLocationPermission()) {
             locationTagger.start();
         }
-        // Depots in die Kontenschublade übernehmen und den Depotwert (für „Gesamtvermögen") laden.
+        // Depotwert (für „Gesamtvermögen") laden; die Schublade füllt der Schubladenkopf, weil dort
+        // die Kontengruppe und die festgelegte Reihenfolge gelten.
         repository.getDepots(depots -> {
             hasDepot = !depots.isEmpty();
             appDepots.clear();
             appDepots.addAll(depots);
-            accountAdapter.setDepots(depots);
+            // Trägerzeilen abgleichen, damit jedes vorhandene Depot auch in Schublade und Verwaltung steht.
+            repository.ensureDepotAccounts(depots, () -> drawerHeader.reload());
             loadDepotTotal(depots);
         });
         refreshBookings();
@@ -505,6 +529,10 @@ public class MainActivity extends LocalizedActivity {
     @Override
     protected void onPause() {
         super.onPause();
+        // Die Kontensuche ist flüchtig: sie überlebt das Verlassen der App nicht.
+        if (drawerHeader != null) {
+            drawerHeader.clearSearch();
+        }
         try {
             unregisterReceiver(bookingsChangedReceiver);
         } catch (IllegalArgumentException ignored) {
@@ -760,8 +788,8 @@ public class MainActivity extends LocalizedActivity {
             importedAccounts.clear();
             importedAccounts.addAll(all);
         });
-        // Schublade nach Anlage-/Verbindlichkeitskonten gruppieren.
-        repository.getAccountsGrouped(g -> accountAdapter.setAccounts(g.assets, g.liabilities));
+        // Kontenart-Blöcke, Gruppenfilter und Beschriftung der obersten Zeile übernimmt der Schubladenkopf.
+        drawerHeader.reload();
         if (!accountInitialized) {
             String def = settings.getDefaultAccount();
             selectedAccount = def == null ? "" : def.trim();
@@ -772,6 +800,27 @@ public class MainActivity extends LocalizedActivity {
         if (!onboardingShown && (names == null || names.isEmpty())) {
             onboardingShown = true;
             startActivity(new Intent(this, OnboardingActivity.class));
+        }
+    }
+
+    /**
+     * Die gültige Kontengruppe hat sich geändert (oder wurde neu geladen). Ein echter Gruppenwechsel
+     * setzt die Kontoauswahl zurück – sonst bliebe womöglich ein Konto gewählt, das in der Schublade
+     * gar nicht mehr auftaucht.
+     */
+    private void onGroupChanged(long groupId, String label, List<String> accounts) {
+        boolean switched = accountInitialized && groupId != selectedGroup;
+        selectedGroup = groupId;
+        selectedGroupLabel = label;
+        groupAccounts.clear();
+        for (String name : accounts) {
+            groupAccounts.add(name.toLowerCase(java.util.Locale.ROOT));
+        }
+        if (switched) {
+            selectAccount("");
+        } else {
+            updateAccountUi();
+            applyFilter();
         }
     }
 
@@ -797,8 +846,9 @@ public class MainActivity extends LocalizedActivity {
     /** Aktualisiert Toolbar-Titel und markiert den gewählten Schubladen-Eintrag. */
     private void updateAccountUi() {
         if (getSupportActionBar() != null) {
-            getSupportActionBar().setTitle(
-                    selectedAccount.isEmpty() ? getString(R.string.account_all) : selectedAccount);
+            // Ohne Kontowahl steht dort die gewählte Kontengruppe – bzw. „Alle Konten".
+            String all = selectedGroupLabel.isEmpty() ? getString(R.string.account_all) : selectedGroupLabel;
+            getSupportActionBar().setTitle(selectedAccount.isEmpty() ? all : selectedAccount);
         }
         accountAdapter.setSelected(selectedAccount);
     }
@@ -811,11 +861,15 @@ public class MainActivity extends LocalizedActivity {
         filteredSum = 0;
         totalBalance = 0;
         selectedAccountBalance = 0;
+        groupBalance = 0;
         for (Booking b : allBookings) {
             long signed = b.isIncome ? b.amountCents : -b.amountCents;
             totalBalance += signed;
             if (selectedAccount.isEmpty() || b.account.equalsIgnoreCase(selectedAccount)) {
                 selectedAccountBalance += signed;
+            }
+            if (inSelectedGroup(b.account)) {
+                groupBalance += signed;
             }
             if (matchesFilter(b)) {
                 long disp = displaySignedForFilter(b, signed);
@@ -824,6 +878,12 @@ public class MainActivity extends LocalizedActivity {
                 }
                 filtered.add(b);
                 filteredSum += disp;
+            }
+        }
+        // Depots der Gruppe zählen mit – sie haben keine Buchungen, ihr Wert steckt in den Wertpapieren.
+        for (java.util.Map.Entry<String, Long> e : depotValues.entrySet()) {
+            if (inSelectedGroup(e.getKey())) {
+                groupBalance += e.getValue();
             }
         }
         adapter.setAmountOverride(amountOverride);
@@ -841,6 +901,10 @@ public class MainActivity extends LocalizedActivity {
     private boolean matchesFilter(Booking b) {
         // Konto ist jetzt die primäre Auswahl (Schublade), „" = alle Konten.
         if (!selectedAccount.isEmpty() && !b.account.equalsIgnoreCase(selectedAccount)) {
+            return false;
+        }
+        // Ohne Kontowahl schränkt die gewählte Kontengruppe auf ihre Konten ein.
+        if (selectedAccount.isEmpty() && !inSelectedGroup(b.account)) {
             return false;
         }
         // Suchfeld: Empfänger, Notiz oder Kategorie (gemeinsame Logik mit der Auswertung).
@@ -886,6 +950,12 @@ public class MainActivity extends LocalizedActivity {
                 filterCategory, filterCategoryIsMain, categoryTypes, filterCategoryIsIncome);
     }
 
+    /** Gehört das Konto zur gewählten Kontengruppe? Ohne Gruppe gehört jedes Konto dazu. */
+    private boolean inSelectedGroup(String account) {
+        return selectedGroup <= 0 || (account != null
+                && groupAccounts.contains(account.toLowerCase(java.util.Locale.ROOT)));
+    }
+
     private boolean isFilterActive() {
         return !filterPayee.isEmpty() || !filterCategory.isEmpty()
                 || filterAmountFrom != null || filterAmountTo != null
@@ -900,6 +970,10 @@ public class MainActivity extends LocalizedActivity {
         if (!selectedAccount.isEmpty()) {
             saldoViews.add(new SaldoView(VIEW_ACCOUNT_PREFIX + selectedAccount, selectedAccount,
                     selectedAccountBalance));
+        }
+        // 1b. Summe der gewählten Kontengruppe – „Gesamt" bleibt bewusst app-weit.
+        if (selectedGroup > 0) {
+            saldoViews.add(new SaldoView(VIEW_GROUP_TOTAL, selectedGroupLabel, groupBalance));
         }
         // 2. Gesamt (alle Konten + Depotwert). Ohne Depot bleibt es beim reinen Kontosaldo.
         saldoViews.add(new SaldoView(VIEW_TOTAL, getString(R.string.saldo_total),
@@ -949,15 +1023,18 @@ public class MainActivity extends LocalizedActivity {
         }
         final long[] total = {0};
         final int[] pending = {depots.size()};
+        depotValues.clear();
         for (String depot : depots) {
             repository.getDepotHoldings(depot, holdings -> {
+                long sum = 0;
                 for (Repository.DepotHolding h : holdings) {
-                    total[0] += h.valueCents;
+                    sum += h.valueCents;
                 }
+                depotValues.put(depot.toLowerCase(java.util.Locale.ROOT), sum);
+                total[0] += sum;
                 if (--pending[0] == 0) {
                     depotValueCents = total[0];
-                    buildSaldoViews();
-                    showSaldo();
+                    applyFilter(); // die Gruppensumme enthält auch die Depots der Gruppe
                 }
             });
         }

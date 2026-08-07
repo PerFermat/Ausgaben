@@ -32,10 +32,21 @@ public class Account {
 
     /**
      * KMyMoney-Kontotyp (aus dem Import). 0 = unbekannt/manuell → wie Anlage behandelt. Verbindlichkeit sind
-     * die Typen 4 (Kreditkarte), 5 (Kredit) und 10 (Verbindlichkeit); alles andere gilt als Anlagekonto.
+     * die Typen 4 (Kreditkarte), 5 (Kredit) und 10 (Verbindlichkeit); Typ 7 ist ein Depot; alles andere gilt
+     * als Anlagekonto.
      */
     @ColumnInfo(name = "acct_type")
     public int kmyType;
+
+    /**
+     * Sortierplatz innerhalb der eigenen Kontenart. Bei Gleichstand – und damit für alle Konten, solange
+     * nichts von Hand sortiert wurde – entscheidet weiterhin der Name.
+     */
+    @ColumnInfo(name = "sort_pos")
+    public int sortPos;
+
+    /** KMyMoney-Kontotyp eines Investment-Kontos; in der App die Trägerzeile eines Depots. */
+    public static final int KMY_TYPE_DEPOT = 7;
 
     public Account() {
     }
@@ -48,6 +59,15 @@ public class Account {
     /** True, wenn dies ein Verbindlichkeitskonto ist (KMyMoney-Typ 4/5/10). */
     public boolean isLiability() {
         return isLiabilityType(kmyType);
+    }
+
+    /**
+     * True für die Trägerzeile eines Depots. Sie trägt nur Name, Sortierplatz, Gruppen und den
+     * Offen/Geschlossen-Zustand – Wertpapiere, Kurse und der Depotwert liegen weiterhin in den
+     * {@code security}-Tabellen, gebucht wird auf ein Depot nicht.
+     */
+    public boolean isDepot() {
+        return kmyType == KMY_TYPE_DEPOT;
     }
 
     /** True für KMyMoney-Verbindlichkeitstypen: 4 Kreditkarte, 5 Kredit, 10 Verbindlichkeit. */

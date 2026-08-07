@@ -92,6 +92,16 @@ Details, Screenshots und die genaue Bedienung stehen im **[Benutzerhandbuch](doc
   Start selbst weg.
 - **Liste & Filter**: Suche über Empfänger/Notiz/Kategorie, Betrags- und Zeitraumfilter, Rückgängig nach
   Löschen, eigene Rechentastatur im Betragsfeld.
+- **Konten ordnen**: Die Schublade gliedert wie bisher nach Kontenart (Anlage, Verbindlichkeit, Depot);
+  darüber liegen frei vergebene **Kontengruppen** wie „Favoriten" oder „Gemeinsam", denen ein Konto
+  mehrfach angehören kann. Aus dem Institutsblock der `.kmy` entstehen zusätzlich Bank-Gruppen; die
+  spiegeln nur die Datei und sind deshalb nicht änderbar. Ein Tipp auf „Konten" wählt die Gruppe – sie
+  gilt dann app-weit für Buchungsliste, Saldoleiste und Bestände. Die **Lupe** auf dem kMyMoney-Zeichen
+  sucht Konten nach Namensteilen – die Eingabe tritt kurz an die Stelle der Überschrift und wird nirgends
+  gespeichert. Über das Zahnrad lassen sich Konten und ganze
+  Kontenarten **frei sortieren** (Reihenfolge gilt überall), Gruppen zuordnen sowie Konten schließen und
+  wieder eröffnen. Geschlossene Konten stehen nur dort, in grauer Schrift; bekommt ein geschlossenes
+  Konto durch einen Import wieder einen Saldo, öffnet es sich von selbst.
 - **Auswertungen**: Verlaufsdiagramm je Konto/Ort/gesamt, Kategorien-Kreisdiagramm („Wofür geht mein
   Geld?“), Budget (Ist/Soll aus KMyMoney oder app-intern berechnet), geplante Buchungen als Vorschau.
 - **Geplante Buchungen**: aus KMyMoney importiert und in die einzelnen Termine aufgefaltet. Langer Druck auf
@@ -119,6 +129,9 @@ Details, Screenshots und die genaue Bedienung stehen im **[Benutzerhandbuch](doc
 - **Alles neu einlesen**: langer Druck auf „Alle Konten" – oder in dieser Ansicht nach unten ziehen – liest
   Konten, Depots und geplante Buchungen in einem Zug neu aus der `.kmy` (nur im kmy-Modus).
 - **Sicherheit**: optionale biometrische App-Sperre, GPS standardmäßig aus, verschlüsselte Zugangsdaten.
+  Startet die App selbst eine fremde App – Kamera, Galerie, Dateiauswahl, Spracheingabe –, fragt sie beim
+  Zurückkommen innerhalb von fünf Minuten nicht erneut nach dem Fingerabdruck; man hat die App ja nie
+  wirklich verlassen. Wer länger wegbleibt, muss sich wieder ausweisen.
 
 ## Wear OS (Sprach-Schnellerfassung)
 

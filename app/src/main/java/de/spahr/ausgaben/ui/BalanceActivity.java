@@ -47,6 +47,10 @@ public class BalanceActivity extends LocalizedActivity {
     private List<String> accountsOrder = new ArrayList<>();
     private List<String> assetAccounts = new ArrayList<>();
     private List<String> liabilityAccounts = new ArrayList<>();
+    /** Kopfzeile mit der gewählten Kontengruppe (app-weit, dieselbe wie in der Schublade). */
+    private android.widget.TextView groupButton;
+    /** Reihenfolge der Kontenart-Blöcke, wie in der Kontenverwaltung festgelegt. */
+    private int[] kindOrder = de.spahr.ausgaben.db.AccountKind.ALL;
     private final List<String> depotOrder = new ArrayList<>();
     private final Map<String, List<Repository.DepotHolding>> depotHoldings = new LinkedHashMap<>();
     private long total = 0;
@@ -63,6 +67,10 @@ public class BalanceActivity extends LocalizedActivity {
         placesStore = new PlacesStore(this);
         settings = new SettingsStore(this);
         container = findViewById(R.id.balanceContainer);
+
+        groupButton = findViewById(R.id.balanceGroup);
+        groupButton.setOnClickListener(v ->
+                AccountGroupPicker.show(this, repository, settings, this::refresh));
 
         ((MaterialButton) findViewById(R.id.btnTransfer)).setOnClickListener(v -> showTransferDialog());
         ((MaterialButton) findViewById(R.id.btnReconcile)).setOnClickListener(v -> showReconcileDialog());
@@ -103,30 +111,42 @@ public class BalanceActivity extends LocalizedActivity {
         });
     }
 
-    /** Lädt Anlage/Verbindlichkeit-Gruppen und die Depots, dann Neuaufbau. */
+    /** Lädt die Konten der gewählten Kontengruppe (nach Kontenart getrennt) und deren Depots. */
     private void loadGroupsAndDepots() {
-        repository.getAccountsGrouped(g -> {
-            assetAccounts = g.assets;
-            liabilityAccounts = g.liabilities;
-            repository.getDepots(depots -> {
-                depotOrder.clear();
-                depotHoldings.clear();
-                if (depots.isEmpty()) {
-                    render();
-                    return;
-                }
-                final int[] pending = {depots.size()};
-                for (String d : depots) {
-                    repository.getDepotHoldings(d, h -> {
-                        depotOrder.add(d);
-                        depotHoldings.put(d, h);
-                        if (--pending[0] == 0) {
-                            render();
-                        }
-                    });
-                }
+        final long groupId = settings.getAccountGroup();
+        repository.getAccountGroup(groupId, group -> {
+            groupButton.setText(group == null ? getString(R.string.account_all) : group.name);
+            repository.getAccountKindOrder(order -> {
+                kindOrder = order;
+                repository.getAccountsGrouped(group == null ? 0L : group.id, g -> {
+                    assetAccounts = g.assets;
+                    liabilityAccounts = g.liabilities;
+                    loadDepots(g.depots);
+                });
             });
         });
+    }
+
+    private void loadDepots(final List<String> depots) {
+        depotOrder.clear();
+        depotHoldings.clear();
+        if (depots.isEmpty()) {
+            render();
+            return;
+        }
+        final int[] pending = {depots.size()};
+        for (String d : depots) {
+            repository.getDepotHoldings(d, h -> {
+                depotOrder.add(d);
+                depotHoldings.put(d, h);
+                if (--pending[0] == 0) {
+                    // Die Reihenfolge der Rückrufe ist beliebig – die festgelegte wiederherstellen.
+                    depotOrder.clear();
+                    depotOrder.addAll(depots);
+                    render();
+                }
+            });
+        }
     }
 
     /** Gruppenliste: Anlage-/Verbindlichkeitskonten (mit Überschrift) → Orte → Depots → Gesamt. */
@@ -134,33 +154,45 @@ public class BalanceActivity extends LocalizedActivity {
         container.removeAllViews();
         boolean night = isNight();
         String defCur = de.spahr.ausgaben.settings.Currencies.getDefault();
-        if (!assetAccounts.isEmpty()) {
-            addCategoryHeader(getString(R.string.accounts_asset), sumOf(assetAccounts),
-                    night ? CategoryColors.DARK_ASSET : CategoryColors.LIGHT_ASSET, night, defCur);
-            for (String account : assetAccounts) {
-                renderAccount(account);
-            }
-        }
-        if (!liabilityAccounts.isEmpty()) {
-            addCategoryHeader(getString(R.string.accounts_liability), sumOf(liabilityAccounts),
-                    night ? CategoryColors.DARK_LIABILITY : CategoryColors.LIGHT_LIABILITY, night, defCur);
-            for (String account : liabilityAccounts) {
-                renderAccount(account);
-            }
-        }
         long depotTotal = 0;
         for (String depot : depotOrder) {
             depotTotal += depotValue(depot);
         }
-        if (!depotOrder.isEmpty()) {
-            addCategoryHeader(getString(R.string.accounts_depot), depotTotal,
-                    night ? CategoryColors.DARK_DEPOT : CategoryColors.LIGHT_DEPOT, night, defCur);
-            for (String depot : depotOrder) {
-                renderDepotSection(depot);
+        // Die Kontenart-Blöcke in der in der Kontenverwaltung festgelegten Reihenfolge.
+        for (int kind : kindOrder) {
+            if (kind == de.spahr.ausgaben.db.AccountKind.LIABILITY) {
+                if (liabilityAccounts.isEmpty()) {
+                    continue;
+                }
+                addCategoryHeader(getString(R.string.accounts_liability), sumOf(liabilityAccounts),
+                        night ? CategoryColors.DARK_LIABILITY : CategoryColors.LIGHT_LIABILITY,
+                        night, defCur);
+                for (String account : liabilityAccounts) {
+                    renderAccount(account);
+                }
+            } else if (kind == de.spahr.ausgaben.db.AccountKind.DEPOT) {
+                if (depotOrder.isEmpty()) {
+                    continue;
+                }
+                addCategoryHeader(getString(R.string.accounts_depot), depotTotal,
+                        night ? CategoryColors.DARK_DEPOT : CategoryColors.LIGHT_DEPOT, night, defCur);
+                for (String depot : depotOrder) {
+                    renderDepotSection(depot);
+                }
+            } else {
+                if (assetAccounts.isEmpty()) {
+                    continue;
+                }
+                addCategoryHeader(getString(R.string.accounts_asset), sumOf(assetAccounts),
+                        night ? CategoryColors.DARK_ASSET : CategoryColors.LIGHT_ASSET, night, defCur);
+                for (String account : assetAccounts) {
+                    renderAccount(account);
+                }
             }
         }
-        // Gesamt = Konten-Gesamt + Depotwert; alte Invers-Farbe (grau/schwarz).
-        addCategoryHeader(getString(R.string.saldo_total), total + depotTotal,
+        // Gesamt = Konten-Gesamt + Depotwert; alte Invers-Farbe (grau/schwarz). Bei gewählter Gruppe ist
+        // das die Summe der Gruppe, sonst die aller Konten.
+        addCategoryHeader(getString(R.string.saldo_total), groupTotal() + depotTotal,
                 night ? CategoryColors.DARK_TOTAL : CategoryColors.LIGHT_TOTAL,
                 !night, defCur);
     }
@@ -169,6 +201,16 @@ public class BalanceActivity extends LocalizedActivity {
         return (getResources().getConfiguration().uiMode
                 & android.content.res.Configuration.UI_MODE_NIGHT_MASK)
                 == android.content.res.Configuration.UI_MODE_NIGHT_YES;
+    }
+
+    /**
+     * Kontensumme der Anzeige: ohne Gruppe der Gesamtsaldo aller Konten, mit Gruppe nur die angezeigten.
+     */
+    private long groupTotal() {
+        if (settings.getAccountGroup() <= 0) {
+            return total;
+        }
+        return sumOf(assetAccounts) + sumOf(liabilityAccounts);
     }
 
     private long sumOf(List<String> accounts) {
@@ -193,7 +235,7 @@ public class BalanceActivity extends LocalizedActivity {
         return sub;
     }
 
-    /** Ein Konto (fett + Saldo) mit seinen Orten (eingerückt) und Trennstrich. */
+    /** Ein Konto (fett + Saldo) mit seinen Orten (eingerückt). */
     private void renderAccount(final String account) {
         final String currency = de.spahr.ausgaben.settings.Currencies.forAccount(account);
         long accBal = accountBalances.containsKey(account) ? accountBalances.get(account) : 0L;
@@ -212,7 +254,6 @@ public class BalanceActivity extends LocalizedActivity {
             long rest = accBal - realSum;
             addRow(getString(R.string.no_place), rest, false, true, false, null, currency);
         }
-        addDivider();
     }
 
     /** Depot-Sektion in den Beständen: nur der Depotwert (keine Einzel-Wertpapiere). Liefert den Wert. */
@@ -226,7 +267,6 @@ public class BalanceActivity extends LocalizedActivity {
             sub += h.valueCents;
         }
         addRow(depot, sub, true, false, false, null, de.spahr.ausgaben.settings.Currencies.getDefault());
-        addDivider();
         return sub;
     }
 

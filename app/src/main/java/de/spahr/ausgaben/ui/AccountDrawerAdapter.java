@@ -13,6 +13,8 @@ import java.util.ArrayList;
 import java.util.List;
 
 import de.spahr.ausgaben.R;
+import de.spahr.ausgaben.db.AccountKind;
+import de.spahr.ausgaben.db.AccountOrder;
 
 /**
  * Kontenliste in der Navigations-Schublade. Aufbau: „Alle Konten", dann – jeweils mit Überschrift –
@@ -44,7 +46,11 @@ public class AccountDrawerAdapter extends RecyclerView.Adapter<AccountDrawerAdap
     private final List<String> assets = new ArrayList<>();
     private final List<String> liabilities = new ArrayList<>();
     private final List<String> depots = new ArrayList<>();
-    private final String allLabel;
+    /** Beschriftung der obersten Zeile: „Alle Konten" oder der Name der gewählten Kontengruppe. */
+    private String allLabel;
+    /** Flüchtiger Suchbegriff; leer = alles zeigen. Wird nirgends gespeichert. */
+    private String query = "";
+    private int[] kindOrder = AccountKind.ALL;
     private String selected = "";
     /** true = der gewählte Eintrag ist ein Depot (Depot- und Kontonamen können sich gleichen). */
     private boolean selectedIsDepot = false;
@@ -71,6 +77,18 @@ public class AccountDrawerAdapter extends RecyclerView.Adapter<AccountDrawerAdap
         rebuild();
     }
 
+    /** Beschriftung der obersten Zeile – „Alle Konten" oder der Name der gewählten Kontengruppe. */
+    public void setAllLabel(String label) {
+        this.allLabel = label == null ? "" : label;
+        rebuild();
+    }
+
+    /** Flüchtiger Suchbegriff: zeigt nur noch Konten, deren Name ihn enthält. */
+    public void setQuery(String query) {
+        this.query = query == null ? "" : query;
+        rebuild();
+    }
+
     /** Markiert das gewählte Konto (leer = „Alle Konten"). */
     public void setSelected(String account) {
         this.selected = account == null ? "" : account;
@@ -85,22 +103,49 @@ public class AccountDrawerAdapter extends RecyclerView.Adapter<AccountDrawerAdap
         notifyDataSetChanged();
     }
 
+    /** Reihenfolge der Kontenart-Blöcke (siehe {@link de.spahr.ausgaben.db.AccountKind}). */
+    public void setKindOrder(int[] kinds) {
+        if (kinds != null && kinds.length > 0) {
+            this.kindOrder = kinds;
+            rebuild();
+        }
+    }
+
     private void rebuild() {
         rows.clear();
         rows.add(new Row(KIND_ALL, allLabel));
-        if (!assets.isEmpty()) {
-            rows.add(new Row(KIND_HEADER, "accounts_asset"));
-            for (String a : assets) rows.add(new Row(KIND_ACCOUNT, a));
-        }
-        if (!liabilities.isEmpty()) {
-            rows.add(new Row(KIND_HEADER, "accounts_liability"));
-            for (String a : liabilities) rows.add(new Row(KIND_ACCOUNT, a));
-        }
-        if (!depots.isEmpty()) {
-            rows.add(new Row(KIND_HEADER, "accounts_depot"));
-            for (String d : depots) rows.add(new Row(KIND_DEPOT, d));
+        for (int kind : kindOrder) {
+            switch (kind) {
+                case AccountKind.LIABILITY:
+                    addSection("accounts_liability", liabilities, KIND_ACCOUNT);
+                    break;
+                case AccountKind.DEPOT:
+                    addSection("accounts_depot", depots, KIND_DEPOT);
+                    break;
+                case AccountKind.ASSET:
+                default:
+                    addSection("accounts_asset", assets, KIND_ACCOUNT);
+                    break;
+            }
         }
         notifyDataSetChanged();
+    }
+
+    /** Überschrift samt Konten – aber nur, wenn nach der Suche überhaupt etwas übrig bleibt. */
+    private void addSection(String headerKey, List<String> names, int rowKind) {
+        List<String> hits = new ArrayList<>();
+        for (String name : names) {
+            if (AccountOrder.matches(name, query)) {
+                hits.add(name);
+            }
+        }
+        if (hits.isEmpty()) {
+            return;
+        }
+        rows.add(new Row(KIND_HEADER, headerKey));
+        for (String name : hits) {
+            rows.add(new Row(rowKind, name));
+        }
     }
 
     @NonNull

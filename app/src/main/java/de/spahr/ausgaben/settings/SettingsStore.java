@@ -22,6 +22,7 @@ public class SettingsStore {
     private static final String KEY_FOLDER = "nextcloud_folder";
     private static final String KEY_IMPORT_FOLDER = "nextcloud_import_folder";
     private static final String KEY_DEFAULT_ACCOUNT = "default_account";
+    private static final String KEY_ACCOUNT_GROUP = "account_group";
     private static final String KEY_NIGHT_MODE = "night_mode";
     private static final String KEY_LOCAL_EXPORT_TREE = "local_export_tree";
     private static final String KEY_EXPORT_MODE = "export_mode";
@@ -174,6 +175,18 @@ public class SettingsStore {
 
     public String getDefaultAccount() {
         return prefs.getString(KEY_DEFAULT_ACCOUNT, "").trim();
+    }
+
+    /**
+     * Gewählte Kontengruppe; 0 = alle Konten. App-weit gültig: Schublade, Depot-Ansicht und Bestände
+     * schauen alle durch dieselbe Brille.
+     */
+    public long getAccountGroup() {
+        return prefs.getLong(KEY_ACCOUNT_GROUP, 0L);
+    }
+
+    public void setAccountGroup(long groupId) {
+        prefs.edit().putLong(KEY_ACCOUNT_GROUP, groupId <= 0 ? 0L : groupId).apply();
     }
 
     /** Persistierte SAF-Tree-URI für den lokalen Export (leer = noch nicht gewählt). */

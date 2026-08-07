@@ -54,6 +54,8 @@ public class DepotActivity extends LocalizedActivity {
     private DrawerLayout drawerLayout;
     private MaterialToolbar toolbar;
     private AccountDrawerAdapter accountAdapter;
+    /** Kopf der Kontenschublade: Gruppenauswahl, Kontenverwaltung, Suchfeld. */
+    private AccountDrawerHeader drawerHeader;
     private LinearLayout container;
     private TextView saldoLabel;
     private TextView saldoValue;
@@ -161,6 +163,7 @@ public class DepotActivity extends LocalizedActivity {
                 new AccountDrawerAdapter.Listener() {
                     @Override
                     public void onSelect(String account, boolean isAll) {
+                        drawerHeader.clearSearch(); // die Suche ist flüchtig
                         drawerLayout.closeDrawers();
                         openMainAccount(isAll ? "" : account);
                     }
@@ -189,6 +192,20 @@ public class DepotActivity extends LocalizedActivity {
                     }
                 });
         list.setAdapter(accountAdapter);
+        // In der Depot-Ansicht wirkt die Gruppe nur auf die Schublade; der Import bleibt davon unberührt.
+        drawerHeader = new AccountDrawerHeader(this, repository, settings, accountAdapter,
+                (groupId, label, accounts) -> { });
+        // Schublade zugeschoben (auch per Wischen) beendet eine laufende Kontensuche.
+        drawerLayout.addDrawerListener(new androidx.drawerlayout.widget.DrawerLayout.SimpleDrawerListener() {
+            @Override
+            public void onDrawerClosed(@NonNull View drawerView) {
+                drawerHeader.clearSearch();
+            }
+        });
+        repository.getAccountNames(names -> {
+            appAccounts.clear();
+            appAccounts.addAll(names);
+        });
         findViewById(R.id.addAccount).setOnClickListener(v -> {
             drawerLayout.closeDrawers();
             openMainAccount("");
@@ -197,18 +214,12 @@ public class DepotActivity extends LocalizedActivity {
         repository.getDepots(depots -> {
             appDepots.clear();
             appDepots.addAll(depots);
-            accountAdapter.setDepots(depots);
         });
     }
 
-    /** Kontenliste der Schublade laden und dabei die Grundlage für „Alle Konten" merken. */
+    /** Kontenliste der Schublade laden (Kontenart-Blöcke, Gruppenfilter und Reihenfolge). */
     private void loadDrawerAccounts() {
-        repository.getAccountsGrouped(g -> {
-            appAccounts.clear();
-            appAccounts.addAll(g.assets);
-            appAccounts.addAll(g.liabilities);
-            accountAdapter.setAccounts(g.assets, g.liabilities);
-        });
+        drawerHeader.reload();
     }
 
     private void setTitleText(String title) {
@@ -245,7 +256,17 @@ public class DepotActivity extends LocalizedActivity {
     @Override
     protected void onResume() {
         super.onResume();
+        loadDrawerAccounts(); // Sortierung und Gruppen können in der Verwaltung geändert worden sein
         render();
+    }
+
+    @Override
+    protected void onPause() {
+        super.onPause();
+        // Die Kontensuche ist flüchtig: sie überlebt das Verlassen der App nicht.
+        if (drawerHeader != null) {
+            drawerHeader.clearSearch();
+        }
     }
 
     private void render() {

@@ -261,6 +261,11 @@ public class KmyImporter {
         return out;
     }
 
+    /** Kontoname → Bankinstitut für alle Konten und Depots der Datei (Grundlage der Bank-Kontengruppen). */
+    public java.util.Map<String, String> institutions() {
+        return doc.institutionsByAccount();
+    }
+
     /**
      * Kategorie-Pfad → Typ ({@code true} = Einnahme, {@code false} = Ausgabe) für alle Kategorien der
      * Datei (zum Klassifizieren aller Budget-Kategorien beim Import). Siehe {@code KmyDocument}.

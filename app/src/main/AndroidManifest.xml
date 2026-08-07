@@ -52,6 +52,12 @@
             android:parentActivityName=".ui.MainActivity" />
 
         <activity
+            android:name=".ui.AccountManageActivity"
+            android:exported="false"
+            android:label="@string/accounts_manage_title"
+            android:parentActivityName=".ui.MainActivity" />
+
+        <activity
             android:name=".ui.AliasActivity"
             android:exported="false"
             android:label="@string/alias_manage_title"

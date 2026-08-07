@@ -93,6 +93,16 @@ Details, screenshots and exact behavior are in the **[user manual](docs/Manual-A
   app start.
 - **List & filter**: search across payee/note/category, amount and date-range filters, undo after delete,
   a built-in calculator keyboard in the amount field.
+- **Organising accounts**: the drawer still groups by account kind (asset, liability, portfolio); on top
+  of that come freely chosen **account groups** such as "Favourites" or "Joint", and an account may belong
+  to several of them. The institutions block of the `.kmy` additionally yields bank groups; these merely
+  mirror the file and therefore cannot be edited. Tapping "Accounts" picks the group — it then applies
+  app-wide to the booking list, the balance bar and the holdings view. The **magnifier** on the kMyMoney
+  emblem searches accounts by part of their name — the input briefly takes the place of the heading and is
+  never stored. The gear icon opens a view where accounts and whole
+  account kinds can be **reordered freely** (the order applies everywhere), groups assigned, and accounts
+  closed or reopened. Closed accounts appear only there, in grey; if a closed account regains a balance on
+  import, it reopens by itself.
 - **Analysis**: history chart per account/place/total, category pie chart ("Where does my money go?"),
   budget (actual vs. planned, imported from KMyMoney or computed in-app), scheduled bookings preview.
 - **Scheduled bookings**: imported from KMyMoney and unfolded into their individual dates. Long-press the
@@ -118,7 +128,10 @@ Details, screenshots and exact behavior are in the **[user manual](docs/Manual-A
   what should come back: data only, settings only or both.
 - **Reload everything**: a long press on "All accounts" — or pulling down in that view — reloads accounts,
   portfolios and scheduled transactions from the `.kmy` in one go (kmy mode only).
-- **Security**: optional biometric app lock, GPS off by default, encrypted credentials.
+- **Security**: optional biometric app lock, GPS off by default, encrypted credentials. When the app hands
+  over to another app itself — camera, gallery, file picker, speech input — returning within five minutes
+  does not ask for your fingerprint again; from your point of view you never left. Stay away longer and the
+  lock is back.
 
 ## Wear OS (voice quick capture)
 

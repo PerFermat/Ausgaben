@@ -27,6 +27,7 @@ public class Repository {
     private final AppDatabase db;
     private final BookingDao bookingDao;
     private final AccountDao accountDao;
+    private final AccountGroupDao accountGroupDao;
     private final PayeeDao payeeDao;
     private final PlaceEntryDao placeEntryDao;
     private final PayeeCorrectionDao correctionDao;
@@ -46,6 +47,7 @@ public class Repository {
     /** Fokussierte Kollaboratoren; teilen sich Executor + Main-Handler dieser Fassade (Reihenfolge bleibt). */
     private final BudgetRepository budgetRepo;
     private final DepotRepository depotRepo;
+    private final AccountGroupRepository groupRepo;
     private final AliasResolver aliasResolver;
 
     public Repository(Context context) {
@@ -54,6 +56,7 @@ public class Repository {
         AppDatabase db = this.db;
         this.bookingDao = db.bookingDao();
         this.accountDao = db.accountDao();
+        this.accountGroupDao = db.accountGroupDao();
         this.payeeDao = db.payeeDao();
         this.placeEntryDao = db.placeEntryDao();
         this.correctionDao = db.payeeCorrectionDao();
@@ -68,6 +71,7 @@ public class Repository {
         this.scheduledAdvanceDao = db.scheduledAdvanceDao();
         this.budgetRepo = new BudgetRepository(bookingDao, budgetDao, categoryTypeDao, executor, mainHandler);
         this.depotRepo = new DepotRepository(securityDao, appContext, executor, mainHandler);
+        this.groupRepo = new AccountGroupRepository(accountDao, accountGroupDao, executor, mainHandler);
         this.aliasResolver = new AliasResolver(bookingDao, correctionDao, accountDao, executor, mainHandler);
     }
 
@@ -109,6 +113,41 @@ public class Repository {
                         && e.getValue() != null && e.getValue() != 0) {
                     accountDao.setType(e.getKey().trim(), e.getValue());
                 }
+            }
+        });
+    }
+
+    /**
+     * Übernimmt die Bankinstitute aus der .kmy als Kontengruppen. Diese Gruppen spiegeln nur die Datei:
+     * ihre Mitglieder werden bei jedem Import neu gesetzt, von Hand sind sie nicht änderbar.
+     */
+    public void applyInstitutions(final java.util.Map<String, String> institutions) {
+        if (institutions == null || institutions.isEmpty()) {
+            return;
+        }
+        executor.execute(() -> groupRepo.applyInstitutions(institutions));
+    }
+
+    /**
+     * Öffnet geschlossene Konten wieder, die durch einen Import erneut einen Saldo bekommen haben.
+     * Geschlossen wird nur bei Saldo 0 – ein Saldo ungleich 0 heißt also, dass das Konto wieder lebt.
+     */
+    public void reopenAccountsWithBalance(final Runnable onDone) {
+        executor.execute(() -> {
+            Map<String, Long> balances = new HashMap<>();
+            for (AccountBalance ab : bookingDao.getAllAccountBalances()) {
+                if (ab.name != null) {
+                    balances.put(ab.name, ab.balance);
+                }
+            }
+            for (String closed : accountDao.getClosedNames()) {
+                Long balance = balances.get(closed);
+                if (balance != null && balance != 0) {
+                    accountDao.setClosed(closed, false);
+                }
+            }
+            if (onDone != null) {
+                mainHandler.post(onDone);
             }
         });
     }
@@ -260,22 +299,78 @@ public class Repository {
         });
     }
 
-    /** Aktive Konten in Anlage/Verbindlichkeit getrennt – für Schublade und Bestände. */
-    public void getAccountsGrouped(final Callback<AccountGroups> callback) {
+    /**
+     * Aktive Konten nach Kontenart getrennt – für Schublade und Bestände.
+     *
+     * @param groupId Kontengruppe, auf die eingeschränkt wird; 0 = alle Konten
+     */
+    public void getAccountsGrouped(final long groupId, final Callback<AccountGroups> callback) {
         executor.execute(() -> {
-            final AccountGroups g = new AccountGroups(accountDao.getAssetNames(), accountDao.getLiabilityNames());
+            final AccountGroups g = new AccountGroups(accountDao.getAssetNames(groupId),
+                    accountDao.getLiabilityNames(groupId), accountDao.getDepotNames(groupId));
             mainHandler.post(() -> callback.onResult(g));
         });
     }
 
-    /** Aktive Konten nach Typ getrennt. */
+    /** Aktive Konten nach Kontenart getrennt. */
     public static final class AccountGroups {
         public final List<String> assets;
         public final List<String> liabilities;
-        public AccountGroups(List<String> assets, List<String> liabilities) {
+        public final List<String> depots;
+        public AccountGroups(List<String> assets, List<String> liabilities, List<String> depots) {
             this.assets = assets;
             this.liabilities = liabilities;
+            this.depots = depots;
         }
+    }
+
+    // ---- Kontengruppen und Kontenreihenfolge ----
+
+    /** Alle Gruppen – für das Zuordnungs-Menü am Konto. */
+    public void getAccountGroups(final Callback<List<AccountGroup>> callback) {
+        groupRepo.getGroups(callback);
+    }
+
+    /** Gruppen für die Auswahl – nur solche mit mindestens einem offenen Konto. */
+    public void getSelectableAccountGroups(final Callback<List<AccountGroup>> callback) {
+        groupRepo.getSelectableGroups(callback);
+    }
+
+    public void getAccountGroup(final long groupId, final Callback<AccountGroup> callback) {
+        groupRepo.getGroup(groupId, callback);
+    }
+
+    public void getAccountNamesInGroup(final long groupId, final Callback<List<String>> callback) {
+        groupRepo.getNamesInGroup(groupId, callback);
+    }
+
+    public void createAccountGroup(final String name, final String account, final Callback<Long> callback) {
+        groupRepo.createGroupAndAdd(name, account, callback);
+    }
+
+    public void setAccountGroupMembership(final String account, final long groupId, final boolean member,
+                                          final Runnable onDone) {
+        groupRepo.setMembership(account, groupId, member, onDone);
+    }
+
+    public void getAccountGroupIds(final String account, final Callback<java.util.Set<Long>> callback) {
+        groupRepo.getGroupIdsOfAccount(account, callback);
+    }
+
+    public void deleteAccountGroup(final long groupId, final Runnable onDone) {
+        groupRepo.deleteCustomGroup(groupId, onDone);
+    }
+
+    public void getAccountKindOrder(final Callback<int[]> callback) {
+        groupRepo.getKindOrder(callback);
+    }
+
+    public void saveAccountKindOrder(final int[] kinds, final Runnable onDone) {
+        groupRepo.saveKindOrder(kinds, onDone);
+    }
+
+    public void saveAccountOrder(final List<Account> accountsInOrder, final Runnable onDone) {
+        groupRepo.saveAccountOrder(accountsInOrder, onDone);
     }
 
     public void getLanguages(final Callback<List<Language>> callback) {
@@ -1031,7 +1126,8 @@ public class Repository {
     /** Nur aktive Konten – geschlossene Konten sind nirgends auswählbar. */
     public void getAccountNames(final Callback<List<String>> callback) {
         executor.execute(() -> {
-            final List<String> result = accountDao.getActiveNames();
+            // Ohne die Trägerzeilen der Depots: auf ein Depot lässt sich nicht buchen.
+            final List<String> result = accountDao.getBookableNames();
             mainHandler.post(() -> callback.onResult(result));
         });
     }
@@ -1105,6 +1201,8 @@ public class Repository {
                         accountDao.deleteByName(account.trim());
                     }
                 }
+                // Die Zuordnungen fallen mit dem Konto weg; dabei leer gewordene Gruppen mit entsorgen.
+                groupRepo.deleteEmptyCustomGroups();
             }
             if (onDone != null) {
                 mainHandler.post(onDone);
@@ -1233,7 +1331,48 @@ public class Repository {
     public void replaceDepotImport(String depot, List<Security> securities,
                                    List<SecurityTx> transactions, List<SecurityPrice> prices,
                                    Runnable onDone) {
+        ensureDepotAccount(depot);
         depotRepo.replaceDepotImport(depot, securities, transactions, prices, onDone);
+    }
+
+    /**
+     * Legt die Trägerzeile eines Depots in der Konto-Tabelle an. Sie trägt nur Name, Sortierplatz und
+     * Gruppen; Wertpapiere und Bewertung bleiben in den {@code security}-Tabellen.
+     */
+    public void ensureDepotAccount(final String depot) {
+        ensureDepotAccounts(java.util.Collections.singletonList(depot), null);
+    }
+
+    /**
+     * Gleicht die Trägerzeilen mit den tatsächlich vorhandenen Depots ab: fehlende werden angelegt,
+     * gleichnamige vorhandene Konten als Depot gekennzeichnet.
+     *
+     * <p>Der Abgleich läuft bei jedem Start und nicht nur einmal in der Migration – ein Depot kann auch
+     * aus einer Sicherung zurückkommen, und ohne Trägerzeile fiele es aus Schublade und Verwaltung
+     * heraus.</p>
+     *
+     * @param onDone läuft im Main-Thread, sobald der Abgleich steht; {@code null} = kein Rückruf
+     */
+    public void ensureDepotAccounts(final List<String> depots, final Runnable onDone) {
+        executor.execute(() -> {
+            if (depots != null) {
+                for (String depot : depots) {
+                    if (depot == null || depot.trim().isEmpty()) {
+                        continue;
+                    }
+                    String name = depot.trim();
+                    accountDao.insertIfAbsent(new Account(name));
+                    accountDao.setType(name, Account.KMY_TYPE_DEPOT);
+                    // Ein Depot mit Wertpapieren ist in Gebrauch: geschlossen gehörte es weder in die
+                    // Schublade noch in die Bestände, und sein Wert fiele aus der Summe. Dieselbe Regel
+                    // wie bei Konten, die durch einen Import wieder einen Saldo bekommen.
+                    accountDao.setClosed(name, false);
+                }
+            }
+            if (onDone != null) {
+                mainHandler.post(onDone);
+            }
+        });
     }
 
     public void getDepots(Callback<List<String>> callback) {

@@ -4,11 +4,13 @@ import android.app.Activity;
 import android.app.Application;
 import android.content.Intent;
 import android.os.Bundle;
+import android.os.SystemClock;
 
 import androidx.annotation.NonNull;
 import androidx.annotation.Nullable;
 import androidx.appcompat.app.AppCompatDelegate;
 
+import de.spahr.ausgaben.security.AppLockGate;
 import de.spahr.ausgaben.settings.SettingsStore;
 import de.spahr.ausgaben.ui.LockActivity;
 
@@ -21,6 +23,12 @@ import de.spahr.ausgaben.ui.LockActivity;
  * aktiv und noch nicht entsperrt, wird eine {@link LockActivity} über die aktuelle Ansicht gelegt. Ein
  * Konfigurationswechsel (Rotation) löst dank {@link Activity#isChangingConfigurations()} keine erneute
  * Sperre aus.</p>
+ *
+ * <p>Der Zähler allein kann „der Nutzer ist weggegangen" nicht von „die App hat selbst die Kamera
+ * gestartet" unterscheiden – in beiden Fällen läuft keine eigene Activity mehr. Deshalb meldet
+ * {@link de.spahr.ausgaben.ui.LocalizedActivity} jeden Absprung in eine fremde App über
+ * {@link #noteExternalHandoff()}; nach einer solchen Übergabe bleibt die App beim Zurückkommen entsperrt,
+ * solange die Kulanzfrist {@link AppLockGate#GRACE_MS} nicht überschritten ist.</p>
  */
 public class AusgabenApp extends Application implements Application.ActivityLifecycleCallbacks {
 
@@ -30,6 +38,10 @@ public class AusgabenApp extends Application implements Application.ActivityLife
     private boolean unlocked = false;
     /** true, solange die LockActivity bereits angezeigt wird (verhindert Mehrfach-Start). */
     private boolean lockShowing = false;
+    /** true, sobald die App selbst eine fremde App gestartet hat (Kamera, Dateiwahl, Spracherkennung). */
+    private boolean handoffPending = false;
+    /** elapsedRealtime beim Wechsel in den Hintergrund; 0 = seit der Übergabe kein Wechsel. */
+    private long leftAt;
 
     @Override
     public void onCreate() {
@@ -59,12 +71,29 @@ public class AusgabenApp extends Application implements Application.ActivityLife
         lockShowing = false;
     }
 
+    /**
+     * Meldet, dass die App gerade selbst eine fremde App startet. Der folgende Wechsel in den Hintergrund
+     * stellt die Sperre dann nicht sofort scharf – siehe Klassenkommentar.
+     */
+    public void noteExternalHandoff() {
+        handoffPending = true;
+        leftAt = 0;
+    }
+
     private boolean lockRequired() {
         return settings.isAppLockEnabled() && !unlocked;
     }
 
     @Override
     public void onActivityResumed(@NonNull Activity activity) {
+        if (handoffPending) {
+            // leftAt == 0: der Absprung kam nie zustande (z. B. keine passende App) – nichts nachzuholen.
+            if (leftAt != 0 && AppLockGate.graceExpired(leftAt, SystemClock.elapsedRealtime())) {
+                unlocked = false; // zu lange weg → die Übergabe zählt nicht mehr
+            }
+            handoffPending = false;
+            leftAt = 0;
+        }
         if (activity instanceof LockActivity) {
             return; // der Sperrbildschirm selbst darf laufen
         }
@@ -90,7 +119,11 @@ public class AusgabenApp extends Application implements Application.ActivityLife
         // Alle Activities gestoppt und kein reiner Konfigurationswechsel → App ist im Hintergrund → sperren.
         if (startedActivities <= 0 && !activity.isChangingConfigurations()) {
             startedActivities = 0;
-            unlocked = false;
+            // elapsedRealtime, damit eine gestellte Uhr die Kulanzfrist nicht verlängern kann.
+            leftAt = SystemClock.elapsedRealtime();
+            if (!handoffPending) {
+                unlocked = false;
+            }
         }
     }
 

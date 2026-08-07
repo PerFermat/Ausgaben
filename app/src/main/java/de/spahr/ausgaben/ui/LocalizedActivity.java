@@ -1,6 +1,8 @@
 package de.spahr.ausgaben.ui;
 
+import android.content.ComponentName;
 import android.content.Context;
+import android.content.Intent;
 import android.content.res.Configuration;
 import android.content.res.Resources;
 import android.os.Bundle;
@@ -10,13 +12,20 @@ import androidx.annotation.Nullable;
 import androidx.appcompat.app.AppCompatActivity;
 import androidx.core.view.LayoutInflaterCompat;
 
+import de.spahr.ausgaben.AusgabenApp;
 import de.spahr.ausgaben.i18n.I18nViewFactory;
 import de.spahr.ausgaben.i18n.LocaleContextWrapper;
+import de.spahr.ausgaben.security.AppLockGate;
 
 /**
  * Basis-Activity aller App-Screens. Hüllt den Context in einen {@link LocaleContextWrapper} (übersetzt
  * Code-Texte) und installiert eine {@link I18nViewFactory} (übersetzt Layout-Texte beim Aufblasen). So
  * erscheinen alle Texte in der gewählten Sprache.
+ *
+ * <p>Außerdem die eine Stelle, an der jeder Absprung in eine fremde App auffällt: sowohl
+ * {@code startActivity} als auch die {@code ActivityResultLauncher} (Kamera, Galerie, Dateiauswahl,
+ * Spracherkennung) laufen am Ende durch die hier überschriebenen Methoden. Führt der Intent aus der App
+ * heraus, erfährt {@link AusgabenApp} davon und setzt die Sperre nicht sofort scharf.</p>
  */
 public class LocalizedActivity extends AppCompatActivity {
 
@@ -58,6 +67,27 @@ public class LocalizedActivity extends AppCompatActivity {
             translatedResources = LocaleContextWrapper.translate(base);
         }
         return translatedResources;
+    }
+
+    @Override
+    public void startActivity(Intent intent, @Nullable Bundle options) {
+        noteHandoff(intent);
+        super.startActivity(intent, options);
+    }
+
+    @Override
+    public void startActivityForResult(Intent intent, int requestCode, @Nullable Bundle options) {
+        noteHandoff(intent);
+        super.startActivityForResult(intent, requestCode, options);
+    }
+
+    /** Verlässt der Absprung die eigene App, merkt sich die Application die Übergabe. */
+    private void noteHandoff(Intent intent) {
+        ComponentName target = intent.getComponent();
+        if (AppLockGate.leavesApp(getPackageName(), target == null ? null : target.getPackageName())
+                && getApplication() instanceof AusgabenApp) {
+            ((AusgabenApp) getApplication()).noteExternalHandoff();
+        }
     }
 
     @Override

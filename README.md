@@ -82,7 +82,9 @@ Details, screenshots and exact behavior are in the **[user manual](docs/Manual-A
   list and search box in one. Entering a field clears it (the previous entry stays on as a faint
   placeholder) and opens the full list; typing narrows it live, matching anywhere in the name ("kasse"
   finds "Sparkasse"). Leaving without a choice brings the old value back. New **payees** may be created
-  this way — accounts, categories and places may not, those have to come from the list.
+  this way — accounts, categories and places may not, those have to come from the list. Account fields
+  list your **favourites** first, then the accounts of the currently selected **account group**, then all
+  the rest — each block with its own icon, every account only once.
 - **Edit receipt photos**: right after the shot (or later from the receipt row) you can crop the image to a
   rectangle, straighten a skewed bill in trapezoid mode and adjust brightness/contrast. The untouched
   original is kept as `…_original.jpg` for good; editing again asks whether to continue from the current

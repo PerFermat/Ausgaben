@@ -37,6 +37,23 @@ final class AccountGroupPicker {
     }
 
     /**
+     * Das Symbol einer Gruppe: Stern für die Favoriten, Bankgebäude für die aus der .kmy abgeleiteten,
+     * Ordner für selbst angelegte. {@code null} steht für „alle Konten".
+     *
+     * <p>Auch die Kontenfelder greifen darauf zu: dort trägt der Block der gewählten Gruppe dasselbe
+     * Symbol wie die Gruppe hier in ihrer Auswahl.</p>
+     */
+    static int iconFor(AccountGroup group) {
+        if (group == null) {
+            return R.drawable.ic_wallet;
+        }
+        if (AccountGroup.SOURCE_FAVORITES.equals(group.sourceKey)) {
+            return R.drawable.ic_star;
+        }
+        return group.auto ? R.drawable.ic_bank : R.drawable.ic_group;
+    }
+
+    /**
      * Klappt die Auswahl unter {@code anchor} auf; {@code onChanged} läuft nach einer Änderung.
      *
      * @param span Fläche, deren Breite das Fenster einnehmen soll – in der Schublade deren ganzes Feld,
@@ -122,16 +139,6 @@ final class AccountGroupPicker {
             check.setVisibility(active ? View.VISIBLE : View.INVISIBLE);
             check.setColorFilter(tint);
             return row;
-        }
-
-        private int iconFor(AccountGroup group) {
-            if (group == null) {
-                return R.drawable.ic_wallet;
-            }
-            if (AccountGroup.SOURCE_FAVORITES.equals(group.sourceKey)) {
-                return R.drawable.ic_star;
-            }
-            return group.auto ? R.drawable.ic_bank : R.drawable.ic_group;
         }
     }
 }

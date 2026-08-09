@@ -353,6 +353,24 @@ public class Repository {
         groupRepo.getNamesInGroup(groupId, callback);
     }
 
+    /** Favoriten und Konten der gewählten Gruppe – die beiden Blöcke vorn in jedem Kontenfeld. */
+    public void getAccountPickerBlocks(final long groupId, final Callback<PickerBlocks> callback) {
+        groupRepo.getPickerBlocks(groupId, callback);
+    }
+
+    /** Favoriten, Konten der gewählten Gruppe und die Gruppe selbst – letztere für ihr Symbol. */
+    public static final class PickerBlocks {
+        public final List<String> favorites;
+        public final List<String> group;
+        public final AccountGroup groupInfo;
+
+        PickerBlocks(List<String> favorites, List<String> group, AccountGroup groupInfo) {
+            this.favorites = favorites;
+            this.group = group;
+            this.groupInfo = groupInfo;
+        }
+    }
+
     /** Der Name der neuen Gruppe gehört zu einer aus der .kmy abgeleiteten – nichts wurde geschrieben. */
     public static final int GROUPS_NAME_FROM_FILE = AccountGroupRepository.APPLY_NAME_FROM_FILE;
 

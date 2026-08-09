@@ -81,7 +81,8 @@ Details, Screenshots und die genaue Bedienung stehen im **[Benutzerhandbuch](doc
   Platzhalter) und die ganze Liste klappt auf; beim Tippen wird laufend gesucht, auch nach Wortteilen
   mitten im Namen („kasse“ findet „Sparkasse“). Verlässt man das Feld ohne Auswahl, kommt der alte Wert
   zurück. Neue **Empfänger** dürfen dabei entstehen – Konten, Kategorien und Orte nicht, die müssen aus
-  der Liste stammen.
+  der Liste stammen. In den Kontenfeldern stehen zuerst die **Favoriten**, dann die Konten der gerade
+  gewählten **Kontengruppe**, dann alle übrigen – jeder Block mit eigenem Symbol, jedes Konto nur einmal.
 - **Belegfotos nachbearbeiten**: direkt nach der Aufnahme (oder später über die Beleg-Zeile) lässt sich
   das Bild rechteckig zuschneiden, im Trapez-Modus eine schräg fotografierte Rechnung begradigen und
   Helligkeit/Kontrast anpassen. Das unbearbeitete Original bleibt dauerhaft als `…_original.jpg` erhalten;

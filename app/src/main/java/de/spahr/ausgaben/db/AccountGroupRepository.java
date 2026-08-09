@@ -74,6 +74,29 @@ class AccountGroupRepository {
         });
     }
 
+    /**
+     * Die beiden Blöcke, die in jedem Kontenfeld vorn stehen: die Favoriten und die Konten der gerade
+     * gewählten Kontengruppe. Beides in einem Durchgang, damit die Auswahlliste nicht zweimal auf die
+     * Datenbank warten muss.
+     *
+     * <p>Die Gruppe wird über {@code getSelectableById} geholt: gibt es sie nicht mehr oder ist in ihr
+     * kein Konto mehr offen, bleibt der zweite Block still leer – dieselbe Regel, nach der auch die
+     * Kontenschublade auf „alle Konten" zurückfällt.</p>
+     */
+    void getPickerBlocks(final long groupId, final Callback<Repository.PickerBlocks> callback) {
+        executor.execute(() -> {
+            AccountGroup favGroup = groupDao.getBySourceKey(AccountGroup.SOURCE_FAVORITES);
+            List<String> favorites = favGroup == null
+                    ? new ArrayList<>() : accountDao.getNamesInGroup(favGroup.id);
+            AccountGroup group = groupId <= 0 ? null : groupDao.getSelectableById(groupId);
+            List<String> inGroup = group == null
+                    ? new ArrayList<>() : accountDao.getNamesInGroup(group.id);
+            final Repository.PickerBlocks result =
+                    new Repository.PickerBlocks(favorites, inGroup, group);
+            mainHandler.post(() -> callback.onResult(result));
+        });
+    }
+
     /** {@link #applyMembershipNow} hat alles übernommen. */
     static final int APPLY_OK = 0;
     /**

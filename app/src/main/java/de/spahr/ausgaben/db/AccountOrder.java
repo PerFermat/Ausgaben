@@ -1,11 +1,15 @@
 package de.spahr.ausgaben.db;
 
 import java.util.ArrayList;
+import java.util.Arrays;
 import java.util.Comparator;
 import java.util.HashMap;
+import java.util.HashSet;
+import java.util.LinkedHashSet;
 import java.util.List;
 import java.util.Locale;
 import java.util.Map;
+import java.util.Set;
 
 /**
  * Reihenfolge-Rechnungen für Konten und Kontenarten: welche Kontenart steht wo, wie werden Konten
@@ -77,6 +81,34 @@ public final class AccountOrder {
             }
         }
         return changed;
+    }
+
+    /**
+     * Kontenreihenfolge der Auswahlfelder: erst die Favoriten, dann die Konten der gewählten
+     * Kontengruppe, dann alle übrigen. Innerhalb jedes Blocks bleibt die vorgegebene Reihenfolge
+     * stehen – alle drei Listen kommen aus derselben nach Sortierplatz geordneten Abfrage.
+     *
+     * <p>Jedes Konto steht genau einmal da, und zwar im ersten Block, in den es gehört. Und nur, was
+     * auch in {@code names} steht: ein Favorit, der inzwischen geschlossen ist oder die Trägerzeile
+     * eines Depots, gehört in kein Auswahlfeld.</p>
+     */
+    public static List<String> forPicker(List<String> names, List<String> favorites,
+                                         List<String> group) {
+        List<String> all = names == null ? new ArrayList<>() : names;
+        Set<String> bookable = new HashSet<>(all);
+        LinkedHashSet<String> out = new LinkedHashSet<>();
+        for (List<String> block : Arrays.asList(favorites, group)) {
+            if (block == null) {
+                continue;
+            }
+            for (String name : block) {
+                if (bookable.contains(name)) {
+                    out.add(name);
+                }
+            }
+        }
+        out.addAll(all);
+        return new ArrayList<>(out);
     }
 
     /** Passt der Name auf den Suchbegriff? Teiltreffer an beliebiger Stelle, Groß/Klein egal. */

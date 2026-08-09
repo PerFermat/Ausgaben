@@ -389,6 +389,10 @@ p("Ein <b>neuer Geldempfänger</b> darf dabei entstehen: tippen Sie einen Namen,
   "bleibt er stehen. <b>Konto, Kategorie und Ort</b> müssen dagegen aus der Liste stammen – ein "
   "erfundener Name wird beim Verlassen des Feldes wieder durch den alten ersetzt. Neue Konten kommen "
   "über den Import, neue Orte legt man in den Einstellungen an.")
+p("In den <b>Kontenfeldern</b> steht vorn, was Sie am ehesten brauchen: zuerst Ihre <b>Favoriten</b> "
+  "(Stern), dahinter die Konten der gerade gewählten <b>Kontengruppe</b> (Symbol der Gruppe), dann alle "
+  "übrigen mit dem Symbol ihrer Kontenart. Ihre eigene Kontenreihenfolge bleibt innerhalb jedes Blocks "
+  "erhalten, und ein Konto, das Favorit und zugleich in der Gruppe ist, steht nur einmal da – oben.")
 h2("Rechnen im Betragsfeld")
 p("Das <b>Betragsfeld</b> nimmt statt der System-Tastatur eine kleine <b>Rechnung</b> entgegen (z. B. "
   "<i>10+20*3</i> oder <i>30-5</i>) – praktisch zum Teilen einer Rechnung oder Verrechnen mehrerer Posten.")

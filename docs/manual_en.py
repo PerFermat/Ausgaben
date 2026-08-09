@@ -372,6 +372,10 @@ p("A <b>new payee</b> may be created this way: type a name that does not exist y
   "<b>Account, category and place</b> have to come from the list – an invented name is replaced by the "
   "previous one when you leave the field. New accounts arrive through the import, new places are "
   "created in the settings.")
+p("<b>Account fields</b> put what you are most likely to need at the top: first your <b>favourites</b> "
+  "(star), then the accounts of the currently selected <b>account group</b> (the group's own icon), then "
+  "all the rest with the icon of their account kind. Your own account order is kept within each block, "
+  "and an account that is both a favourite and in the group appears only once – at the top.")
 h2("Arithmetic in the amount field")
 p("The <b>amount field</b> accepts a small <b>calculation</b> instead of the system keyboard (e.g. "
   "<i>10+20*3</i> or <i>30-5</i>) – handy when splitting a bill or offsetting several items.")

@@ -105,4 +105,56 @@ public class AccountOrderTest {
         assertTrue(AccountOrder.matches("Girokonto", null));
         assertTrue(AccountOrder.matches("Girokonto", "   "));
     }
+
+    // ---- Reihenfolge der Auswahlfelder ----
+
+    /** Die Kontenliste, wie sie aus der Datenbank kommt: nach Sortierplatz, dann nach Name. */
+    private static final List<String> KONTEN = Arrays.asList(
+            "Gemeinschaftskonto", "Girokonto", "Tagesgeld", "Visa", "ETF Depot");
+
+    @Test
+    public void forPickerStelltFavoritenVorDieGruppeUndDieGruppeVorDenRest() {
+        List<String> favoriten = Arrays.asList("Girokonto", "Visa");
+        List<String> gruppe = Arrays.asList("Gemeinschaftskonto", "Visa");
+
+        assertEquals(Arrays.asList("Girokonto", "Visa", "Gemeinschaftskonto", "Tagesgeld", "ETF Depot"),
+                AccountOrder.forPicker(KONTEN, favoriten, gruppe));
+    }
+
+    @Test
+    public void forPickerZeigtKeinKontoZweimal() {
+        List<String> ergebnis = AccountOrder.forPicker(KONTEN,
+                Arrays.asList("Girokonto", "Visa"), Arrays.asList("Gemeinschaftskonto", "Visa"));
+
+        assertEquals("Visa steht nur einmal da", 1, Collections.frequency(ergebnis, "Visa"));
+        assertEquals("und kein Konto geht verloren", KONTEN.size(), ergebnis.size());
+    }
+
+    @Test
+    public void forPickerLaesstDieListeInRuheWennEsWederFavoritenNochGruppeGibt() {
+        assertEquals(KONTEN, AccountOrder.forPicker(KONTEN, Collections.emptyList(), null));
+    }
+
+    /**
+     * Ein Favorit, der inzwischen geschlossen ist oder die Trägerzeile eines Depots, steht gar nicht
+     * erst in der Kontenliste – und darf sie über den Umweg der Favoriten auch nicht betreten.
+     */
+    @Test
+    public void forPickerHoltKeinKontoHerein() {
+        List<String> ergebnis = AccountOrder.forPicker(KONTEN,
+                Arrays.asList("Altes Sparbuch", "Visa"), Collections.emptyList());
+
+        assertFalse(ergebnis.contains("Altes Sparbuch"));
+        assertEquals(Arrays.asList("Visa", "Gemeinschaftskonto", "Girokonto", "Tagesgeld", "ETF Depot"),
+                ergebnis);
+    }
+
+    @Test
+    public void forPickerBehaeltInnerhalbJedesBlocksDieVorgegebeneReihenfolge() {
+        List<String> ergebnis = AccountOrder.forPicker(KONTEN,
+                Arrays.asList("Visa", "Girokonto"), Arrays.asList("Tagesgeld", "Gemeinschaftskonto"));
+
+        assertEquals(Arrays.asList("Visa", "Girokonto", "Tagesgeld", "Gemeinschaftskonto", "ETF Depot"),
+                ergebnis);
+    }
 }

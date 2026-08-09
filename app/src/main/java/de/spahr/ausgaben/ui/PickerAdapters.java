@@ -14,6 +14,7 @@ import androidx.annotation.DrawableRes;
 import androidx.annotation.NonNull;
 import androidx.core.content.ContextCompat;
 
+import java.util.HashMap;
 import java.util.List;
 import java.util.Locale;
 import java.util.Map;
@@ -22,6 +23,7 @@ import de.spahr.ausgaben.R;
 import de.spahr.ausgaben.db.AccountKind;
 import de.spahr.ausgaben.db.AccountOrder;
 import de.spahr.ausgaben.db.Repository;
+import de.spahr.ausgaben.settings.SettingsStore;
 
 /**
  * Einzige Bezugsquelle für die Vorschlagslisten unter den Eingabefeldern (Konto, Empfänger, Ort und
@@ -41,17 +43,19 @@ public final class PickerAdapters {
     }
 
     /**
-     * Konten mit dem Symbol ihrer Kontenart. Die Kontenarten kommen aus der Datenbank, deshalb wird die
-     * Liste erst gesetzt, wenn sie da sind – bis dahin steht im Feld ohnehin schon der bisherige Wert.
+     * Konten in der Reihenfolge, in der man sie braucht: erst die Favoriten, dann die Konten der gerade
+     * gewählten Kontengruppe, dann alle übrigen (siehe {@link AccountOrder#forPicker}). Jeder Block hat
+     * sein eigenes Symbol – Stern, Symbol der Gruppe, sonst die Kontenart.
+     *
+     * <p>Beides kommt aus der Datenbank, deshalb wird die Liste erst gesetzt, wenn sie da ist – bis
+     * dahin steht im Feld ohnehin schon der bisherige Wert. Die gewählte Gruppe holt sich diese Methode
+     * selbst aus den Einstellungen, damit keine Aufrufstelle sie durchreichen muss.</p>
      */
     public static void accounts(Repository repository, AutoCompleteTextView field, List<String> names) {
         if (field == null) {
             return;
         }
-        repository.getAccountKinds(kinds -> {
-            attach(field, accountAdapter(field.getContext(), names, kinds));
-            PickerBehaviour.searchable(field, PickerBehaviour.Unknown.RESTORE);
-        });
+        accounts(repository, names, new AutoCompleteTextView[]{field});
     }
 
     /** Wie {@link #accounts}, aber für mehrere Felder mit derselben Liste (Umbuchen: von/nach). */
@@ -61,13 +65,33 @@ public final class PickerAdapters {
             return;
         }
         Context context = fields[0].getContext();
-        repository.getAccountKinds(kinds -> {
-            ArrayAdapter<String> adapter = accountAdapter(context, names, kinds);
+        long groupId = new SettingsStore(context).getAccountGroup();
+        repository.getAccountKinds(kinds -> repository.getAccountPickerBlocks(groupId, blocks -> {
+            List<String> ordered = AccountOrder.forPicker(names, blocks.favorites, blocks.group);
+            ArrayAdapter<String> adapter = accountAdapter(context, ordered, kinds,
+                    blockIcons(blocks));
             for (AutoCompleteTextView field : fields) {
                 attach(field, adapter);
                 PickerBehaviour.searchable(field, PickerBehaviour.Unknown.RESTORE);
             }
-        });
+        }));
+    }
+
+    /**
+     * Kontoname (klein geschrieben) auf das Symbol seines Blocks. Die Favoriten werden zuletzt
+     * eingetragen und stechen damit die Gruppe aus – genau wie in der Reihenfolge, wo ein Konto, das
+     * beides ist, oben bei den Favoriten steht.
+     */
+    private static Map<String, Integer> blockIcons(Repository.PickerBlocks blocks) {
+        Map<String, Integer> icons = new HashMap<>();
+        int groupIcon = AccountGroupPicker.iconFor(blocks.groupInfo);
+        for (String name : blocks.group) {
+            icons.put(name.toLowerCase(Locale.ROOT), groupIcon);
+        }
+        for (String name : blocks.favorites) {
+            icons.put(name.toLowerCase(Locale.ROOT), R.drawable.ic_star);
+        }
+        return icons;
     }
 
     /** Empfänger – das einzige Feld, in dem ein unbekannter Name stehenbleiben darf: er ist der neue. */
@@ -124,10 +148,16 @@ public final class PickerAdapters {
     }
 
     public static ArrayAdapter<String> accountAdapter(Context context, List<String> names,
-                                                      Map<String, Integer> kinds) {
+                                                      Map<String, Integer> kinds,
+                                                      Map<String, Integer> blockIcons) {
         return new RowAdapter(context, names) {
             @Override
             int iconFor(String value) {
+                Integer block = blockIcons == null || value == null
+                        ? null : blockIcons.get(value.toLowerCase(Locale.ROOT));
+                if (block != null) {
+                    return block; // Favorit oder Konto der gewählten Gruppe: Block sticht Kontenart
+                }
                 Integer kind = kinds == null || value == null
                         ? null : kinds.get(value.toLowerCase(Locale.ROOT));
                 if (kind == null) {

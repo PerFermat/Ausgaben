@@ -15,8 +15,9 @@ import de.spahr.ausgaben.db.Repository.Callback;
  * Kontengruppen und Kontenreihenfolge. Kollaborator hinter der {@link Repository}-Fassade; teilt sich
  * deren Executor und Main-Handler, damit die Reihenfolge der Datenbankzugriffe erhalten bleibt.
  *
- * <p>Gruppen mit {@code auto = true} stammen aus dem Institutsblock der KMyMoney-Datei. Sie spiegeln nur
- * die Datei: nur der Import schreibt sie, von Hand sind sie weder änderbar noch löschbar.</p>
+ * <p>Gruppen mit {@code auto = true} stammen aus der KMyMoney-Datei – aus dem Institutsblock oder aus den
+ * bevorzugten Konten. Sie spiegeln nur die Datei: nur der Import schreibt sie, von Hand sind sie weder
+ * änderbar noch löschbar.</p>
  */
 class AccountGroupRepository {
 
@@ -34,7 +35,7 @@ class AccountGroupRepository {
     }
 
     /**
-     * Alle Kontengruppen – selbst angelegte zuerst, dann die Bankgruppen. Für das Zuordnungs-Menü am
+     * Alle Kontengruppen – Favoriten zuerst, dann selbst angelegte, dann die Bankgruppen. Für das Zuordnungs-Menü am
      * Konto: dort müssen auch Gruppen auftauchen, in denen gerade nur geschlossene Konten stehen, sonst
      * ließen sie sich nie wiederbeleben.
      */
@@ -73,47 +74,66 @@ class AccountGroupRepository {
         });
     }
 
+    /** {@link #applyMembershipNow} hat alles übernommen. */
+    static final int APPLY_OK = 0;
     /**
-     * Legt eine selbst benannte Gruppe an (oder findet die gleichnamige) und ordnet das Konto zu.
-     * Meldet die Gruppen-ID, 0 bei leerem Namen oder unbekanntem Konto.
+     * Der Name der neuen Gruppe gehört einer aus der Datei abgeleiteten Gruppe. Es wurde <em>nichts</em>
+     * geschrieben – der Dialog bleibt offen und der Nutzer kann den Namen ändern.
      */
-    void createGroupAndAdd(final String name, final String account, final Callback<Long> callback) {
+    static final int APPLY_NAME_FROM_FILE = 1;
+
+    /**
+     * Übernimmt die Gruppenzuordnung eines Kontos in einem Rutsch: {@code selected} ist der vollständige
+     * Sollzustand über alle eigenen Gruppen, {@code newGroupName} eine zusätzlich anzulegende. Aus der
+     * Datei abgeleitete Gruppen bleiben unberührt – sie spiegeln nur die .kmy.
+     */
+    void applyMembership(final String account, final Set<Long> selected, final String newGroupName,
+                         final Callback<Integer> callback) {
         executor.execute(() -> {
-            long id = 0;
-            String trimmed = name == null ? "" : name.trim();
-            if (!trimmed.isEmpty()) {
-                id = findOrCreate(trimmed, false);
-                Long accountId = accountDao.getIdByName(account);
-                if (id > 0 && accountId != null) {
-                    groupDao.addMember(new AccountGroupMember(id, accountId));
-                }
-            }
-            final long result = id;
+            final int result = applyMembershipNow(account, selected, newGroupName);
             if (callback != null) {
                 mainHandler.post(() -> callback.onResult(result));
             }
         });
     }
 
-    /** Ordnet ein Konto einer Gruppe zu oder nimmt es heraus. Bankgruppen bleiben unberührt. */
-    void setMembership(final String account, final long groupId, final boolean member,
-                       final Runnable onDone) {
-        executor.execute(() -> {
-            AccountGroup group = groupId <= 0 ? null : groupDao.getById(groupId);
-            Long accountId = accountDao.getIdByName(account);
-            if (group != null && !group.auto && accountId != null) {
-                if (member) {
-                    groupDao.addMember(new AccountGroupMember(groupId, accountId));
-                } else {
-                    groupDao.removeMember(groupId, accountId);
-                    // War das ihr letztes Konto, verschwindet die Gruppe kommentarlos.
-                    groupDao.deleteEmpty(false);
-                }
+    /** Der eigentliche Ablauf auf dem Datenbank-Thread; getrennt, damit ihn ein Test direkt aufrufen kann. */
+    int applyMembershipNow(String account, Set<Long> selected, String newGroupName) {
+        Long accountId = accountDao.getIdByName(account);
+        if (accountId == null) {
+            return APPLY_OK;
+        }
+        String neu = newGroupName == null ? "" : newGroupName.trim();
+        if (!neu.isEmpty()) {
+            Long vorhanden = groupDao.getIdByName(neu);
+            AccountGroup belegt = vorhanden == null ? null : groupDao.getById(vorhanden);
+            if (belegt != null && belegt.auto) {
+                // Vor dem ersten Schreiben prüfen: eine Zuordnung zu einer Datei-Gruppe wäre beim
+                // nächsten Import spurlos wieder fort, und halb Übernommenes wäre schwer zu erklären.
+                return APPLY_NAME_FROM_FILE;
             }
-            if (onDone != null) {
-                mainHandler.post(onDone);
+        }
+        Set<Long> gewaehlt = selected == null ? new HashSet<>() : selected;
+        for (AccountGroup g : groupDao.getAll()) {
+            if (g.auto) {
+                continue;
             }
-        });
+            if (gewaehlt.contains(g.id)) {
+                groupDao.addMember(new AccountGroupMember(g.id, accountId));
+            } else {
+                groupDao.removeMember(g.id, accountId);
+            }
+        }
+        if (!neu.isEmpty()) {
+            long id = findOrCreate(neu, false);
+            if (id > 0) {
+                groupDao.addMember(new AccountGroupMember(id, accountId));
+            }
+        }
+        // Wer sein letztes Konto verloren hat, verschwindet – das ist der einzige Weg, eine eigene
+        // Gruppe wieder loszuwerden, seit die Auswahl ein Dropdown ohne langen Tipp ist.
+        groupDao.deleteEmpty(false);
+        return APPLY_OK;
     }
 
     /** Gruppen-IDs, in denen das Konto steht. */
@@ -128,39 +148,63 @@ class AccountGroupRepository {
         });
     }
 
-    /** Löscht eine selbst angelegte Gruppe samt Zuordnungen; Bankgruppen ignoriert die Abfrage. */
-    void deleteCustomGroup(final long groupId, final Runnable onDone) {
-        executor.execute(() -> {
-            groupDao.deleteCustom(groupId);
-            if (onDone != null) {
-                mainHandler.post(onDone);
+    /**
+     * Übernimmt die aus der KMyMoney-Datei abgeleiteten Gruppen: je Bankinstitut eine, dazu die
+     * „Favoriten" aus den bevorzugten Konten. Alle tragen {@code auto = true} und ihre Mitglieder werden
+     * vollständig neu gesetzt.
+     *
+     * <p>Beide Quellen laufen bewusst in <em>einem</em> Durchgang: {@code clearAutoMembers()} räumt alle
+     * abgeleiteten Zuordnungen auf einmal weg, ein zweiter Aufruf würde also löschen, was der erste
+     * gerade geschrieben hat.</p>
+     *
+     * @param favoritesLabel übersetzter Name der Favoritengruppe; wiedergefunden wird sie am
+     *                       Herkunftskennzeichen, nicht am Namen.
+     */
+    void applyFileGroups(Map<String, String> accountToInstitution, List<String> favorites,
+                         String favoritesLabel) {
+        // Die Datei gibt die Mitglieder vor, nicht der Altbestand: erst alle Zuordnungen räumen …
+        groupDao.clearAutoMembers();
+        if (accountToInstitution != null) {
+            for (Map.Entry<String, String> e : accountToInstitution.entrySet()) {
+                String institution = e.getValue() == null ? "" : e.getValue().trim();
+                if (institution.isEmpty()) {
+                    continue;
+                }
+                addToGroup(findOrCreate(institution, true, AccountGroup.SOURCE_BANK), e.getKey());
             }
-        });
+        }
+        if (favorites != null && !favorites.isEmpty()) {
+            long groupId = findOrCreateBySourceKey(AccountGroup.SOURCE_FAVORITES, favoritesLabel);
+            for (String account : favorites) {
+                addToGroup(groupId, account);
+            }
+        }
+        // … danach fallen abgeleitete Gruppen weg, die es in der Datei nicht mehr gibt.
+        groupDao.deleteEmpty(true);
+    }
+
+    private void addToGroup(long groupId, String account) {
+        Long accountId = accountDao.getIdByName(account);
+        if (groupId > 0 && accountId != null) {
+            groupDao.addMember(new AccountGroupMember(groupId, accountId));
+        }
     }
 
     /**
-     * Übernimmt die Bankinstitute aus der KMyMoney-Datei: je Institut eine Gruppe mit {@code auto = true},
-     * deren Mitglieder vollständig neu gesetzt werden. Konten ohne Institut bleiben ohne Bankgruppe.
+     * Setzt den Namen der Favoritengruppe auf den Text der aktuellen Sprache. Läuft bei jedem Start, damit
+     * die Gruppe nach einem Sprachwechsel nicht auf dem alten Wort sitzenbleibt. Steht dem Namen eine
+     * gleichnamige eigene Gruppe im Weg, weicht sie – wie beim Anlegen, siehe {@link #freeName}.
      */
-    void applyInstitutions(Map<String, String> accountToInstitution) {
-        if (accountToInstitution == null || accountToInstitution.isEmpty()) {
+    void renameFavorites(String label) {
+        String name = label == null ? "" : label.trim();
+        if (name.isEmpty()) {
             return;
         }
-        // Die Datei gibt die Mitglieder vor, nicht der Altbestand: erst alle Bankzuordnungen räumen …
-        groupDao.clearAutoMembers();
-        for (Map.Entry<String, String> e : accountToInstitution.entrySet()) {
-            String institution = e.getValue() == null ? "" : e.getValue().trim();
-            if (institution.isEmpty()) {
-                continue;
-            }
-            long groupId = findOrCreate(institution, true);
-            Long accountId = accountDao.getIdByName(e.getKey());
-            if (groupId > 0 && accountId != null) {
-                groupDao.addMember(new AccountGroupMember(groupId, accountId));
-            }
+        AccountGroup group = groupDao.getBySourceKey(AccountGroup.SOURCE_FAVORITES);
+        if (group == null || group.name.equals(name)) {
+            return;
         }
-        // … danach fallen Bankgruppen weg, deren Institut es in der Datei nicht mehr gibt.
-        groupDao.deleteEmpty(true);
+        groupDao.setName(group.id, freeName(name, group.id));
     }
 
     /** Räumt eigene Gruppen weg, die durch das Löschen von Konten leer geworden sind. */
@@ -203,15 +247,60 @@ class AccountGroupRepository {
 
     /** Vorhandene Gruppe gleichen Namens finden oder neu anlegen. Läuft auf dem Datenbank-Thread. */
     private long findOrCreate(String name, boolean auto) {
+        return findOrCreate(name, auto, "");
+    }
+
+    private long findOrCreate(String name, boolean auto, String sourceKey) {
         Long existing = groupDao.getIdByName(name);
         if (existing != null) {
             return existing;
         }
-        long id = groupDao.insert(new AccountGroup(name, auto));
+        long id = groupDao.insert(new AccountGroup(name, auto, sourceKey));
         if (id > 0) {
             return id;
         }
         Long again = groupDao.getIdByName(name); // Wettlauf mit einem gleichnamigen Eintrag
         return again == null ? 0 : again;
+    }
+
+    /**
+     * Die abgeleitete Gruppe zu ihrem Herkunftskennzeichen finden oder anlegen. Der Name taugt dafür
+     * nicht: er ist übersetzt und wechselt mit der Sprache.
+     */
+    private long findOrCreateBySourceKey(String sourceKey, String label) {
+        AccountGroup existing = groupDao.getBySourceKey(sourceKey);
+        if (existing != null) {
+            return existing.id;
+        }
+        String name = label == null ? "" : label.trim();
+        if (name.isEmpty()) {
+            name = sourceKey;
+        }
+        return groupDao.insert(new AccountGroup(freeName(name, 0), true, sourceKey));
+    }
+
+    /**
+     * Macht den Namen frei: eine gleichnamige <em>selbst angelegte</em> Gruppe wird gelöscht – wer eine
+     * Gruppe „Favoriten" von Hand gepflegt hat, meinte damit dasselbe, und zwei gleichnamige Töpfe wären
+     * nur verwirrend; ab jetzt gilt die Datei. Blockiert dagegen eine andere abgeleitete Gruppe den Namen
+     * (eine Bank namens „Favoriten"), bleibt sie unangetastet und der Name bekommt eine Ziffer.
+     *
+     * @param keepId Gruppe, die den Namen behalten darf (0 = noch keine)
+     */
+    private String freeName(String name, long keepId) {
+        Long other = groupDao.getIdByName(name);
+        if (other == null || other == keepId) {
+            return name;
+        }
+        groupDao.deleteCustom(other); // greift nur bei auto = 0
+        if (groupDao.getIdByName(name) == null) {
+            return name;
+        }
+        for (int n = 2; ; n++) {
+            String kandidat = name + " (" + n + ")";
+            if (groupDao.getIdByName(kandidat) == null) {
+                return kandidat;
+            }
+        }
     }
 }

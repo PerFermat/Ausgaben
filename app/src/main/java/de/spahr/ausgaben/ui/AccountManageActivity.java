@@ -7,7 +7,6 @@ import android.view.View;
 import android.view.ViewGroup;
 import android.widget.ImageView;
 import android.widget.TextView;
-import android.widget.Toast;
 
 import androidx.annotation.NonNull;
 import androidx.recyclerview.widget.ItemTouchHelper;
@@ -20,7 +19,6 @@ import java.util.ArrayList;
 import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
-import java.util.Set;
 
 import de.spahr.ausgaben.R;
 import de.spahr.ausgaben.db.Account;
@@ -123,70 +121,23 @@ public class AccountManageActivity extends LocalizedActivity {
 
     // ---- Drei-Punkte-Menü ----
 
+    /**
+     * Das ⋮ führt geradewegs in die Ankreuzliste der Kontengruppen. Dort steckt auch das Schließen bzw.
+     * Wiedereröffnen des Kontos – schließen läßt sich nur ein ausgeglichenes Konto, wie in der
+     * Kontenverwaltung der Einstellungen.
+     */
     private void showRowMenu(Account account) {
         repository.getAccountGroups(groups -> {
             final List<AccountGroup> custom = new ArrayList<>();
             for (AccountGroup g : groups) {
-                if (!g.auto) { // Bankgruppen spiegeln nur die .kmy-Datei und sind nicht wählbar
+                if (!g.auto) { // Bankgruppen und Favoriten spiegeln nur die .kmy-Datei
                     custom.add(g);
                 }
             }
-            repository.getAccountGroupIds(account.name, member -> showRowMenu(account, custom, member));
+            final boolean closable = account.closed || balanceOf(account) == 0;
+            repository.getAccountGroupIds(account.name, member -> AccountGroupsDialog.show(
+                    this, repository, account, custom, member, closable, this::refresh));
         });
-    }
-
-    private void showRowMenu(Account account, List<AccountGroup> custom, Set<Long> member) {
-        final List<String> labels = new ArrayList<>();
-        final List<Runnable> actions = new ArrayList<>();
-        for (AccountGroup g : custom) {
-            final boolean isMember = member.contains(g.id);
-            labels.add(getString(isMember ? R.string.accounts_group_remove : R.string.accounts_group_add,
-                    g.name));
-            actions.add(() -> repository.setAccountGroupMembership(account.name, g.id, !isMember,
-                    () -> toast(getString(isMember ? R.string.accounts_group_removed
-                            : R.string.accounts_group_added, g.name))));
-        }
-        labels.add(getString(R.string.accounts_group_new));
-        actions.add(() -> askNewGroup(account));
-        if (account.closed) {
-            labels.add(getString(R.string.accounts_manage_reopen));
-            actions.add(() -> repository.setAccountClosed(account.name, false, () -> {
-                toast(getString(R.string.account_reopened_done, account.name));
-                refresh();
-            }));
-        } else if (balanceOf(account) == 0) {
-            // Schließen nur bei Saldo 0 – wie in der Kontenverwaltung der Einstellungen.
-            labels.add(getString(R.string.accounts_manage_close));
-            actions.add(() -> repository.setAccountClosed(account.name, true, () -> {
-                toast(getString(R.string.account_closed_done, account.name));
-                refresh();
-            }));
-        }
-        new AppDialog(this)
-                .setTitle(account.name)
-                .setItems(labels.toArray(new String[0]), (d, which) -> actions.get(which).run())
-                .show();
-    }
-
-    private void askNewGroup(Account account) {
-        final android.widget.EditText input = new android.widget.EditText(this);
-        input.setSingleLine(true);
-        int pad = Math.round(20 * getResources().getDisplayMetrics().density);
-        input.setPadding(pad, pad, pad, pad);
-        new AppDialog(this)
-                .setTitle(R.string.accounts_group_new)
-                .setView(input)
-                .setPositiveButton(R.string.save, (d, w) -> {
-                    final String name = input.getText().toString().trim();
-                    repository.createAccountGroup(name, account.name, id -> toast(id > 0
-                            ? getString(R.string.accounts_group_added, name)
-                            : getString(R.string.accounts_group_empty)));
-                })
-                .show();
-    }
-
-    private void toast(String message) {
-        Toast.makeText(this, message, Toast.LENGTH_SHORT).show();
     }
 
     // ---- Liste ----

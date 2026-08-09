@@ -14,11 +14,13 @@ import org.robolectric.RobolectricTestRunner;
 import org.robolectric.annotation.Config;
 
 import java.io.IOException;
+import java.util.List;
 import java.util.Map;
 
 /**
- * Bankinstitute aus dem {@code <INSTITUTIONS>}-Block: Grundlage der automatisch erzeugten
- * Bank-Kontengruppen. Konten ohne hinterlegtes Institut dürfen keine Gruppe erzeugen.
+ * Die aus der Datei abgeleiteten Kontengruppen: Bankinstitute aus dem {@code <INSTITUTIONS>}-Block und
+ * „Favoriten" aus dem Paar {@code PreferredAccount} im Konto-Block. Konten ohne hinterlegtes Institut
+ * dürfen keine Gruppe erzeugen.
  */
 @RunWith(RobolectricTestRunner.class)
 @Config(sdk = 34)
@@ -52,5 +54,26 @@ public class KmyInstitutionTest {
     @Test
     public void dateiOhneInstituteLiefertNichts() throws IOException {
         assertTrue(doc("empty-blocks.xml").institutionsByAccount().isEmpty());
+    }
+
+    @Test
+    public void bevorzugteKontenWerdenErkannt() throws IOException {
+        List<String> favoriten = doc("institutions.xml").favoriteAccounts();
+        assertTrue(favoriten.contains("Girokonto"));
+        // Depots sind in der App gewöhnliche Konten und dürfen ebenso Favorit sein.
+        assertTrue(favoriten.contains("ETF Depot"));
+        assertEquals(2, favoriten.size());
+    }
+
+    @Test
+    public void nurJaZaehltAlsFavorit() throws IOException {
+        List<String> favoriten = doc("institutions.xml").favoriteAccounts();
+        assertFalse(favoriten.contains("Bausparen")); // trägt „No"
+        assertFalse(favoriten.contains("Bargeld"));   // trägt gar kein Kennzeichen
+    }
+
+    @Test
+    public void dateiOhneFavoritenLiefertNichts() throws IOException {
+        assertTrue(doc("empty-blocks.xml").favoriteAccounts().isEmpty());
     }
 }

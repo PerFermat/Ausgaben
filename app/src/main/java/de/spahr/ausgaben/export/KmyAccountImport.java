@@ -106,8 +106,10 @@ public final class KmyAccountImport {
                 // klassifizieren, nicht nur für die aktualisierten.
                 repository.applyAccountTypes(importer.accountTypes());
                 repository.applyCategoryTypes(importer.categoryTypes());
-                // Bank-Kontengruppen aus dem Institutsblock der Datei nachziehen.
-                repository.applyInstitutions(importer.institutions());
+                // Kontengruppen aus der Datei nachziehen: Banken aus dem Institutsblock, „Favoriten"
+                // aus den bevorzugten Konten.
+                repository.applyFileGroups(importer.institutions(), importer.favorites(),
+                        app.getString(R.string.accounts_group_favorites));
                 // Kein separates „Buchungen werden gespeichert" beim Konto-Aktualisieren – nur die
                 // laufende Phase weiterzählen.
                 repository.replaceImportAccounts(map,

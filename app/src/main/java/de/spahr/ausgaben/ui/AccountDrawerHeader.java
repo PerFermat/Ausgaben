@@ -59,8 +59,9 @@ public class AccountDrawerHeader {
         this.title = activity.findViewById(R.id.accountGroupTitle);
 
         if (title != null) {
-            title.setOnClickListener(v ->
-                    AccountGroupPicker.show(activity, repository, settings, this::reload));
+            // Aufgeklappt wird unter der Überschrift, breit aber wie die ganze Schublade.
+            title.setOnClickListener(v -> AccountGroupPicker.show(activity, title,
+                    activity.findViewById(R.id.drawerPanel), repository, settings, this::reload));
         }
         ImageView manage = activity.findViewById(R.id.manageAccounts);
         if (manage != null) {

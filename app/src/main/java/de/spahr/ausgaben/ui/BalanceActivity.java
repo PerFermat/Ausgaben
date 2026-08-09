@@ -68,7 +68,7 @@ public class BalanceActivity extends LocalizedActivity {
 
         groupButton = findViewById(R.id.balanceGroup);
         groupButton.setOnClickListener(v ->
-                AccountGroupPicker.show(this, repository, settings, this::refresh));
+                AccountGroupPicker.show(this, groupButton, null, repository, settings, this::refresh));
 
         ((MaterialButton) findViewById(R.id.btnTransfer)).setOnClickListener(v -> showTransferDialog());
         ((MaterialButton) findViewById(R.id.btnReconcile)).setOnClickListener(v -> showReconcileDialog());

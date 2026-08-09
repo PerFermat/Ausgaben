@@ -128,7 +128,10 @@
         </FrameLayout>
     </LinearLayout>
 
+    <!-- Dieselbe Schublade wie in der Hauptansicht; die Kennung braucht das Gruppen-Dropdown, das seine
+         Breite von diesem Feld nimmt. -->
     <LinearLayout
+        android:id="@+id/drawerPanel"
         android:layout_width="300dp"
         android:layout_height="match_parent"
         android:layout_gravity="start"

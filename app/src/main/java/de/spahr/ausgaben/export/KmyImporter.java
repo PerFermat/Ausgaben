@@ -266,6 +266,11 @@ public class KmyImporter {
         return doc.institutionsByAccount();
     }
 
+    /** Namen der in KMyMoney bevorzugten Konten (Grundlage der Kontengruppe „Favoriten"). */
+    public java.util.List<String> favorites() {
+        return doc.favoriteAccounts();
+    }
+
     /**
      * Kategorie-Pfad → Typ ({@code true} = Einnahme, {@code false} = Ausgabe) für alle Kategorien der
      * Datei (zum Klassifizieren aller Budget-Kategorien beim Import). Siehe {@code KmyDocument}.

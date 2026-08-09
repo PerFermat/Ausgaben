@@ -14,10 +14,10 @@ instead of typing everything in by hand later.
 detail, with screenshots.
 
 <p>
-  <img src="screenshots/Promo-Datenschutz.png" width="220">
-  <img src="screenshots/Promo-Syncronisation.png" width="220">
-  <img src="screenshots/Promo-Alias.png" width="220">
-  <img src="screenshots/Promo-UhranlagemitAlias.png" width="220">
+  <img src="screenshots/en/Promo-Datenschutz.png" width="220">
+  <img src="screenshots/en/Promo-Syncronisation.png" width="220">
+  <img src="screenshots/en/Promo-Alias.png" width="220">
+  <img src="screenshots/en/Promo-UhranlagemitAlias.png" width="220">
 </p>
 <sub>(Promo graphics are in German; the app itself is fully available in English.)</sub>
 
@@ -37,14 +37,14 @@ detail, with screenshots.
 ## Screenshots
 
 <p>
-  <img src="screenshots/Kontobuchungen.png" width="140">
-  <img src="screenshots/Kontenmenü.png" width="140">
-  <img src="screenshots/Buchung Empfänger.png" width="140">
-  <img src="screenshots/Buchungen Auswertung.png" width="140">
-  <img src="screenshots/Kategorien Auswertung.png" width="140">
-  <img src="screenshots/Budget.png" width="140">
-  <img src="screenshots/Depot Auswertung.png" width="140">
-  <img src="screenshots/Einstellungen_1.png" width="140">
+  <img src="screenshots/en/Kontobuchungen.png" width="140">
+  <img src="screenshots/en/Kontenmenü.png" width="140">
+  <img src="screenshots/en/Buchung Empfänger.png" width="140">
+  <img src="screenshots/en/Buchungen Auswertung.png" width="140">
+  <img src="screenshots/en/Kategorien Auswertung.png" width="140">
+  <img src="screenshots/en/Budget.png" width="140">
+  <img src="screenshots/en/Depot Auswertung.png" width="140">
+  <img src="screenshots/en/Einstellungen_1.png" width="140">
 </p>
 
 ## Download
@@ -95,13 +95,17 @@ Details, screenshots and exact behavior are in the **[user manual](docs/Manual-A
   a built-in calculator keyboard in the amount field.
 - **Organising accounts**: the drawer still groups by account kind (asset, liability, portfolio); on top
   of that come freely chosen **account groups** such as "Favourites" or "Joint", and an account may belong
-  to several of them. The institutions block of the `.kmy` additionally yields bank groups; these merely
-  mirror the file and therefore cannot be edited. Tapping "Accounts" picks the group — it then applies
-  app-wide to the booking list, the balance bar and the holdings view. The **magnifier** on the kMyMoney
+  to several of them. Two groups come out of the `.kmy` itself: the institutions block yields bank groups,
+  and the accounts marked as preferred in KMyMoney form the "Favourites" group, which sits at the top of
+  the picker. Both merely mirror the file and therefore cannot be edited; they are rebuilt on every
+  import. Tapping "Accounts" drops the groups down as a list; the chosen one carries a tick and then
+  applies app-wide to the booking list, the balance bar and the holdings view. The **magnifier** on the kMyMoney
   emblem searches accounts by part of their name — the input briefly takes the place of the heading and is
   never stored. The gear icon opens a view where accounts and whole
-  account kinds can be **reordered freely** (the order applies everywhere), groups assigned, and accounts
-  closed or reopened. Closed accounts appear only there, in grey; if a closed account regains a balance on
+  account kinds can be **reordered freely** (the order applies everywhere). The ⋮ next to an account
+  opens its groups as a tick list: check and uncheck all your own groups at once, with a free field on
+  top for a new one, applied with "OK". The same list also closes or reopens the account. A group of
+  your own disappears as soon as its last account is taken out of it. Closed accounts appear only there, in grey; if a closed account regains a balance on
   import, it reopens by itself.
 - **Analysis**: history chart per account/place/total, category pie chart ("Where does my money go?"),
   budget (actual vs. planned, imported from KMyMoney or computed in-app), scheduled bookings preview.

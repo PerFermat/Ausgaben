@@ -143,15 +143,11 @@
     <string name="account_all">All accounts</string>
     <string name="accounts_title">Accounts</string>
     <string name="accounts_search_hint">Search accounts</string>
-    <string name="accounts_group_pick">Account group</string>
-    <string name="accounts_group_new">New group…</string>
-    <string name="accounts_group_add">Add to “%1$s”</string>
-    <string name="accounts_group_remove">Remove from “%1$s”</string>
-    <string name="accounts_group_added">Added to “%1$s”</string>
-    <string name="accounts_group_removed">Removed from “%1$s”</string>
-    <string name="accounts_group_empty">Please enter a name</string>
-    <string name="accounts_group_delete_title">Delete group?</string>
-    <string name="accounts_group_delete_message">The group “%1$s” is deleted. The accounts themselves are kept.</string>
+    <!-- Gruppe aus den bevorzugten Konten der .kmy; der Name wird bei jedem Start nachgezogen. -->
+    <string name="accounts_group_favorites">Favourites</string>
+    <string name="accounts_group_new">New group</string>
+    <!-- Der eingetippte Name gehört einer Gruppe aus der .kmy; nichts wurde übernommen. -->
+    <string name="accounts_group_name_from_file">This name belongs to a group from the KMyMoney file</string>
     <string name="accounts_group_balance">%1$s balance</string>
     <string name="accounts_manage_title">Sort and manage accounts</string>
     <string name="accounts_manage_drag">Drag to reorder</string>

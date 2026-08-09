@@ -473,6 +473,9 @@ public class MainActivity extends LocalizedActivity {
         if (gps && locationTagger != null && hasLocationPermission()) {
             locationTagger.start();
         }
+        // Die Favoritengruppe trägt einen übersetzten Namen; nach einem Sprachwechsel bliebe sonst das
+        // alte Wort stehen. Ihre Mitglieder rührt das nicht an.
+        repository.renameFavoritesGroup(getString(R.string.accounts_group_favorites));
         // Depotwert (für „Gesamtvermögen") laden; die Schublade füllt der Schubladenkopf, weil dort
         // die Kontengruppe und die festgelegte Reihenfolge gelten.
         repository.getDepots(depots -> {

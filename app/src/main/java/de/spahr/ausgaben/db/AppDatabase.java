@@ -14,7 +14,7 @@ import androidx.sqlite.db.SupportSQLiteDatabase;
         Budget.class, CategoryType.class, ScheduledTransaction.class, ScheduledSplit.class,
         AnalysisExtra.class, SecurityTxValueOverride.class, KmyPendingDelete.class, SecurityPrice.class,
         ScheduledAdvance.class, AccountGroup.class, AccountGroupMember.class, AccountKindOrder.class},
-        version = 39, exportSchema = false)
+        version = 40, exportSchema = false)
 public abstract class AppDatabase extends RoomDatabase {
 
     /** v1 → v2: Notiz-Spalte ergänzen (bestehende Buchungen bleiben erhalten). */
@@ -502,6 +502,19 @@ public abstract class AppDatabase extends RoomDatabase {
         }
     };
 
+    /**
+     * v39 → v40: Herkunftskennzeichen an der Kontengruppe. Bisher unterschied nur {@code auto} zwischen
+     * selbst angelegt und aus der Datei abgeleitet; mit den Favoriten gibt es eine zweite abgeleitete
+     * Gruppe, und die ist am Namen nicht wiederzuerkennen, weil er übersetzt ist.
+     */
+    static final Migration MIGRATION_39_40 = new Migration(39, 40) {
+        @Override
+        public void migrate(@NonNull SupportSQLiteDatabase db) {
+            db.execSQL("ALTER TABLE account_group ADD COLUMN source_key TEXT NOT NULL DEFAULT ''");
+            db.execSQL("UPDATE account_group SET source_key = 'bank' WHERE auto = 1");
+        }
+    };
+
     public abstract BookingDao bookingDao();
 
     public abstract AccountDao accountDao();
@@ -553,7 +566,7 @@ public abstract class AppDatabase extends RoomDatabase {
                                     MIGRATION_28_29, MIGRATION_29_30, MIGRATION_30_31,
                                     MIGRATION_31_32, MIGRATION_32_33, MIGRATION_33_34, MIGRATION_34_35,
                                     MIGRATION_35_36, MIGRATION_36_37, MIGRATION_37_38,
-                                    MIGRATION_38_39)
+                                    MIGRATION_38_39, MIGRATION_39_40)
                             .build();
                 }
             }

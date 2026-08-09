@@ -13,7 +13,9 @@ public interface AccountGroupDao {
     @Insert(onConflict = OnConflictStrategy.IGNORE)
     long insert(AccountGroup group);
 
-    String ORDER = " ORDER BY auto ASC, sort_pos ASC, name COLLATE NOCASE ASC";
+    /** Favoriten stehen vorn – sie sind der häufigste Griff; dahinter eigene Gruppen, dann die Banken. */
+    String ORDER = " ORDER BY CASE source_key WHEN '" + AccountGroup.SOURCE_FAVORITES + "' THEN 0"
+            + " ELSE 1 END, auto ASC, sort_pos ASC, name COLLATE NOCASE ASC";
 
     /**
      * Hat die Gruppe mindestens ein offenes Konto? Nur solche Gruppen erscheinen in der Auswahl – eine
@@ -41,6 +43,14 @@ public interface AccountGroupDao {
     @Query("SELECT id FROM account_group WHERE name = :name COLLATE NOCASE")
     Long getIdByName(String name);
 
+    /** Die aus der Datei abgeleitete Gruppe zu ihrem Herkunftskennzeichen, oder {@code null}. */
+    @Query("SELECT * FROM account_group WHERE source_key = :sourceKey LIMIT 1")
+    AccountGroup getBySourceKey(String sourceKey);
+
+    /** Benennt eine Gruppe um – gebraucht, damit die Favoriten der Sprache der Oberfläche folgen. */
+    @Query("UPDATE account_group SET name = :name WHERE id = :id")
+    void setName(long id, String name);
+
     /** Löscht eine Gruppe samt Zuordnungen – Bankgruppen sind davon ausgenommen (siehe Repository). */
     @Query("DELETE FROM account_group WHERE id = :id AND auto = 0")
     void deleteCustom(long id);
@@ -55,7 +65,7 @@ public interface AccountGroupDao {
     @Query("SELECT group_id FROM account_group_member WHERE account_id = :accountId")
     List<Long> getGroupIdsOfAccount(long accountId);
 
-    /** Alle Zuordnungen der Bankgruppen entfernen; der Import setzt sie anschließend neu aus der Datei. */
+    /** Alle Zuordnungen der Datei-Gruppen entfernen; der Import setzt sie anschließend neu aus der Datei. */
     @Query("DELETE FROM account_group_member WHERE group_id IN "
             + "(SELECT id FROM account_group WHERE auto = 1)")
     void clearAutoMembers();

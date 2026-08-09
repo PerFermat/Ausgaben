@@ -54,6 +54,8 @@ public class KmyDocument {
     private final Map<String, String> accountInstitution = new LinkedHashMap<>();
     /** Institut-id → Name der Bank aus dem INSTITUTIONS-Block. */
     private final Map<String, String> institutionName = new LinkedHashMap<>();
+    /** id der in KMyMoney bevorzugten Konten (PAIR „PreferredAccount" im Konto-Block). */
+    private final java.util.Set<String> preferredAccounts = new java.util.LinkedHashSet<>();
 
     /** Anzeigename → id der wählbaren Konten (Reihenfolge = Eingabereihenfolge). */
     private final Map<String, String> selectableAccounts = new LinkedHashMap<>();
@@ -264,6 +266,25 @@ public class KmyDocument {
         return out;
     }
 
+    /**
+     * Namen der in KMyMoney bevorzugten Konten – Grundlage der Kontengruppe „Favoriten". Depots zählen
+     * mit: sie sind in der App gewöhnliche Konten und lassen sich ebenso als Favorit kennzeichnen.
+     */
+    public List<String> favoriteAccounts() {
+        List<String> out = new ArrayList<>();
+        collectFavorites(selectableAccounts, out);
+        collectFavorites(depotAccounts, out);
+        return out;
+    }
+
+    private void collectFavorites(Map<String, String> nameToId, List<String> out) {
+        for (Map.Entry<String, String> e : nameToId.entrySet()) {
+            if (preferredAccounts.contains(e.getValue())) {
+                out.add(e.getKey());
+            }
+        }
+    }
+
     private void collectInstitutions(Map<String, String> nameToId, Map<String, String> out) {
         for (Map.Entry<String, String> e : nameToId.entrySet()) {
             String bank = institutionName.get(accountInstitution.get(e.getValue()));
@@ -320,6 +341,7 @@ public class KmyDocument {
             parser.setFeature(XmlPullParser.FEATURE_PROCESS_NAMESPACES, false);
             parser.setInput(new StringReader(xml));
             int event = parser.getEventType();
+            String openAccount = null; // Konto, dessen KEYVALUEPAIRS-Block gerade gelesen wird
             while (event != XmlPullParser.END_DOCUMENT) {
                 if (event == XmlPullParser.START_TAG) {
                     String tag = parser.getName();
@@ -356,7 +378,18 @@ public class KmyDocument {
                             accountCurrency.put(id, currency == null ? "" : currency.trim());
                             accountInstitution.put(id, institution == null ? "" : institution.trim());
                         }
+                        openAccount = id;
+                    } else if ("PAIR".equals(tag) && openAccount != null
+                            && "PreferredAccount".equals(parser.getAttributeValue(null, "key"))) {
+                        // KMyMoney kennzeichnet bevorzugte Konten so; daraus entsteht die Gruppe
+                        // „Favoriten". Ein „No" kommt in der Datei zwar nicht vor, wäre aber kein Favorit.
+                        if ("Yes".equalsIgnoreCase(
+                                orEmpty(parser.getAttributeValue(null, "value")).trim())) {
+                            preferredAccounts.add(openAccount);
+                        }
                     }
+                } else if (event == XmlPullParser.END_TAG && "ACCOUNT".equals(parser.getName())) {
+                    openAccount = null;
                 }
                 event = parser.next();
             }

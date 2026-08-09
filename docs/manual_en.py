@@ -16,7 +16,7 @@ from reportlab.pdfbase.ttfonts import TTFont
 from reportlab.lib.utils import ImageReader
 
 REPO = os.path.dirname(os.path.dirname(os.path.abspath(__file__)))
-SHOTS = os.path.join(REPO, "screenshots")
+SHOTS = os.path.join(REPO, "screenshots", "en")
 OUT = os.path.join(REPO, "docs", "Manual-Ausgaben-en.pdf")
 os.makedirs(os.path.dirname(OUT), exist_ok=True)
 
@@ -47,6 +47,7 @@ st_cellb  = S("cb", fontName="DejaVu-Bold", fontSize=9, leading=12)
 st_sym    = S("sy", fontName="DejaVu-Bold", fontSize=13, leading=14, alignment=TA_CENTER)
 st_cap    = S("cap", fontSize=8.5, leading=11, textColor=GREY, alignment=TA_CENTER, spaceBefore=3)
 st_note   = S("n",  fontSize=9, leading=13, textColor=GREY)
+st_fehlt  = S("f",  fontSize=10, leading=14, textColor=GREY, alignment=TA_CENTER)
 
 story = []
 _first_h1 = [True]
@@ -75,10 +76,29 @@ def bullets(items):
     story.append(Spacer(1, 4))
 def gap(h=6): story.append(Spacer(1, h))
 
-def shot(fname, caption, width=6.0*cm):
+def _bildflaeche(fname, width):
+    """Das Bild – oder eine graue Fläche, solange die Aufnahme fehlt.
+
+    Der Platzhalter hat das Seitenverhältnis eines Bildschirmfotos, damit sich der Umbruch nicht
+    verschiebt, sobald das echte Bild nachkommt, und nennt den erwarteten Dateinamen: so ist im
+    PDF auf einen Blick zu sehen, was noch aufzunehmen ist (siehe tools/screenshots.py)."""
     path = os.path.join(SHOTS, fname)
-    ir = ImageReader(path); iw, ih = ir.getSize()
-    img = Image(path, width=width, height=width*ih/iw)
+    if os.path.isfile(path):
+        ir = ImageReader(path); iw, ih = ir.getSize()
+        return Image(path, width=width, height=width*ih/iw)
+    kasten = Table([[Paragraph("No image", st_fehlt)],
+                    [Paragraph('<font size="7">%s</font>' % fname, st_fehlt)]],
+                   colWidths=[width], rowHeights=[width*2400/1080 - 0.9*cm, 0.9*cm])
+    kasten.setStyle(TableStyle([
+        ("BACKGROUND", (0, 0), (-1, -1), colors.HexColor("#eeeeee")),
+        ("BOX", (0, 0), (-1, -1), 0.8, colors.HexColor("#bbbbbb")),
+        ("VALIGN", (0, 0), (0, 0), "MIDDLE"), ("VALIGN", (0, 1), (0, 1), "TOP"),
+    ]))
+    return kasten
+
+
+def shot(fname, caption, width=6.0*cm):
+    img = _bildflaeche(fname, width)
     tbl = Table([[img],[Paragraph(caption, st_cap)]], colWidths=[width])
     tbl.setStyle(TableStyle([("ALIGN",(0,0),(-1,-1),"CENTER")]))
     tbl.hAlign = "CENTER"
@@ -100,9 +120,7 @@ def shot_row(items, max_width=6.0*cm, total_width=17*cm, hgap=0.4*cm):
     cell_w = min(max_width, (total_width - hgap * (n - 1)) / n)
     row_cells, col_widths = [], []
     for i, (fname, caption) in enumerate(items):
-        path = os.path.join(SHOTS, fname)
-        ir = ImageReader(path); iw, ih = ir.getSize()
-        img = Image(path, width=cell_w, height=cell_w * ih / iw)
+        img = _bildflaeche(fname, cell_w)
         cell = Table([[img], [Paragraph(caption, st_cap)]], colWidths=[cell_w])
         cell.setStyle(TableStyle([("ALIGN", (0, 0), (-1, -1), "CENTER")]))
         row_cells.append(cell)
@@ -132,7 +150,7 @@ def Paragraph(_t, *a, **k):
 # Borderless full-bleed cover (v3): the graphic already contains the full title text; only
 # version/date are drawn onto the dashed placeholder box (see cover_page() further below). Page 1
 # stays empty as far as flowables go, then straight on to chapter 1.
-COVER_PATH_EN = os.path.join(SHOTS, "Handbuch Titelseite-eng.png")
+COVER_PATH_EN = os.path.join(SHOTS, "Handbuch Titelseite.png")
 story.append(PageBreak())
 
 # ---------------------------------------------------------------- Table of contents
@@ -210,6 +228,7 @@ bullets([
   "<b>Filtered</b>: sum of the currently filtered bookings (only when a filter is active).",
 ])
 p("A green amount = positive/credit, a red amount = negative.")
+shot("Saldenzeile.png", "Balance line with group total; tapping cycles through", width=6.0*cm)
 h2("Home-screen widget")
 p("For the launcher there are four selectable widgets showing the <b>default-place</b> balance "
   "(default account → default place): <b>small</b> (2×1, balance only), <b>medium</b> (4×2, balance + three "
@@ -275,17 +294,26 @@ p("Besides the <b>account kind</b> (asset, liability, portfolio) there are <b>ac
   "own ordering – «Favourites», «Joint» or «Savings», say. An account may sit in any number of groups; the "
   "grouping by account kind is unaffected.")
 bullets([
-  "<b>Tap the «Accounts» heading</b> to pick a group. The drawer then lists only its accounts, and the top "
-  "row carries the group name instead of «All accounts».",
+  "<b>Tap the «Accounts» heading</b> and the groups drop down as a list. Each row carries the mark of its "
+  "origin (a star for the favourites, a bank building for the groups from the .kmy, a folder for your own), "
+  "and the one in force carries a <b>tick</b>. The drawer then lists only its accounts, and the top row "
+  "carries the group name instead of «All accounts».",
   "The chosen group applies <b>app-wide</b>: the booking list, the balance bar (as an additional first "
   "page there; «Total» still means all accounts) and the holdings view all follow it.",
-  "<b>Long-press a group</b> in that picker to delete it; the accounts themselves are kept.",
   "Removing the <b>last account</b> from a group (or deleting that account) makes the group disappear "
-  "without asking – there are no empty groups.",
+  "without asking – there are no empty groups. That is also how you get rid of a group again.",
   "Groups holding nothing but <b>closed</b> accounts no longer show up in this picker. They stay "
   "selectable in an account's «⋮» menu so they can be revived.",
   "The institutions block of the .kmy additionally yields <b>bank groups</b> (e.g. «Volksbank»). These "
   "merely mirror the file: only the import writes them, they cannot be edited by hand.",
+  "The <b>«Favourites»</b> group likewise comes from the file: it holds the accounts marked as preferred "
+  "in KMyMoney (its account dialog, «Preferred account»). It sits at the very top of the picker, cannot "
+  "be edited any more than the bank groups can, and is rebuilt on every import. Once no account is "
+  "preferred any longer, it disappears. Its name follows the language of the app.",
+])
+shot_row([
+    ("Kontengruppen Auswahl.png", "Tapping «Accounts» opens the group selection"),
+    ("Kontengruppe gewählt.png", "Afterwards the top row carries the group name"),
 ])
 h2("Searching accounts")
 p("A <b>magnifier</b> sits on the kMyMoney emblem at the top of the drawer. Tapping it opens the keyboard, "
@@ -297,6 +325,8 @@ p("Closing the keyboard puts the heading back in its place – but the term <b>s
   "on; tapping it lifts the search.")
 p("The search stays inside the chosen account group and is never stored. It also ends by itself as soon as "
   "you pick an account, close the drawer or leave the app.")
+shot("Konten suchen.png", "The search field takes the place of the «Accounts» heading",
+     width=6.0*cm)
 h2("Sorting and managing accounts")
 p("The <b>gear icon</b> next to «Accounts» opens a view of its own. Unlike the drawer it also shows "
   "<b>closed accounts</b>, in grey, each with its balance on the right.")
@@ -305,12 +335,24 @@ bullets([
   "accounts are listed – including the pickers while recording a booking.",
   "<b>Drag a whole account kind</b>: its accounts collapse for the duration of the drag and only their "
   "number is shown. That way even a large block reaches its place in a few movements.",
-  "<b>«⋮» on an account row</b>: add to or remove from groups, create a «New group …», plus «Close "
-  "account» and «Reopen account». <b>Close account</b> is only offered at a zero balance.",
+  "<b>«⋮» on an account row</b>: your own account groups as a <b>tick list</b>. The tick says whether the "
+  "account sits in that group; set and clear as many as you like, nothing is written until <b>«OK»</b>. On "
+  "top there is a free field for a <b>new group</b> – typing into it ticks its box by itself.",
+  "Groups from the .kmy (banks, favourites) are not in the list. Type one of their names into the free "
+  "field and the dialog stays open with a note, writing nothing – an assignment by hand would be gone "
+  "again at the next import anyway.",
+  "The same tick list carries, next to «OK», a <b>«Close account»</b> (or «Reopen account») button; it "
+  "applies the ticks along the way. <b>Close account</b> is offered only at a balance of 0.",
   "If a closed account regains a balance on import, it reopens by itself.",
 ])
 
 # ---------------------------------------------------------------- 6
+shot_row([
+    ("Konten verwalten.png", "Management also shows closed accounts, greyed out, with balance"),
+    ("Konten sortieren.png", "Dragging an account type folds its accounts away"),
+    ("Konten Kontextmenü.png", "«⋮»: tick groups, create a new one, close the account"),
+])
+
 h1("6. Recording a booking")
 p("Tap the round <b>✚</b> button. The booking editor opens.")
 shot("Buchung Empfänger.png", "Booking editor with type switch, amount, payee and account")
@@ -395,6 +437,10 @@ p("Delete a booking and its images disappear on the <b>next app start</b> – no
 p("If you delete a page in the middle, the following ones move up when you save, so the numbering stays "
   "gapless. Even deleting <b>page 1</b> keeps the booking linked to its receipt – the former page 2 simply "
   "becomes page 1.")
+shot_row([
+    ("Beleg Seiten.png", "While editing, each page gets its own row with crop and delete"),
+    ("Beleg Betrachter.png", "The built-in viewer counts along: «Page 2 of 3»"),
+])
 h2("Cropping and straightening receipt photos")
 p("Right after the shot the app asks whether you want to <b>edit</b> the image. <b>«Keep as is»</b> leaves the "
   "photo untouched – so you never have to bother. Later you can reopen the editor at any time via the "
@@ -411,6 +457,9 @@ p("So when you edit an image <b>a second time</b>, the app asks: <b>«Continue e
   "current version – handy to nudge the brightness without losing your crop. <b>«Start from original»</b> "
   "brings back the untouched photo when a crop turned out too tight. For an image never edited before, the "
   "question does not appear.")
+shot("Beleg bearbeiten.png",
+     "Editing: four corner points, «Rectangle»/«Trapezoid», brightness and contrast",
+     width=6.0*cm)
 h2("Alias names (learned mappings)")
 p("If you change the recognized payee while saving, the app asks whether to remember the mapping as an "
   "alias – together with account, category and <b>place</b> (for transfers the from/to accounts and "
@@ -600,6 +649,9 @@ p("When you scroll far down, the <b>scroll-to-top button</b> (bottom left) jumps
   "the list.")
 
 # ---------------------------------------------------------------- 12 Holdings / portfolio
+shot("Geplante Buchungen Grafik.png",
+     "Chart of the plans: bars per due date and a development line", width=6.0*cm)
+
 h1("13. Holdings (places) and portfolio")
 h2("Holdings / places – what are they?")
 p("A <b>place</b> describes <b>where</b> an account's cash physically is – e.g. wallet, jar, petty cash or "
@@ -865,6 +917,8 @@ p("If something fails, the wizard names the reason: «Server not reachable», «
   "brackets, by the server's <b>raw status code</b>, so a report can actually be traced. «Server not "
   "reachable» only ever appears while no connection has been established yet. If the port field "
   "does not hold a number between 1 and 65535, it says so right away without trying to connect.")
+shot("SMB Assistent.png", "SMB wizard: servers found, sign-in and share selection",
+     width=6.0*cm)
 h2("Check connection (diagnostics)")
 p("The button <b>«Check connection (diagnostics)»</b> – in the settings <b>and</b> in the first-start "
   "wizard – walks the whole chain in <b>one</b> login and shows, for every step, whether it worked, how "
@@ -882,6 +936,7 @@ bullets([
 ])
 p("<b>«Copy report»</b> puts the result on the clipboard – meant for sending along with a bug report. The "
   "report contains <b>neither the password nor the user name</b> (only «set» or «empty»).")
+shot("SMB Diagnose.png", "Diagnostics: every step with duration and status code", width=6.0*cm)
 h2("Export mode")
 bullets([
   "<b>.kmy mode</b>: writes new bookings straight into the KMyMoney file (including splits and transfers) "

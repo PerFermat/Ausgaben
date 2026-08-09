@@ -118,14 +118,23 @@ public class Repository {
     }
 
     /**
-     * Übernimmt die Bankinstitute aus der .kmy als Kontengruppen. Diese Gruppen spiegeln nur die Datei:
-     * ihre Mitglieder werden bei jedem Import neu gesetzt, von Hand sind sie nicht änderbar.
+     * Übernimmt Bankinstitute und bevorzugte Konten aus der .kmy als Kontengruppen. Diese Gruppen
+     * spiegeln nur die Datei: ihre Mitglieder werden bei jedem Import neu gesetzt, von Hand sind sie
+     * nicht änderbar.
      */
-    public void applyInstitutions(final java.util.Map<String, String> institutions) {
-        if (institutions == null || institutions.isEmpty()) {
+    public void applyFileGroups(final java.util.Map<String, String> institutions,
+                                final java.util.List<String> favorites, final String favoritesLabel) {
+        boolean leer = (institutions == null || institutions.isEmpty())
+                && (favorites == null || favorites.isEmpty());
+        if (leer) {
             return;
         }
-        executor.execute(() -> groupRepo.applyInstitutions(institutions));
+        executor.execute(() -> groupRepo.applyFileGroups(institutions, favorites, favoritesLabel));
+    }
+
+    /** Setzt den Namen der Favoritengruppe auf die Sprache der Oberfläche (Aufruf beim Start). */
+    public void renameFavoritesGroup(final String label) {
+        executor.execute(() -> groupRepo.renameFavorites(label));
     }
 
     /**
@@ -344,21 +353,23 @@ public class Repository {
         groupRepo.getNamesInGroup(groupId, callback);
     }
 
-    public void createAccountGroup(final String name, final String account, final Callback<Long> callback) {
-        groupRepo.createGroupAndAdd(name, account, callback);
-    }
+    /** Der Name der neuen Gruppe gehört zu einer aus der .kmy abgeleiteten – nichts wurde geschrieben. */
+    public static final int GROUPS_NAME_FROM_FILE = AccountGroupRepository.APPLY_NAME_FROM_FILE;
 
-    public void setAccountGroupMembership(final String account, final long groupId, final boolean member,
-                                          final Runnable onDone) {
-        groupRepo.setMembership(account, groupId, member, onDone);
+    /**
+     * Übernimmt die Gruppen eines Kontos so, wie sie im Zuordnungsdialog angekreuzt sind.
+     *
+     * @param selected     vollständiger Sollzustand über alle eigenen Gruppen
+     * @param newGroupName zusätzlich anzulegende Gruppe; leer, wenn keine
+     * @param callback     {@link #GROUPS_NAME_FROM_FILE} bei belegtem Namen, sonst 0
+     */
+    public void applyAccountGroups(final String account, final java.util.Set<Long> selected,
+                                   final String newGroupName, final Callback<Integer> callback) {
+        groupRepo.applyMembership(account, selected, newGroupName, callback);
     }
 
     public void getAccountGroupIds(final String account, final Callback<java.util.Set<Long>> callback) {
         groupRepo.getGroupIdsOfAccount(account, callback);
-    }
-
-    public void deleteAccountGroup(final long groupId, final Runnable onDone) {
-        groupRepo.deleteCustomGroup(groupId, onDone);
     }
 
     public void getAccountKindOrder(final Callback<int[]> callback) {

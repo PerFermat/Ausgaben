@@ -1,6 +1,7 @@
 <?xml version="1.0" encoding="UTF-8"?>
 <!DOCTYPE KMYMONEY-FILE>
-<!-- Konten mit hinterlegtem Bankinstitut; „Bargeld" hat bewusst keins. -->
+<!-- Konten mit hinterlegtem Bankinstitut; „Bargeld" hat bewusst keins.
+     „Girokonto" und das Depot sind in KMyMoney bevorzugt, „Bausparen" trägt bewusst ein „No". -->
 <KMYMONEY-FILE>
   <FILEINFO>
     <CREATION_DATE date="2026-01-01"/>
@@ -16,10 +17,22 @@
   <COSTCENTERS/>
   <TAGS/>
   <ACCOUNTS count="4">
-    <ACCOUNT id="A000001" parentaccount="AStd::Asset" lastreconciled="" lastmodified="2026-01-01" institution="I000002" opened="2026-01-01" number="" type="1" name="Girokonto" description="" currency="EUR"/>
-    <ACCOUNT id="A000002" parentaccount="AStd::Asset" lastreconciled="" lastmodified="2026-01-01" institution="I000001" opened="2026-01-01" number="" type="2" name="Bausparen" description="" currency="EUR"/>
+    <ACCOUNT id="A000001" parentaccount="AStd::Asset" lastreconciled="" lastmodified="2026-01-01" institution="I000002" opened="2026-01-01" number="" type="1" name="Girokonto" description="" currency="EUR">
+      <KEYVALUEPAIRS>
+        <PAIR value="Yes" key="PreferredAccount"/>
+      </KEYVALUEPAIRS>
+    </ACCOUNT>
+    <ACCOUNT id="A000002" parentaccount="AStd::Asset" lastreconciled="" lastmodified="2026-01-01" institution="I000001" opened="2026-01-01" number="" type="2" name="Bausparen" description="" currency="EUR">
+      <KEYVALUEPAIRS>
+        <PAIR value="No" key="PreferredAccount"/>
+      </KEYVALUEPAIRS>
+    </ACCOUNT>
     <ACCOUNT id="A000003" parentaccount="AStd::Asset" lastreconciled="" lastmodified="2026-01-01" institution="" opened="2026-01-01" number="" type="3" name="Bargeld" description="" currency="EUR"/>
-    <ACCOUNT id="A000004" parentaccount="AStd::Asset" lastreconciled="" lastmodified="2026-01-01" institution="I000002" opened="2026-01-01" number="" type="7" name="ETF Depot" description="" currency="EUR"/>
+    <ACCOUNT id="A000004" parentaccount="AStd::Asset" lastreconciled="" lastmodified="2026-01-01" institution="I000002" opened="2026-01-01" number="" type="7" name="ETF Depot" description="" currency="EUR">
+      <KEYVALUEPAIRS>
+        <PAIR value="Yes" key="PreferredAccount"/>
+      </KEYVALUEPAIRS>
+    </ACCOUNT>
   </ACCOUNTS>
   <TRANSACTIONS count="0"/>
   <SCHEDULES/>

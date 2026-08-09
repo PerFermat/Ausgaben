@@ -14,7 +14,7 @@ from reportlab.pdfbase.ttfonts import TTFont
 from reportlab.lib.utils import ImageReader
 
 REPO = os.path.dirname(os.path.dirname(os.path.abspath(__file__)))
-SHOTS = os.path.join(REPO, "screenshots")
+SHOTS = os.path.join(REPO, "screenshots", "de")
 OUT = os.path.join(REPO, "docs", "Handbuch-Ausgaben-de.pdf")
 os.makedirs(os.path.dirname(OUT), exist_ok=True)
 
@@ -47,6 +47,7 @@ st_cellb   = S("cb", fontName="DejaVu-Bold", fontSize=9, leading=12)
 st_sym     = S("sy", fontName="DejaVu-Bold", fontSize=13, leading=14, alignment=TA_CENTER)
 st_cap     = S("cap", fontSize=8.5, leading=11, textColor=GREY, alignment=TA_CENTER, spaceBefore=3)
 st_note    = S("n",  fontSize=9, leading=13, textColor=GREY)
+st_fehlt   = S("f",  fontSize=10, leading=14, textColor=GREY, alignment=TA_CENTER)
 
 story = []
 _first_h1 = [True]
@@ -76,11 +77,30 @@ def bullets(items):
     story.append(Spacer(1, 4))
 def gap(h=6): story.append(Spacer(1, h))
 
-def shot(fname, caption, width=6.0*cm):
+def _bildflaeche(fname, width):
+    """Das Bild – oder eine graue Fläche, solange die Aufnahme fehlt.
+
+    Der Platzhalter hat das Seitenverhältnis eines Bildschirmfotos, damit sich der Umbruch nicht
+    verschiebt, sobald das echte Bild nachkommt, und nennt den erwarteten Dateinamen: so ist im
+    PDF auf einen Blick zu sehen, was noch aufzunehmen ist (siehe tools/screenshots.py)."""
     path = os.path.join(SHOTS, fname)
-    ir = ImageReader(path)
-    iw, ih = ir.getSize()
-    img = Image(path, width=width, height=width*ih/iw)
+    if os.path.isfile(path):
+        ir = ImageReader(path)
+        iw, ih = ir.getSize()
+        return Image(path, width=width, height=width*ih/iw)
+    kasten = Table([[Paragraph("Kein Bild", st_fehlt)],
+                    [Paragraph('<font size="7">%s</font>' % fname, st_fehlt)]],
+                   colWidths=[width], rowHeights=[width*2400/1080 - 0.9*cm, 0.9*cm])
+    kasten.setStyle(TableStyle([
+        ("BACKGROUND", (0, 0), (-1, -1), colors.HexColor("#eeeeee")),
+        ("BOX", (0, 0), (-1, -1), 0.8, colors.HexColor("#bbbbbb")),
+        ("VALIGN", (0, 0), (0, 0), "MIDDLE"), ("VALIGN", (0, 1), (0, 1), "TOP"),
+    ]))
+    return kasten
+
+
+def shot(fname, caption, width=6.0*cm):
+    img = _bildflaeche(fname, width)
     tbl = Table([[img],[Paragraph(caption, st_cap)]], colWidths=[width])
     tbl.setStyle(TableStyle([("ALIGN",(0,0),(-1,-1),"CENTER")]))
     tbl.hAlign = "CENTER"
@@ -105,9 +125,7 @@ def shot_row(items, max_width=6.0*cm, total_width=17*cm, hgap=0.4*cm):
     cell_w = min(max_width, (total_width - hgap * (n - 1)) / n)
     row_cells, col_widths = [], []
     for i, (fname, caption) in enumerate(items):
-        path = os.path.join(SHOTS, fname)
-        ir = ImageReader(path); iw, ih = ir.getSize()
-        img = Image(path, width=cell_w, height=cell_w * ih / iw)
+        img = _bildflaeche(fname, cell_w)
         cell = Table([[img], [Paragraph(caption, st_cap)]], colWidths=[cell_w])
         cell.setStyle(TableStyle([("ALIGN", (0, 0), (-1, -1), "CENTER")]))
         row_cells.append(cell)
@@ -137,7 +155,7 @@ def Paragraph(_t, *a, **k):
 # Randloses Vollbild (v3): die Grafik enthält bereits den kompletten Titeltext; nur Version/Stand
 # werden per Canvas in den dafür vorgesehenen gestrichelten Rahmen gezeichnet (siehe cover_page()
 # weiter unten). Seite 1 bleibt im Flowable-Sinn leer, direkt weiter zu Kapitel 1.
-COVER_PATH_DE = os.path.join(SHOTS, "Handbuch Titelseite-de.png")
+COVER_PATH_DE = os.path.join(SHOTS, "Handbuch Titelseite.png")
 story.append(PageBreak())
 
 # ---------------------------------------------------------------- Inhaltsverzeichnis
@@ -219,6 +237,7 @@ bullets([
   "<b>Gefiltert</b>: Summe der aktuell gefilterten Buchungen (nur bei aktivem Filter).",
 ])
 p("Grüner Betrag = positiv/Guthaben, roter Betrag = negativ.")
+shot("Saldenzeile.png", "Saldenzeile mit Gruppensumme; Antippen schaltet weiter", width=6.0*cm)
 h2("Homescreen-Widget")
 p("Für den Startbildschirm gibt es vier wählbare Widgets, die den Saldo des <b>Standardorts</b> "
   "(Standardkonto → Standardort) zeigen: <b>klein</b> (2×1, nur Saldo), <b>mittel</b> (4×2, Saldo + drei "
@@ -291,17 +310,26 @@ p("Neben der <b>Kontenart</b> (Anlage, Verbindlichkeit, Depot) gibt es <b>Konten
   "Ordnung – etwa «Favoriten», «Gemeinsam» oder «Sparen». Ein Konto kann in beliebig vielen Gruppen stehen; "
   "die Gliederung nach Kontenart bleibt davon unberührt.")
 bullets([
-  "<b>Tipp auf die Überschrift «Konten»</b>: Auswahl der Gruppe. Danach stehen in der Schublade nur noch "
+  "<b>Tipp auf die Überschrift «Konten»</b>: die Gruppen klappen als Liste darunter auf. Jede Zeile trägt "
+  "das Zeichen ihrer Herkunft (Stern für die Favoriten, Bankgebäude für die Gruppen aus der .kmy, Ordner "
+  "für selbst angelegte), die gerade gültige ein <b>Häkchen</b>. Danach stehen in der Schublade nur noch "
   "deren Konten, und die oberste Zeile trägt statt «Alle Konten» den Gruppennamen.",
   "Die gewählte Gruppe gilt <b>app-weit</b>: Buchungsliste, Saldoleiste (dort als zusätzliche erste Seite; "
   "«Gesamt» meint weiterhin alle Konten) und die Bestände richten sich danach.",
-  "<b>Langer Druck auf eine Gruppe</b> in dieser Auswahl löscht sie; die Konten selbst bleiben erhalten.",
   "Nimmt man das <b>letzte Konto</b> aus einer Gruppe heraus (oder löscht es), verschwindet die Gruppe "
-  "kommentarlos – leere Gruppen gibt es nicht.",
+  "kommentarlos – leere Gruppen gibt es nicht. Das ist auch der Weg, eine Gruppe wieder loszuwerden.",
   "Gruppen, in denen nur noch <b>geschlossene</b> Konten stehen, tauchen in dieser Auswahl nicht mehr auf. "
   "Im «⋮»-Menü eines Kontos bleiben sie wählbar, damit man sie wiederbeleben kann.",
   "Aus dem Institutsblock der .kmy entstehen zusätzlich <b>Bank-Gruppen</b> (z. B. «Volksbank»). Sie "
   "spiegeln nur die Datei: nur der Import schreibt sie, von Hand sind sie nicht änderbar.",
+  "Ebenso entsteht die Gruppe <b>«Favoriten»</b> aus den Konten, die in KMyMoney als bevorzugt "
+  "gekennzeichnet sind (dort im Kontodialog unter «Bevorzugtes Konto»). Sie steht in der Auswahl ganz "
+  "oben, ist wie die Bank-Gruppen nicht änderbar und wird bei jedem Import neu gesetzt. Ist kein Konto "
+  "mehr bevorzugt, verschwindet sie. Ihr Name folgt der Sprache der App.",
+])
+shot_row([
+    ("Kontengruppen Auswahl.png", "Tipp auf «Konten» öffnet die Auswahl der Gruppe"),
+    ("Kontengruppe gewählt.png", "Danach trägt die oberste Zeile den Gruppennamen"),
 ])
 h2("Konten suchen")
 p("Auf dem kMyMoney-Zeichen im Kopf der Schublade liegt eine <b>Lupe</b>. Ein Tipp darauf öffnet die "
@@ -313,6 +341,8 @@ p("Schließt man die Tastatur, tritt die Überschrift wieder an ihren Platz – 
   "Kreuzstrich trägt, ist zu erkennen, daß gefiltert wird; ein Tipp darauf hebt die Suche auf.")
 p("Die Suche bleibt innerhalb der gewählten Kontengruppe und wird nirgends gespeichert. Sie endet außerdem "
   "von selbst, sobald man ein Konto auswählt, die Schublade zuschiebt oder die App verläßt.")
+shot("Konten suchen.png", "Die Sucheingabe tritt an die Stelle der Überschrift «Konten»",
+     width=6.0*cm)
 h2("Konten sortieren und verwalten")
 p("Das <b>Zahnrad</b> rechts neben «Konten» öffnet eine eigene Ansicht. Sie zeigt – anders als die "
   "Schublade – auch <b>geschlossene Konten</b>, diese in grauer Schrift, jeweils mit dem Saldo rechts.")
@@ -321,9 +351,22 @@ bullets([
   "Konten aufgelistet werden – auch in den Auswahllisten beim Buchen.",
   "<b>Eine ganze Kontenart ziehen</b>: ihre Konten klappen für die Dauer des Ziehens ein und es steht nur "
   "noch die Anzahl darunter. So wandert auch ein großer Block mit wenigen Bewegungen an seinen Platz.",
-  "<b>«⋮» an einer Kontozeile</b>: Gruppen zuordnen oder entfernen, «Neue Gruppe …» anlegen sowie "
-  "«Konto schließen» bzw. «Konto wiedereröffnen». <b>Konto schließen</b> wird nur bei Saldo 0 angeboten.",
+  "<b>«⋮» an einer Kontozeile</b>: die eigenen Kontengruppen als <b>Ankreuzliste</b>. Der Haken sagt, ob "
+  "das Konto in der Gruppe steht; man setzt und nimmt beliebig viele auf einmal, geschrieben wird erst "
+  "mit <b>«OK»</b>. Ganz oben steht ein freies Feld für eine <b>neue Gruppe</b> – wer dort etwas eintippt, "
+  "bekommt den Haken von selbst gesetzt.",
+  "Gruppen aus der .kmy (Banken, Favoriten) stehen nicht in der Liste. Trägt man ihren Namen in das freie "
+  "Feld ein, bleibt der Dialog mit einem Hinweis stehen und es wird nichts übernommen – eine Zuordnung von "
+  "Hand wäre beim nächsten Import ohnehin wieder fort.",
+  "Dieselbe Ankreuzliste trägt neben «OK» die Schaltfläche <b>«Konto schließen»</b> bzw. "
+  "«Konto wiedereröffnen»; sie übernimmt die gesetzten Haken mit. <b>Konto schließen</b> wird nur bei "
+  "Saldo 0 angeboten.",
   "Bekommt ein geschlossenes Konto durch einen Import wieder einen Saldo, öffnet es sich von selbst.",
+])
+shot_row([
+    ("Konten verwalten.png", "Die Verwaltung zeigt auch geschlossene Konten, grau und mit Saldo"),
+    ("Konten sortieren.png", "Beim Ziehen einer Kontenart klappen ihre Konten ein"),
+    ("Konten Kontextmenü.png", "«⋮»: Gruppen ankreuzen, neue anlegen, Konto schließen"),
 ])
 
 # ---------------------------------------------------------------- 6 Buchung erfassen
@@ -416,6 +459,10 @@ p("Löschen Sie eine Buchung, verschwinden ihre Bilder beim <b>nächsten App-Sta
 p("Löschen Sie eine Seite in der Mitte, rücken die folgenden beim Speichern nach, damit die Nummerierung "
   "lückenlos bleibt. Auch wenn Sie <b>Seite 1</b> löschen, bleibt die Buchung mit ihrem Beleg verbunden – "
   "die frühere Seite 2 wird dann zur Seite 1.")
+shot_row([
+    ("Beleg Seiten.png", "Beim Bearbeiten je Seite eine Zeile mit Zuschneiden und Löschen"),
+    ("Beleg Betrachter.png", "Der eigene Betrachter zählt mit: «Seite 2 von 3»"),
+])
 h2("Belegfotos zuschneiden und begradigen")
 p("Gleich nach der Aufnahme fragt die App, ob Sie das Bild <b>bearbeiten</b> möchten. Mit <b>«So übernehmen»</b> "
   "bleibt das Foto unverändert – Sie müssen also nichts tun. Später kommen Sie über das <b>Zuschneide-Symbol</b> "
@@ -433,6 +480,8 @@ p("Bearbeiten Sie ein Bild <b>ein zweites Mal</b>, fragt die App deshalb: <b>«B
   "arbeitet auf der aktuellen Fassung weiter – etwa um nur die Helligkeit nachzuziehen, ohne den Zuschnitt "
   "zu verlieren. <b>«Mit Original beginnen»</b> holt das unbearbeitete Foto zurück, wenn ein Zuschnitt zu eng "
   "geraten ist. Bei einem Bild, das noch nie bearbeitet wurde, erscheint die Frage nicht.")
+shot("Beleg bearbeiten.png",
+     "Bearbeitung: vier Eckpunkte, «Rechteck»/«Trapez», Helligkeit und Kontrast", width=6.0*cm)
 h2("Alias-Namen (gelernte Zuordnungen)")
 p("Ändern Sie beim Speichern den erkannten Empfänger, fragt die App, ob sie sich die Zuordnung als Alias "
   "merken soll – samt Konto, Kategorie und <b>Ort</b> (bei Umbuchungen Von-/Nach-Konto und Von-/Nach-Ort). "
@@ -630,6 +679,8 @@ p("Das <b>Grafik-Symbol</b> oben rechts öffnet eine Auswertung, die <b>genauso 
   "steigt beim <b>Zielkonto</b> (grün) – die Richtung («Zahlen an» bzw. «von») wird aus KMyMoney übernommen.")
 p("Wer weit nach unten scrollt, kann über den eingeblendeten <b>Nach-oben-Knopf</b> (unten links) direkt an "
   "den Listenanfang springen.")
+shot("Geplante Buchungen Grafik.png",
+     "Grafik der Planungen: Balken je Fälligkeit und Entwicklungslinie", width=6.0*cm)
 
 # ---------------------------------------------------------------- 12 Bestände / Depot
 h1("13. Bestände (Orte) und Depot")
@@ -917,6 +968,8 @@ p("Schlägt etwas fehl, nennt der Assistent den Grund konkret: «Server nicht er
   "Rückmeldung zuzuordnen ist. «Server nicht erreichbar» erscheint nur, solange wirklich noch keine "
   "Verbindung stand. Steht im Portfeld keine Zahl zwischen 1 und 65535, meldet er das sofort, "
   "ohne einen Verbindungsversuch.")
+shot("SMB Assistent.png",
+     "SMB-Assistent: gefundene Server, Anmeldung und Freigabe-Auswahl", width=6.0*cm)
 h2("Verbindung prüfen (Diagnose)")
 p("Der Knopf <b>«Verbindung prüfen (Diagnose)»</b> – in den Einstellungen <b>und</b> im "
   "Erststart-Assistenten – geht die ganze Kette in <b>einer</b> Anmeldung durch und zeigt je Schritt, ob "
@@ -935,6 +988,7 @@ bullets([
 p("<b>«Bericht kopieren»</b> legt das Ergebnis in die Zwischenablage – gedacht zum Weiterschicken bei "
   "einer Fehlermeldung. Der Bericht enthält <b>weder Passwort noch Benutzernamen</b> (nur «gesetzt» oder "
   "«leer»).")
+shot("SMB Diagnose.png", "Diagnose: jeder Schritt mit Dauer und Statuscode", width=6.0*cm)
 h2("Export-Modus")
 bullets([
   "<b>.kmy-Modus</b>: schreibt neue Buchungen direkt in die KMyMoney-Datei (inkl. Splits und Umbuchungen) "

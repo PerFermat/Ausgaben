@@ -12,10 +12,10 @@ nach KMyMoney, statt alles später von Hand nachzutragen.
 Funktion im Detail, mit Bildschirmfotos.
 
 <p>
-  <img src="screenshots/Promo-Datenschutz.png" width="220">
-  <img src="screenshots/Promo-Syncronisation.png" width="220">
-  <img src="screenshots/Promo-Alias.png" width="220">
-  <img src="screenshots/Promo-UhranlagemitAlias.png" width="220">
+  <img src="screenshots/de/Promo-Datenschutz.png" width="220">
+  <img src="screenshots/de/Promo-Syncronisation.png" width="220">
+  <img src="screenshots/de/Promo-Alias.png" width="220">
+  <img src="screenshots/de/Promo-UhranlagemitAlias.png" width="220">
 </p>
 
 ## Warum die App für KMyMoney-Nutzer interessant ist
@@ -34,14 +34,14 @@ Funktion im Detail, mit Bildschirmfotos.
 ## Screenshots
 
 <p>
-  <img src="screenshots/Kontobuchungen.png" width="140">
-  <img src="screenshots/Kontenmenü.png" width="140">
-  <img src="screenshots/Buchung Empfänger.png" width="140">
-  <img src="screenshots/Buchungen Auswertung.png" width="140">
-  <img src="screenshots/Kategorien Auswertung.png" width="140">
-  <img src="screenshots/Budget.png" width="140">
-  <img src="screenshots/Depot Auswertung.png" width="140">
-  <img src="screenshots/Einstellungen_1.png" width="140">
+  <img src="screenshots/de/Kontobuchungen.png" width="140">
+  <img src="screenshots/de/Kontenmenü.png" width="140">
+  <img src="screenshots/de/Buchung Empfänger.png" width="140">
+  <img src="screenshots/de/Buchungen Auswertung.png" width="140">
+  <img src="screenshots/de/Kategorien Auswertung.png" width="140">
+  <img src="screenshots/de/Budget.png" width="140">
+  <img src="screenshots/de/Depot Auswertung.png" width="140">
+  <img src="screenshots/de/Einstellungen_1.png" width="140">
 </p>
 
 ## Download
@@ -94,13 +94,17 @@ Details, Screenshots und die genaue Bedienung stehen im **[Benutzerhandbuch](doc
   Löschen, eigene Rechentastatur im Betragsfeld.
 - **Konten ordnen**: Die Schublade gliedert wie bisher nach Kontenart (Anlage, Verbindlichkeit, Depot);
   darüber liegen frei vergebene **Kontengruppen** wie „Favoriten" oder „Gemeinsam", denen ein Konto
-  mehrfach angehören kann. Aus dem Institutsblock der `.kmy` entstehen zusätzlich Bank-Gruppen; die
-  spiegeln nur die Datei und sind deshalb nicht änderbar. Ein Tipp auf „Konten" wählt die Gruppe – sie
-  gilt dann app-weit für Buchungsliste, Saldoleiste und Bestände. Die **Lupe** auf dem kMyMoney-Zeichen
+  mehrfach angehören kann. Zwei Gruppen bringt die `.kmy` selbst mit: aus dem Institutsblock entstehen
+  Bank-Gruppen, und die in KMyMoney als bevorzugt gekennzeichneten Konten bilden die Gruppe „Favoriten",
+  die in der Auswahl ganz oben steht. Beide spiegeln nur die Datei und sind deshalb nicht änderbar; sie
+  werden bei jedem Import neu gesetzt. Ein Tipp auf „Konten" klappt die Gruppen als Liste auf; die
+  gewählte trägt ein Häkchen und gilt dann app-weit für Buchungsliste, Saldoleiste und Bestände. Die **Lupe** auf dem kMyMoney-Zeichen
   sucht Konten nach Namensteilen – die Eingabe tritt kurz an die Stelle der Überschrift und wird nirgends
   gespeichert. Über das Zahnrad lassen sich Konten und ganze
-  Kontenarten **frei sortieren** (Reihenfolge gilt überall), Gruppen zuordnen sowie Konten schließen und
-  wieder eröffnen. Geschlossene Konten stehen nur dort, in grauer Schrift; bekommt ein geschlossenes
+  Kontenarten **frei sortieren** (Reihenfolge gilt überall). Das ⋮ am Konto öffnet die Gruppen als
+  Ankreuzliste: alle eigenen Gruppen auf einmal an- und abwählen, oben ein freies Feld für eine neue,
+  übernommen wird mit „OK". Dieselbe Ankreuzliste schließt das Konto oder eröffnet es wieder. Eine
+  eigene Gruppe verschwindet, sobald ihr das letzte Konto entzogen wird. Geschlossene Konten stehen nur dort, in grauer Schrift; bekommt ein geschlossenes
   Konto durch einen Import wieder einen Saldo, öffnet es sich von selbst.
 - **Auswertungen**: Verlaufsdiagramm je Konto/Ort/gesamt, Kategorien-Kreisdiagramm („Wofür geht mein
   Geld?“), Budget (Ist/Soll aus KMyMoney oder app-intern berechnet), geplante Buchungen als Vorschau.

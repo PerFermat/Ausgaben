@@ -1,0 +1,50 @@
+<?xml version="1.0" encoding="utf-8"?>
+<!-- Zuordnung eines Kontos zu den eigenen Kontengruppen: eine Spalte aus Kontrollkästchen, an erster
+     Stelle die noch namenlose neue Gruppe. Deren Zeile ist wie item_group_check.xml gebaut – gleiches
+     Kästchen, gleicher Abstand –, nur steht dort ein Eingabefeld ohne Rahmen; sein grauer Platzhalter
+     „Neue Gruppe" hebt sie von den vorhandenen Gruppen ab. Gruppen aus der .kmy stehen nicht darin,
+     sie spiegeln nur die Datei. -->
+<ScrollView xmlns:android="http://schemas.android.com/apk/res/android"
+    android:layout_width="match_parent"
+    android:layout_height="wrap_content">
+
+    <LinearLayout
+        android:id="@+id/groupsContainer"
+        android:layout_width="match_parent"
+        android:layout_height="wrap_content"
+        android:orientation="vertical"
+        android:paddingHorizontal="24dp"
+        android:paddingTop="8dp">
+
+        <LinearLayout
+            android:layout_width="match_parent"
+            android:layout_height="wrap_content"
+            android:minHeight="48dp"
+            android:gravity="center_vertical"
+            android:orientation="horizontal">
+
+            <com.google.android.material.checkbox.MaterialCheckBox
+                android:id="@+id/groupsNewCheck"
+                android:layout_width="wrap_content"
+                android:layout_height="wrap_content"
+                android:paddingStart="0dp"
+                android:paddingEnd="0dp"
+                android:contentDescription="@string/accounts_group_new" />
+
+            <EditText
+                android:id="@+id/groupsNewName"
+                android:layout_width="0dp"
+                android:layout_height="wrap_content"
+                android:layout_weight="1"
+                android:layout_marginStart="8dp"
+                android:background="@null"
+                android:hint="@string/accounts_group_new"
+                android:importantForAutofill="no"
+                android:inputType="textCapSentences"
+                android:maxLines="1"
+                android:paddingHorizontal="0dp"
+                android:textAppearance="?attr/textAppearanceBodyLarge"
+                android:textColorHint="@color/grey_text" />
+        </LinearLayout>
+    </LinearLayout>
+</ScrollView>

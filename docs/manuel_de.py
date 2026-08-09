@@ -3,5 +3,5 @@ import sys
 
 
 # Mit Argumenten
-subprocess.run(['python', 'build_manual.py', 'de'])
+subprocess.run(['python', 'build_manual.py', 'Handbuch-Ausgaben-de', 'de'])
 

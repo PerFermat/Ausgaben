@@ -16,11 +16,12 @@ from reportlab.pdfbase.ttfonts import TTFont
 from reportlab.lib.utils import ImageReader
 
 # Pfade festlegen
-LANG = sys.argv[1] if len(sys.argv) > 1 else "de"
+DATEI = sys.argv[1] if len(sys.argv) > 1 else "handbuch-ausgaben-de"
+LANG = sys.argv[2] if len(sys.argv) > 1 else "de"
 REPO = os.path.dirname(os.path.dirname(os.path.abspath(__file__)))
 SHOTS = os.path.join(REPO, "screenshots", LANG)
 JSON_PATH = os.path.join(os.path.dirname(__file__), f"handbuch_{LANG}.json")
-OUT = os.path.join(REPO, "docs", f"Handbuch-Ausgaben-{LANG}.pdf")
+OUT = os.path.join(REPO, "docs", f"{DATEI}.pdf")
 os.makedirs(os.path.dirname(OUT), exist_ok=True)
 
 # JSON Daten laden

@@ -571,6 +571,10 @@ public class ScheduledActivity extends LocalizedActivity {
                 .setTitle(R.string.filter_title)
                 .setView(view)
                 .setPositiveButton(R.string.filter_apply, (d, w) -> {
+                    // Der Knopf nimmt dem Feld nicht zwangsläufig den Fokus; ein Feld mitten in der Suche
+                    // ist leer. Erst die Suche beenden, dann lesen.
+                    PickerBehaviour.settleAll(view);
+
                     fIncome = cbIncome.isChecked();
                     fExpense = cbExpense.isChecked();
                     fTransfer = cbTransfer.isChecked();

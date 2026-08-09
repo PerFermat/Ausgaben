@@ -83,7 +83,7 @@ class SplitRowController {
         for (int i = 0; i < container.getChildCount(); i++) {
             MaterialAutoCompleteTextView cat = container.getChildAt(i).findViewById(R.id.splitCategory);
             if (cat != null) {
-                PickerAdapters.attach(cat, categoryAdapter);
+                PickerAdapters.categories(cat, categoryAdapter);
             }
         }
     }
@@ -113,7 +113,7 @@ class SplitRowController {
         TextInputEditText amt = row.findViewById(R.id.splitAmount);
         View remove = row.findViewById(R.id.btnRemoveSplit);
         if (categoryAdapter != null) {
-            PickerAdapters.attach(cat, categoryAdapter);
+            PickerAdapters.categories(cat, categoryAdapter);
         }
         // Vorbelegung vor dem Anhängen der Listener, damit sie keine dynamische Logik auslösen.
         if (category != null) {
@@ -138,9 +138,11 @@ class SplitRowController {
             cat.setTag(null);
             onSplitCategoryChanged(row);
         }));
-        cat.setOnItemClickListener((parent, view, position, id) -> {
+        // Über PickerBehaviour: die Kategorie kann auch getippt und stehengelassen werden, dann fällt
+        // kein Antippen eines Listeneintrags an und die Richtung (Einnahme/Ausgabe) bliebe unbekannt.
+        PickerBehaviour.onCommitted(cat, value -> {
             CategoryFilterAdapter.CatItem item =
-                    categoryAdapter != null ? categoryAdapter.getItem(position) : null;
+                    categoryAdapter != null ? categoryAdapter.itemFor(value) : null;
             cat.setTag(item != null ? item.groupIsIncome : null);
         });
         amt.addTextChangedListener(new SimpleWatcher(() -> onPartialChanged(row)));
@@ -261,6 +263,9 @@ class SplitRowController {
             if (c.isEmpty()) {
                 continue;
             }
+           if (categoryAdapter != null && !categoryAdapter.containsCategory(c)) {
+                continue;
+            }
             Long cents = parseCents(amtText(r));
             if (cents != null) {
                 parts.add(new Part(c, cents, categoryIsIncomeTag(r)));
@@ -290,6 +295,9 @@ class SplitRowController {
             String a = amtText(r);
             if (c.isEmpty()) {
                 continue; // leere / betragslose Kategoriezeile ignorieren
+            }
+            if (categoryAdapter != null && !categoryAdapter.containsCategory(c)) {
+                return false; // Kategorie muss aus der Auswahlliste stammen
             }
             Long cents = parseCents(a);
             if (cents == null) {

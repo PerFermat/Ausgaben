@@ -242,11 +242,16 @@ public class AnalysisActivity extends LocalizedActivity {
             }
             idx = 0;
         }
-        PickerAdapters.plain(viewSelector, viewLabels);
+        PickerAdapters.plainSearchable(viewSelector, viewLabels);
         viewSelector.setText(viewLabels.get(idx), false);
-        viewSelector.setOnItemClickListener((parent, view, position, id) -> {
-            viewKey = viewKeys.get(position);
-            renderChart();
+        // Über die Beschriftung und nicht über den Listenplatz: sobald gesucht wird, stimmt der Platz in
+        // der Trefferliste nicht mehr mit dem in viewKeys überein.
+        PickerBehaviour.onCommitted(viewSelector, value -> {
+            int gewaehlt = viewLabels.indexOf(value);
+            if (gewaehlt >= 0) {
+                viewKey = viewKeys.get(gewaehlt);
+                renderChart();
+            }
         });
     }
 

@@ -17,6 +17,8 @@ import com.google.android.material.textfield.TextInputEditText;
 import java.util.ArrayList;
 import java.util.List;
 import java.util.Locale;
+import java.util.HashSet;
+import java.util.Set;
 
 import de.spahr.ausgaben.R;
 import de.spahr.ausgaben.db.PayeeCorrection;
@@ -57,6 +59,9 @@ public class AliasEditActivity extends LocalizedActivity {
     /** Die auf das Karten-Ergebnis wartenden Felder (Zeile, deren Karten-Knopf gedrückt wurde). */
     private TextInputEditText pendingMapLat;
     private TextInputEditText pendingMapLon;
+    private final Set<String> knownAccountNames = new HashSet<>();
+    private CategoryFilterAdapter expenseCategoryAdapter;
+    private CategoryFilterAdapter incomeCategoryAdapter;
 
     /** Beim Bearbeiten geladener Alias (behält id/createdAt); null = neu. */
     private PayeeCorrection loaded;
@@ -132,19 +137,27 @@ public class AliasEditActivity extends LocalizedActivity {
         PickerAdapters.plain(editType, java.util.Arrays.asList(typeLabels));
         selectType(Repository.VOICE_TYPE_EXPENSE);
 
-        repository.getPayeeNames(names -> PickerAdapters.payees(editCorrected, names));
-        repository.getAccountNames(names ->
-                PickerAdapters.accounts(repository, names, editAccount, editFrom, editTo));
+        repository.getAccountNames(names -> {
+            knownAccountNames.clear();
+            for (String name : names) {
+                if (name != null) {
+                    knownAccountNames.add(name.trim().toLowerCase(Locale.ROOT));
+                }
+            }
+            PickerAdapters.accounts(repository, names, editAccount, editFrom, editTo);
+        });
+
         // Kategorie-Felder wie im Buchungseditor: gruppierte Baum-Anzeige (Überschrift + Einrückung).
         repository.getCategoriesGrouped(g -> {
-            CategoryFilterAdapter expenseAdapter = new CategoryFilterAdapter(this, null,
+            expenseCategoryAdapter = new CategoryFilterAdapter(this, null,
                     getString(R.string.category_group_expense), g.expense, null, new ArrayList<>());
-            CategoryFilterAdapter incomeAdapter = new CategoryFilterAdapter(this, null,
+            incomeCategoryAdapter = new CategoryFilterAdapter(this, null,
                     null, new ArrayList<>(), getString(R.string.category_group_income), g.income);
-            PickerAdapters.attach(editCatExpense1, expenseAdapter);
-            PickerAdapters.attach(editCatExpense2, expenseAdapter);
-            PickerAdapters.attach(editCatIncome1, incomeAdapter);
-            PickerAdapters.attach(editCatIncome2, incomeAdapter);
+            PickerAdapters.categories(editCatExpense1, expenseCategoryAdapter);
+            PickerAdapters.categories(editCatExpense2, expenseCategoryAdapter);
+            PickerAdapters.categories(editCatIncome1, incomeCategoryAdapter);
+            PickerAdapters.categories(editCatIncome2, incomeCategoryAdapter);
+
         });
 
         long id = getIntent().getLongExtra(EXTRA_ALIAS_ID, -1);
@@ -189,12 +202,19 @@ public class AliasEditActivity extends LocalizedActivity {
     }
 
     private void save() {
+        // Erst die Suche in allen Vorschlagsfeldern beenden: der Knopf nimmt dem Feld nicht
+        // zwangsläufig den Fokus, und ein Feld mitten in der Suche ist leer.
+        PickerBehaviour.settleAll(getWindow().getDecorView());
         String spoken = text(editSpoken);
         String corrected = text(editCorrected);
         if (spoken.isEmpty() || corrected.isEmpty()) {
             Toast.makeText(this, R.string.alias_error_required, Toast.LENGTH_SHORT).show();
             return;
         }
+        if (!validateKnownSelections()) {
+            return;
+        }
+
         PayeeCorrection a = loaded != null ? loaded : new PayeeCorrection();
         a.spoken = spoken;
         a.corrected = corrected;
@@ -224,6 +244,38 @@ public class AliasEditActivity extends LocalizedActivity {
         repository.saveAlias(a);
         Toast.makeText(this, R.string.alias_saved, Toast.LENGTH_SHORT).show();
         finish();
+    }
+
+    private boolean validateKnownSelections() {
+        if (!text(editAccount).isEmpty() && !isKnownAccount(text(editAccount))) {
+            Toast.makeText(this, R.string.error_account, Toast.LENGTH_SHORT).show();
+            return false;
+        }
+        if (!text(editFrom).isEmpty() && !isKnownAccount(text(editFrom))) {
+            Toast.makeText(this, R.string.error_transfer_accounts, Toast.LENGTH_SHORT).show();
+            return false;
+        }
+        if (!text(editTo).isEmpty() && !isKnownAccount(text(editTo))) {
+            Toast.makeText(this, R.string.error_transfer_accounts, Toast.LENGTH_SHORT).show();
+            return false;
+        }
+        if (!isKnownCategory(editCatExpense1, expenseCategoryAdapter)
+                || !isKnownCategory(editCatExpense2, expenseCategoryAdapter)
+                || !isKnownCategory(editCatIncome1, incomeCategoryAdapter)
+                || !isKnownCategory(editCatIncome2, incomeCategoryAdapter)) {
+            Toast.makeText(this, R.string.category_hint, Toast.LENGTH_SHORT).show();
+            return false;
+        }
+        return true;
+    }
+
+    private boolean isKnownAccount(String account) {
+        return account != null && knownAccountNames.contains(account.trim().toLowerCase(Locale.ROOT));
+    }
+
+    private boolean isKnownCategory(MaterialAutoCompleteTextView field, CategoryFilterAdapter adapter) {
+        String value = text(field);
+        return value.isEmpty() || (adapter != null && adapter.containsCategory(value));
     }
 
     private void confirmDelete() {

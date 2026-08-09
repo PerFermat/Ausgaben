@@ -373,6 +373,22 @@ shot_row([
 h1("6. Eine Buchung erfassen")
 p("Tippen Sie auf den runden <b>✚</b>-Knopf. Es öffnet sich der Buchungs-Editor.")
 shot("Buchung Empfänger.png", "Buchungs-Editor mit Typ-Umschalter, Betrag, Empfänger und Konto")
+h2("Ein Feld auswählen – überall gleich")
+p("<b>Geldempfänger</b>, <b>Konto</b>, <b>Kategorie</b> und <b>Ort</b> sind Anzeige, Auswahlliste und "
+  "Suchfeld in einem – im Buchungs-Editor genauso wie beim Umbuchen, Ausgleichen, in den Filtern, im "
+  "Alias-Editor, in den Einstellungen und in der Auswertung.")
+bullets([
+  "<b>Hineingehen</b>: der bisherige Eintrag macht Platz und steht nur noch blass im Feld; die ganze "
+  "Liste klappt auf.",
+  "<b>Tippen</b>: die Liste wird laufend enger. Gesucht wird auch mitten im Wort und ohne Rücksicht auf "
+  "Groß- und Kleinschreibung – «kasse» findet «Sparkasse».",
+  "<b>Zeichen löschen</b>: die Liste wird wieder weiter. Ist das Feld ganz leer, steht wieder alles da.",
+  "<b>Verlassen ohne Auswahl</b>: der alte Eintrag kommt zurück.",
+])
+p("Ein <b>neuer Geldempfänger</b> darf dabei entstehen: tippen Sie einen Namen, den es noch nicht gibt, "
+  "bleibt er stehen. <b>Konto, Kategorie und Ort</b> müssen dagegen aus der Liste stammen – ein "
+  "erfundener Name wird beim Verlassen des Feldes wieder durch den alten ersetzt. Neue Konten kommen "
+  "über den Import, neue Orte legt man in den Einstellungen an.")
 h2("Rechnen im Betragsfeld")
 p("Das <b>Betragsfeld</b> nimmt statt der System-Tastatur eine kleine <b>Rechnung</b> entgegen (z. B. "
   "<i>10+20*3</i> oder <i>30-5</i>) – praktisch zum Teilen einer Rechnung oder Verrechnen mehrerer Posten.")

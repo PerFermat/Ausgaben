@@ -382,8 +382,10 @@ public class BalanceActivity extends LocalizedActivity {
         final String[] account = {startAccount()};
         accountField.setText(account[0], false);
         fillTransferPlaces(from, to, account[0]);
-        accountField.setOnItemClickListener((p, v, pos, id) -> {
-            account[0] = (String) p.getItemAtPosition(pos);
+        // Über PickerBehaviour: das Konto kann auch getippt und stehengelassen werden, dann fällt kein
+        // Antippen eines Listeneintrags an – die Ortslisten blieben sonst die des alten Kontos.
+        PickerBehaviour.onCommitted(accountField, value -> {
+            account[0] = value;
             fillTransferPlaces(from, to, account[0]);
         });
 
@@ -391,6 +393,10 @@ public class BalanceActivity extends LocalizedActivity {
                 .setTitle(R.string.transfer_title)
                 .setView(view)
                 .setPositiveButton(R.string.transfer_do, (d, w) -> {
+                    // Der Knopf nimmt dem Feld nicht zwangsläufig den Fokus; ein Feld mitten in der Suche
+                    // ist leer. Erst die Suche beenden, dann lesen.
+                    PickerBehaviour.settleAll(view);
+
                     String f = textOf(from);
                     String t = textOf(to);
                     Long cents = parseCents(textOf(amount));
@@ -440,8 +446,8 @@ public class BalanceActivity extends LocalizedActivity {
         final String[] account = {startAccount()};
         accountField.setText(account[0], false);
         fillReconcilePlaces(place, account[0]);
-        accountField.setOnItemClickListener((p, v, pos, id) -> {
-            account[0] = (String) p.getItemAtPosition(pos);
+        PickerBehaviour.onCommitted(accountField, value -> {
+            account[0] = value;
             fillReconcilePlaces(place, account[0]);
         });
 
@@ -456,6 +462,10 @@ public class BalanceActivity extends LocalizedActivity {
                         .setTitle(R.string.reconcile_title)
                         .setView(view)
                         .setPositiveButton(R.string.reconcile_do, (d, w) -> {
+                            // Der Knopf nimmt dem Feld nicht zwangsläufig den Fokus; ein Feld mitten in der Suche
+                            // ist leer. Erst die Suche beenden, dann lesen.
+                            PickerBehaviour.settleAll(view);
+
                             // Ort bleibt frei: Konten ohne angelegte Orte werden als Ganzes abgestimmt.
                             String p = textOf(place);
                             Long cents = parseCents(textOf(amount));
@@ -494,7 +504,7 @@ public class BalanceActivity extends LocalizedActivity {
         payeeField.setText(payee[0]);
         categoryField.setText(category[0]);
         repository.getPayeeNames(names -> PickerAdapters.payees(payeeField, names));
-        repository.getCategoriesGrouped(g -> PickerAdapters.attach(categoryField, new CategoryFilterAdapter(this, null,
+        repository.getCategoriesGrouped(g -> PickerAdapters.categories(categoryField, new CategoryFilterAdapter(this, null,
                 getString(R.string.category_group_expense), g.expense,
                 getString(R.string.category_group_income), g.income)));
 
@@ -502,6 +512,10 @@ public class BalanceActivity extends LocalizedActivity {
                 .setTitle(R.string.reconcile_target_title)
                 .setView(view)
                 .setPositiveButton(R.string.reconcile_target_save, (d, w) -> {
+                    // Der Knopf nimmt dem Feld nicht zwangsläufig den Fokus; ein Feld mitten in der Suche
+                    // ist leer. Erst die Suche beenden, dann lesen.
+                    PickerBehaviour.settleAll(view);
+
                     payee[0] = textOf(payeeField);
                     category[0] = textOf(categoryField);
                     settings.setReconcileTarget(payee[0], category[0]);

@@ -110,6 +110,43 @@ public class CategoryFilterAdapter extends ArrayAdapter<CategoryFilterAdapter.Ca
         }
     }
 
+    /** True, wenn der Text einer auswählbaren Kategorie (Haupt- oder Unterkategorie) entspricht. */
+    boolean containsCategory(String value) {
+        return knownForm(value) != null;
+    }
+
+    /**
+     * Die Kategorie, die so heißt – in der Schreibweise der Liste, also so, wie sie auch beim Wählen aus
+     * der Liste im Feld landet („Haupt:Unter", siehe {@code convertResultToString}). {@code null}, wenn
+     * es keine gibt.
+     */
+    /** Der Eintrag zu einem Kategoriewert – auch „alle" und getippte Werte finden hierüber ihren Typ. */
+    CatItem itemFor(String value) {
+        String q = value == null ? "" : value.trim();
+        for (CatItem item : all) {
+            if (item.kind == KIND_ALL && q.isEmpty()) {
+                return item;
+            }
+            if ((item.kind == KIND_MAIN || item.kind == KIND_SUB) && item.value.equalsIgnoreCase(q)) {
+                return item;
+            }
+        }
+        return null;
+    }
+
+    String knownForm(String value) {
+        String q = value == null ? "" : value.trim();
+        if (q.isEmpty()) {
+            return null;
+        }
+        for (CatItem item : all) {
+            if ((item.kind == KIND_MAIN || item.kind == KIND_SUB) && item.value.equalsIgnoreCase(q)) {
+                return item.value;
+            }
+        }
+        return null;
+    }
+
     @NonNull
     @Override
     public View getView(int position, View convertView, @NonNull ViewGroup parent) {

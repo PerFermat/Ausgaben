@@ -76,6 +76,12 @@ Details, Screenshots und die genaue Bedienung stehen im **[Benutzerhandbuch](doc
 - **Buchungen erfassen**: Ausgabe/Umbuchung/Einnahme, Splitbuchungen, Belegfoto, Spracheingabe
   („Frisör 20 €“), stille Betrag-only-Erfassung per GPS-Standort, lernende Alias-Namen für
   Zahlungsempfänger.
+- **Felder auswählen – überall gleich**: Empfänger, Konto, Kategorie und Ort sind Anzeige, Auswahlliste
+  und Suchfeld in einem. Beim Hineingehen macht der bisherige Eintrag Platz (er steht blass als
+  Platzhalter) und die ganze Liste klappt auf; beim Tippen wird laufend gesucht, auch nach Wortteilen
+  mitten im Namen („kasse“ findet „Sparkasse“). Verlässt man das Feld ohne Auswahl, kommt der alte Wert
+  zurück. Neue **Empfänger** dürfen dabei entstehen – Konten, Kategorien und Orte nicht, die müssen aus
+  der Liste stammen.
 - **Belegfotos nachbearbeiten**: direkt nach der Aufnahme (oder später über die Beleg-Zeile) lässt sich
   das Bild rechteckig zuschneiden, im Trapez-Modus eine schräg fotografierte Rechnung begradigen und
   Helligkeit/Kontrast anpassen. Das unbearbeitete Original bleibt dauerhaft als `…_original.jpg` erhalten;

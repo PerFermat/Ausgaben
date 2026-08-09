@@ -25,6 +25,8 @@ import java.text.SimpleDateFormat;
 import java.util.ArrayList;
 import java.util.Calendar;
 import java.util.List;
+import java.util.HashSet;
+import java.util.Set;
 import java.util.Locale;
 
 import de.spahr.ausgaben.R;
@@ -200,6 +202,7 @@ public class BookingEditActivity extends LocalizedActivity {
     private PayeeCorrection activeAlias;
     /** Nutzereingabe-Vorrang bei Alias-Umbuchung, siehe {@link #EXTRA_PRESET_TRANSFER_FROM_ACCOUNT}. */
     private String presetTransferFromAccount = "";
+    private final Set<String> knownAccountNames = new HashSet<>();
 
     /** Verwaltet die dynamische Kategorie-/Teilbetrag-Liste (Splitbuchung). */
     private SplitRowController splitCtl;
@@ -266,8 +269,16 @@ public class BookingEditActivity extends LocalizedActivity {
         btnDelete = findViewById(R.id.btnDelete);
 
         repository.getPayeeNames(names -> PickerAdapters.payees(editPayee, names));
-        repository.getAccountNames(names ->
-                PickerAdapters.accounts(repository, names, editAccount, editAccountTo));
+        repository.getAccountNames(names -> {
+            knownAccountNames.clear();
+            for (String name : names) {
+                if (name != null) {
+                    knownAccountNames.add(name.trim().toLowerCase(Locale.ROOT));
+                }
+            }
+            PickerAdapters.accounts(repository, names, editAccount, editAccountTo);
+        });
+
         repository.getCategoriesGrouped(g -> {
             // Kategoriefeld nach Ausgabe/Einnahme gruppiert (Überschriften), ohne „alle"-Eintrag.
             splitCtl.setAdapter(new CategoryFilterAdapter(this, null,
@@ -277,7 +288,7 @@ public class BookingEditActivity extends LocalizedActivity {
 
         // Ort-Dropdown folgt dem gewählten Konto: bei Ausgabe/Einnahme der Ort, bei Umbuchung der Von-Ort.
         // Danach die Sichtbarkeit aktualisieren (Ortsfeld nur bei Konten mit Orten).
-        editAccount.setOnItemClickListener((parent, view, position, id) -> {
+        PickerBehaviour.onCommitted(editAccount, value -> {
             if (isTransferType()) {
                 setupPlaceOptions(editPlace, textOf(editAccount).trim(), false);
             } else {
@@ -286,7 +297,7 @@ public class BookingEditActivity extends LocalizedActivity {
             applyTypeVisibility();
         });
         // Bei einer Umbuchung folgt der Nach-Ort dem Nach-Konto.
-        editAccountTo.setOnItemClickListener((parent, view, position, id) -> {
+        PickerBehaviour.onCommitted(editAccountTo, value -> {
             if (isTransferType()) {
                 setupPlaceOptions(editPlaceTo, textOf(editAccountTo).trim(), false);
             }
@@ -305,8 +316,16 @@ public class BookingEditActivity extends LocalizedActivity {
             }
         });
 
-        btnSaveNew.setOnClickListener(v -> saveAsNew());
-        btnUpdate.setOnClickListener(v -> update());
+        // Erst die Suche in allen Vorschlagsfeldern beenden, dann speichern: der Knopf nimmt dem Feld
+        // nicht zwangsläufig den Fokus, und ein Feld mitten in der Suche ist leer.
+        btnSaveNew.setOnClickListener(v -> {
+            PickerBehaviour.settleAll(getWindow().getDecorView());
+            saveAsNew();
+        });
+        btnUpdate.setOnClickListener(v -> {
+            PickerBehaviour.settleAll(getWindow().getDecorView());
+            update();
+        });
         btnDelete.setOnClickListener(v -> confirmDelete());
 
         // Beleg-Foto: Launcher (vor STARTED registrieren) + Knöpfe.
@@ -1086,7 +1105,7 @@ public class BookingEditActivity extends LocalizedActivity {
             String from = textOf(editAccount).trim();
             String to = textOf(editAccountTo).trim();
             Long cents = parseAmountToCents(textOf(editAmount));
-            enabled = !from.isEmpty() && !to.isEmpty() && !from.equalsIgnoreCase(to)
+            enabled = isKnownAccount(from) && isKnownAccount(to) && !from.equalsIgnoreCase(to)
                     && cents != null && cents > 0;
         } else {
             enabled = splitCtl.isValid();
@@ -1208,7 +1227,7 @@ public class BookingEditActivity extends LocalizedActivity {
             Toast.makeText(this, R.string.error_amount, Toast.LENGTH_SHORT).show();
             return;
         }
-        if (from.isEmpty() || to.isEmpty() || from.equalsIgnoreCase(to)) {
+        if (!isKnownAccount(from) || !isKnownAccount(to) || from.equalsIgnoreCase(to)) {
             Toast.makeText(this, R.string.error_transfer_accounts, Toast.LENGTH_SHORT).show();
             return;
         }
@@ -1829,7 +1848,7 @@ public class BookingEditActivity extends LocalizedActivity {
             Toast.makeText(this, R.string.error_amount, Toast.LENGTH_SHORT).show();
             return;
         }
-        if (from.isEmpty() || to.isEmpty() || from.equalsIgnoreCase(to)) {
+        if (!isKnownAccount(from) || !isKnownAccount(to) || from.equalsIgnoreCase(to)) {
             Toast.makeText(this, R.string.error_transfer_accounts, Toast.LENGTH_SHORT).show();
             return;
         }
@@ -1855,7 +1874,7 @@ public class BookingEditActivity extends LocalizedActivity {
             Toast.makeText(this, R.string.error_amount, Toast.LENGTH_SHORT).show();
             return;
         }
-        if (from.isEmpty() || to.isEmpty() || from.equalsIgnoreCase(to)) {
+        if (!isKnownAccount(from) || !isKnownAccount(to) || from.equalsIgnoreCase(to)) {
             Toast.makeText(this, R.string.error_transfer_accounts, Toast.LENGTH_SHORT).show();
             return;
         }
@@ -1977,7 +1996,7 @@ public class BookingEditActivity extends LocalizedActivity {
             return null;
         }
         String account = textOf(editAccount).trim();
-        if (account.isEmpty()) {
+        if (!isKnownAccount(account)) {
             Toast.makeText(this, R.string.error_account, Toast.LENGTH_SHORT).show();
             return null;
         }
@@ -1988,6 +2007,10 @@ public class BookingEditActivity extends LocalizedActivity {
         target.note = textOf(editNote).trim();
         target.createdAt = composeTimestamp();
         return target;
+    }
+
+       private boolean isKnownAccount(String account) {
+        return account != null && knownAccountNames.contains(account.trim().toLowerCase(Locale.ROOT));
     }
 
     private List<BookingSplit> toSplits(List<SplitRowController.Part> parts) {

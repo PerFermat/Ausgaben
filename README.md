@@ -78,6 +78,11 @@ Details, screenshots and exact behavior are in the **[user manual](docs/Manual-A
 
 - **Record bookings**: expense/transfer/income, split bookings, receipt photos, voice input
   ("hairdresser 20 €"), silent amount-only entry resolved via GPS location, learning payee aliases.
+- **Picking a value – the same everywhere**: payee, account, category and place fields are display,
+  list and search box in one. Entering a field clears it (the previous entry stays on as a faint
+  placeholder) and opens the full list; typing narrows it live, matching anywhere in the name ("kasse"
+  finds "Sparkasse"). Leaving without a choice brings the old value back. New **payees** may be created
+  this way — accounts, categories and places may not, those have to come from the list.
 - **Edit receipt photos**: right after the shot (or later from the receipt row) you can crop the image to a
   rectangle, straighten a skewed bill in trapezoid mode and adjust brightness/contrast. The untouched
   original is kept as `…_original.jpg` for good; editing again asks whether to continue from the current

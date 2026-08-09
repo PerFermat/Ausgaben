@@ -1119,15 +1119,16 @@ public class MainActivity extends LocalizedActivity {
                 getString(R.string.category_all),
                 getString(R.string.category_group_expense), catExpense,
                 getString(R.string.category_group_income), catIncome);
-        PickerAdapters.attach(fCategory, catAdapter);
+        PickerAdapters.categories(fCategory, catAdapter);
         fCategory.setText(filterCategory, false);
-        fCategory.setOnItemClickListener((parent, v, pos, id) -> {
-            CategoryFilterAdapter.CatItem it = catAdapter.getItem(pos);
+        // Über PickerBehaviour: die Kategorie kann auch getippt und stehengelassen werden, dann fällt
+        // kein Antippen eines Listeneintrags an. Den Text setzt PickerBehaviour selbst.
+        PickerBehaviour.onCommitted(fCategory, value -> {
+            CategoryFilterAdapter.CatItem it = catAdapter.itemFor(value);
             if (it != null) {
                 catValue[0] = it.value;
                 catIsMain[0] = it.isMain;
                 catIsIncome[0] = it.value.isEmpty() ? null : it.groupIsIncome;
-                fCategory.setText(it.value, false);
             }
         });
 
@@ -1227,7 +1228,18 @@ public class MainActivity extends LocalizedActivity {
                 .setTitle(R.string.filter_title)
                 .setView(view)
                 .setPositiveButton(R.string.filter_apply, (d, w) -> {
+                    // Der Knopf nimmt dem Feld nicht zwangsläufig den Fokus; ein Feld mitten in der Suche
+                    // ist leer. Erst die Suche beenden, dann lesen.
+                    PickerBehaviour.settleAll(view);
+
                     filterPayee = textOf(fPayee).trim();
+                    String typedCategory = textOf(fCategory).trim();
+                    if (!typedCategory.equals(catValue[0])) {
+                        catValue[0] = typedCategory;
+                        catIsMain[0] = isKnownMainCategory(typedCategory);
+                        catIsIncome[0] = typeForCategory(typedCategory);
+                    }
+
                     filterCategory = catValue[0] == null ? "" : catValue[0].trim();
                     filterCategoryIsMain = catIsMain[0];
                     filterCategoryIsIncome = filterCategory.isEmpty() ? null : catIsIncome[0];
@@ -1308,6 +1320,30 @@ public class MainActivity extends LocalizedActivity {
     private String textOf(android.widget.EditText e) {
         return e.getText() == null ? "" : e.getText().toString();
     }
+    /** True für bekannte Hauptkategorien; frei getippte Unterkategorien bleiben exakte Filter. */
+    private boolean isKnownMainCategory(String category) {
+        if (category == null || category.trim().isEmpty() || category.contains(":")) {
+            return false;
+        }
+        String c = category.trim();
+        return containsIgnoreCase(catExpense, c) || containsIgnoreCase(catIncome, c);
+    }
+
+    /** Ermittelt den Kategorie-Typ auch dann, wenn der Text getippt statt aus der Liste gewählt wurde. */
+    private Boolean typeForCategory(String category) {
+        if (category == null || category.trim().isEmpty()) {
+            return null;
+        }
+        String c = category.trim();
+        if (containsIgnoreCase(catIncome, c)) {
+            return Boolean.TRUE;
+        }
+        if (containsIgnoreCase(catExpense, c)) {
+            return Boolean.FALSE;
+        }
+        return null;
+    }
+
 
     // ---- Menü / Aktionen ----
 
@@ -1690,15 +1726,14 @@ public class MainActivity extends LocalizedActivity {
                 });
     }
 
-    private static boolean containsIgnoreCase(List<String> list, String name) {
-        for (String s : list) {
-            if (s.equalsIgnoreCase(name)) {
+    private boolean containsIgnoreCase(List<String> values, String needle) {
+        for (String value : values) {
+            if (value != null && value.equalsIgnoreCase(needle)) {
                 return true;
             }
         }
         return false;
     }
-
     private void postImportError(Exception e) {
         final String msg = e.getMessage() == null ? e.toString() : e.getMessage();
         runOnUiThread(() -> {

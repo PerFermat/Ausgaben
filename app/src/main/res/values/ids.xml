@@ -1,0 +1,8 @@
+<?xml version="1.0" encoding="utf-8"?>
+<resources>
+    <!-- Merkmale, die PickerBehaviour an einem Vorschlagsfeld ablegt: der beiseite gelegte Eintrag
+         während der Suche und die Regel für unbekannten Text. -->
+    <item name="pickerCommitted" type="id" />
+    <item name="pickerUnknown" type="id" />
+    <item name="pickerAction" type="id" />
+</resources>

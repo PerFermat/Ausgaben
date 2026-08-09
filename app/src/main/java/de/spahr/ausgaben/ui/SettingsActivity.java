@@ -586,8 +586,10 @@ public class SettingsActivity extends LocalizedActivity implements SmbWizardCont
             editPlacesAccount.setText(placesAccount, false);
             refreshPlaces();
         });
-        editPlacesAccount.setOnItemClickListener((parent, view, position, id) -> {
-            placesAccount = (String) parent.getItemAtPosition(position);
+        // Über PickerBehaviour und nicht über setOnItemClickListener: der Name kann auch getippt und
+        // stehengelassen werden, dann fällt kein Antippen eines Listeneintrags an.
+        PickerBehaviour.onCommitted(editPlacesAccount, value -> {
+            placesAccount = value;
             refreshPlaces();
         });
 
@@ -601,10 +603,9 @@ public class SettingsActivity extends LocalizedActivity implements SmbWizardCont
             }
         });
 
-        editDefaultPlace.setOnItemClickListener((parent, view, position, id) -> {
-            String sel = (String) parent.getItemAtPosition(position);
-            placesStore.setDefaultPlace(placesAccount, PlacesStore.NO_PLACE.equals(sel) ? "" : sel);
-        });
+        PickerBehaviour.onCommitted(editDefaultPlace, value ->
+                placesStore.setDefaultPlace(placesAccount,
+                        PlacesStore.NO_PLACE.equals(value) ? "" : value));
 
         refreshPlaces();
     }

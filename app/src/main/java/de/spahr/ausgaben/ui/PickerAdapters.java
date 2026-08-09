@@ -6,6 +6,7 @@ import android.view.View;
 import android.view.ViewGroup;
 import android.widget.AutoCompleteTextView;
 import android.widget.ArrayAdapter;
+import android.widget.Filter;
 import android.widget.ImageView;
 import android.widget.TextView;
 
@@ -19,6 +20,7 @@ import java.util.Map;
 
 import de.spahr.ausgaben.R;
 import de.spahr.ausgaben.db.AccountKind;
+import de.spahr.ausgaben.db.AccountOrder;
 import de.spahr.ausgaben.db.Repository;
 
 /**
@@ -46,7 +48,10 @@ public final class PickerAdapters {
         if (field == null) {
             return;
         }
-        repository.getAccountKinds(kinds -> attach(field, accountAdapter(field.getContext(), names, kinds)));
+        repository.getAccountKinds(kinds -> {
+            attach(field, accountAdapter(field.getContext(), names, kinds));
+            PickerBehaviour.searchable(field, PickerBehaviour.Unknown.RESTORE);
+        });
     }
 
     /** Wie {@link #accounts}, aber für mehrere Felder mit derselben Liste (Umbuchen: von/nach). */
@@ -60,21 +65,40 @@ public final class PickerAdapters {
             ArrayAdapter<String> adapter = accountAdapter(context, names, kinds);
             for (AutoCompleteTextView field : fields) {
                 attach(field, adapter);
+                PickerBehaviour.searchable(field, PickerBehaviour.Unknown.RESTORE);
             }
         });
     }
 
+    /** Empfänger – das einzige Feld, in dem ein unbekannter Name stehenbleiben darf: er ist der neue. */
     public static void payees(AutoCompleteTextView field, List<String> names) {
         attach(field, iconAdapter(field.getContext(), names, R.drawable.ic_payee));
+        PickerBehaviour.searchable(field, PickerBehaviour.Unknown.KEEP);
     }
 
     public static void places(AutoCompleteTextView field, List<String> places) {
         attach(field, iconAdapter(field.getContext(), places, R.drawable.ic_place));
+        PickerBehaviour.searchable(field, PickerBehaviour.Unknown.RESTORE);
     }
 
-    /** Aufzählungen ohne Sachbezug (Sprache, Export-Modus, Ansicht): gleiche Zeile, kein Symbol. */
+    /** Kategorien: eigener Adapter (Farbpunkt, Ein-/Ausgabe-Pfeil), sonst wie Konto und Ort. */
+    public static void categories(AutoCompleteTextView field, ArrayAdapter<?> adapter) {
+        attach(field, adapter);
+        PickerBehaviour.searchable(field, PickerBehaviour.Unknown.RESTORE);
+    }
+
+    /** Aufzählungen ohne Sachbezug (Sprache, Export-Modus, Servertyp): reine Auswahl, keine Suche. */
     public static void plain(AutoCompleteTextView field, List<String> labels) {
         attach(field, plainAdapter(field.getContext(), labels));
+    }
+
+    /**
+     * Aufzählung mit dem Verhalten der Kontenfelder – für die Sichtenwahl der Auswertung und der
+     * Vorschau, die Konten, „Konto · Ort" und Sonderzeilen mischt.
+     */
+    public static void plainSearchable(AutoCompleteTextView field, List<String> labels) {
+        attach(field, plainAdapter(field.getContext(), labels));
+        PickerBehaviour.searchable(field, PickerBehaviour.Unknown.RESTORE);
     }
 
     /** Wie {@link #plain}, für Listen außerhalb eines Eingabefelds (Auswahl-Dialoge mit ListView). */
@@ -87,6 +111,7 @@ public final class PickerAdapters {
         if (field == null) {
             return;
         }
+        field.setThreshold(0);
         field.setDropDownBackgroundResource(R.drawable.popup_background);
         field.setAdapter(adapter);
     }
@@ -130,18 +155,68 @@ public final class PickerAdapters {
         };
     }
 
+    /** Adapter, der seinen ungefilterten Bestand kennt – der des Adapters schrumpft ja beim Suchen. */
+    interface Stock {
+        List<String> stock();
+    }
+
     /** Zeichnet {@link R.layout#item_picker_row}; das Symbol legt die jeweilige Unterklasse fest. */
-    private abstract static class RowAdapter extends ArrayAdapter<String> {
+    private abstract static class RowAdapter extends ArrayAdapter<String> implements Stock {
 
         private final int iconTint;
+        private final List<String> stock;
 
         RowAdapter(Context context, List<String> values) {
             // Eigene Kopie: die Aufrufer reichen teils feste Listen (Arrays.asList) herein, und ein
             // ArrayAdapter besteht darauf, seinen Bestand ändern zu dürfen.
             super(context, R.layout.item_picker_row, R.id.pickerText,
                     values == null ? new java.util.ArrayList<>() : new java.util.ArrayList<>(values));
+            this.stock = values == null
+                    ? new java.util.ArrayList<>() : new java.util.ArrayList<>(values);
             this.iconTint = iconTint(context);
         }
+
+        @Override
+        public List<String> stock() {
+            return stock;
+        }
+
+        /**
+         * Sucht Teiltreffer an beliebiger Stelle statt nur am Wortanfang, den der {@link ArrayAdapter}
+         * von Haus aus prüft: „kasse" soll auch „Sparkasse" finden – dieselbe Regel, nach der die Lupe
+         * in der Kontenschublade sucht.
+         */
+        @NonNull
+        @Override
+        public Filter getFilter() {
+            return filter;
+        }
+
+        private final Filter filter = new Filter() {
+            @Override
+            protected FilterResults performFiltering(CharSequence constraint) {
+                List<String> hits = new java.util.ArrayList<>();
+                String query = constraint == null ? "" : constraint.toString();
+                for (String value : stock) {
+                    if (AccountOrder.matches(value, query)) {
+                        hits.add(value);
+                    }
+                }
+                FilterResults results = new FilterResults();
+                results.values = hits;
+                results.count = hits.size();
+                return results;
+            }
+
+            @Override
+            @SuppressWarnings("unchecked")
+            protected void publishResults(CharSequence constraint, FilterResults results) {
+                setNotifyOnChange(false); // sonst meldet schon das Leeren eine leere Liste
+                clear();
+                addAll((List<String>) results.values);
+                notifyDataSetChanged();
+            }
+        };
 
         /** 0 = kein Symbol; der Platz bleibt frei, damit alle Zeilen denselben Textanfang haben. */
         abstract int iconFor(String value);

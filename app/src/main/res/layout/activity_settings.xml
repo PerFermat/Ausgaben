@@ -375,7 +375,7 @@
             android:layout_marginTop="8dp"
             android:hint="@string/default_account_hint">
 
-            <com.google.android.material.textfield.MaterialAutoCompleteTextView
+            <de.spahr.ausgaben.ui.PickerTextView
                 android:id="@+id/editDefaultAccount"
                 android:layout_width="match_parent"
                 android:layout_height="wrap_content"
@@ -403,17 +403,22 @@
             android:textStyle="bold" />
 
         <com.google.android.material.textfield.TextInputLayout
-            style="@style/Widget.Material3.TextInputLayout.OutlinedBox.ExposedDropdownMenu"
             android:layout_width="match_parent"
             android:layout_height="wrap_content"
             android:layout_marginTop="8dp"
             android:hint="@string/places_account_hint">
 
-            <com.google.android.material.textfield.MaterialAutoCompleteTextView
+            <de.spahr.ausgaben.ui.PickerTextView
                 android:id="@+id/editPlacesAccount"
                 android:layout_width="match_parent"
                 android:layout_height="wrap_content"
-                android:inputType="none" />
+                android:minHeight="64dp"
+                android:paddingVertical="14dp"
+                android:paddingStart="16dp"
+                android:paddingEnd="16dp"
+                android:textSize="18sp"
+                android:completionThreshold="1"
+                android:inputType="textCapWords" />
         </com.google.android.material.textfield.TextInputLayout>
 
         <LinearLayout
@@ -455,17 +460,22 @@
         </LinearLayout>
 
         <com.google.android.material.textfield.TextInputLayout
-            style="@style/Widget.Material3.TextInputLayout.OutlinedBox.ExposedDropdownMenu"
             android:layout_width="match_parent"
             android:layout_height="wrap_content"
             android:layout_marginTop="8dp"
             android:hint="@string/default_place_hint">
 
-            <com.google.android.material.textfield.MaterialAutoCompleteTextView
+            <de.spahr.ausgaben.ui.PickerTextView
                 android:id="@+id/editDefaultPlace"
                 android:layout_width="match_parent"
                 android:layout_height="wrap_content"
-                android:inputType="none" />
+                android:minHeight="64dp"
+                android:paddingVertical="14dp"
+                android:paddingStart="16dp"
+                android:paddingEnd="16dp"
+                android:textSize="18sp"
+                android:completionThreshold="1"
+                android:inputType="textCapWords" />
         </com.google.android.material.textfield.TextInputLayout>
 
         <TextView

@@ -356,6 +356,22 @@ shot_row([
 h1("6. Recording a booking")
 p("Tap the round <b>✚</b> button. The booking editor opens.")
 shot("Buchung Empfänger.png", "Booking editor with type switch, amount, payee and account")
+h2("Picking a value – the same everywhere")
+p("<b>Payee</b>, <b>account</b>, <b>category</b> and <b>place</b> fields are display, list and search "
+  "box in one – in the booking editor just as in transfers, reconciliation, the filters, the alias "
+  "editor, the settings and the analysis.")
+bullets([
+  "<b>Entering the field</b>: the current entry steps aside and stays on only faintly; the full list "
+  "opens.",
+  "<b>Typing</b>: the list narrows as you go. Matches are found anywhere in the name and regardless of "
+  "case – \"kasse\" finds \"Sparkasse\".",
+  "<b>Deleting characters</b>: the list widens again. Empty the field and everything is back.",
+  "<b>Leaving without a choice</b>: the previous entry returns.",
+])
+p("A <b>new payee</b> may be created this way: type a name that does not exist yet and it stays. "
+  "<b>Account, category and place</b> have to come from the list – an invented name is replaced by the "
+  "previous one when you leave the field. New accounts arrive through the import, new places are "
+  "created in the settings.")
 h2("Arithmetic in the amount field")
 p("The <b>amount field</b> accepts a small <b>calculation</b> instead of the system keyboard (e.g. "
   "<i>10+20*3</i> or <i>30-5</i>) – handy when splitting a bill or offsetting several items.")

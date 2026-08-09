@@ -38,16 +38,20 @@
             </com.google.android.material.textfield.TextInputLayout>
 
             <com.google.android.material.textfield.TextInputLayout
-                style="@style/Widget.Material3.TextInputLayout.OutlinedBox.ExposedDropdownMenu"
                 android:layout_width="match_parent"
                 android:layout_height="wrap_content"
                 android:layout_marginTop="8dp"
                 android:hint="@string/alias_corrected_hint">
 
-                <com.google.android.material.textfield.MaterialAutoCompleteTextView
+                <de.spahr.ausgaben.ui.PickerTextView
                     android:id="@+id/editAliasCorrected"
                     android:layout_width="match_parent"
                     android:layout_height="wrap_content"
+                    android:minHeight="64dp"
+                    android:paddingVertical="14dp"
+                    android:paddingStart="16dp"
+                    android:paddingEnd="16dp"
+                    android:textSize="18sp"
                     android:completionThreshold="1"
                     android:inputType="textCapWords" />
             </com.google.android.material.textfield.TextInputLayout>
@@ -67,148 +71,198 @@
             </com.google.android.material.textfield.TextInputLayout>
 
             <com.google.android.material.textfield.TextInputLayout
-                style="@style/Widget.Material3.TextInputLayout.OutlinedBox.ExposedDropdownMenu"
                 android:layout_width="match_parent"
                 android:layout_height="wrap_content"
                 android:layout_marginTop="8dp"
                 android:hint="@string/alias_account_hint">
 
-                <com.google.android.material.textfield.MaterialAutoCompleteTextView
+                <de.spahr.ausgaben.ui.PickerTextView
                     android:id="@+id/editAliasAccount"
                     android:layout_width="match_parent"
                     android:layout_height="wrap_content"
-                    android:inputType="text" />
+                    android:minHeight="64dp"
+                    android:paddingVertical="14dp"
+                    android:paddingStart="16dp"
+                    android:paddingEnd="16dp"
+                    android:textSize="18sp"
+                    android:completionThreshold="1"
+                    android:inputType="textCapWords" />
             </com.google.android.material.textfield.TextInputLayout>
 
             <com.google.android.material.textfield.TextInputLayout
                 android:id="@+id/aliasPlaceLayout"
-                style="@style/Widget.Material3.TextInputLayout.OutlinedBox.ExposedDropdownMenu"
                 android:layout_width="match_parent"
                 android:layout_height="wrap_content"
                 android:layout_marginTop="8dp"
                 android:visibility="gone"
                 android:hint="@string/alias_place_hint">
 
-                <com.google.android.material.textfield.MaterialAutoCompleteTextView
+                <de.spahr.ausgaben.ui.PickerTextView
                     android:id="@+id/editAliasPlace"
                     android:layout_width="match_parent"
                     android:layout_height="wrap_content"
+                    android:minHeight="64dp"
+                    android:paddingVertical="14dp"
+                    android:paddingStart="16dp"
+                    android:paddingEnd="16dp"
+                    android:textSize="18sp"
+                    android:completionThreshold="1"
                     android:inputType="text" />
             </com.google.android.material.textfield.TextInputLayout>
 
             <com.google.android.material.textfield.TextInputLayout
-                style="@style/Widget.Material3.TextInputLayout.OutlinedBox.ExposedDropdownMenu"
                 android:layout_width="match_parent"
                 android:layout_height="wrap_content"
                 android:layout_marginTop="8dp"
                 android:hint="@string/alias_cat_expense_1_hint">
 
-                <com.google.android.material.textfield.MaterialAutoCompleteTextView
+                <de.spahr.ausgaben.ui.PickerTextView
                     android:id="@+id/editAliasCatExpense1"
                     android:layout_width="match_parent"
                     android:layout_height="wrap_content"
-                    android:inputType="text" />
+                    android:minHeight="64dp"
+                    android:paddingVertical="14dp"
+                    android:paddingStart="16dp"
+                    android:paddingEnd="16dp"
+                    android:textSize="18sp"
+                    android:completionThreshold="1"
+                    android:inputType="textCapWords" />
             </com.google.android.material.textfield.TextInputLayout>
 
             <com.google.android.material.textfield.TextInputLayout
-                style="@style/Widget.Material3.TextInputLayout.OutlinedBox.ExposedDropdownMenu"
                 android:layout_width="match_parent"
                 android:layout_height="wrap_content"
                 android:layout_marginTop="8dp"
                 android:hint="@string/alias_cat_expense_2_hint">
 
-                <com.google.android.material.textfield.MaterialAutoCompleteTextView
+                <de.spahr.ausgaben.ui.PickerTextView
                     android:id="@+id/editAliasCatExpense2"
                     android:layout_width="match_parent"
                     android:layout_height="wrap_content"
-                    android:inputType="text" />
+                    android:minHeight="64dp"
+                    android:paddingVertical="14dp"
+                    android:paddingStart="16dp"
+                    android:paddingEnd="16dp"
+                    android:textSize="18sp"
+                    android:completionThreshold="1"
+                    android:inputType="textCapWords" />
             </com.google.android.material.textfield.TextInputLayout>
 
             <com.google.android.material.textfield.TextInputLayout
-                style="@style/Widget.Material3.TextInputLayout.OutlinedBox.ExposedDropdownMenu"
                 android:layout_width="match_parent"
                 android:layout_height="wrap_content"
                 android:layout_marginTop="8dp"
                 android:hint="@string/alias_cat_income_1_hint">
 
-                <com.google.android.material.textfield.MaterialAutoCompleteTextView
+                <de.spahr.ausgaben.ui.PickerTextView
                     android:id="@+id/editAliasCatIncome1"
                     android:layout_width="match_parent"
                     android:layout_height="wrap_content"
-                    android:inputType="text" />
+                    android:minHeight="64dp"
+                    android:paddingVertical="14dp"
+                    android:paddingStart="16dp"
+                    android:paddingEnd="16dp"
+                    android:textSize="18sp"
+                    android:completionThreshold="1"
+                    android:inputType="textCapWords" />
             </com.google.android.material.textfield.TextInputLayout>
 
             <com.google.android.material.textfield.TextInputLayout
-                style="@style/Widget.Material3.TextInputLayout.OutlinedBox.ExposedDropdownMenu"
                 android:layout_width="match_parent"
                 android:layout_height="wrap_content"
                 android:layout_marginTop="8dp"
                 android:hint="@string/alias_cat_income_2_hint">
 
-                <com.google.android.material.textfield.MaterialAutoCompleteTextView
+                <de.spahr.ausgaben.ui.PickerTextView
                     android:id="@+id/editAliasCatIncome2"
                     android:layout_width="match_parent"
                     android:layout_height="wrap_content"
-                    android:inputType="text" />
+                    android:minHeight="64dp"
+                    android:paddingVertical="14dp"
+                    android:paddingStart="16dp"
+                    android:paddingEnd="16dp"
+                    android:textSize="18sp"
+                    android:completionThreshold="1"
+                    android:inputType="textCapWords" />
             </com.google.android.material.textfield.TextInputLayout>
 
             <com.google.android.material.textfield.TextInputLayout
-                style="@style/Widget.Material3.TextInputLayout.OutlinedBox.ExposedDropdownMenu"
                 android:layout_width="match_parent"
                 android:layout_height="wrap_content"
                 android:layout_marginTop="8dp"
                 android:hint="@string/alias_from_account_hint">
 
-                <com.google.android.material.textfield.MaterialAutoCompleteTextView
+                <de.spahr.ausgaben.ui.PickerTextView
                     android:id="@+id/editAliasFrom"
                     android:layout_width="match_parent"
                     android:layout_height="wrap_content"
-                    android:inputType="text" />
+                    android:minHeight="64dp"
+                    android:paddingVertical="14dp"
+                    android:paddingStart="16dp"
+                    android:paddingEnd="16dp"
+                    android:textSize="18sp"
+                    android:completionThreshold="1"
+                    android:inputType="textCapWords" />
             </com.google.android.material.textfield.TextInputLayout>
 
             <com.google.android.material.textfield.TextInputLayout
                 android:id="@+id/aliasFromPlaceLayout"
-                style="@style/Widget.Material3.TextInputLayout.OutlinedBox.ExposedDropdownMenu"
                 android:layout_width="match_parent"
                 android:layout_height="wrap_content"
                 android:layout_marginTop="8dp"
                 android:visibility="gone"
                 android:hint="@string/alias_from_place_hint">
 
-                <com.google.android.material.textfield.MaterialAutoCompleteTextView
+                <de.spahr.ausgaben.ui.PickerTextView
                     android:id="@+id/editAliasFromPlace"
                     android:layout_width="match_parent"
                     android:layout_height="wrap_content"
+                    android:minHeight="64dp"
+                    android:paddingVertical="14dp"
+                    android:paddingStart="16dp"
+                    android:paddingEnd="16dp"
+                    android:textSize="18sp"
+                    android:completionThreshold="1"
                     android:inputType="text" />
             </com.google.android.material.textfield.TextInputLayout>
 
             <com.google.android.material.textfield.TextInputLayout
-                style="@style/Widget.Material3.TextInputLayout.OutlinedBox.ExposedDropdownMenu"
                 android:layout_width="match_parent"
                 android:layout_height="wrap_content"
                 android:layout_marginTop="8dp"
                 android:hint="@string/alias_to_account_hint">
 
-                <com.google.android.material.textfield.MaterialAutoCompleteTextView
+                <de.spahr.ausgaben.ui.PickerTextView
                     android:id="@+id/editAliasTo"
                     android:layout_width="match_parent"
                     android:layout_height="wrap_content"
-                    android:inputType="text" />
+                    android:minHeight="64dp"
+                    android:paddingVertical="14dp"
+                    android:paddingStart="16dp"
+                    android:paddingEnd="16dp"
+                    android:textSize="18sp"
+                    android:completionThreshold="1"
+                    android:inputType="textCapWords" />
             </com.google.android.material.textfield.TextInputLayout>
 
             <com.google.android.material.textfield.TextInputLayout
                 android:id="@+id/aliasToPlaceLayout"
-                style="@style/Widget.Material3.TextInputLayout.OutlinedBox.ExposedDropdownMenu"
                 android:layout_width="match_parent"
                 android:layout_height="wrap_content"
                 android:layout_marginTop="8dp"
                 android:visibility="gone"
                 android:hint="@string/alias_to_place_hint">
 
-                <com.google.android.material.textfield.MaterialAutoCompleteTextView
+                <de.spahr.ausgaben.ui.PickerTextView
                     android:id="@+id/editAliasToPlace"
                     android:layout_width="match_parent"
                     android:layout_height="wrap_content"
+                    android:minHeight="64dp"
+                    android:paddingVertical="14dp"
+                    android:paddingStart="16dp"
+                    android:paddingEnd="16dp"
+                    android:textSize="18sp"
+                    android:completionThreshold="1"
                     android:inputType="text" />
             </com.google.android.material.textfield.TextInputLayout>
 

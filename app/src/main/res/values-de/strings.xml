@@ -191,7 +191,6 @@
     <string name="reconcile_target_payee">Empfänger</string>
     <string name="reconcile_target_category">Kategorie</string>
     <string name="reconcile_target_save">Speichern</string>
-    <string name="no_places_defined">Bitte zuerst Orte in den Einstellungen anlegen</string>
     <string name="no_movements">Keine Bewegungen</string>
     <string name="movement_booking">Buchung</string>
     <string name="movement_transfer">Umbuchung</string>

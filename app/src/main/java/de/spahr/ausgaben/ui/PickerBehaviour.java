@@ -47,6 +47,13 @@ final class PickerBehaviour {
         if (field == null) {
             return;
         }
+        // Ein gesperrtes Feld (Buchung nur ansehen) bleibt gesperrt, auch wenn seine Liste erst später
+        // eintrifft – die Konten warten auf die Datenbank. Sonst holte der neu gesetzte Klick-Zuhörer die
+        // Suche zurück, die das Sperren gerade abgeräumt hat: ein Tipp legte den Wert beiseite, und weil
+        // das Feld keinen Fokus annimmt, käme er ohne settle() nie zurück – das Feld stünde leer da.
+        if (!field.isFocusableInTouchMode()) {
+            return;
+        }
         boolean schonVerdrahtet = field.getTag(R.id.pickerUnknown) != null;
         field.setTag(R.id.pickerUnknown, unknown);
         if (schonVerdrahtet) {

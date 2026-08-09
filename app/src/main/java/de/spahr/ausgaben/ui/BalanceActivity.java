@@ -47,6 +47,8 @@ public class BalanceActivity extends LocalizedActivity {
     private List<String> liabilityAccounts = new ArrayList<>();
     /** Kopfzeile mit der gewählten Kontengruppe (app-weit, dieselbe wie in der Schublade). */
     private android.widget.TextView groupButton;
+    /** „Umbuchen" – steht nur da, solange es überhaupt ein Konto mit Orten gibt. */
+    private MaterialButton btnTransfer;
     /** Reihenfolge der Kontenart-Blöcke, wie in der Kontenverwaltung festgelegt. */
     private int[] kindOrder = de.spahr.ausgaben.db.AccountKind.ALL;
     private final List<String> depotOrder = new ArrayList<>();
@@ -70,7 +72,8 @@ public class BalanceActivity extends LocalizedActivity {
         groupButton.setOnClickListener(v ->
                 AccountGroupPicker.show(this, groupButton, null, repository, settings, this::refresh));
 
-        ((MaterialButton) findViewById(R.id.btnTransfer)).setOnClickListener(v -> showTransferDialog());
+        btnTransfer = findViewById(R.id.btnTransfer);
+        btnTransfer.setOnClickListener(v -> showTransferDialog());
         ((MaterialButton) findViewById(R.id.btnReconcile)).setOnClickListener(v -> showReconcileDialog());
     }
 
@@ -85,6 +88,8 @@ public class BalanceActivity extends LocalizedActivity {
             total = t;
             repository.getAccountNames(names -> {
                 accountsOrder = names;
+                // Ohne einen einzigen Ort gibt es nichts umzubuchen; „Ausgleichen" füllt die Zeile dann allein.
+                btnTransfer.setVisibility(accountsWithPlaces().isEmpty() ? View.GONE : View.VISIBLE);
                 repository.getAllBookings(bks -> {
                     accountBalances.clear();
                     for (Booking b : bks) {
@@ -366,8 +371,24 @@ public class BalanceActivity extends LocalizedActivity {
 
     // ---- Umbuchen ----
 
+    /**
+     * Konten mit mindestens einem Ort – nur zwischen Orten läßt sich umbuchen. Die Reihenfolge ist die der
+     * Kontenliste. Ein Konto, für das Orte angelegt sind, das aber geschlossen ist, fällt mit heraus:
+     * dorthin bucht man ohnehin nichts mehr.
+     */
+    private List<String> accountsWithPlaces() {
+        List<String> out = new ArrayList<>();
+        for (String account : accountsOrder) {
+            if (!placesStore.getPlaces(account).isEmpty()) {
+                out.add(account);
+            }
+        }
+        return out;
+    }
+
     private void showTransferDialog() {
-        if (accountsOrder.isEmpty()) {
+        final List<String> accounts = accountsWithPlaces();
+        if (accounts.isEmpty()) {
             Toast.makeText(this, R.string.no_accounts, Toast.LENGTH_LONG).show();
             return;
         }
@@ -378,8 +399,8 @@ public class BalanceActivity extends LocalizedActivity {
         TextInputEditText amount = view.findViewById(R.id.transferAmount);
         CalcKeyboardView.installToggling(amount, (android.widget.LinearLayout) view, false);
 
-        PickerAdapters.accounts(repository, accountField, accountsOrder);
-        final String[] account = {startAccount()};
+        PickerAdapters.accounts(repository, accountField, accounts);
+        final String[] account = {startAccount(accounts)};
         accountField.setText(account[0], false);
         fillTransferPlaces(from, to, account[0]);
         // Über PickerBehaviour: das Konto kann auch getippt und stehengelassen werden, dann fällt kein
@@ -437,18 +458,19 @@ public class BalanceActivity extends LocalizedActivity {
         View view = LayoutInflater.from(this).inflate(R.layout.dialog_reconcile, null, false);
         MaterialAutoCompleteTextView accountField = view.findViewById(R.id.reconcileAccount);
         MaterialAutoCompleteTextView place = view.findViewById(R.id.reconcilePlace);
+        View placeLayout = view.findViewById(R.id.reconcilePlaceLayout);
         TextInputEditText amount = view.findViewById(R.id.reconcileAmount);
         com.google.android.material.checkbox.MaterialCheckBox createBooking =
                 view.findViewById(R.id.reconcileCreateBooking);
         CalcKeyboardView.installToggling(amount, (android.widget.LinearLayout) view, false);
 
         PickerAdapters.accounts(repository, accountField, accountsOrder);
-        final String[] account = {startAccount()};
+        final String[] account = {startAccount(accountsOrder)};
         accountField.setText(account[0], false);
-        fillReconcilePlaces(place, account[0]);
+        fillReconcilePlaces(place, placeLayout, account[0]);
         PickerBehaviour.onCommitted(accountField, value -> {
             account[0] = value;
-            fillReconcilePlaces(place, account[0]);
+            fillReconcilePlaces(place, placeLayout, account[0]);
         });
 
         // Empfänger/Kategorie der Ausgleichsbuchung: dauerhaft gemerkte Vorgabe, anfangs leer.
@@ -525,19 +547,24 @@ public class BalanceActivity extends LocalizedActivity {
                 .show();
     }
 
-    private void fillReconcilePlaces(MaterialAutoCompleteTextView place, String account) {
+    /**
+     * Ortsauswahl des Kassensturzes; ohne angelegte Orte verschwindet sie ganz – ein Konto ohne Orte wird
+     * als Ganzes abgestimmt, ein leeres Feld wäre dafür nur Beiwerk.
+     */
+    private void fillReconcilePlaces(MaterialAutoCompleteTextView place, View layout, String account) {
         List<String> places = placesStore.getPlaces(account);
         PickerAdapters.places(place, places);
         place.setText(places.isEmpty() ? "" : places.get(0), false);
+        layout.setVisibility(places.isEmpty() ? View.GONE : View.VISIBLE);
     }
 
-    /** Standardkonto, sonst das erste vorhandene Konto. */
-    private String startAccount() {
+    /** Standardkonto, sonst das erste der übergebenen Konten. */
+    private String startAccount(List<String> candidates) {
         String def = settings.getDefaultAccount();
-        if (!def.isEmpty() && accountsOrder.contains(def)) {
+        if (!def.isEmpty() && candidates.contains(def)) {
             return def;
         }
-        return accountsOrder.get(0);
+        return candidates.get(0);
     }
 
     private List<String> placeOptions(String account) {

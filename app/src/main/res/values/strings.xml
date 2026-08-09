@@ -192,7 +192,6 @@
     <string name="reconcile_target_payee">Payee</string>
     <string name="reconcile_target_category">Category</string>
     <string name="reconcile_target_save">Save</string>
-    <string name="no_places_defined">Please add places in the settings first</string>
     <string name="no_movements">No movements</string>
     <string name="movement_booking">Booking</string>
     <string name="movement_transfer">Transfer</string>

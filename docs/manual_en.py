@@ -703,14 +703,18 @@ bullets([
   "<b>«Update transaction»</b> on a transaction that <b>had a place before</b>: the new place <b>is saved</b> "
   "and followed up with balancing movements (old place −amount, new place +amount).",
 ])
-p("In the plain <b>view</b> (short tap) the place field stays hidden for imported transactions, as before. The "
-  "same applies to <b>transfers</b> – there you get a from-place and a to-place, and the movement is created "
-  "on <b>both accounts</b>.")
+p("In the plain <b>view</b> (short tap) the place field only shows up if the transaction really <b>sits at a "
+  "place</b> – a «no place» would tell you nothing, and an imported transaction has none at all. For "
+  "<b>transfers</b> that holds for the from-place and the to-place <b>each on its own</b>; the movement is "
+  "created on <b>both accounts</b>.")
 h2("Cash count at place level")
 p("A particular advantage: the <b>cash count</b> (reconciliation) can be done <b>per place</b>. You count "
   "only the cash of <i>one</i> place – say the wallet – enter the counted amount, and the app automatically "
   "books the difference as a balancing movement. So you don't have to reconcile the whole account at once; "
-  "this <b>simplifies reconciliation considerably</b>. Imported bookings carry no place link.")
+  "this <b>simplifies reconciliation considerably</b>. Imported bookings carry no place link. If an account "
+  "has <b>no places at all</b>, the place field is missing and the whole account is reconciled. And if there "
+  "are no places anywhere in the app, the holdings screen drops the <b>«Transfer»</b> button as well – it "
+  "only ever offers accounts that have places.")
 p("Next to the <b>«Create booking»</b> switch there is a button for the <b>payee and category</b> of that "
   "balancing booking. Both are empty at first and the button reads «Set payee/category»; as long as nothing "
   "is set, <b>«Apply»</b> stays greyed out. The button opens a small dialog with both fields (with the same "

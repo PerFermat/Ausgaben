@@ -737,15 +737,18 @@ bullets([
   "<b>«Buchung ändern»</b> bei einer Buchung, die <b>vorher einen Ort</b> hatte: Der neue Ort wird "
   "<b>gespeichert</b> und per Ausgleichs-Bewegung nachgezogen (alter Ort −Betrag, neuer Ort +Betrag).",
 ])
-p("In der reinen <b>Ansicht</b> (kurzer Tipp) bleibt das Ort-Feld bei importierten Buchungen wie bisher "
-  "ausgeblendet. Bei <b>Umbuchungen</b> gilt dasselbe – dort gibt es Von-Ort und Nach-Ort, und die Bewegung "
-  "wird auf <b>beiden Konten</b> angelegt.")
+p("In der reinen <b>Ansicht</b> (kurzer Tipp) zeigt sich das Ort-Feld nur, wenn die Buchung <b>wirklich an "
+  "einem Ort hängt</b> – ein «ohne Ort» wäre ja keine Auskunft, und eine importierte Buchung hat gar keinen. "
+  "Bei <b>Umbuchungen</b> gilt das für Von-Ort und Nach-Ort <b>jeweils für sich</b>; die Bewegung wird auf "
+  "<b>beiden Konten</b> angelegt.")
 h2("Kassensturz auf Orts-Ebene")
 p("Ein besonderer Vorteil: Der <b>Kassensturz</b> (Soll-Ist-Abgleich) lässt sich <b>pro Ort</b> "
   "durchführen. Sie zählen nur das Bargeld <i>eines</i> Ortes – etwa den Geldbeutel –, tragen den "
   "gezählten Betrag ein, und die App bucht automatisch die Differenz als Ausgleichs-Bewegung. Sie müssen "
   "also nicht das gesamte Konto auf einmal abstimmen; das <b>vereinfacht den Abgleich erheblich</b>. "
-  "Importierte Buchungen tragen keine Ort-Verknüpfung.")
+  "Importierte Buchungen tragen keine Ort-Verknüpfung. Hat ein Konto <b>gar keine Orte</b>, fehlt das "
+  "Ort-Feld – dann wird das ganze Konto abgestimmt. Und gibt es in der App nirgends Orte, fehlt in den "
+  "Beständen auch der Knopf <b>«Umbuchen»</b>; er bietet ohnehin nur Konten mit Orten an.")
 p("Neben dem Schalter <b>«Buchung erzeugen»</b> steht ein Knopf für <b>Empfänger und Kategorie</b> dieser "
   "Ausgleichsbuchung. Anfangs ist beides leer und der Knopf sagt «Empfänger/Kategorie festlegen»; solange "
   "nichts festgelegt ist, bleibt <b>«Übernehmen»</b> ausgegraut. Der Knopf öffnet ein kleines Fenster mit "

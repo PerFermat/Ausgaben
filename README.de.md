@@ -121,6 +121,8 @@ Details, Screenshots und die genaue Bedienung stehen im **[Benutzerhandbuch](doc
   eine Periode weitergestellt (die Regel selbst bleibt erhalten, spätere Termine unverändert).
 - **Bestände & Depot**: mehrere Bargeld-**Orte** je Konto mit eigenem Bewegungsjournal und Kassensturz
   (Empfänger und Kategorie der Ausgleichsbuchung legt man einmal selbst fest, danach sind sie vorbelegt);
+  Orte zeigen sich nur dort, wo welche angelegt sind — kein Ort, kein Ortsfeld, und ohne Orte überhaupt
+  verschwindet der Knopf **„Umbuchen"**;
   Depot-Import mit vollständiger **Kurshistorie**, Käufen/Verkäufen/Dividenden, Gewinn/Verlust-Auswertung.
   Der Depotwert zählt wie ein Konto in **„Gesamt"** und in die Vermögensgrafik; im Verlauf zusätzlich als
   eigene Sichten **„Gesamt ohne Depot"** und **„Depot"**.

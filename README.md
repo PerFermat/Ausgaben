@@ -122,7 +122,9 @@ Details, screenshots and exact behavior are in the **[user manual](docs/Manual-A
   next `.kmy` export (the schedule itself is kept, later dates stay untouched).
 - **Holdings & portfolio**: several cash **places** per account with their own movement journal and
   reconciliation (you set the payee and category of the balancing booking once, they are prefilled from
-  then on); portfolio import with the full **price history**, buys/sells/dividends, gain/loss
+  then on); places only ever show up where you have created some — no place, no place field, and without
+  any places at all the "Transfer" button is gone; portfolio import with the full **price history**,
+  buys/sells/dividends, gain/loss
   analysis. The portfolio value counts like an account in **"Total"** and in the net-worth graph; the
   history additionally offers the views **"Total without portfolio"** and **"Portfolio"**.
 - **Sync**: Nextcloud/WebDAV/SMB, `.kmy` mode (writes/reads the KMyMoney file directly, including splits,

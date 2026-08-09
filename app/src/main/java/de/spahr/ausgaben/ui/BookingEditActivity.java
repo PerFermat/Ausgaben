@@ -441,6 +441,9 @@ public class BookingEditActivity extends LocalizedActivity {
                 String presetPlace = getIntent().getStringExtra(EXTRA_PRESET_PLACE);
                 editPlace.setText(presetPlace == null || presetPlace.isEmpty()
                         ? PlacesStore.NO_PLACE : presetPlace, false);
+                // Das Ortsfeld richtet sich nach dem vorbelegten Konto, nicht nach dem Standardkonto, das
+                // setupNewMode() eben eingetragen hat. Ein gesetzter Text meldet sich nicht von selbst.
+                applyTypeVisibility();
             }
             // Fallback der Sprach-Erfassung (keine Vorlage gefunden): Empfänger/Betrag vorbelegen.
             String prefillPayee = getIntent().getStringExtra(EXTRA_PREFILL_PAYEE);
@@ -697,7 +700,7 @@ public class BookingEditActivity extends LocalizedActivity {
         booking = b;
         origIsTransfer = b.isTransfer;
         origTransferGroup = b.transferGroup == null ? "" : b.transferGroup;
-        origPlaceManaged = b.placeManaged; // importierte Buchungen (false) bekommen kein Ort-Feld
+        origPlaceManaged = b.placeManaged; // importiert (false): ein Ort wird beim Ändern nicht übernommen
         openedFromExistingBooking = true; // aus bestehender Buchung → Datum-Abfrage nur beim Kopieren
         origPayee = b.payee;
         prefilledPayee = b.payee;
@@ -1005,6 +1008,9 @@ public class BookingEditActivity extends LocalizedActivity {
                             editPlace.setText(pl, false);
                         }
                     }
+                    // Die Orte kommen aus der Datenbank und damit erst nach applyTypeVisibility() oben.
+                    // Beim Ansehen hängt die Sichtbarkeit gerade an ihnen, also noch einmal fragen.
+                    applyTypeVisibility();
                 });
             }
             updateSaveEnabled();
@@ -1074,19 +1080,16 @@ public class BookingEditActivity extends LocalizedActivity {
         // Empfänger gibt es auch bei einer Umbuchung („Zahlungsempfänger"); Kategorien nicht.
         payeeLayout.setVisibility(View.VISIBLE);
         if (transfer) {
-            // Umbuchung: Von-/Nach-Ort nur, wenn das jeweilige Konto Orte hat; Dropdowns folgen dem Konto.
+            // Umbuchung: Von- und Nach-Ort jeder für sich; die Dropdowns folgen ihrem Konto.
             placeLayout.setHint(getString(R.string.transfer_place_from));
             setupPlaceOptions(editPlace, textOf(editAccount).trim(), true);
             setupPlaceOptions(editPlaceTo, textOf(editAccountTo).trim(), true);
-            placeLayout.setVisibility(hasPlaces(textOf(editAccount)) ? View.VISIBLE : View.GONE);
-            placeToLayout.setVisibility(hasPlaces(textOf(editAccountTo)) ? View.VISIBLE : View.GONE);
+            placeLayout.setVisibility(showPlace(editPlace, editAccount) ? View.VISIBLE : View.GONE);
+            placeToLayout.setVisibility(
+                    showPlace(editPlaceTo, editAccountTo) ? View.VISIBLE : View.GONE);
         } else {
-            // Ort-Feld (nur wenn das Konto Orte hat): bei ort-verknüpften Buchungen immer; bei importierten
-            // zusätzlich beim Bearbeiten, damit ein Duplikat („Als neue speichern") einen Ort bekommen kann.
             placeLayout.setHint(getString(R.string.place_hint));
-            placeLayout.setVisibility(
-                    hasPlaces(textOf(editAccount)) && (origPlaceManaged || !readOnly)
-                            ? View.VISIBLE : View.GONE);
+            placeLayout.setVisibility(showPlace(editPlace, editAccount) ? View.VISIBLE : View.GONE);
             placeToLayout.setVisibility(View.GONE);
         }
         splitSection.setVisibility(transfer ? View.GONE : View.VISIBLE);
@@ -1159,6 +1162,21 @@ public class BookingEditActivity extends LocalizedActivity {
                     proceed.run();
                 })
                 .show();
+    }
+
+    /**
+     * Ob ein Ortsfeld überhaupt hingehört.
+     *
+     * <p>Beim Ansehen zählt der Ort der Buchung selbst: „ohne Ort" ist keine Auskunft, und eine
+     * importierte Buchung hat gar keinen. Beim Bearbeiten zählt dagegen das Konto – dort soll man einen
+     * Ort ja erst setzen können, auch bei einer Buchung, die noch keinen hat.</p>
+     */
+    private boolean showPlace(android.widget.EditText placeField, android.widget.EditText accountField) {
+        if (readOnly) {
+            String place = textOf(placeField).trim();
+            return !place.isEmpty() && !place.equals(PlacesStore.NO_PLACE);
+        }
+        return hasPlaces(textOf(accountField));
     }
 
     /** True, wenn das Konto mindestens einen Ort besitzt (steuert die Sichtbarkeit des Ortsfelds). */

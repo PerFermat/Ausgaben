@@ -383,6 +383,11 @@ bullets([
   "<b>Tippen</b>: die Liste wird laufend enger. Gesucht wird auch mitten im Wort und ohne Rücksicht auf "
   "Groß- und Kleinschreibung – «kasse» findet «Sparkasse».",
   "<b>Zeichen löschen</b>: die Liste wird wieder weiter. Ist das Feld ganz leer, steht wieder alles da.",
+  "<b>Eintrag antippen</b>: er steht im Feld, und die Tastatur geht zu.",
+  "<b>Fertig-Taste</b> (unten rechts auf der Tastatur): beendet die Eingabe und schließt die Tastatur, "
+  "ohne dass Sie das Feld verlassen. Bleibt beim Tippen genau <b>ein</b> Treffer übrig, wird er "
+  "übernommen – «visa u» genügt für «Visa Urlaub». Bei mehreren Treffern gilt dieselbe Regel wie beim "
+  "Verlassen des Feldes.",
   "<b>Verlassen ohne Auswahl</b>: der alte Eintrag kommt zurück.",
 ])
 p("Ein <b>neuer Geldempfänger</b> darf dabei entstehen: tippen Sie einen Namen, den es noch nicht gibt, "

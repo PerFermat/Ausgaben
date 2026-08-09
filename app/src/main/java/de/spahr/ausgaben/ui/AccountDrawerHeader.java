@@ -190,10 +190,7 @@ public class AccountDrawerHeader {
     }
 
     private void hideKeyboard() {
-        InputMethodManager imm = activity.getSystemService(InputMethodManager.class);
-        if (imm != null && search != null) {
-            imm.hideSoftInputFromWindow(search.getWindowToken(), 0);
-        }
+        Keyboard.hide(search);
     }
 
     /**

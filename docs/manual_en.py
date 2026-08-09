@@ -366,6 +366,10 @@ bullets([
   "<b>Typing</b>: the list narrows as you go. Matches are found anywhere in the name and regardless of "
   "case – \"kasse\" finds \"Sparkasse\".",
   "<b>Deleting characters</b>: the list widens again. Empty the field and everything is back.",
+  "<b>Tapping an item</b>: it goes into the field and the keyboard closes.",
+  "<b>The Done key</b> (bottom right on the keyboard): finishes the entry and closes the keyboard "
+  "without you leaving the field. If typing leaves exactly <b>one</b> match, it is taken – \"visa u\" is "
+  "enough for \"Visa Urlaub\". With several matches the same rule applies as when leaving the field.",
   "<b>Leaving without a choice</b>: the previous entry returns.",
 ])
 p("A <b>new payee</b> may be created this way: type a name that does not exist yet and it stays. "

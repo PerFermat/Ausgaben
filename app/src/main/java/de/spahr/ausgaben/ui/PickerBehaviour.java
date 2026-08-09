@@ -1,5 +1,7 @@
 package de.spahr.ausgaben.ui;
 
+import android.view.KeyEvent;
+import android.view.inputmethod.EditorInfo;
 import android.widget.AutoCompleteTextView;
 import android.widget.Filterable;
 import android.widget.ListAdapter;
@@ -79,6 +81,25 @@ final class PickerBehaviour {
             setPlaceholder(field, null);
             field.setText(gewaehlt, false);
             report(field, gewaehlt);
+            // Die Liste klappt beim Antippen von selbst zu; die Tastatur blieb bisher stehen und
+            // verdeckte die halbe Seite, obwohl die Eingabe fertig ist.
+            Keyboard.hide(field);
+        });
+        // Die Fertig-Taste beendet die Suche, ohne das Feld zu verlassen.
+        field.setOnEditorActionListener((v, actionId, event) -> {
+            // IME_NULL: die Enter-Taste einer angesteckten Tastatur meldet sich beim Drücken und beim
+            // Loslassen – ohne diese Unterscheidung liefe alles doppelt.
+            boolean fertig = actionId == EditorInfo.IME_ACTION_DONE
+                    || (actionId == EditorInfo.IME_NULL
+                        && (event == null || event.getAction() == KeyEvent.ACTION_UP));
+            if (fertig) {
+                takeSingleHit(field);
+                // settle() hängt sonst am Fokuswechsel – und der Fokus soll hier gerade bleiben. Ohne
+                // diesen Aufruf stünde nach der Fertig-Taste ein leeres Feld mit blassem Platzhalter da.
+                settle(field);
+                Keyboard.hide(field);
+            }
+            return true; // aufgebraucht: kein Sprung ins nächste Feld, der Fokus bleibt hier
         });
         // Ein Tipp ins bereits gewählte Feld beginnt eine neue Suche; hat es den Fokus noch nicht, hat
         // der Fokus-Listener schon geöffnet und open() tut nichts mehr.
@@ -136,6 +157,38 @@ final class PickerBehaviour {
         setPlaceholder(field, field.getText().toString());
         field.setText("", false);
         showAll(field);
+    }
+
+    /**
+     * Bleibt nach dem Tippen genau ein Eintrag in der Liste übrig, ist er gemeint: er wird ins Feld
+     * geschrieben, und das anschließende {@link #settle} erkennt ihn als bekannten Wert. So genügt
+     * „visa u" statt „Visa Urlaub".
+     *
+     * <p>Nur bei getipptem Text. Im leeren Feld steht der ganze Bestand, und daß jemand mit einem
+     * einzigen Konto die Fertig-Taste drückt, heißt noch nicht, daß er dieses Konto wählen will.</p>
+     *
+     * <p>Gefragt wird der Adapter, denn dort steht gerade die letzte Trefferliste – dieselbe, die man
+     * vor sich sieht. {@link #convert} übersetzt den Eintrag wie beim Antippen: die Kategorien zeigen
+     * das Blatt, tragen aber „Haupt:Unter" ein.</p>
+     */
+    private static void takeSingleHit(AutoCompleteTextView field) {
+        if (!isOpen(field) || field.getText().toString().trim().isEmpty()) {
+            return;
+        }
+        ListAdapter adapter = field.getAdapter();
+        if (adapter == null || adapter.getCount() != 1) {
+            return;
+        }
+        Object item = adapter.getItem(0);
+        if (item == null) {
+            return;
+        }
+        // Nicht jede Zeile ist ein Wert: die Kategorienliste kennt Überschriften und „alle", und die
+        // liefern beim Übersetzen nichts. Dann bleibt der getippte Text stehen und settle() entscheidet.
+        String value = convert(field, item);
+        if (!value.trim().isEmpty()) {
+            field.setText(value, false);
+        }
     }
 
     /**

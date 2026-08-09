@@ -92,14 +92,7 @@ public class CalcKeyboardView extends LinearLayout {
      * Fokuswechsel, damit ein noch anstehendes „Anzeigen" der IME sicher überschrieben wird.
      */
     public static void hideSystemKeyboard(final View field) {
-        field.post(() -> {
-            android.view.inputmethod.InputMethodManager imm =
-                    (android.view.inputmethod.InputMethodManager)
-                            field.getContext().getSystemService(Context.INPUT_METHOD_SERVICE);
-            if (imm != null) {
-                imm.hideSoftInputFromWindow(field.getWindowToken(), 0);
-            }
-        });
+        field.post(() -> Keyboard.hide(field));
     }
 
     public void setOnOk(OnOk listener) {

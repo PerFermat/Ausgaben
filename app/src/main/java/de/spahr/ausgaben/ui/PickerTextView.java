@@ -2,6 +2,7 @@ package de.spahr.ausgaben.ui;
 
 import android.content.Context;
 import android.util.AttributeSet;
+import android.view.inputmethod.EditorInfo;
 
 import com.google.android.material.textfield.MaterialAutoCompleteTextView;
 
@@ -24,16 +25,19 @@ public class PickerTextView extends MaterialAutoCompleteTextView {
     public PickerTextView(Context context) {
         super(context);
         ohneAutofill();
+        mitFertigTaste();
     }
 
     public PickerTextView(Context context, AttributeSet attrs) {
         super(context, attrs);
         ohneAutofill();
+        mitFertigTaste();
     }
 
     public PickerTextView(Context context, AttributeSet attrs, int defStyleAttr) {
         super(context, attrs, defStyleAttr);
         ohneAutofill();
+        mitFertigTaste();
     }
 
     /**
@@ -45,6 +49,23 @@ public class PickerTextView extends MaterialAutoCompleteTextView {
      */
     private void ohneAutofill() {
         setImportantForAutofill(IMPORTANT_FOR_AUTOFILL_NO_EXCLUDE_DESCENDANTS);
+    }
+
+    /**
+     * Unten rechts steht in jedem Vorschlagsfeld dieselbe Fertig-Taste – was sie tut, entscheidet
+     * {@link PickerBehaviour}. Ohne diese Zeile sucht sich Android die Taste je nach Umgebung selbst
+     * aus, und sie bedeutet mal dies, mal jenes.
+     *
+     * <p>{@code IME_FLAG_NO_EXTRACT_UI}: quer am Handy zieht die Tastatur sonst ein eigenes
+     * Vollbild-Eingabefeld über die Seite – und mit ihm ist die Vorschlagsliste verdeckt, also gerade
+     * das, worum es hier geht.</p>
+     *
+     * <p>Hier und nicht im Layout, damit es für jedes Vorschlagsfeld gilt, auch für die, die später
+     * dazukommen. Ein {@code android:imeOptions} im XML bliebe dafür wirkungslos: der Konstruktor läuft
+     * nach dem Einlesen der Merkmale.</p>
+     */
+    private void mitFertigTaste() {
+        setImeOptions(EditorInfo.IME_ACTION_DONE | EditorInfo.IME_FLAG_NO_EXTRACT_UI);
     }
 
     @Override

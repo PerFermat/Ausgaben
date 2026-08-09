@@ -6,6 +6,7 @@ import static org.junit.Assert.assertTrue;
 import android.app.Activity;
 import android.os.Looper;
 import android.view.ViewGroup;
+import android.view.inputmethod.EditorInfo;
 import android.widget.ArrayAdapter;
 import android.widget.AutoCompleteTextView;
 
@@ -64,6 +65,16 @@ public class PickerBehaviourTest {
 
     private void hinaus() {
         PickerBehaviour.settle(field);
+        ruhe();
+    }
+
+    /**
+     * Die Fertig-Taste der Tastatur. Vorher {@link #ruhe()}, damit der Suchlauf zum getippten Begriff
+     * durch ist – erst dann steht im Adapter die Trefferliste, die der Benutzer vor sich hätte.
+     */
+    private void fertig() {
+        ruhe();
+        field.onEditorAction(EditorInfo.IME_ACTION_DONE);
         ruhe();
     }
 
@@ -185,5 +196,123 @@ public class PickerBehaviourTest {
 
         assertEquals("", field.getText().toString());
         assertTrue(field.enoughToFilter());
+    }
+
+    // ---- Die Fertig-Taste ----
+
+    /** Unten rechts steht in jedem Vorschlagsfeld dieselbe Taste, gleich wo das Feld sitzt. */
+    @Test
+    public void jedesVorschlagsfeldHatEineFertigTaste() {
+        feld(PickerBehaviour.Unknown.RESTORE);
+
+        assertEquals(EditorInfo.IME_ACTION_DONE,
+                field.getImeOptions() & EditorInfo.IME_MASK_ACTION);
+    }
+
+    @Test
+    public void fertigUebernimmtDenEinzigenTreffer() {
+        feld(PickerBehaviour.Unknown.RESTORE);
+        field.setText("Girokonto", false);
+
+        hinein();
+        field.setText("visa u");
+        fertig();
+
+        assertEquals("Visa Urlaub", field.getText().toString());
+    }
+
+    /**
+     * Bleiben mehrere übrig – „vis" trifft „Visa" und „Visa Urlaub" –, ist nichts entschieden, und es
+     * gilt die alte Regel: der beiseite gelegte Wert kommt zurück.
+     */
+    @Test
+    public void fertigEntscheidetNichtBeiMehrerenTreffern() {
+        feld(PickerBehaviour.Unknown.RESTORE);
+        field.setText("Girokonto", false);
+
+        hinein();
+        field.setText("vis");
+        fertig();
+
+        assertEquals("Girokonto", field.getText().toString());
+    }
+
+    /**
+     * „Visa" ist zugleich ein Kontoname und der Anfang von „Visa Urlaub". Der genaue Name entscheidet –
+     * sonst käme man an ein Konto, dessen Name in einem anderen steckt, mit der Tastatur nie heran.
+     */
+    @Test
+    public void derGenaueNameSchlaegtDieMehrdeutigkeit() {
+        feld(PickerBehaviour.Unknown.RESTORE);
+        field.setText("Girokonto", false);
+
+        hinein();
+        field.setText("visa");
+        fertig();
+
+        assertEquals("Visa", field.getText().toString());
+    }
+
+    @Test
+    public void fertigNimmtDenGenauenNamenInDerSchreibweiseDerListe() {
+        feld(PickerBehaviour.Unknown.RESTORE);
+        field.setText("Girokonto", false);
+
+        hinein();
+        field.setText("  sparkasse  ");
+        fertig();
+
+        assertEquals("Sparkasse", field.getText().toString());
+    }
+
+    /**
+     * Im leeren Feld steht der ganze Bestand. Daß dort zufällig nur ein Konto stünde, hieße nicht, daß
+     * der Benutzer es wählen will – geprüft wird das mit einem Feld, dessen Liste genau einen Eintrag hat.
+     */
+    @Test
+    public void fertigImLeerenFeldWaehltNichtsAus() {
+        Activity activity = Robolectric.buildActivity(Activity.class).setup().get();
+        activity.setTheme(com.google.android.material.R.style.Theme_Material3_DayNight_NoActionBar);
+        layout = new TextInputLayout(activity);
+        field = new PickerTextView(activity);
+        layout.addView(field);
+        ((ViewGroup) activity.findViewById(android.R.id.content)).addView(layout);
+        PickerAdapters.attach(field,
+                PickerAdapters.plainAdapter(activity, Arrays.asList("Girokonto")));
+        PickerBehaviour.searchable(field, PickerBehaviour.Unknown.RESTORE);
+        field.setText("Visa", false);
+
+        hinein();
+        fertig();
+
+        assertEquals("Visa", field.getText().toString());
+    }
+
+    @Test
+    public void fertigLaesstEinenNeuenEmpfaengerStehen() {
+        feld(PickerBehaviour.Unknown.KEEP);
+        field.setText("Visa", false);
+
+        hinein();
+        field.setText("Bäckerei Müller");
+        fertig();
+
+        assertEquals("Bäckerei Müller", field.getText().toString());
+    }
+
+    /** Nach der Fertig-Taste ist die Suche beendet – sonst stünde das Feld leer mit blassem Platzhalter da. */
+    @Test
+    public void fertigBeendetDieSuche() {
+        feld(PickerBehaviour.Unknown.RESTORE);
+        field.setText("Girokonto", false);
+        final String[] gemeldet = {null};
+        PickerBehaviour.onCommitted(field, value -> gemeldet[0] = value);
+
+        hinein();
+        field.setText("visa u");
+        fertig();
+
+        assertEquals("Der Platzhalter verschwindet wieder", null, layout.getPlaceholderText());
+        assertEquals("und der neue Wert wird gemeldet", "Visa Urlaub", gemeldet[0]);
     }
 }

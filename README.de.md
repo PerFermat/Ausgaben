@@ -83,6 +83,9 @@ Details, Screenshots und die genaue Bedienung stehen im **[Benutzerhandbuch](doc
   zurück. Neue **Empfänger** dürfen dabei entstehen – Konten, Kategorien und Orte nicht, die müssen aus
   der Liste stammen. In den Kontenfeldern stehen zuerst die **Favoriten**, dann die Konten der gerade
   gewählten **Kontengruppe**, dann alle übrigen – jeder Block mit eigenem Symbol, jedes Konto nur einmal.
+  Die Tastatur geht zu, sobald die Eingabe steht: nach einem Tipp auf einen Eintrag der Liste und auf die
+  **Fertig-Taste**. Bleibt beim Tippen genau ein Treffer übrig, übernimmt die Fertig-Taste ihn – „visa u“
+  genügt für „Visa Urlaub“.
 - **Belegfotos nachbearbeiten**: direkt nach der Aufnahme (oder später über die Beleg-Zeile) lässt sich
   das Bild rechteckig zuschneiden, im Trapez-Modus eine schräg fotografierte Rechnung begradigen und
   Helligkeit/Kontrast anpassen. Das unbearbeitete Original bleibt dauerhaft als `…_original.jpg` erhalten;

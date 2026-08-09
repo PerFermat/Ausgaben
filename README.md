@@ -84,7 +84,9 @@ Details, screenshots and exact behavior are in the **[user manual](docs/Manual-A
   finds "Sparkasse"). Leaving without a choice brings the old value back. New **payees** may be created
   this way — accounts, categories and places may not, those have to come from the list. Account fields
   list your **favourites** first, then the accounts of the currently selected **account group**, then all
-  the rest — each block with its own icon, every account only once.
+  the rest — each block with its own icon, every account only once. The keyboard closes as soon as the
+  entry stands: after tapping an item in the list, and on the **Done** key. If typing leaves exactly one
+  match, the Done key takes it — "visa u" is enough for "Visa Urlaub".
 - **Edit receipt photos**: right after the shot (or later from the receipt row) you can crop the image to a
   rectangle, straighten a skewed bill in trapezoid mode and adjust brightness/contrast. The untouched
   original is kept as `…_original.jpg` for good; editing again asks whether to continue from the current

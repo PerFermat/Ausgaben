@@ -1,10 +1,10 @@
 {
   "doc_title": "Ausgaben – User Manual",
   "doc_author": "Ausgaben",
-  "version_text": "Version 1.9",
+  "version_text": "Version 1.10",
   "date_text": "Updated: August 2026",
   "toc_title": "Contents",
-  "footer_text": "Ausgaben · User Manual (Version 1.9)",
+  "footer_text": "Ausgaben · User Manual (Version 1.10)",
   "page_text": "Page %d",
   "placeholder_no_image": "No image",
   "table_headers": ["Symbol", "Name", "Meaning / function"],
@@ -297,7 +297,7 @@
         },
         {
           "type": "p",
-          "text": "<b>Account fields</b> put what you are most likely to need at the top: first your <b>favourites</b> (star), then the accounts of the currently selected <b>account group</b> (the group's own icon), then all the rest with the icon of their account kind. Your own account order is kept within each block, and an account that is both a favourite and in the group appears only once – at the top."
+          "text": "<b>Account fields</b> put what you are most likely to need at the top: first your <b>favourites</b> (star), then the accounts of the currently selected <b>account group</b> (the group's own icon), then all the rest with the icon of their account kind. Your own account order is kept within each block."
         }
       ],
       "shot": {"fname": "Buchung Empfänger.png", "caption": "Booking editor with type switch, amount, payee and account", "width": 6.0}
@@ -428,11 +428,7 @@
       "content": [
         {
           "type": "p",
-          "text": "The <b>viewer</b> is part of the app itself. <b>Swiping</b> pages through the receipt (the header counts along: «Page 2 of 3»), <b>pinching</b> and a <b>double tap</b> zoom in to read the small print; another double tap fits the image back in. No external photo app is called on purpose: those remember images by file name and would still show the pre-edit version from their cache."
-        },
-        {
-          "type": "p",
-          "text": "All pages of a booking share <b>the same UUID</b> and differ only by the suffix «_p1», «_p2» and so on. The note – and therefore the KMyMoney memo – only holds <b>«BELEG: &lt;uuid&gt;»</b>; the app looks for the pages itself, first in the phone's receipt folder, then on the network share. Older receipts without a page suffix count as page 1 and are not renamed; a new shot added to them becomes page 2."
+          "text": "The <b>viewer</b> is part of the app itself. <b>Swiping</b> pages through the receipt (the header counts along: «Page 2 of 3»), <b>pinching</b> and a <b>double tap</b> zoom in to read the small print; another double tap fits the image back in."
         },
         {
           "type": "p",
@@ -441,10 +437,6 @@
         {
           "type": "p",
           "text": "Delete a booking and its images disappear on the <b>next app start</b> – not right away, so that the «Undo» offered straight after deleting still brings the receipt back."
-        },
-        {
-          "type": "p",
-          "text": "If you delete a page in the middle, the following ones move up when you save, so the numbering stays gapless. Even deleting <b>page 1</b> keeps the booking linked to its receipt – the former page 2 simply becomes page 1."
         }
       ],
       "shot": {"fname": "Beleg Betrachter.png", "caption": "The built-in viewer counts along: «Page 2 of 3»", "width": 6.0}
@@ -508,7 +500,7 @@
             "<b>Pull down</b> (in an account or portfolio view): in the <b>kmy variant</b> the .kmy file is re-read and that account or portfolio is refreshed. In the <b>CSV variant</b> this is not available – there you refresh an account via the account menu (long-press the account in the drawer).",
             "Markers: «Split», → / ← (transfer), «exported»; colours red/green.",
             "<b>Filter</b> (funnel ▽): with a <b>search field</b> that searches <b>payee, note and category</b> (substring, case-insensitive – so you can find a booking by its note as well); plus category (as a tree), amount (slider) and <b>date from–to</b> (slider in whole-month steps; type an exact day into the field). The filter applies to the list and the analysis. With a category filter a split booking shows only the partial amount of the chosen category.",
-            "<b>Undo</b>: after deleting a booking, «Undo» appears briefly at the bottom – one tap recreates it. It gets a new internal number; in the place journal the deletion and the recreation stay visible as movements (the history is preserved, the balance is correct). Transfers have no undo.",
+            "<b>Undo</b>: after deleting a booking, «Undo» appears briefly at the bottom – one tap recreates it. In the place journal the deletion and the recreation stay visible as movements. Transfers have no undo.",
             "<b>Long press on the app icon</b> (home screen): «New booking» opens the editor directly."
           ]
         }
@@ -566,13 +558,13 @@
     },
     {
       "type": "p",
-      "text": "The <b>calendar toggle</b> at the top right adds the <b>scheduled expenses due</b> in the period (chapter 8) to the ones already made – including those that sit as a <b>deduction inside a scheduled income</b>, such as the capital gains tax on a dividend. Then:"
+      "text": "The <b>calendar toggle</b> at the top right adds the <b>scheduled expenses due</b> in the period (chapter 12) to the ones already made – including those that sit as a <b>deduction inside a scheduled income</b>, such as the capital gains tax on a dividend. Then:"
     },
     {
       "type": "bullets",
       "items": [
         "The <b>sum per category</b> grows by the scheduled share; the list sorts by the new sum.",
-        "In the chart the <b>already paid</b> share appears in the category's strong colour, the <b>scheduled</b> share right next to it in the <b>same, lighter</b> shade – together they form <b>one continuous sector</b> with no separator between them.",
+        "In the chart the <b>already paid</b> share appears in the category's strong colour, the <b>scheduled</b> share right next to it in the <b>same, lighter</b> shade – together they form <b>one continuous sector</b>.",
         "Rows with a scheduled share can be <b>expanded</b> (arrow on the right), showing «Already paid» and «Scheduled» separately.",
         "With the toggle on, the slider also pages into <b>future</b> months/years – which then show only scheduled values – up to the last scheduled occurrence."
       ]
@@ -609,7 +601,7 @@
         },
         {
           "type": "p",
-          "text": "Whether a category is <b>income or expense</b> is taken reliably from the KMyMoney type in the .kmy file (not from the sign of individual bookings). A refund therefore reduces the expense category without turning it into income; a computed negative actual is clamped to 0."
+          "text": "Whether a category is <b>income or expense</b> follows from the .kmy file. A refund therefore reduces the expense category without turning it into income; a computed negative actual is clamped to 0."
         }
       ],
       "shot": {"fname": "Budget.png", "caption": "Budget page: actual/target per category, with progress bars", "width": 6.0}
@@ -647,11 +639,11 @@
         "Each recurring schedule is <b>expanded into its individual occurrences</b> (e.g. a weekly bakery appears several times) — from the stored next due date up to <b>2 years</b> ahead.",
         "Only <b>active</b> schedules; entries <b>without a date</b> are skipped, and an <b>end date</b> (or a limited number of payments in KMyMoney) limits the preview.",
         "A coloured <b>strip</b> precedes each row: <b>green</b> = deposit, <b>red</b> = payment, <b>yellow</b> = transfer. The <b>date</b> is its own column at the front, next to it the <b>name</b> with the <b>payee</b> in smaller, grey text behind it and below it the <b>category</b> (with several categories <b>«Split transaction»</b>), then an <b>account column</b> and the amount on the right. For a <b>transfer</b> the account column shows <b>both accounts, one below the other</b> (instead of a category).",
-        "The <b>type</b> is taken strictly from KMyMoney: a <b>stock/ETF purchase</b> (savings plan) is a <b>transfer</b> from the cash account into the security – not an expense.",
+        "The <b>type</b> comes from KMyMoney: a <b>stock/ETF purchase</b> (savings plan) is a <b>transfer</b> from the cash account into the security, not an expense.",
         "A <b>tap on a row</b> opens the transaction in the <b>familiar detail view</b> (read-only, exactly like a real account movement – including the categories of a split transaction and the balance before/after).",
         "<b>Book now</b>: a <b>long press</b> on a row opens the booking editor as a <b>new booking</b>, prefilled from the schedule (date = due date, amount, payee, account, categories resp. from/to). Check it, adjust if needed and save with «New booking» – it lands in the account and (with a place chosen) in the holdings. Tap = view, long press = book – just like in the booking list.",
         "<b>Skip booking</b>: the prefilled editor also offers a <b>«Skip booking»</b> button (with a confirmation) – <b>no</b> transaction is created, but the date still counts as done.",
-        "<b>The schedule moves on.</b> Booked or skipped, the date disappears from the list right away, and on the <b>next .kmy export</b> the KMyMoney schedule is moved on by <b>one period</b> (for an actual booking the date of the last payment is written as well). The schedule itself – amount, rhythm, splits, start date – stays unchanged, and so do later dates. If KMyMoney has meanwhile moved the schedule on itself, <b>the file wins</b>: the app writes nothing and drops its pending change. Cancelling the editor leaves the schedule as it is."
+        "<b>The schedule moves on.</b> Booked or skipped, the date disappears from the list right away, and on the <b>next .kmy export</b> the KMyMoney schedule is moved on by <b>one period</b> (for an actual booking the date of the last payment is written as well). The schedule itself – amount, rhythm, splits, start date – stays unchanged, and so do later dates. Cancelling the editor leaves the schedule as it is."
       ]
     },
     {
@@ -709,7 +701,7 @@
       "content": [
         {
           "type": "p",
-          "text": "The <b>chart icon</b> at the top right opens an analysis that <b>looks exactly like the account view's chart</b>: green/red <b>bars</b> for deposits and bills and a <b>development line</b> of the selected account or of total wealth. You can pick the <b>view</b> (total or a single account) and the <b>time unit</b> day/week/month. The line <b>starts at 0 at the beginning of the observation period (= today)</b> and can be <b>zoomed and panned</b> like the account chart; it starts at the far left (today) and runs to the right into the future. The chart inherits the list filter. For a <b>transfer</b> the amount decreases on the <b>source account</b> (red) and increases on the <b>target account</b> (green) – the direction («pay to» or «from») is taken from KMyMoney."
+          "text": "The <b>chart icon</b> at the top right opens an analysis that <b>looks exactly like the account view's chart</b>: green/red <b>bars</b> for deposits and bills and a <b>development line</b> of the selected account or of total wealth. You can pick the <b>view</b> (total or a single account) and the <b>time unit</b> day/week/month. The line starts at the far left at <b>today with 0</b> and runs to the right into the future; like the account chart it can be <b>zoomed and panned</b>. The chart inherits the list filter. For a <b>transfer</b> the amount decreases on the <b>source account</b> (red) and increases on the <b>target account</b> (green) – the direction («pay to» or «from») is taken from KMyMoney."
         },
         {
           "type": "p",
@@ -779,7 +771,7 @@
     },
     {
       "type": "p",
-      "text": "A particular advantage: the <b>cash count</b> (reconciliation) can be done <b>per place</b>. You count only the cash of <i>one</i> place – say the wallet – enter the counted amount, and the app automatically books the difference as a balancing movement. So you don't have to reconcile the whole account at once; this <b>simplifies reconciliation considerably</b>. Imported bookings carry no place link. If an account has <b>no places at all</b>, the place field is missing and the whole account is reconciled. And if there are no places anywhere in the app, the holdings screen drops the <b>«Transfer»</b> button as well – it only ever offers accounts that have places."
+      "text": "A particular advantage: the <b>cash count</b> (reconciliation) can be done <b>per place</b>. You count only the cash of <i>one</i> place – say the wallet – enter the counted amount, and the app automatically books the difference as a balancing movement. So you don't have to reconcile the whole account at once; this <b>simplifies reconciliation considerably</b>. Imported bookings carry no place link. If an account has <b>no places at all</b>, the place field is missing and the whole account is reconciled."
     },
     {
       "type": "p",
@@ -791,7 +783,7 @@
     },
     {
       "type": "p",
-      "text": "Accounts are grouped by their KMyMoney type into <b>asset accounts</b>, <b>liability accounts</b> (loans, credit cards) and <b>portfolios</b> – with colour-coded section headers (assets green, liabilities red, portfolios blue; light theme → lighter colour/black text, dark theme → darker colour/white text) both in the account drawer and in the holdings view. In holdings each category header shows its <b>category total</b> right-aligned; the portfolio counts as one line (portfolio value) towards the <b>total</b> (in a neutral grey/black). The split is taken from the .kmy on import (visible after a re-import)."
+      "text": "Accounts are grouped by their KMyMoney type into <b>asset accounts</b>, <b>liability accounts</b> (loans, credit cards) and <b>portfolios</b> – with colour-coded section headers (assets green, liabilities red, portfolios blue; light theme → lighter colour/black text, dark theme → darker colour/white text) both in the account drawer and in the holdings view. In holdings each category header shows its <b>category total</b> right-aligned; the portfolio counts as one line (portfolio value) towards the <b>total</b> (in a neutral grey/black). The split comes from the .kmy."
     },
     {
       "type": "h2",
@@ -802,7 +794,7 @@
       "content": [
         {
           "type": "p",
-          "text": "After importing a KMyMoney investment account, the <b>portfolio</b> appears in the account drawer. The portfolio view is laid out exactly like an account view – same <b>menu bar</b> (hamburger menu on the left, portfolio name as the title, and on the right the same menu items as a normal account) plus drawer and filter – and shows <b>shares × price = current value</b> per security; fully sold securities are hidden. The <b>balance line toggles by tap</b> through portfolio value → buys → sells (if any) → dividends (if any) → <b>net invested</b> (buys − sells − dividends) → <b>gain/loss</b> (coloured, with percentage). The <b>portfolio filter</b> narrows the securities by name and value (slider). When you scroll far down, the <b>scroll-to-top button</b> (bottom left) jumps straight back to the start. A tap on a security opens its <b>movements full-screen</b> (buys green, sells red, dividends neutral) with the same figures for that security plus a <b>filter by buys/sells/dividends</b> and a date slider (start date = first purchase). The portfolio value is kept separate and also appears as «Net worth» in the main screen's balance line."
+          "text": "After importing a KMyMoney investment account, the <b>portfolio</b> appears in the account drawer. The portfolio view is laid out like an account view – same title bar with the same menu items, same drawer, same filter – and shows <b>shares × price = current value</b> per security; fully sold securities are hidden. The <b>balance line toggles by tap</b> through portfolio value → buys → sells (if any) → dividends (if any) → <b>net invested</b> (buys − sells − dividends) → <b>gain/loss</b> (coloured, with percentage). The <b>portfolio filter</b> narrows the securities by name and value (slider). When you scroll far down, the <b>scroll-to-top button</b> (bottom left) jumps straight back to the start. A tap on a security opens its <b>movements full-screen</b> (buys green, sells red, dividends neutral) with the same figures for that security plus a <b>filter by buys/sells/dividends</b> and a date slider (start date = first purchase). The portfolio value is kept separate and also appears as «Net worth» in the main screen's balance line."
         },
         {
           "type": "p",
@@ -847,11 +839,7 @@
     },
     {
       "type": "p",
-      "text": "The <b>Export</b> in the portfolio menu runs right in the portfolio (no switch to the cash view)."
-    },
-    {
-      "type": "p",
-      "text": "<b>Dividends gross/net:</b> the settings let you choose whether dividends are shown gross (declared dividend) or net (cash received after tax) and used in the balance line (dividends, net invested, gain/loss). The net value is captured on portfolio import – for existing data a one-time re-import is needed."
+      "text": "<b>Dividends gross/net:</b> the settings let you choose whether dividends are shown gross (declared dividend) or net (cash received after tax) and used in the balance line (dividends, net invested, gain/loss)."
     },
     {
       "type": "h1",
@@ -894,23 +882,11 @@
     },
     {
       "type": "p",
-      "text": "<b>Securities buys and sells</b> (money from the account into a security or back) are imported as a <b>transfer</b> into/out of the security. This keeps the full purchase amount from wrongly counting as «bank fees». The actual small <b>fee</b> (or tax) inside the transaction does <b>not</b> appear in the booking list and changes no balances – but it is counted as a small expense in the <b>category evaluations</b> (chapter «Where does my money go?» and Budget). <b>Dividends</b> stay normal income. To convert old, already-imported buys, re-import the affected account once."
+      "text": "<b>Securities buys and sells</b> (money from the account into a security or back) are imported as a <b>transfer</b> into/out of the security. The small <b>fee</b> (or tax) inside the transaction does <b>not</b> appear in the booking list and changes no balances – but it is counted as a small expense in the <b>category evaluations</b> (chapter «Where does my money go?» and Budget). <b>Dividends</b> stay normal income."
     },
     {
       "type": "p",
       "text": "An import replaces the already-exported bookings per account (no duplicates). The import runs <b>in the background</b> – the UI stays usable; a <b>yellow banner</b> at the top of the booking list («Importing account …») with a moving gradient, status text and percentage shows the progress and disappears when done. A message appears <b>only on error</b>. In <b>CSV mode with SMB/WebDAV</b>, adding an account or long-pressing one opens a <b>navigable folder browser</b> (subfolders 📁 + CSV files, «..» to go up); the chosen CSV is imported from the current folder. The drawer stays open on long press."
-    },
-    {
-      "type": "h2",
-      "text": "What the progress in the banner means"
-    },
-    {
-      "type": "p",
-      "text": "The percentage keeps moving throughout the import (downloading, preparing, reading bookings, saving) instead of jumping in large steps."
-    },
-    {
-      "type": "p",
-      "text": "To keep the import quick, the app reads the file <b>once for all selected accounts</b> and saves everything in one go. Prices, budgets and scheduled transactions only appear <b>after</b> the bookings in the .kmy — the app jumps straight there instead of walking through the whole ledger again for each of those parts."
     },
     {
       "type": "h2",
@@ -930,7 +906,7 @@
     },
     {
       "type": "p",
-      "text": "If the file changed in the meantime, the <b>export aborts and writes nothing</b>; the bookings stay unexported and can be exported again after a fresh import, without any loss. If the server reports no state, the app writes unchecked as before – the export never fails because of this."
+      "text": "If the file changed in the meantime, the <b>export aborts and writes nothing</b>; the bookings stay unexported and can be exported again after a fresh import, without any loss. If the server reports no state, the app writes unchecked – the export never fails because of this."
     },
     {
       "type": "h1",
@@ -941,7 +917,7 @@
       "content": [
         {
           "type": "p",
-          "text": "With the watch app you record an expense by voice right on your wrist. The watch only captures the text; processing and creating the booking happen on the phone (the same parser)."
+          "text": "With the watch app you record an expense by voice right on your wrist. The watch only captures the text; processing and creating the booking happen on the phone."
         },
         {
           "type": "bullets",
@@ -1138,7 +1114,7 @@
     {
       "type": "bullets",
       "items": [
-        "<b>App lock</b>: optional via biometrics/device credential (fingerprint, face, PIN, pattern, password) – on start and when returning from the background. When the app hands over to another app itself – camera, gallery, file picker, speech input – returning within five minutes does not ask again: from the user's point of view the app was never left. Stay away longer and the lock is back.",
+        "<b>App lock</b>: optional via biometrics/device credential (fingerprint, face, PIN, pattern, password) – on start and when returning from the background. When the app hands over to another app itself – camera, gallery, file picker, speech input – returning within five minutes does not ask again. Stay away longer and the lock is back.",
         "<b>Location (GPS)</b> switch (default <b>off</b>): controls all location use. Off = no permission prompt, no GPS note, no amount-only entry, no alias location. The position is used locally only, never sent to a service."
       ]
     },
@@ -1171,7 +1147,7 @@
     },
     {
       "type": "p",
-      "text": "On <b>«Restore backup»</b> the app first asks for the backup password if needed, and then <b>what</b> should come back: <b>data only</b>, <b>settings only</b> or <b>both</b>. That way a broken configuration can be repaired without touching the recorded bookings. The app restarts afterwards. Receipt photos are not part of the backup – once uploaded they live on the server. Backups of older versions (plain <i>.db</i> files) are no longer accepted."
+      "text": "On <b>«Restore backup»</b> the app first asks for the backup password if needed, and then <b>what</b> should come back: <b>data only</b>, <b>settings only</b> or <b>both</b>. That way a broken configuration can be repaired without touching the recorded bookings. The app restarts afterwards. Receipt photos are not part of the backup – once uploaded they live on the server."
     },
     {
       "type": "h2",

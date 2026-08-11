@@ -1,10 +1,10 @@
 {
   "doc_title": "Ausgaben – Benutzerhandbuch",
   "doc_author": "Ausgaben",
-  "version_text": "Version 1.9",
+  "version_text": "Version 1.10",
   "date_text": "Stand: August 2026",
   "toc_title": "Inhalt",
-  "footer_text": "Ausgaben · Benutzerhandbuch (Version 1.9)",
+  "footer_text": "Ausgaben · Benutzerhandbuch (Version 1.10)",
   "page_text": "Seite %d",
   "placeholder_no_image": "Kein Bild",
   "table_headers": ["Symbol", "Name", "Bedeutung / Funktion"],
@@ -297,7 +297,7 @@
         },
         {
           "type": "p",
-          "text": "In den <b>Kontenfeldern</b> steht vorn, was Sie am ehesten brauchen: zuerst Ihre <b>Favoriten</b> (Stern), dahinter die Konten der gerade gewählten <b>Kontengruppe</b> (Symbol der Gruppe), dann alle übrigen mit dem Symbol ihrer Kontenart. Ihre eigene Kontenreihenfolge bleibt innerhalb jedes Blocks erhalten, und ein Konto, das Favorit und zugleich in der Gruppe ist, steht nur einmal da – oben."
+          "text": "In den <b>Kontenfeldern</b> steht vorn, was Sie am ehesten brauchen: zuerst Ihre <b>Favoriten</b> (Stern), dahinter die Konten der gerade gewählten <b>Kontengruppe</b> (Symbol der Gruppe), dann alle übrigen mit dem Symbol ihrer Kontenart. Ihre eigene Kontenreihenfolge bleibt innerhalb jedes Blocks erhalten."
         }
       ],
       "shot": {"fname": "Buchung Empfänger.png", "caption": "Buchungs-Editor mit Typ-Umschalter, Betrag, Empfänger und Konto", "width": 6.0}
@@ -429,11 +429,7 @@
       "content": [
         {
           "type": "p",
-          "text": "Der <b>Betrachter</b> gehört zur App selbst. <b>Wischen</b> blättert von Seite zu Seite (die Kopfzeile zählt mit: «Seite 2 von 3»), <b>Zusammenziehen/Aufziehen</b> und ein <b>Doppeltipp</b> vergrößern das Bild, um Kleingedrucktes zu lesen; ein weiterer Doppeltipp passt es wieder ein. Bewusst wird keine fremde Foto-App aufgerufen: die merkt sich Bilder anhand des Dateinamens und zeigte nach einer Bearbeitung noch die alte Fassung aus ihrem Zwischenspeicher."
-        },
-        {
-          "type": "p",
-          "text": "Alle Seiten einer Buchung teilen sich <b>dieselbe UUID</b> und unterscheiden sich nur durch den Zusatz «_p1», «_p2» und so fort. In der Notiz – und damit im KMyMoney-Memo – steht nur noch <b>«BELEG: &lt;uuid&gt;»</b>; die Seiten sucht die App selbst, erst im Beleg-Ordner des Handys, dann auf dem Netzlaufwerk. Ältere Belege ohne Seitenzusatz gelten dabei als Seite 1 und werden nicht umbenannt; eine neue Aufnahme dazu wird zur Seite 2."
+          "text": "Der <b>Betrachter</b> gehört zur App selbst. <b>Wischen</b> blättert von Seite zu Seite (die Kopfzeile zählt mit: «Seite 2 von 3»), <b>Zusammenziehen/Aufziehen</b> und ein <b>Doppeltipp</b> vergrößern das Bild, um Kleingedrucktes zu lesen; ein weiterer Doppeltipp passt es wieder ein."
         },
         {
           "type": "p",
@@ -442,10 +438,6 @@
         {
           "type": "p",
           "text": "Löschen Sie eine Buchung, verschwinden ihre Bilder beim <b>nächsten App-Start</b> – nicht sofort, damit das «Rückgängig» direkt nach dem Löschen den Beleg noch mitbringt."
-        },
-        {
-          "type": "p",
-          "text": "Löschen Sie eine Seite in der Mitte, rücken die folgenden beim Speichern nach, damit die Nummerierung lückenlos bleibt. Auch wenn Sie <b>Seite 1</b> löschen, bleibt die Buchung mit ihrem Beleg verbunden – die frühere Seite 2 wird dann zur Seite 1."
         }
       ],
        "shot": {"fname": "Beleg Betrachter.png", "caption": "Der eigene Betrachter zählt mit: «Seite 1 von 2»", "width": 6.0}
@@ -509,7 +501,7 @@
             "<b>Herunterziehen</b> (in einer Konto- oder Depot-Ansicht): in der <b>kmy-Variante</b> wird die .kmy-Datei neu eingelesen und genau dieses Konto bzw. Depot aktualisiert. In der <b>CSV-Variante</b> ist das nicht verfügbar – dort aktualisiert man ein Konto über das Kontenmenü (langer Druck auf das Konto in der Schublade).",
             "Markierungen: «Split», → / ← (Umbuchung), «exportiert»; Farben rot/grün.",
             "<b>Filter</b> (Trichter ▽): mit einem <b>Suchfeld</b>, das <b>Empfänger, Notiz und Kategorie</b> durchsucht (Teilstring, Groß-/Kleinschreibung egal – so finden Sie auch eine Buchung über ihre Notiz); dazu Kategorie (als Baum), Betrag (Schieberegler) und <b>Datum von–bis</b> (Schieberegler in Monatsschritten; ein taggenaues Datum geben Sie direkt im Feld ein). Der Filter wirkt auf Liste und Auswertung. Bei Kategorie-Filter zeigt eine Splitbuchung nur den Teilbetrag der gewählten Kategorie.",
-            "<b>Rückgängig</b>: Nach dem Löschen einer Buchung erscheint unten kurz «Rückgängig» – ein Tipp legt sie wieder an. Sie erhält dabei eine neue interne Nummer; im Ort-Journal bleiben Löschung und Wiederanlage als Bewegungen sichtbar (die Historie bleibt erhalten, der Saldo stimmt). Bei Umbuchungen gibt es kein Rückgängig.",
+            "<b>Rückgängig</b>: Nach dem Löschen einer Buchung erscheint unten kurz «Rückgängig» – ein Tipp legt sie wieder an. Im Ort-Journal bleiben Löschung und Wiederanlage als Bewegungen sichtbar. Bei Umbuchungen gibt es kein Rückgängig.",
             "<b>Langdruck auf das App-Symbol</b> (Startbildschirm): «Neue Buchung» öffnet den Editor direkt."
           ]
         }
@@ -567,13 +559,13 @@
     },
     {
       "type": "p",
-      "text": "Der <b>Kalender-Schalter</b> oben rechts rechnet die im Zeitraum <b>fälligen geplanten Ausgaben</b> (Kapitel 8) zu den bereits getätigten hinzu – auch die, die als <b>Abzug in einer geplanten Einzahlung</b> stecken, etwa die Kapitalertragssteuer einer Dividende. Dann gilt:"
+      "text": "Der <b>Kalender-Schalter</b> oben rechts rechnet die im Zeitraum <b>fälligen geplanten Ausgaben</b> (Kapitel 12) zu den bereits getätigten hinzu – auch die, die als <b>Abzug in einer geplanten Einzahlung</b> stecken, etwa die Kapitalertragssteuer einer Dividende. Dann gilt:"
     },
     {
       "type": "bullets",
       "items": [
         "Die <b>Summe je Kategorie</b> steigt um den geplanten Anteil; die Liste sortiert nach der neuen Summe.",
-        "Im Diagramm erscheint der <b>bereits gezahlte</b> Anteil in der kräftigen Farbe der Kategorie, der <b>geplante</b> Anteil direkt daneben im <b>selben, helleren</b> Ton – beide bilden <b>einen durchgehenden Kreisausschnitt</b> ohne Trennstrich dazwischen.",
+        "Im Diagramm erscheint der <b>bereits gezahlte</b> Anteil in der kräftigen Farbe der Kategorie, der <b>geplante</b> Anteil direkt daneben im <b>selben, helleren</b> Ton – beide bilden zusammen <b>einen durchgehenden Kreisausschnitt</b>.",
         "Zeilen mit geplantem Anteil lassen sich <b>aufklappen</b> (Pfeil rechts) und zeigen «Bereits gezahlt» und «Geplant» getrennt.",
         "Mit eingeschaltetem Schalter blättert der Slider auch in <b>zukünftige</b> Monate/Jahre, die dann nur geplante Werte zeigen – bis zum letzten geplanten Termin."
       ]
@@ -611,7 +603,7 @@
        },
        {
          "type": "p",
-         "text": "Ob eine Kategorie <b>Einnahme oder Ausgabe</b> ist, wird zuverlässig aus dem KMyMoney-Typ der .kmy-Datei bestimmt (nicht aus dem Vorzeichen einzelner Buchungen). Eine Erstattung mindert daher die Ausgabekategorie, ohne sie zur Einnahme zu machen; ein rechnerisch negativer Ist wird auf 0    gesetzt."
+         "text": "Ob eine Kategorie <b>Einnahme oder Ausgabe</b> ist, ergibt sich aus der .kmy-Datei. Eine Erstattung mindert daher die Ausgabekategorie, ohne sie zur Einnahme zu machen; ein rechnerisch negativer Ist wird auf 0 gesetzt."
        }
       ],
       "shot": {"fname": "Budget.png", "caption": "Budget-Seite: Ist/Soll je Kategorie, mit Fortschrittsbalken", "width": 6.0}
@@ -649,11 +641,11 @@
         "Jede wiederkehrende Planung wird in ihre <b>Einzeltermine aufgefaltet</b> (z. B. ein wöchentlicher Bäcker erscheint mehrfach) – <b>ab der gespeicherten nächsten Fälligkeit</b> bis <b>höchstens 2 Jahre</b> in die Zukunft.",
         "Nur <b>aktive</b> Planungen; Termine <b>ohne Datum</b> werden ausgelassen, ein <b>Enddatum</b> (bzw. eine begrenzte Anzahl Buchungen in KMyMoney) begrenzt die Vorschau.",
         "Vor jeder Zeile ein farbiger <b>Strich</b>: <b>grün</b> = Einzahlung, <b>rot</b> = Auszahlung, <b>gelb</b> = Umbuchung. Das <b>Datum</b> steht in einer eigenen Spalte vorne, daneben der <b>Name</b> mit dem <b>Zahlungsempfänger</b> in kleinerer, grauer Schrift dahinter und darunter die <b>Kategorie</b> (bei mehreren Kategorien <b>«Splitbuchung»</b>), dann eine <b>Konto-Spalte</b> und rechts der Betrag. Bei einer <b>Umbuchung</b> zeigt die Konto-Spalte <b>beide Konten untereinander</b> (statt einer Kategorie).",
-        "Die <b>Buchungsart</b> wird streng aus KMyMoney übernommen: ein <b>Aktien-/ETF-Kauf</b> (Sparplan) ist eine <b>Umbuchung</b> vom Geldkonto ins Wertpapier – nicht eine Ausgabe.",
+        "Die <b>Buchungsart</b> stammt aus KMyMoney: ein <b>Aktien-/ETF-Kauf</b> (Sparplan) ist eine <b>Umbuchung</b> vom Geldkonto ins Wertpapier, keine Ausgabe.",
         "Ein <b>Tipp auf eine Zeile</b> öffnet die Buchung in der <b>gewohnten Detail-Maske</b> (schreibgeschützt, genau wie eine echte Kontobewegung – inkl. Kategorien einer Splitbuchung und Kontostand vorher/nachher).",
         "<b>Jetzt buchen</b>: Ein <b>langer Druck</b> auf eine Zeile öffnet den Buchungs-Editor als <b>neue Buchung</b>, vorbefüllt aus der Planung (Datum = Fälligkeit, Betrag, Empfänger, Konto, Kategorien bzw. Von/Nach). Sie prüfen, ändern bei Bedarf und speichern mit «Neue Buchung» – die Buchung landet im Konto und (bei gewähltem Ort) in den Beständen. Kurzer Tipp = ansehen, langer Druck = buchen – wie in der Buchungsliste.",
         "<b>Buchung überspringen</b>: Im vorbefüllten Editor steht zusätzlich der Knopf <b>«Buchung überspringen»</b> (mit Rückfrage) – es entsteht <b>keine</b> Buchung, der Termin gilt trotzdem als erledigt.",
-        "<b>Die Planung rückt weiter.</b> Ob gebucht oder übersprungen: Der Termin verschwindet sofort aus der Liste, und beim <b>nächsten .kmy-Export</b> wird die Regel in KMyMoney um <b>eine Periode</b> weitergestellt (bei einer tatsächlichen Buchung zusätzlich das Datum der letzten Zahlung). Die Regel selbst – Betrag, Rhythmus, Splits, Startdatum – bleibt unverändert, spätere Termine ebenso. Hat KMyMoney die Regel inzwischen selbst weitergestellt, <b>gewinnt die Datei</b>: die App schreibt dann nichts und verwirft ihre Vormerkung. Bricht man den Editor ab, bleibt die Planung stehen."
+        "<b>Die Planung rückt weiter.</b> Ob gebucht oder übersprungen: Der Termin verschwindet sofort aus der Liste, und beim <b>nächsten .kmy-Export</b> wird die Regel in KMyMoney um <b>eine Periode</b> weitergestellt (bei einer tatsächlichen Buchung zusätzlich das Datum der letzten Zahlung). Die Regel selbst – Betrag, Rhythmus, Splits, Startdatum – bleibt unverändert, spätere Termine ebenso. Bricht man den Editor ab, bleibt die Planung stehen."
       ]
     },
     {
@@ -711,7 +703,7 @@
       "content": [
         {
           "type": "p",
-          "text": "Das <b>Grafik-Symbol</b> oben rechts öffnet eine Auswertung, die <b>genauso aussieht wie die Grafik der Kontoansicht</b>: grüne/rote <b>Balken</b> für Einzahlungen bzw. Rechnungen und eine <b>Entwicklungslinie</b> des gewählten Kontos bzw. des Gesamtvermögens. Wählbar sind die <b>Sicht</b> (Gesamt oder einzelnes Konto) und die <b>Zeiteinheit</b> Tag/Woche/Monat. Die Linie <b>startet am Anfang des Betrachtungszeitraums (= aktueller Tag) bei 0</b> und lässt sich – wie die Konto-Grafik – <b>zoomen und verschieben</b>; sie beginnt jedoch ganz links (heute) und läuft nach rechts in die Zukunft. Die Grafik übernimmt den eingestellten Listenfilter. Bei einer <b>Umbuchung</b> sinkt der Betrag beim <b>Quellkonto</b> (rot) und steigt beim <b>Zielkonto</b> (grün) – die Richtung («Zahlen an» bzw. «von») wird aus KMyMoney übernommen."
+          "text": "Das <b>Grafik-Symbol</b> oben rechts öffnet eine Auswertung, die <b>genauso aussieht wie die Grafik der Kontoansicht</b>: grüne/rote <b>Balken</b> für Einzahlungen bzw. Rechnungen und eine <b>Entwicklungslinie</b> des gewählten Kontos bzw. des Gesamtvermögens. Wählbar sind die <b>Sicht</b> (Gesamt oder einzelnes Konto) und die <b>Zeiteinheit</b> Tag/Woche/Monat. Die Linie beginnt ganz links bei <b>heute mit 0</b> und läuft nach rechts in die Zukunft; wie die Konto-Grafik lässt sie sich <b>zoomen und verschieben</b>. Die Grafik übernimmt den eingestellten Listenfilter. Bei einer <b>Umbuchung</b> sinkt der Betrag beim <b>Quellkonto</b> (rot) und steigt beim <b>Zielkonto</b> (grün) – die Richtung («Zahlen an» bzw. «von») wird aus KMyMoney übernommen."
         },
         {
           "type": "p",
@@ -781,7 +773,7 @@
     },
     {
       "type": "p",
-      "text": "Ein besonderer Vorteil: Der <b>Kassensturz</b> (Soll-Ist-Abgleich) lässt sich <b>pro Ort</b> durchführen. Sie zählen nur das Bargeld <i>eines</i> Ortes – etwa den Geldbeutel –, tragen den gezählten Betrag ein, und die App bucht automatisch die Differenz als Ausgleichs-Bewegung. Sie müssen also nicht das gesamte Konto auf einmal abstimmen; das <b>vereinfacht den Abgleich erheblich</b>. Importierte Buchungen tragen keine Ort-Verknüpfung. Hat ein Konto <b>gar keine Orte</b>, fehlt das Ort-Feld – dann wird das ganze Konto abgestimmt. Und gibt es in der App nirgends Orte, fehlt in den Beständen auch der Knopf <b>«Umbuchen»</b>; er bietet ohnehin nur Konten mit Orten an."
+      "text": "Ein besonderer Vorteil: Der <b>Kassensturz</b> (Soll-Ist-Abgleich) lässt sich <b>pro Ort</b> durchführen. Sie zählen nur das Bargeld <i>eines</i> Ortes – etwa den Geldbeutel –, tragen den gezählten Betrag ein, und die App bucht automatisch die Differenz als Ausgleichs-Bewegung. Sie müssen also nicht das gesamte Konto auf einmal abstimmen; das <b>vereinfacht den Abgleich erheblich</b>. Importierte Buchungen tragen keine Ort-Verknüpfung. Hat ein Konto <b>gar keine Orte</b>, fehlt das Ort-Feld – dann wird das ganze Konto abgestimmt."
     },
     {
       "type": "p",
@@ -793,7 +785,7 @@
     },
     {
       "type": "p",
-      "text": "Konten werden anhand ihres KMyMoney-Typs in <b>Anlagekonten</b>, <b>Verbindlichkeitskonten</b> (Kredite, Kreditkarten) und <b>Depots</b> gruppiert – mit farbcodierten Überschriften (Anlage = grün, Verbindlichkeit = rot, Depot = blau; helle Darstellung → hellere Farbe/schwarze Schrift, dunkle Darstellung → dunklere Farbe/weiße Schrift) sowohl in der Kontenschublade als auch in den Beständen. In den Beständen zeigt jede Kategorie-Überschrift rechtsbündig ihre <b>Kategoriesumme</b>; das Depot zählt als eine Zeile (Depotwert) zum <b>Gesamt</b> mit (in neutralem Grau/Schwarz). Die Einteilung wird beim Import aus der .kmy übernommen (nach einem erneuten Import sichtbar)."
+      "text": "Konten werden anhand ihres KMyMoney-Typs in <b>Anlagekonten</b>, <b>Verbindlichkeitskonten</b> (Kredite, Kreditkarten) und <b>Depots</b> gruppiert – mit farbcodierten Überschriften (Anlage = grün, Verbindlichkeit = rot, Depot = blau; helle Darstellung → hellere Farbe/schwarze Schrift, dunkle Darstellung → dunklere Farbe/weiße Schrift) sowohl in der Kontenschublade als auch in den Beständen. In den Beständen zeigt jede Kategorie-Überschrift rechtsbündig ihre <b>Kategoriesumme</b>; das Depot zählt als eine Zeile (Depotwert) zum <b>Gesamt</b> mit (in neutralem Grau/Schwarz). Die Einteilung stammt aus der .kmy."
     },
     {
       "type": "h2",
@@ -804,7 +796,7 @@
       "content": [
         {
           "type": "p",
-          "text": "Nach dem Import eines KMyMoney-Investmentkontos erscheint das <b>Depot</b> in der Kontenschublade. Die Depot-Ansicht ist genau wie eine Konto-Ansicht aufgebaut – gleiche <b>Menüleiste</b> (Hamburger-Menü links, Depotname als Titel, rechts dieselben Menüpunkte wie bei einem normalen Konto) sowie Schublade und Filter – und zeigt je Wertpapier <b>Stückzahl × Kurs = aktueller Wert</b>; vollständig verkaufte Papiere werden ausgeblendet. Die <b>Saldenzeile schaltet per Tipp</b> durch Depotwert → Käufe → Verkäufe (falls vorhanden) → Dividenden (falls vorhanden) → <b>Nettoeinsatz</b> (Käufe − Verkäufe − Dividenden) → <b>Gewinn/Verlust</b> (farbig, mit Prozent). Der <b>Depot-Filter</b> grenzt die Wertpapiere nach Name und Wert (Schieberegler) ein. Wer weit nach unten scrollt, springt über den eingeblendeten <b>Nach-oben-Knopf</b> (unten links) direkt an den Anfang. Ein Tipp auf ein Wertpapier öffnet seine <b>Bewegungen im Vollbild</b> (Käufe grün, Verkäufe rot, Dividenden neutral) mit denselben Kennzahlen für dieses Papier und einem <b>Filter nach Käufen/Verkäufen/Dividenden</b> sowie einem Datums-Slider (Startdatum = erster Kauf). Der Depotwert wird getrennt geführt und erscheint zusätzlich als «Gesamtvermögen» in der Saldenzeile des Hauptbildschirms."
+          "text": "Nach dem Import eines KMyMoney-Investmentkontos erscheint das <b>Depot</b> in der Kontenschublade. Die Depot-Ansicht ist wie eine Konto-Ansicht aufgebaut – gleiche Titelleiste mit denselben Menüpunkten, gleiche Schublade, gleicher Filter – und zeigt je Wertpapier <b>Stückzahl × Kurs = aktueller Wert</b>; vollständig verkaufte Papiere werden ausgeblendet. Die <b>Saldenzeile schaltet per Tipp</b> durch Depotwert → Käufe → Verkäufe (falls vorhanden) → Dividenden (falls vorhanden) → <b>Nettoeinsatz</b> (Käufe − Verkäufe − Dividenden) → <b>Gewinn/Verlust</b> (farbig, mit Prozent). Der <b>Depot-Filter</b> grenzt die Wertpapiere nach Name und Wert (Schieberegler) ein. Wer weit nach unten scrollt, springt über den eingeblendeten <b>Nach-oben-Knopf</b> (unten links) direkt an den Anfang. Ein Tipp auf ein Wertpapier öffnet seine <b>Bewegungen im Vollbild</b> (Käufe grün, Verkäufe rot, Dividenden neutral) mit denselben Kennzahlen für dieses Papier und einem <b>Filter nach Käufen/Verkäufen/Dividenden</b> sowie einem Datums-Slider (Startdatum = erster Kauf). Der Depotwert wird getrennt geführt und erscheint zusätzlich als «Gesamtvermögen» in der Saldenzeile des Hauptbildschirms."
         },
         {
           "type": "p",
@@ -849,11 +841,7 @@
     },
     {
       "type": "p",
-      "text": "Der <b>Export</b> im Depot-Menü läuft direkt im Depot (ohne Wechsel zur Bargeld-Ansicht)."
-    },
-    {
-      "type": "p",
-      "text": "<b>Dividenden brutto/netto:</b> In den Einstellungen wählbar, ob Dividenden brutto (deklarierte Dividende) oder netto (gutgeschriebenes Geld nach Steuer) angezeigt und in der Saldenzeile (Dividenden, Nettoeinsatz, Gewinn/Verlust) verrechnet werden. Der Netto-Wert wird beim Depot-Import erfasst – für bestehende Daten ist einmalig ein Depot-Neuimport nötig."
+      "text": "<b>Dividenden brutto/netto:</b> In den Einstellungen wählbar, ob Dividenden brutto (deklarierte Dividende) oder netto (gutgeschriebenes Geld nach Steuer) angezeigt und in der Saldenzeile (Dividenden, Nettoeinsatz, Gewinn/Verlust) verrechnet werden."
     },
     {
       "type": "h1",
@@ -896,23 +884,11 @@
     },
     {
       "type": "p",
-      "text": "<b>Wertpapierkäufe und -verkäufe</b> (Geld vom Konto ins Wertpapier bzw. zurück) werden beim Import als <b>Umbuchung</b> ins bzw. aus dem Wertpapier eingelesen. So zählt nicht der ganze Kaufbetrag fälschlich als «Bankgebühren». Die eigentliche kleine <b>Gebühr</b> (oder Steuer), die in der Transaktion steckt, erscheint <b>nicht</b> in der Buchungsliste und ändert keine Salden – sie wird aber in den <b>Kategorien-Auswertungen</b> (Kapitel «Wofür geht mein Geld?» und Budget) korrekt als kleine Ausgabe geführt. <b>Dividenden</b> bleiben normale Einnahmen. Damit alte, bereits importierte Käufe umgestellt werden, das betroffene Konto einmal neu importieren."
+      "text": "<b>Wertpapierkäufe und -verkäufe</b> (Geld vom Konto ins Wertpapier bzw. zurück) werden beim Import als <b>Umbuchung</b> ins bzw. aus dem Wertpapier eingelesen. Die kleine <b>Gebühr</b> (oder Steuer), die in der Transaktion steckt, erscheint <b>nicht</b> in der Buchungsliste und ändert keine Salden – sie wird aber in den <b>Kategorien-Auswertungen</b> (Kapitel «Wofür geht mein Geld?» und Budget) als kleine Ausgabe geführt. <b>Dividenden</b> bleiben normale Einnahmen."
     },
     {
       "type": "p",
       "text": "Ein Import ersetzt je Konto die bereits exportierten Buchungen (keine Dubletten). Der Import läuft <b>im Hintergrund</b> – die Oberfläche bleibt bedienbar; oben in der Buchungsliste zeigt ein <b>gelber Banner</b> («Konto wird importiert …») mit wanderndem Verlauf, Status und Prozentanzeige den Fortschritt und verschwindet am Ende. Eine Meldung kommt <b>nur bei einem Fehler</b>. Im <b>CSV-Modus mit SMB/WebDAV</b> öffnet sich beim Hinzufügen bzw. beim langen Druck ein <b>navigierbarer Ordner-Browser</b> (Unterordner 📁 + CSV-Dateien, «..» zurück); die gewählte CSV wird aus dem aktuellen Ordner importiert. Die Schublade bleibt beim langen Druck geöffnet."
-    },
-    {
-      "type": "h2",
-      "text": "Was der Fortschritt im Banner bedeutet"
-    },
-    {
-      "type": "p",
-      "text": "Die Prozentanzeige bewegt sich während des gesamten Imports stetig voran (Herunterladen, Aufbereiten, Buchungen lesen, Speichern) statt in großen Sprüngen."
-    },
-    {
-      "type": "p",
-      "text": "Damit der Import zügig bleibt, liest die App die Datei <b>einmal für alle gewählten Konten</b> und speichert alles in einem Zug. Kurse, Budgets und geplante Buchungen stehen in der .kmy erst <b>hinter</b> den Buchungen – die App springt dorthin, statt für jeden dieser Bereiche noch einmal durch das gesamte Hauptbuch zu laufen."
     },
     {
       "type": "h2",
@@ -932,7 +908,7 @@
     },
     {
       "type": "p",
-      "text": "Wurde die Datei zwischenzeitlich geändert, <b>bricht der Export ab und schreibt nichts</b>; die Buchungen bleiben unexportiert und können nach einem erneuten Import ohne Verlust nochmals exportiert werden. Liefert der Server keinen Stand, wird wie bisher ungeprüft geschrieben – der Export scheitert daran nicht."
+      "text": "Wurde die Datei zwischenzeitlich geändert, <b>bricht der Export ab und schreibt nichts</b>; die Buchungen bleiben unexportiert und können nach einem erneuten Import ohne Verlust nochmals exportiert werden. Liefert der Server keinen Stand, wird ungeprüft geschrieben – der Export scheitert daran nicht."
     },
     {
       "type": "h1",
@@ -943,7 +919,7 @@
       "content": [
         {
           "type": "p",
-          "text": "Mit der Uhren-App erfassen Sie eine Ausgabe per Sprache direkt am Handgelenk. Die Uhr nimmt nur den Text auf; die Verarbeitung und das Anlegen der Buchung passieren auf dem Handy (derselbe Parser)."
+          "text": "Mit der Uhren-App erfassen Sie eine Ausgabe per Sprache direkt am Handgelenk. Die Uhr nimmt nur den Text auf; die Verarbeitung und das Anlegen der Buchung passieren auf dem Handy."
         },
         {
           "type": "bullets",
@@ -1140,7 +1116,7 @@
     {
       "type": "bullets",
       "items": [
-        "<b>App-Sperre</b>: optional per Fingerabdruck, Gesicht, PIN, Muster oder Passwort – beim Start und bei Rückkehr aus dem Hintergrund. Startet die App selbst eine fremde App – Kamera, Galerie, Dateiauswahl, Spracheingabe –, fragt sie beim Zurückkommen innerhalb von fünf Minuten nicht erneut nach: aus Sicht des Nutzers wurde die App ja nie verlassen. Wer länger wegbleibt, muss sich wieder ausweisen.",
+        "<b>App-Sperre</b>: optional per Fingerabdruck, Gesicht, PIN, Muster oder Passwort – beim Start und bei Rückkehr aus dem Hintergrund. Startet die App selbst eine fremde App – Kamera, Galerie, Dateiauswahl, Spracheingabe –, fragt sie beim Zurückkommen innerhalb von fünf Minuten nicht erneut nach. Wer länger wegbleibt, muss sich wieder ausweisen.",
         "<b>Standort (GPS)</b>: standardmäßig <b>aus</b>. Aus = keine Berechtigungsabfrage, keine GPS-Notiz, keine Betrag-only-Erfassung, kein Alias-Standort. Die Position wird nur lokal genutzt, nie an einen Dienst gesendet."
       ]
     },
@@ -1173,7 +1149,7 @@
     },
     {
       "type": "p",
-      "text": "Beim <b>«Sicherung einspielen»</b> fragt die App zuerst – falls nötig – das Sicherungspasswort ab und dann, <b>was</b> zurückkommen soll: <b>nur Daten</b>, <b>nur Einstellungen</b> oder <b>beides</b>. So lässt sich z. B. eine kaputte Konfiguration reparieren, ohne die erfassten Buchungen anzufassen. Danach startet die App neu. Belegfotos sind nicht Teil der Sicherung – sie liegen nach dem Hochladen auf dem Server. Sicherungen älterer Versionen (reine <i>.db</i>-Dateien) werden nicht mehr angenommen."
+      "text": "Beim <b>«Sicherung einspielen»</b> fragt die App zuerst – falls nötig – das Sicherungspasswort ab und dann, <b>was</b> zurückkommen soll: <b>nur Daten</b>, <b>nur Einstellungen</b> oder <b>beides</b>. So lässt sich z. B. eine kaputte Konfiguration reparieren, ohne die erfassten Buchungen anzufassen. Danach startet die App neu. Belegfotos sind nicht Teil der Sicherung – sie liegen nach dem Hochladen auf dem Server."
     },
     {
       "type": "h2",

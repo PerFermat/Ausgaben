@@ -66,10 +66,7 @@ public class DepotActivity extends LocalizedActivity {
     private TextView progressTextView;
 
     /** Gelber Import-Banner (Depot-Aktualisierung im Hintergrund), wie im Hauptbildschirm. */
-    private View importBanner;
-    private ShimmerView importShimmer;
-    private TextView importStatus;
-    private TextView importPercent;
+    private ImportBanner importBanner;
 
     /** Konten der Schublade – Grundlage für „Alle Konten aktualisieren". */
     private final List<String> appAccounts = new ArrayList<>();
@@ -129,11 +126,10 @@ public class DepotActivity extends LocalizedActivity {
         depot = getIntent().getStringExtra(EXTRA_DEPOT);
 
         // Herunterziehen: das angezeigte Depot neu aus der .kmy einlesen (nur kmy-Modus).
-        importBanner = findViewById(R.id.importBanner);
-        importShimmer = findViewById(R.id.importShimmer);
-        importStatus = findViewById(R.id.importStatus);
-        importPercent = findViewById(R.id.importPercent);
+        ShimmerView importShimmer = findViewById(R.id.importShimmer);
         importShimmer.setColors(getColor(R.color.import_banner_bg), getColor(R.color.import_banner_shimmer));
+        importBanner = new ImportBanner(findViewById(R.id.importBanner), importShimmer,
+                findViewById(R.id.importStatus), findViewById(R.id.importPercent));
         swipeRefresh = findViewById(R.id.swipeRefresh);
         swipeRefresh.setOnRefreshListener(() -> {
             swipeRefresh.setRefreshing(false);
@@ -507,20 +503,20 @@ public class DepotActivity extends LocalizedActivity {
 
     /** Konto-Import mit dem gelben Banner dieser Ansicht (gleiche Logik wie im Hauptbildschirm). */
     private void runAccountImport(final String account) {
-        importStarted();
+        importBanner.start(getString(R.string.import_running_banner));
         // „Alle Konten" (account == null) heißt: Konten, Depots und geplante Buchungen in einem Zug.
         KmyAccountImport.start(this, settings, repository, appAccounts, account,
                 account == null ? appDepots : java.util.Collections.emptyList(), account == null,
                 new KmyAccountImport.Ui() {
                     @Override
                     public de.spahr.ausgaben.util.ProgressListener phase(String label, int from, int to) {
-                        return phaseListener(label, from, to);
+                        return importBanner.phase(label, from, to);
                     }
 
                     @Override
                     public void noMatchingAccount() {
                         runOnUiThread(() -> {
-                            importFinished();
+                            importBanner.finishNow();
                             Toast.makeText(DepotActivity.this, R.string.kmy_account_not_found,
                                     Toast.LENGTH_LONG).show();
                         });
@@ -529,7 +525,7 @@ public class DepotActivity extends LocalizedActivity {
                     @Override
                     public void failed(Exception e) {
                         runOnUiThread(() -> {
-                            importFinished();
+                            importBanner.finishNow();
                             String msg = e.getMessage() == null ? e.toString() : e.getMessage();
                             Toast.makeText(DepotActivity.this, getString(R.string.import_failed, msg),
                                     Toast.LENGTH_LONG).show();
@@ -561,30 +557,35 @@ public class DepotActivity extends LocalizedActivity {
             Toast.makeText(this, R.string.kmy_path_missing, Toast.LENGTH_LONG).show();
             return;
         }
-        importStarted();
+        importBanner.start(getString(R.string.import_running_banner));
         new Thread(() -> {
             try {
                 byte[] raw = RemoteStorage.from(settings).downloadBytes(folderOf(path), fileOf(path),
-                        phaseListener(getString(R.string.import_stage_download),
+                        importBanner.phase(getString(R.string.import_stage_download),
                                 de.spahr.ausgaben.export.ImportPhase.DOWNLOAD_FROM,
                                 de.spahr.ausgaben.export.ImportPhase.DOWNLOAD_TO));
                 KmyImporter importer = new KmyImporter(
                         new KmyDocument(raw, getApplicationContext(),
-                                phaseListener(getString(R.string.import_stage_reading),
+                                importBanner.phase(getString(R.string.import_stage_reading),
                                         de.spahr.ausgaben.export.ImportPhase.READ_FILE_FROM,
                                         de.spahr.ausgaben.export.ImportPhase.READ_FILE_TO)),
                         getApplicationContext());
-                postImportProgress(getString(R.string.import_stage_depot, depotName),
-                        de.spahr.ausgaben.export.ImportPhase.BOOKINGS_FROM);
-                KmyImporter.DepotData data = importer.importDepot(depotName);
-                postImportProgress(getString(R.string.import_stage_depot, depotName),
-                        de.spahr.ausgaben.export.ImportPhase.SAVE_FROM);
+                // Nur dieses eine Depot: ihm gehört der ganze Rest des Balkens.
+                final String label = getString(R.string.import_stage_depot, depotName);
+                final de.spahr.ausgaben.export.ImportBudget budget =
+                        de.spahr.ausgaben.export.KmyAccountImport.budgetFor(importer, 0,
+                                java.util.Collections.singletonList(depotName), false);
+                final String lesen = de.spahr.ausgaben.export.KmyAccountImport.depotRead(depotName);
+                final String schreiben = de.spahr.ausgaben.export.KmyAccountImport.depotWrite(depotName);
+                KmyImporter.DepotData data = importer.importDepot(depotName,
+                        importBanner.phase(label, budget.from(lesen), budget.to(lesen)));
                 repository.replaceDepotImport(depotName, data.securities, data.transactions, data.prices,
+                        importBanner.phase(label, budget.from(schreiben), budget.to(schreiben)),
                         () -> runOnUiThread(this::completeImport));
             } catch (Exception e) {
                 final String msg = e.getMessage() == null ? e.toString() : e.getMessage();
                 runOnUiThread(() -> {
-                    importFinished();
+                    importBanner.finishNow();
                     // Mit Grund – „import_failed" enthält einen Platzhalter.
                     Toast.makeText(this, getString(R.string.import_failed, msg),
                             Toast.LENGTH_LONG).show();
@@ -593,58 +594,9 @@ public class DepotActivity extends LocalizedActivity {
         }).start();
     }
 
-    // ---- Gelber Import-Banner (Depot-Aktualisierung im Hintergrund) ----
-
-    private int activeImports = 0;
-
-    private void importStarted() {
-        activeImports++;
-        if (importBanner != null) {
-            importBanner.setVisibility(View.VISIBLE);
-            importShimmer.start();
-            setImportProgress(getString(R.string.import_running_banner), 0);
-        }
-    }
-
-    private void importFinished() {
-        activeImports = Math.max(0, activeImports - 1);
-        if (importBanner != null && activeImports == 0) {
-            importShimmer.stop();
-            importBanner.setVisibility(View.GONE);
-        }
-    }
-
-    private void setImportProgress(String label, int percent) {
-        if (importStatus != null) {
-            importStatus.setText(label);
-        }
-        if (importPercent != null) {
-            importPercent.setText(Math.max(0, Math.min(100, percent)) + " %");
-        }
-    }
-
-    /** Zuletzt gemeldeter Prozentwert – gegen Fluten des Main-Threads (der Download meldet je 8 KB). */
-    private int lastPostedPercent = -1;
-
-    /** Fortschritts-Empfänger für eine Phase; meldet nur bei Änderung des ganzzahligen Prozentwerts. */
-    private de.spahr.ausgaben.util.ProgressListener phaseListener(String label, int from, int to) {
-        return (done, total) -> {
-            int p = de.spahr.ausgaben.export.ImportPhase.map(done, total, from, to);
-            if (p != lastPostedPercent) {
-                lastPostedPercent = p;
-                postImportProgress(label, p);
-            }
-        };
-    }
-
-    private void postImportProgress(String label, int percent) {
-        runOnUiThread(() -> setImportProgress(label, percent));
-    }
-
     /** Fertig: 100 % kurz zeigen, Banner ausblenden und Depot neu zeichnen. */
     private void completeImport() {
-        setImportProgress(getString(R.string.import_stage_done), 100);
-        importBanner.postDelayed(this::importFinished, 600);
+        importBanner.finish();
         render();
     }
 

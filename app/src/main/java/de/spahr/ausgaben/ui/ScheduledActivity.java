@@ -64,10 +64,7 @@ public class ScheduledActivity extends LocalizedActivity {
     private TextView saldoLabel;
     private FloatingActionButton fabScrollTop;
     private SwipeRefreshLayout swipeRefresh;
-    private View importBanner;
-    private ShimmerView importShimmer;
-    private TextView importStatus;
-    private TextView importPercent;
+    private ImportBanner importBanner;
 
     private List<ScheduledTransaction> all = new ArrayList<>();
     /** {@code kmy_id} → bereits erledigte/übersprungene Termine: neue nächste Fälligkeit ({@code 0} = fertig). */
@@ -128,11 +125,10 @@ public class ScheduledActivity extends LocalizedActivity {
         container = findViewById(R.id.scheduledContainer);
         scroll = findViewById(R.id.scheduledScroll);
 
-        importBanner = findViewById(R.id.importBanner);
-        importShimmer = findViewById(R.id.importShimmer);
-        importStatus = findViewById(R.id.importStatus);
-        importPercent = findViewById(R.id.importPercent);
+        ShimmerView importShimmer = findViewById(R.id.importShimmer);
         importShimmer.setColors(getColor(R.color.import_banner_bg), getColor(R.color.import_banner_shimmer));
+        importBanner = new ImportBanner(findViewById(R.id.importBanner), importShimmer,
+                findViewById(R.id.importStatus), findViewById(R.id.importPercent));
 
         // Wischgeste nach unten aktualisiert die geplanten Buchungen aus der .kmy (nur hier, nicht beim Konto-Import).
         swipeRefresh = findViewById(R.id.swipeRefresh);
@@ -183,75 +179,41 @@ public class ScheduledActivity extends LocalizedActivity {
         }
         // Der gelbe Banner übernimmt die Fortschrittsanzeige – den Kreis-Spinner der Geste ausblenden.
         swipeRefresh.setRefreshing(false);
-        importStart();
+        importBanner.start(getString(R.string.import_running_banner));
         final String folder = folderOf(path);
         final String file = fileOf(path);
         new Thread(() -> {
             try {
                 byte[] raw = RemoteStorage.from(settings).downloadBytes(folder, file,
-                        phaseListener(getString(R.string.import_stage_download),
+                        importBanner.phase(getString(R.string.import_stage_download),
                                 de.spahr.ausgaben.export.ImportPhase.DOWNLOAD_FROM,
                                 de.spahr.ausgaben.export.ImportPhase.DOWNLOAD_TO));
                 KmyImporter importer = new KmyImporter(
                         new KmyDocument(raw, getApplicationContext(),
-                                phaseListener(getString(R.string.import_stage_reading),
+                                importBanner.phase(getString(R.string.import_stage_reading),
                                         de.spahr.ausgaben.export.ImportPhase.READ_FILE_FROM,
                                         de.spahr.ausgaben.export.ImportPhase.READ_FILE_TO)),
                         getApplicationContext());
-                setImportProgress(getString(R.string.import_stage_bookings),
-                        de.spahr.ausgaben.export.ImportPhase.BOOKINGS_FROM);
+                // Hinter dem Lesen bleiben nur zwei kurze Schritte, die nicht zählen können; das
+                // Nachlaufen des Banners überbrückt sie.
+                importBanner.set(getString(R.string.import_stage_bookings),
+                        de.spahr.ausgaben.export.ImportBudget.HEAD_END);
                 List<ScheduledTransaction> list = importer.scheduledTransactions();
-                setImportProgress(getString(R.string.import_stage_saving),
-                        de.spahr.ausgaben.export.ImportPhase.SAVE_FROM);
+                importBanner.set(getString(R.string.import_stage_saving),
+                        (de.spahr.ausgaben.export.ImportBudget.HEAD_END
+                                + de.spahr.ausgaben.export.ImportBudget.TAIL_END) / 2);
                 repository.applyScheduledTransactions(list, () -> {
                     reload();
-                    importDone();
+                    importBanner.finish();
                 });
             } catch (Exception e) {
                 runOnUiThread(() -> {
-                    importFinishNow();
+                    importBanner.finishNow();
                     String msg = e.getMessage() == null ? e.toString() : e.getMessage();
                     Toast.makeText(this, msg, Toast.LENGTH_LONG).show();
                 });
             }
         }).start();
-    }
-
-    private void importStart() {
-        importBanner.setVisibility(View.VISIBLE);
-        importShimmer.start();
-        setImportProgress(getString(R.string.import_running_banner), 0);
-    }
-
-    private void setImportProgress(String label, int percent) {
-        runOnUiThread(() -> {
-            importStatus.setText(label);
-            importPercent.setText(Math.max(0, Math.min(100, percent)) + " %");
-        });
-    }
-
-    /** Zuletzt gemeldeter Prozentwert – gegen Fluten des Main-Threads (der Download meldet je 8 KB). */
-    private int lastPostedPercent = -1;
-
-    /** Fortschritts-Empfänger für eine Phase; meldet nur bei Änderung des ganzzahligen Prozentwerts. */
-    private de.spahr.ausgaben.util.ProgressListener phaseListener(String label, int from, int to) {
-        return (done, total) -> {
-            int p = de.spahr.ausgaben.export.ImportPhase.map(done, total, from, to);
-            if (p != lastPostedPercent) {
-                lastPostedPercent = p;
-                setImportProgress(label, p);
-            }
-        };
-    }
-
-    private void importDone() {
-        setImportProgress(getString(R.string.import_stage_done), 100);
-        importBanner.postDelayed(this::importFinishNow, 600);
-    }
-
-    private void importFinishNow() {
-        importShimmer.stop();
-        importBanner.setVisibility(View.GONE);
     }
 
     private static String folderOf(String path) {

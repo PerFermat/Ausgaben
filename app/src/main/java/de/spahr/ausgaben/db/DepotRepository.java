@@ -19,13 +19,15 @@ import de.spahr.ausgaben.db.Repository.DepotMetrics;
  */
 class DepotRepository {
 
+    private final AppDatabase db;
     private final SecurityDao securityDao;
     private final Context appContext;
     private final ExecutorService executor;
     private final Handler mainHandler;
 
-    DepotRepository(SecurityDao securityDao, Context appContext,
+    DepotRepository(AppDatabase db, SecurityDao securityDao, Context appContext,
                     ExecutorService executor, Handler mainHandler) {
+        this.db = db;
         this.securityDao = securityDao;
         this.appContext = appContext;
         this.executor = executor;
@@ -36,25 +38,54 @@ class DepotRepository {
     void replaceDepotImport(final String depot, final List<Security> securities,
                             final List<SecurityTx> transactions, final List<SecurityPrice> prices,
                             final Runnable onDone) {
+        replaceDepotImport(depot, securities, transactions, prices, null, onDone);
+    }
+
+    /**
+     * Wie oben, meldet aber den Fortschritt (geschriebene von insgesamt zu schreibenden Zeilen).
+     *
+     * <p>Der ganze Block läuft in <b>einer</b> Transaktion: vorher bekam jede einzelne Kurszeile ihre
+     * eigene (inkl. fsync) – seit der Kurshistorie sind das mehrere tausend, und genau das war die
+     * lange Pause in der Anzeige.</p>
+     */
+    void replaceDepotImport(final String depot, final List<Security> securities,
+                            final List<SecurityTx> transactions, final List<SecurityPrice> prices,
+                            final de.spahr.ausgaben.util.ProgressListener listener,
+                            final Runnable onDone) {
         executor.execute(() -> {
-            securityDao.deleteTx(depot);
-            securityDao.deleteSecurities(depot);
-            securityDao.deletePrices(depot);
-            for (Security s : securities) {
-                securityDao.insertSecurity(s);
-            }
-            for (SecurityTx t : transactions) {
-                securityDao.insertTx(t);
-            }
-            if (prices != null) {
-                for (SecurityPrice p : prices) {
-                    securityDao.insertPrice(p);
+            final int total = securities.size() + transactions.size()
+                    + (prices == null ? 0 : prices.size());
+            final int[] done = new int[1];
+            db.runInTransaction(() -> {
+                securityDao.deleteTx(depot);
+                securityDao.deleteSecurities(depot);
+                securityDao.deletePrices(depot);
+                for (Security s : securities) {
+                    securityDao.insertSecurity(s);
+                    report(listener, done, total);
                 }
-            }
+                for (SecurityTx t : transactions) {
+                    securityDao.insertTx(t);
+                    report(listener, done, total);
+                }
+                if (prices != null) {
+                    for (SecurityPrice p : prices) {
+                        securityDao.insertPrice(p);
+                        report(listener, done, total);
+                    }
+                }
+            });
             if (onDone != null) {
                 mainHandler.post(onDone);
             }
         });
+    }
+
+    private static void report(de.spahr.ausgaben.util.ProgressListener listener, int[] done, int total) {
+        done[0]++;
+        if (listener != null) {
+            listener.onProgress(done[0], total);
+        }
     }
 
     /** Depotübergreifende Bewertung (Zeitreihe) für die Vermögensgrafik. */

@@ -39,7 +39,44 @@ public final class KmyAccountImport {
         void finished();
     }
 
+    // Schlüssel der Phasen im ImportBudget.
+    public static final String BOOKINGS_READ = "bookings.read";
+    public static final String BOOKINGS_WRITE = "bookings.write";
+    public static final String SCHEDULES = "schedules";
+
+    public static String depotRead(String depot) {
+        return "depot.read." + depot;
+    }
+
+    public static String depotWrite(String depot) {
+        return "depot.write." + depot;
+    }
+
     private KmyAccountImport() {
+    }
+
+    /**
+     * Teilt den Fortschritt hinter dem Lesen der Datei nach der gemessenen Arbeitsmenge auf. Die Zahl
+     * der zu schreibenden Buchungen steht hier noch nicht fest – dafür gibt es später
+     * {@link ImportBudget#resize}.
+     */
+    public static ImportBudget budgetFor(KmyImporter importer, int accountCount, List<String> depots,
+                                         boolean schedules) {
+        ImportBudget budget = new ImportBudget();
+        int transactions = importer.transactionCount();
+        if (accountCount > 0) {
+            budget.add(BOOKINGS_READ, transactions * ImportBudget.BOOKING_READ);
+            budget.add(BOOKINGS_WRITE, transactions * ImportBudget.BOOKING_WRITE);
+        }
+        for (String depot : depots) {
+            // Das Depot liest das Hauptbuch einmal ganz durch und schreibt dann seine Kurshistorie.
+            budget.add(depotRead(depot), transactions * ImportBudget.DEPOT_READ);
+            budget.add(depotWrite(depot), importer.priceCount(depot) * ImportBudget.PRICE_WRITE);
+        }
+        if (schedules) {
+            budget.add(SCHEDULES, ImportBudget.SCHEDULES);
+        }
+        return budget;
     }
 
     /**
@@ -89,15 +126,18 @@ public final class KmyAccountImport {
                     ui.noMatchingAccount();
                     return;
                 }
+                // Jetzt stehen die Mengen fest – daraus ergeben sich die Prozentbereiche des Laufs.
+                final ImportBudget budget = budgetFor(importer, targets.isEmpty() ? 0 : 1,
+                        depotTargets, schedules);
                 if (targets.isEmpty()) {
                     // Nur Depots und/oder Planungen – die Buchungsphase entfällt.
-                    afterAccounts(app, repository, importer, depotTargets, schedules, ui);
+                    afterAccounts(app, repository, importer, budget, depotTargets, schedules, ui);
                     return;
                 }
                 // Ein Lesedurchlauf für ALLE Konten (vorher: einer je Konto über die ganze Datei).
                 LinkedHashMap<String, List<Booking>> map = importer.bookingsForAccounts(targets,
                         ui.phase(app.getString(R.string.import_stage_bookings),
-                                ImportPhase.BOOKINGS_FROM, ImportPhase.BOOKINGS_TO));
+                                budget.from(BOOKINGS_READ), budget.to(BOOKINGS_READ)));
                 for (String acc : targets) {
                     // Währungskennzeichen aus der KMyMoney-Datei je Konto übernehmen.
                     repository.setAccountCurrency(acc, importer.currencyOf(acc));
@@ -110,12 +150,19 @@ public final class KmyAccountImport {
                 // aus den bevorzugten Konten.
                 repository.applyFileGroups(importer.institutions(), importer.favorites(),
                         app.getString(R.string.accounts_group_favorites));
+                // Jetzt ist die wirkliche Zahl der Buchungen bekannt – vorher war sie geschätzt.
+                int written = 0;
+                for (List<Booking> l : map.values()) {
+                    written += l.size();
+                }
+                budget.resize(BOOKINGS_WRITE, written * ImportBudget.BOOKING_WRITE);
                 // Kein separates „Buchungen werden gespeichert" beim Konto-Aktualisieren – nur die
                 // laufende Phase weiterzählen.
                 repository.replaceImportAccounts(map,
                         ui.phase(app.getString(R.string.import_running_banner),
-                                ImportPhase.SAVE_FROM, ImportPhase.SAVE_TO),
-                        res -> afterAccounts(app, repository, importer, depotTargets, schedules, ui));
+                                budget.from(BOOKINGS_WRITE), budget.to(BOOKINGS_WRITE)),
+                        res -> afterAccounts(app, repository, importer, budget, depotTargets,
+                                schedules, ui));
             } catch (Exception e) {
                 ui.failed(e);
             }
@@ -128,17 +175,22 @@ public final class KmyAccountImport {
      * eigentliche Arbeit jeweils in einem Hintergrund-Thread.
      */
     private static void afterAccounts(Context app, Repository repository, KmyImporter importer,
-                                      List<String> depots, boolean schedules, Ui ui) {
+                                      ImportBudget budget, List<String> depots, boolean schedules,
+                                      Ui ui) {
         if (!depots.isEmpty()) {
             final String depot = depots.get(0);
             final List<String> rest = new ArrayList<>(depots.subList(1, depots.size()));
-            ui.phase(app.getString(R.string.import_stage_depot, depot),
-                    ImportPhase.SAVE_TO, ImportPhase.SAVE_TO).onProgress(0, 1);
+            final String label = app.getString(R.string.import_stage_depot, depot);
+            final ProgressListener readListener = ui.phase(label,
+                    budget.from(depotRead(depot)), budget.to(depotRead(depot)));
+            final ProgressListener writeListener = ui.phase(label,
+                    budget.from(depotWrite(depot)), budget.to(depotWrite(depot)));
             new Thread(() -> {
                 try {
-                    KmyImporter.DepotData data = importer.importDepot(depot);
+                    KmyImporter.DepotData data = importer.importDepot(depot, readListener);
                     repository.replaceDepotImport(depot, data.securities, data.transactions, data.prices,
-                            () -> afterAccounts(app, repository, importer, rest, schedules, ui));
+                            writeListener,
+                            () -> afterAccounts(app, repository, importer, budget, rest, schedules, ui));
                 } catch (Exception e) {
                     ui.failed(e);
                 }
@@ -147,7 +199,7 @@ public final class KmyAccountImport {
         }
         if (schedules) {
             ui.phase(app.getString(R.string.import_stage_scheduled),
-                    ImportPhase.SAVE_TO, ImportPhase.SAVE_TO).onProgress(0, 1);
+                    budget.from(SCHEDULES), budget.to(SCHEDULES)).onProgress(0, 1);
             new Thread(() -> {
                 try {
                     repository.applyScheduledTransactions(importer.scheduledTransactions(),

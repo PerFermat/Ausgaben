@@ -1,19 +1,19 @@
 package de.spahr.ausgaben.export;
 
 /**
- * Die Prozentbereiche der Import-Phasen – an <b>einer</b> Stelle, weil Konto-, Depot- und Geplant-Import je
- * eine eigene Kopie der Banner-Logik haben und sonst auseinanderlaufen.
+ * Der feste Kopf des Fortschrittsbalkens – bis die Datei gelesen ist, ist jeder Lauf gleich:
  *
  * <pre>
  *   0–30  Datei herunterladen (gelesene Bytes)
  *  30–45  entpacken und Datei lesen (Teilschritte von {@link KmyDocument})
- *  45–70  Buchungen lesen (Nenner: TRANSACTIONS-count)
- *  70–99  speichern (je Buchung)
  *    100  fertig
  * </pre>
  *
- * Gemeldet wird stets <b>nachlaufend</b> (nach getaner Arbeit) – die alte Anzeige meldete den Wert vor der
- * Arbeit und stand deshalb genau währenddessen still.
+ * Was danach kommt, hängt vom Lauf ab (Konten? Depots? Planungen?) und wird nach der gemessenen
+ * Arbeitsmenge aufgeteilt – siehe {@link ImportBudget}.
+ *
+ * <p>Gemeldet wird stets <b>nachlaufend</b> (nach getaner Arbeit) – die alte Anzeige meldete den Wert
+ * vor der Arbeit und stand deshalb genau währenddessen still.</p>
  */
 public final class ImportPhase {
 
@@ -21,10 +21,6 @@ public final class ImportPhase {
     public static final int DOWNLOAD_TO = 30;
     public static final int READ_FILE_FROM = 30;
     public static final int READ_FILE_TO = 45;
-    public static final int BOOKINGS_FROM = 45;
-    public static final int BOOKINGS_TO = 70;
-    public static final int SAVE_FROM = 70;
-    public static final int SAVE_TO = 99;
     public static final int DONE = 100;
 
     private ImportPhase() {

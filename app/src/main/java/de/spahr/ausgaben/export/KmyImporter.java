@@ -74,29 +74,35 @@ public class KmyImporter {
      * Käufe/Verkäufe/Dividenden/Einbuchungen aus dem Hauptbuch.
      */
     public DepotData importDepot(String depotName) throws IOException {
+        return importDepot(depotName, null);
+    }
+
+    /**
+     * Wie oben, meldet aber den Fortschritt des Hauptbuch-Durchlaufs (gesehene von insgesamt
+     * {@code transactionCount()} Transaktionen) – er ist der lange Teil eines Depot-Imports.
+     */
+    public DepotData importDepot(String depotName, de.spahr.ausgaben.util.ProgressListener listener)
+            throws IOException {
         DepotData data = new DepotData();
         String depotId = doc.depotId(depotName);
         if (depotId == null) {
             return data;
         }
         // Stock-Konten des Depots (Typ 15, parent = Depot): id → {securityKmyId, securityName}.
-        Map<String, String[]> stockAccounts = new HashMap<>();
-        for (String id : doc.allAccountIds()) {
-            if (doc.accountTypeOf(id) == 15 && depotId.equals(doc.accountParentOf(id))) {
-                String secId = doc.accountCurrencyOf(id);
-                String secName = orEmpty(doc.accountNameById(id)).trim();
-                stockAccounts.put(id, new String[]{secId, secName});
-                String[] info = doc.securityInfo(secId);
-                double[] price = doc.securityPrice(secId);
-                String name = info != null && !info[0].isEmpty() ? info[0] : secName;
-                String symbol = info != null ? info[1] : "";
-                String currency = info != null && !info[2].isEmpty() ? info[2] : "EUR";
-                data.securities.add(new Security(depotName, secId, name, symbol, currency,
-                        price != null ? price[0] : 0, price != null ? (long) price[1] : 0));
-                // Vollständige Kurshistorie (für die zeitliche Depotbewertung in der Vermögensgrafik).
-                for (double[] ph : doc.securityPriceHistory(secId)) {
-                    data.prices.add(new SecurityPrice(depotName, secId, (long) ph[1], ph[0]));
-                }
+        Map<String, String[]> stockAccounts = stockAccountsOf(depotId);
+        for (Map.Entry<String, String[]> e : stockAccounts.entrySet()) {
+            String secId = e.getValue()[0];
+            String secName = e.getValue()[1];
+            String[] info = doc.securityInfo(secId);
+            double[] price = doc.securityPrice(secId);
+            String name = info != null && !info[0].isEmpty() ? info[0] : secName;
+            String symbol = info != null ? info[1] : "";
+            String currency = info != null && !info[2].isEmpty() ? info[2] : "EUR";
+            data.securities.add(new Security(depotName, secId, name, symbol, currency,
+                    price != null ? price[0] : 0, price != null ? (long) price[1] : 0));
+            // Vollständige Kurshistorie (für die zeitliche Depotbewertung in der Vermögensgrafik).
+            for (double[] ph : doc.securityPriceHistory(secId)) {
+                data.prices.add(new SecurityPrice(depotName, secId, (long) ph[1], ph[0]));
             }
         }
         if (stockAccounts.isEmpty()) {
@@ -112,6 +118,7 @@ public class KmyImporter {
             String postdate = null;
             String entrydate = null;
             List<String[]> splits = null; // je Split: {account, value, action, shares}
+            int seen = 0;
             while (event != XmlPullParser.END_DOCUMENT) {
                 if (event == XmlPullParser.START_TAG) {
                     String tag = parser.getName();
@@ -138,6 +145,10 @@ public class KmyImporter {
                             data.transactions.add(tx);
                         }
                         splits = null;
+                        seen++;
+                        if (listener != null) {
+                            listener.onProgress(seen, doc.transactionCount());
+                        }
                     }
                 }
                 event = parser.next();
@@ -146,6 +157,39 @@ public class KmyImporter {
             throw new IOException(ctx.getString(de.spahr.ausgaben.R.string.err_kmy_read), e);
         }
         return data;
+    }
+
+    /** Wertpapier-Unterkonten eines Depots (Typ 15): Konto-Id → {Wertpapier-Id, Wertpapiername}. */
+    private Map<String, String[]> stockAccountsOf(String depotId) {
+        Map<String, String[]> stockAccounts = new HashMap<>();
+        for (String id : doc.allAccountIds()) {
+            if (doc.accountTypeOf(id) == 15 && depotId.equals(doc.accountParentOf(id))) {
+                stockAccounts.put(id, new String[]{doc.accountCurrencyOf(id),
+                        orEmpty(doc.accountNameById(id)).trim()});
+            }
+        }
+        return stockAccounts;
+    }
+
+    /** Zahl der Buchungen im Hauptbuch – Gewicht für die Aufteilung des Fortschritts. */
+    public int transactionCount() {
+        return doc.transactionCount();
+    }
+
+    /**
+     * Zahl der Kurszeilen, die dieses Depot schreiben wird – Gewicht für die Aufteilung des
+     * Fortschritts ({@link ImportBudget}).
+     */
+    public int priceCount(String depotName) {
+        String depotId = doc.depotId(depotName);
+        if (depotId == null) {
+            return 0;
+        }
+        int count = 0;
+        for (String[] sec : stockAccountsOf(depotId).values()) {
+            count += doc.securityPriceHistory(sec[0]).size();
+        }
+        return count;
     }
 
     private SecurityTx toSecurityTx(String depotName, Map<String, String[]> stockAccounts,

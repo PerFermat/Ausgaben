@@ -70,7 +70,7 @@ public class Repository {
         this.kmyPendingDeleteDao = db.kmyPendingDeleteDao();
         this.scheduledAdvanceDao = db.scheduledAdvanceDao();
         this.budgetRepo = new BudgetRepository(bookingDao, budgetDao, categoryTypeDao, executor, mainHandler);
-        this.depotRepo = new DepotRepository(securityDao, appContext, executor, mainHandler);
+        this.depotRepo = new DepotRepository(db, securityDao, appContext, executor, mainHandler);
         this.groupRepo = new AccountGroupRepository(accountDao, accountGroupDao, executor, mainHandler);
         this.aliasResolver = new AliasResolver(bookingDao, correctionDao, accountDao, executor, mainHandler);
     }
@@ -1377,8 +1377,16 @@ public class Repository {
     public void replaceDepotImport(String depot, List<Security> securities,
                                    List<SecurityTx> transactions, List<SecurityPrice> prices,
                                    Runnable onDone) {
+        replaceDepotImport(depot, securities, transactions, prices, null, onDone);
+    }
+
+    /** Wie oben, meldet aber den Fortschritt des Schreibens (Wertpapiere, Bewegungen, Kurse). */
+    public void replaceDepotImport(String depot, List<Security> securities,
+                                   List<SecurityTx> transactions, List<SecurityPrice> prices,
+                                   de.spahr.ausgaben.util.ProgressListener listener,
+                                   Runnable onDone) {
         ensureDepotAccount(depot);
-        depotRepo.replaceDepotImport(depot, securities, transactions, prices, onDone);
+        depotRepo.replaceDepotImport(depot, securities, transactions, prices, listener, onDone);
     }
 
     /**

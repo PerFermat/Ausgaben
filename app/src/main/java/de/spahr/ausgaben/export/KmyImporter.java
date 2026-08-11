@@ -18,6 +18,7 @@ import java.util.Locale;
 import java.util.HashMap;
 import java.util.Map;
 
+import de.spahr.ausgaben.db.Account;
 import de.spahr.ausgaben.db.AnalysisExtra;
 import de.spahr.ausgaben.db.Booking;
 import de.spahr.ausgaben.db.BookingSplit;
@@ -301,6 +302,12 @@ public class KmyImporter {
         java.util.Map<String, Integer> out = new java.util.LinkedHashMap<>();
         for (String name : doc.accountNames()) {
             out.put(name, accountType(name));
+        }
+        // Ein Name, den ein Depot trägt, gehört in der App dem Depot: seine Trägerzeile führt die
+        // Kontenart, und mit einem fremden Typ fiele das Depot aus Schublade und Kontenverwaltung
+        // heraus. Angelegt wird dadurch nichts – applyAccountTypes ist ein reines UPDATE.
+        for (String depot : doc.depotNames()) {
+            out.put(depot, Account.KMY_TYPE_DEPOT);
         }
         return out;
     }

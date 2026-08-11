@@ -1,0 +1,31 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!DOCTYPE KMYMONEY-FILE>
+<!-- Zwei Konten „Depot": ein gewöhnliches Anlagekonto (Typ 9) und das eigentliche Depot (Typ 7),
+     beide direkt unter der Wurzel. In KMyMoney erlaubt, in der App nicht – dort ist der Kontoname
+     der Schlüssel. Das Depot muss den schlichten Namen behalten. -->
+<KMYMONEY-FILE>
+  <FILEINFO>
+    <CREATION_DATE date="2026-01-01"/>
+    <LAST_MODIFIED_DATE date="2026-01-01"/>
+    <VERSION id="1"/>
+    <FIXVERSION id="11"/>
+  </FILEINFO>
+  <INSTITUTIONS count="0"/>
+  <PAYEES/>
+  <COSTCENTERS/>
+  <TAGS/>
+  <ACCOUNTS count="3">
+    <ACCOUNT id="A000001" parentaccount="AStd::Asset" lastreconciled="" lastmodified="2026-01-01" institution="" opened="2026-01-01" number="" type="1" name="Girokonto" description="" currency="EUR"/>
+    <ACCOUNT id="A000002" parentaccount="AStd::Asset" lastreconciled="" lastmodified="2026-01-01" institution="" opened="2026-01-01" number="" type="9" name="Depot" description="" currency="EUR"/>
+    <ACCOUNT id="A000003" parentaccount="AStd::Asset" lastreconciled="" lastmodified="2026-01-01" institution="" opened="2026-01-01" number="" type="7" name="Depot" description="" currency="EUR"/>
+  </ACCOUNTS>
+  <TRANSACTIONS count="0"/>
+  <SCHEDULES/>
+  <SECURITIES/>
+  <CURRENCIES/>
+  <PRICES/>
+  <BUDGETS/>
+  <KEYVALUEPAIRS>
+    <PAIR key="kmm-baseCurrency" value="EUR"/>
+  </KEYVALUEPAIRS>
+</KMYMONEY-FILE>

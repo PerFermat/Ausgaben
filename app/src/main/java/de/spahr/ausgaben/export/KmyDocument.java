@@ -680,6 +680,26 @@ public class KmyDocument {
             }
         }
 
+        // In der App ist der Kontoname der Schlüssel – zwei Konten gleichen Namens kann sie nicht
+        // halten. Der Vorrat der schon vergebenen Bezeichner läuft deshalb über Konten UND Depots.
+        java.util.Set<String> takenLabels = new java.util.HashSet<>();
+
+        // Erster Durchgang: die Depots. Sie kommen zuerst, damit bei Namensgleichheit das Depot den
+        // schlichten Namen behält und das gleichnamige Konto ausweicht – die Trägerzeile des Depots
+        // trägt in der App die Kontenart und darf nicht vom Typ des Namensvetters überschrieben werden.
+        for (Map.Entry<String, String> e : accountName.entrySet()) {
+            String id = e.getKey();
+            if (id.startsWith("AStd::")) {
+                continue;
+            }
+            int type = accountType.get(id) == null ? 0 : accountType.get(id);
+            if (type == TYPE_INVESTMENT) {
+                String label = displayName(id, e.getValue(), accountNameCount, takenLabels);
+                depotAccounts.put(label, id); // Depot – eigener Import-Pfad (Wertpapiere)
+                takenLabels.add(label);
+            }
+        }
+
         for (Map.Entry<String, String> e : accountName.entrySet()) {
             String id = e.getKey();
             String name = e.getValue();
@@ -696,13 +716,11 @@ public class KmyDocument {
                 }
                 categoryIdToPath.put(id, path);
                 categoryIncomeByPath.put(path, type == TYPE_INCOME);
-            } else if (type == TYPE_INVESTMENT) {
-                String label = displayName(id, name, accountNameCount, depotAccounts);
-                depotAccounts.put(label, id); // Depot – eigener Import-Pfad (Wertpapiere)
-            } else if (type != TYPE_EQUITY && type != TYPE_STOCK) {
+            } else if (type != TYPE_INVESTMENT && type != TYPE_EQUITY && type != TYPE_STOCK) {
                 // Wertpapier-Unterkonten (Typ 15) NICHT als wählbare Konten führen.
-                String label = displayName(id, name, accountNameCount, selectableAccounts);
+                String label = displayName(id, name, accountNameCount, takenLabels);
                 selectableAccounts.put(label, id);
+                takenLabels.add(label);
                 assetNameToId.put(label.trim().toLowerCase(Locale.GERMANY), id);
             }
         }
@@ -710,19 +728,22 @@ public class KmyDocument {
 
     /**
      * Anzeigename eines Kontos: der schlichte Name, solange er in der Datei eindeutig ist, sonst der
-     * Pfad („Sparen:Ausgabe"). Sind auch die Pfade gleich (zwei Geschwister gleichen Namens), hängt die
-     * id an – Hauptsache, jedes Konto bleibt einzeln ansprechbar.
+     * Pfad („Sparen:Ausgabe"). Sind auch die Pfade gleich (zwei Geschwister gleichen Namens, oder ein
+     * Depot und ein Konto gleichen Namens direkt unter der Wurzel), hängt die id an – Hauptsache, jedes
+     * Konto bleibt einzeln ansprechbar.
+     *
+     * @param taken bereits vergebene Bezeichner, über Konten und Depots hinweg
      */
     private String displayName(String id, String name, Map<String, Integer> nameCount,
-                               Map<String, String> taken) {
-        if (one(nameCount, name.trim().toLowerCase(Locale.GERMANY)) && !taken.containsKey(name)) {
+                               java.util.Set<String> taken) {
+        if (one(nameCount, name.trim().toLowerCase(Locale.GERMANY)) && !taken.contains(name)) {
             return name;
         }
         String path = buildPath(id);
         if (path.isEmpty()) {
             path = name;
         }
-        return taken.containsKey(path) ? path + " (" + id + ")" : path;
+        return taken.contains(path) ? path + " (" + id + ")" : path;
     }
 
     private static void count(Map<String, Integer> counts, String key) {

@@ -3,10 +3,13 @@ package de.spahr.ausgaben.ui;
 import android.text.InputFilter;
 import android.text.Spanned;
 
+import de.spahr.ausgaben.settings.MoneyFormat;
+
 /**
  * Lässt in einem Betragsfeld nur die Zeichen einer erlaubten kleinen Rechnung zu und verhindert schon
  * <b>während der Eingabe</b> offensichtlich ungültige Strukturen. Erlaubt: Ziffern, ein Dezimaltrennzeichen
- * (Komma oder Punkt) je Zahl, <b>{@code +}</b>, <b>{@code *}</b> und <b>{@code -}</b> (Vorzeichen oder
+ * je Zahl – und zwar <b>das eingestellte</b> ({@link MoneyFormat#decimalSeparator()}), nicht beide –,
+ * <b>{@code +}</b>, <b>{@code *}</b> und <b>{@code -}</b> (Vorzeichen oder
  * Subtraktion). Nicht erlaubt: {@code / ( )}, Buchstaben, führendes {@code +}/{@code *}, doppelte
  * {@code +}/{@code *} und ein zweites Dezimaltrennzeichen in derselben Zahl.
  *
@@ -18,24 +21,34 @@ public class CalcInputFilter implements InputFilter {
 
     private static final int START = 0, DIGIT = 1, SEP = 2, OP = 3, MINUS = 4;
 
+    private final char sep;
+
+    public CalcInputFilter() {
+        this(MoneyFormat.decimalSeparator());
+    }
+
+    CalcInputFilter(char sep) {
+        this.sep = sep;
+    }
+
     @Override
     public CharSequence filter(CharSequence source, int start, int end, Spanned dest,
                                int dstart, int dend) {
         String result = dest.subSequence(0, dstart)
                 + source.subSequence(start, end).toString()
                 + dest.subSequence(dend, dest.length());
-        return isTypablePrefix(result) ? null : "";   // null = Änderung übernehmen, "" = ablehnen
+        return isTypablePrefix(result, sep) ? null : "";   // null = Änderung übernehmen, "" = ablehnen
     }
 
     /** {@code true}, wenn {@code s} ein gültiger Anfang einer Rechnung aus Zahlen, {@code + - *} ist. */
-    static boolean isTypablePrefix(String s) {
+    static boolean isTypablePrefix(String s, char sep) {
         int last = START;
         boolean sepInNumber = false;      // aktuelle Zahl hat schon ein Trennzeichen
         for (int i = 0; i < s.length(); i++) {
             char c = s.charAt(i);
             if (Character.isDigit(c)) {
                 last = DIGIT;
-            } else if (c == ',' || c == '.') {
+            } else if (c == sep) {
                 if (sepInNumber) {
                     return false;         // zweites Trennzeichen in derselben Zahl
                 }

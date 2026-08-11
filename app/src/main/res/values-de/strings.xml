@@ -67,7 +67,6 @@
     <string name="amount_calc_help">z. B. 10+20*3 oder 30-5 – erlaubt sind + - *</string>
     <string name="calc_ok">OK</string>
     <string name="calc_delete">Löschen</string>
-    <string name="calc_decimal_key">,</string>
     <string name="payee_hint">Geldempfänger</string>
     <string name="account_hint">Konto</string>
     <string name="note_hint">Notiz (optional)</string>

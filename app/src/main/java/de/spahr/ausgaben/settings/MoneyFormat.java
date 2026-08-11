@@ -57,6 +57,15 @@ public final class MoneyFormat {
         }
     }
 
+    /**
+     * Das eingestellte Dezimalzeichen (Komma oder Punkt). Gilt nicht nur für die Anzeige, sondern auch
+     * für die Eingabe: die Rechentastatur beschriftet ihre Taste damit, und die Betragsfelder nehmen
+     * genau dieses Zeichen an – nicht beide.
+     */
+    public static char decimalSeparator() {
+        return decimalSep;
+    }
+
     /** Anzeige-String für ein Label: Betrag im gewählten Format + Währung, falls aktiviert und vorhanden. */
     public static String display(long cents, String currency) {
         String num = number(cents, grouping);

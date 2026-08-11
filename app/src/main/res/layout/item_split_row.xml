@@ -60,8 +60,7 @@
             android:paddingVertical="14dp"
             android:paddingStart="12dp"
             android:paddingEnd="12dp"
-            android:textSize="18sp"
-            android:inputType="phone" />
+            android:textSize="18sp" />
     </com.google.android.material.textfield.TextInputLayout>
 
 </LinearLayout>

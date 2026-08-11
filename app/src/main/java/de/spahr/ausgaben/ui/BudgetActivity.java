@@ -776,7 +776,6 @@ public class BudgetActivity extends LocalizedActivity {
         til.setHint(getString(R.string.budget_edit_hint));
         til.setBoxBackgroundMode(TextInputLayout.BOX_BACKGROUND_OUTLINE);
         TextInputEditText input = new TextInputEditText(til.getContext());
-        input.setInputType(android.text.InputType.TYPE_CLASS_PHONE);
         if (current > 0) {
             input.setText(MoneyFormat.plain(current));
         }

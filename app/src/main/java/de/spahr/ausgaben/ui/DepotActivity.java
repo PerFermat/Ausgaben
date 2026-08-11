@@ -617,77 +617,34 @@ public class DepotActivity extends LocalizedActivity {
                 .inflate(R.layout.dialog_depot_filter, null, false);
         final com.google.android.material.textfield.TextInputEditText name =
                 view.findViewById(R.id.depotFilterName);
-        final com.google.android.material.slider.RangeSlider slider =
-                view.findViewById(R.id.depotFilterSlider);
+        final ZeroMarkSlider slider = view.findViewById(R.id.depotFilterSlider);
         final com.google.android.material.textfield.TextInputEditText from =
                 view.findViewById(R.id.depotFilterFrom);
         final com.google.android.material.textfield.TextInputEditText to =
                 view.findViewById(R.id.depotFilterTo);
-        from.setKeyListener(android.text.method.DigitsKeyListener.getInstance("0123456789.,"));
-        to.setKeyListener(android.text.method.DigitsKeyListener.getInstance("0123456789.,"));
+        AmountField.prepareNumber(from);
+        AmountField.prepareNumber(to);
         name.setText(filterName);
 
-        // Wert-Range aus den aktuellen Beständen (nur sichtbare Positionen zählen).
-        long dMin = Long.MAX_VALUE;
-        long dMax = Long.MIN_VALUE;
+        // Wert-Range aus den aktuellen Beständen (nur sichtbare Positionen zählen); der Regler läuft
+        // über die Ränge, damit ein großer Posten ihn nicht aufzieht (siehe AmountRange).
+        java.util.List<Long> werte = new ArrayList<>();
         for (Repository.DepotHolding h : lastHoldings) {
-            if (Math.abs(h.shares) < 1e-6) {
-                continue;
+            if (Math.abs(h.shares) >= 1e-6) {
+                werte.add(h.valueCents);
             }
-            if (h.valueCents < dMin) dMin = h.valueCents;
-            if (h.valueCents > dMax) dMax = h.valueCents;
         }
-        final long dataMin = dMin;
-        final long dataMax = dMax;
-        final boolean hasRange = dataMax > dataMin;
-        if (hasRange) {
-            float minE = dataMin / 100f;
-            float maxE = dataMax / 100f;
-            slider.setValueFrom(minE);
-            slider.setValueTo(maxE);
-            float curFrom = filterFrom != null ? filterFrom / 100f : minE;
-            float curTo = filterTo != null ? filterTo / 100f : maxE;
-            curFrom = Math.max(minE, Math.min(maxE, curFrom));
-            curTo = Math.max(minE, Math.min(maxE, curTo));
-            if (curFrom > curTo) {
-                curFrom = minE;
-                curTo = maxE;
-            }
-            slider.setValues(curFrom, curTo);
-            slider.setLabelFormatter(value -> money(Math.round(value * 100)));
-
-            final boolean[] syncing = {false};
-            from.setText(centsPlain(Math.round(curFrom * 100)));
-            to.setText(centsPlain(Math.round(curTo * 100)));
-
-            slider.addOnChangeListener((s, val, fromUser) -> {
-                if (syncing[0]) return;
-                syncing[0] = true;
-                java.util.List<Float> vals = s.getValues();
-                from.setText(centsPlain(Math.round(vals.get(0) * 100)));
-                to.setText(centsPlain(Math.round(vals.get(1) * 100)));
-                syncing[0] = false;
-            });
-
-            android.text.TextWatcher tw = new android.text.TextWatcher() {
-                @Override public void beforeTextChanged(CharSequence s, int a, int b, int c) { }
-                @Override public void onTextChanged(CharSequence s, int a, int b, int c) { }
-                @Override public void afterTextChanged(android.text.Editable e) {
-                    if (syncing[0]) return;
-                    Long fromC = parseEuros(from.getText().toString());
-                    Long toC = parseEuros(to.getText().toString());
-                    if (fromC == null || toC == null) return;
-                    float f = Math.max(dataMin, Math.min(dataMax, fromC)) / 100f;
-                    float t = Math.max(dataMin, Math.min(dataMax, toC)) / 100f;
-                    if (f > t) return;
-                    syncing[0] = true;
-                    slider.setValues(f, t);
-                    syncing[0] = false;
-                }
-            };
-            from.addTextChangedListener(tw);
-            to.addTextChangedListener(tw);
-        } else {
+        final long[] sortedCents = new long[werte.size()];
+        for (int i = 0; i < sortedCents.length; i++) {
+            sortedCents[i] = werte.get(i);
+        }
+        java.util.Arrays.sort(sortedCents);
+        final boolean hasRange = sortedCents.length > 1
+                && sortedCents[0] < sortedCents[sortedCents.length - 1];
+        final AmountRange amountRange = hasRange
+                ? AmountRange.attach(slider, from, to, sortedCents, filterFrom, filterTo, this::money)
+                : null;
+        if (!hasRange) {
             slider.setValueFrom(0f);
             slider.setValueTo(1f);
             slider.setValues(0f, 1f);
@@ -707,16 +664,13 @@ public class DepotActivity extends LocalizedActivity {
                 })
                 .setPositiveButton(android.R.string.ok, (d, w) -> {
                     filterName = name.getText() == null ? "" : name.getText().toString().trim();
-                    if (hasRange) {
-                        java.util.List<Float> vals = slider.getValues();
-                        long fromC = Math.round(vals.get(0) * 100);
-                        long toC = Math.round(vals.get(1) * 100);
-                        if (fromC <= dataMin && toC >= dataMax) {
+                    if (amountRange != null) {
+                        if (amountRange.isFullRange()) {
                             filterFrom = null;
                             filterTo = null;
                         } else {
-                            filterFrom = fromC;
-                            filterTo = toC;
+                            filterFrom = amountRange.getFromCents();
+                            filterTo = amountRange.getToCents();
                         }
                     } else {
                         filterFrom = parseEuros(from.getText() == null ? "" : from.getText().toString());

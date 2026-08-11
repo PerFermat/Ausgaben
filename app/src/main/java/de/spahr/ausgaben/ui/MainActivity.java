@@ -645,10 +645,9 @@ public class MainActivity extends LocalizedActivity {
         final com.google.android.material.textfield.TextInputEditText field =
                 new com.google.android.material.textfield.TextInputEditText(this);
         field.setHint(R.string.amount_hint);
-        // Ziffernblock, der auch + und * anbietet (kleine Rechnung wie 10+20*3); erlaubte Zeichen/Struktur
+        // Ziffern, das eingestellte Dezimalzeichen und + - * (kleine Rechnung wie 10+20*3); Struktur
         // regelt der CalcInputFilter. Ausgewertet wird beim Speichern über AmountExpression.
-        field.setInputType(android.text.InputType.TYPE_CLASS_PHONE);
-        field.setFilters(new android.text.InputFilter[]{new CalcInputFilter()});
+        AmountField.prepareCalc(field);
 
         final android.widget.TextView payeeView = new android.widget.TextView(this);
         payeeView.setText(getString(R.string.voice_payee_resolved, "—"));
@@ -862,7 +861,7 @@ public class MainActivity extends LocalizedActivity {
         selectedAccountBalance = 0;
         groupBalance = 0;
         for (Booking b : allBookings) {
-            long signed = b.isIncome ? b.amountCents : -b.amountCents;
+            long signed = signedOf(b);
             totalBalance += signed;
             if (selectedAccount.isEmpty() || b.account.equalsIgnoreCase(selectedAccount)) {
                 selectedAccountBalance += signed;
@@ -897,13 +896,26 @@ public class MainActivity extends LocalizedActivity {
         }
     }
 
-    private boolean matchesFilter(Booking b) {
-        // Konto ist jetzt die primäre Auswahl (Schublade), „" = alle Konten.
-        if (!selectedAccount.isEmpty() && !b.account.equalsIgnoreCase(selectedAccount)) {
-            return false;
+    /** Vorzeichenbehafteter Betrag: Ausgaben zählen negativ, Einnahmen positiv. */
+    private static long signedOf(Booking b) {
+        return b.isIncome ? b.amountCents : -b.amountCents;
+    }
+
+    /**
+     * Gehört die Buchung zur gerade gezeigten Auswahl (Konto aus der Schublade, sonst Kontengruppe)?
+     * Grundmenge sowohl für den Filter als auch für die Grenzen des Betrags-Reglers.
+     */
+    private boolean inCurrentScope(Booking b) {
+        // Konto ist die primäre Auswahl (Schublade), „" = alle Konten.
+        if (!selectedAccount.isEmpty()) {
+            return b.account.equalsIgnoreCase(selectedAccount);
         }
         // Ohne Kontowahl schränkt die gewählte Kontengruppe auf ihre Konten ein.
-        if (selectedAccount.isEmpty() && !inSelectedGroup(b.account)) {
+        return inSelectedGroup(b.account);
+    }
+
+    private boolean matchesFilter(Booking b) {
+        if (!inCurrentScope(b)) {
             return false;
         }
         // Suchfeld: Empfänger, Notiz oder Kategorie (gemeinsame Logik mit der Auswertung).
@@ -913,10 +925,12 @@ public class MainActivity extends LocalizedActivity {
         if (!filterCategory.isEmpty() && !categoryMatchesBooking(b)) {
             return false;
         }
-        if (filterAmountFrom != null && b.amountCents < filterAmountFrom) {
+        // Betragsgrenzen sind vorzeichenbehaftet: −50 … −10 meint Ausgaben zwischen 10 und 50.
+        long signed = signedOf(b);
+        if (filterAmountFrom != null && signed < filterAmountFrom) {
             return false;
         }
-        if (filterAmountTo != null && b.amountCents > filterAmountTo) {
+        if (filterAmountTo != null && signed > filterAmountTo) {
             return false;
         }
         if (filterDateFrom != null && b.createdAt < filterDateFrom) {
@@ -1095,11 +1109,11 @@ public class MainActivity extends LocalizedActivity {
         View view = LayoutInflater.from(this).inflate(R.layout.dialog_filter, null, false);
         MaterialAutoCompleteTextView fPayee = view.findViewById(R.id.filterPayee);
         MaterialAutoCompleteTextView fCategory = view.findViewById(R.id.filterCategory);
-        com.google.android.material.slider.RangeSlider slider = view.findViewById(R.id.filterAmountSlider);
+        ZeroMarkSlider slider = view.findViewById(R.id.filterAmountSlider);
         TextInputEditText fFrom = view.findViewById(R.id.filterAmountFrom);
         TextInputEditText fTo = view.findViewById(R.id.filterAmountTo);
-        fFrom.setKeyListener(android.text.method.DigitsKeyListener.getInstance("0123456789.,"));
-        fTo.setKeyListener(android.text.method.DigitsKeyListener.getInstance("0123456789.,"));
+        AmountField.prepareNumber(fFrom);
+        AmountField.prepareNumber(fTo);
 
         repository.getPayeeNames(names -> PickerAdapters.payees(fPayee, names));
 
@@ -1127,64 +1141,26 @@ public class MainActivity extends LocalizedActivity {
             }
         });
 
-        // Betrag-Range
-        long dMin = Long.MAX_VALUE;
-        long dMax = Long.MIN_VALUE;
+        // Betrag-Range: vorzeichenbehaftete Beträge der gerade sichtbaren Buchungen, sortiert – der
+        // Regler läuft über ihre Ränge, nicht über die Beträge (siehe AmountRange).
+        java.util.List<Long> scope = new ArrayList<>();
         for (Booking b : allBookings) {
-            if (b.amountCents < dMin) dMin = b.amountCents;
-            if (b.amountCents > dMax) dMax = b.amountCents;
-        }
-        final long dataMin = dMin;
-        final long dataMax = dMax;
-        final boolean hasRange = !allBookings.isEmpty() && dataMax > dataMin;
-        if (hasRange) {
-            float minE = dataMin / 100f;
-            float maxE = dataMax / 100f;
-            slider.setValueFrom(minE);
-            slider.setValueTo(maxE);
-            float curFrom = filterAmountFrom != null ? filterAmountFrom / 100f : minE;
-            float curTo = filterAmountTo != null ? filterAmountTo / 100f : maxE;
-            curFrom = Math.max(minE, Math.min(maxE, curFrom));
-            curTo = Math.max(minE, Math.min(maxE, curTo));
-            if (curFrom > curTo) {
-                curFrom = minE;
-                curTo = maxE;
+            if (inCurrentScope(b)) {
+                scope.add(signedOf(b));
             }
-            slider.setValues(curFrom, curTo);
-            slider.setLabelFormatter(value -> formatEuro(Math.round(value * 100)));
-
-            final boolean[] syncing = {false};
-            fFrom.setText(formatCents(Math.round(curFrom * 100)));
-            fTo.setText(formatCents(Math.round(curTo * 100)));
-
-            slider.addOnChangeListener((s, val, fromUser) -> {
-                if (syncing[0]) return;
-                syncing[0] = true;
-                java.util.List<Float> vals = s.getValues();
-                fFrom.setText(formatCents(Math.round(vals.get(0) * 100)));
-                fTo.setText(formatCents(Math.round(vals.get(1) * 100)));
-                syncing[0] = false;
-            });
-
-            android.text.TextWatcher tw = new android.text.TextWatcher() {
-                @Override public void beforeTextChanged(CharSequence s, int a, int b, int c) { }
-                @Override public void onTextChanged(CharSequence s, int a, int b, int c) { }
-                @Override public void afterTextChanged(android.text.Editable e) {
-                    if (syncing[0]) return;
-                    Long fromC = parseAmountToCents(textOf(fFrom));
-                    Long toC = parseAmountToCents(textOf(fTo));
-                    if (fromC == null || toC == null) return;
-                    float f = Math.max(dataMin, Math.min(dataMax, fromC)) / 100f;
-                    float t = Math.max(dataMin, Math.min(dataMax, toC)) / 100f;
-                    if (f > t) return;
-                    syncing[0] = true;
-                    slider.setValues(f, t);
-                    syncing[0] = false;
-                }
-            };
-            fFrom.addTextChangedListener(tw);
-            fTo.addTextChangedListener(tw);
-        } else {
+        }
+        final long[] sortedCents = new long[scope.size()];
+        for (int i = 0; i < sortedCents.length; i++) {
+            sortedCents[i] = scope.get(i);
+        }
+        java.util.Arrays.sort(sortedCents);
+        final boolean hasRange = sortedCents.length > 1
+                && sortedCents[0] < sortedCents[sortedCents.length - 1];
+        final AmountRange amountRange = hasRange
+                ? AmountRange.attach(slider, fFrom, fTo, sortedCents,
+                        filterAmountFrom, filterAmountTo, this::formatEuro)
+                : null;
+        if (!hasRange) {
             // Kein sinnvoller Bereich (0/1 Buchung oder alle gleich) → deaktivieren.
             slider.setValueFrom(0f);
             slider.setValueTo(1f);
@@ -1252,16 +1228,13 @@ public class MainActivity extends LocalizedActivity {
                         filterDateFrom = null;
                         filterDateTo = null;
                     }
-                    if (hasRange) {
-                        java.util.List<Float> vals = slider.getValues();
-                        long fromC = Math.round(vals.get(0) * 100);
-                        long toC = Math.round(vals.get(1) * 100);
-                        if (fromC <= dataMin && toC >= dataMax) {
+                    if (amountRange != null) {
+                        if (amountRange.isFullRange()) {
                             filterAmountFrom = null;
                             filterAmountTo = null;
                         } else {
-                            filterAmountFrom = fromC;
-                            filterAmountTo = toC;
+                            filterAmountFrom = amountRange.getFromCents();
+                            filterAmountTo = amountRange.getToCents();
                         }
                     } else {
                         filterAmountFrom = null;

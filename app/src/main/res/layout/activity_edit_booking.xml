@@ -112,15 +112,13 @@
                 app:helperTextEnabled="true"
                 app:helperText="@string/amount_calc_help">
 
-                <!-- „phone" statt „numberDecimal": ein Ziffernblock, der auch + und * anbietet, damit sich
-                     kleine Rechnungen (10+20*3) eintippen lassen. Erlaubte Zeichen und Struktur regelt der
-                     CalcInputFilter im Code (kein android:digits/KeyListener – die Tastatur bleibt so der
-                     Ziffernblock). -->
+                <!-- Kein android:inputType: erlaubte Zeichen (Ziffern, das eingestellte Dezimalzeichen,
+                     + - * für kleine Rechnungen wie 10+20*3) setzt AmountField im Code, die Struktur der
+                     CalcInputFilter. Eingetippt wird ohnehin auf der eigenen Rechentastatur. -->
                 <com.google.android.material.textfield.TextInputEditText
                     android:id="@+id/editAmount"
                     android:layout_width="match_parent"
-                    android:layout_height="wrap_content"
-                    android:inputType="phone" />
+                    android:layout_height="wrap_content" />
             </com.google.android.material.textfield.TextInputLayout>
 
             <com.google.android.material.textfield.TextInputLayout

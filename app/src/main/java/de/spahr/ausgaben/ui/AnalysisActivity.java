@@ -365,10 +365,12 @@ public class AnalysisActivity extends LocalizedActivity {
         if (!filterCategory.isEmpty() && !categoryMatchesBooking(b)) {
             return false;
         }
-        if (filterAmountFrom != null && b.amountCents < filterAmountFrom) {
+        // Vorzeichenbehaftet wie in der Buchungsliste: Ausgaben negativ, Einnahmen positiv.
+        long signed = b.isIncome ? b.amountCents : -b.amountCents;
+        if (filterAmountFrom != null && signed < filterAmountFrom) {
             return false;
         }
-        if (filterAmountTo != null && b.amountCents > filterAmountTo) {
+        if (filterAmountTo != null && signed > filterAmountTo) {
             return false;
         }
         if (filterDateFrom != null && b.createdAt < filterDateFrom) {

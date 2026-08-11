@@ -2077,7 +2077,7 @@ public class BookingEditActivity extends LocalizedActivity {
      * {@code layout} darf {@code null} sein (Teilbeträge zeigen keinen Feld-Fehler).
      */
     void wireCalcField(final TextInputEditText field, final TextInputLayout layout) {
-        field.setFilters(new android.text.InputFilter[]{new CalcInputFilter()});
+        AmountField.prepareCalc(field);
         field.setShowSoftInputOnFocus(false);
         field.setOnFocusChangeListener((v, hasFocus) -> {
             if (hasFocus && !readOnly) {

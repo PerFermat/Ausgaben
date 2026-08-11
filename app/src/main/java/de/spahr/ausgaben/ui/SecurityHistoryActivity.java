@@ -293,7 +293,6 @@ public class SecurityHistoryActivity extends LocalizedActivity {
         til.setHint(getString(R.string.depot_tx_value_hint));
         til.setBoxBackgroundMode(TextInputLayout.BOX_BACKGROUND_OUTLINE);
         TextInputEditText input = new TextInputEditText(til.getContext());
-        input.setInputType(android.text.InputType.TYPE_CLASS_PHONE);
         if (tx.amountCents > 0) {
             input.setText(MoneyFormat.plain(tx.amountCents));
         }

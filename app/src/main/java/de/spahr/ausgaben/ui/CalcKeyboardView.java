@@ -61,8 +61,9 @@ public class CalcKeyboardView extends LinearLayout {
             findViewById(id).setOnClickListener(v -> insert(v.getTag().toString()));
         }
 
-        // Dezimaltaste: Beschriftung und eingefügtes Zeichen aus der Sprache (Komma / Punkt).
-        String dec = context.getString(R.string.calc_decimal_key);
+        // Dezimaltaste: Beschriftung und eingefügtes Zeichen aus den Einstellungen (Komma / Punkt) –
+        // nicht aus der Sprache, sonst schriebe die Taste ein Zeichen, das das Feld nicht annimmt.
+        String dec = String.valueOf(MoneyFormat.decimalSeparator());
         MaterialButton keyDot = findViewById(R.id.keyDot);
         keyDot.setText(dec);
         keyDot.setOnClickListener(v -> insert(dec));
@@ -112,7 +113,7 @@ public class CalcKeyboardView extends LinearLayout {
      */
     public static CalcKeyboardView installToggling(EditText field, LinearLayout container,
                                                    boolean allowNegative) {
-        field.setFilters(new android.text.InputFilter[]{new CalcInputFilter()});
+        AmountField.prepareCalc(field);
         CalcKeyboardView kb = new CalcKeyboardView(container.getContext());
         kb.setAllowNegative(allowNegative);
         kb.attachTo(field);

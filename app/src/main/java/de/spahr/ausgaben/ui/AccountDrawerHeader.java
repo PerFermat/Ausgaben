@@ -3,7 +3,6 @@ package de.spahr.ausgaben.ui;
 import android.app.Activity;
 import android.content.Intent;
 import android.view.View;
-import android.view.inputmethod.InputMethodManager;
 
 import android.widget.EditText;
 import android.widget.ImageView;
@@ -136,11 +135,7 @@ public class AccountDrawerHeader {
         title.setVisibility(View.GONE);
         setSpacerVisible(false);
         search.setVisibility(View.VISIBLE);
-        search.requestFocus();
-        InputMethodManager imm = activity.getSystemService(InputMethodManager.class);
-        if (imm != null) {
-            imm.showSoftInput(search, InputMethodManager.SHOW_IMPLICIT);
-        }
+        Keyboard.show(search);
         updateSearchIcon();
     }
 

@@ -314,7 +314,9 @@ public class AccountManageActivity extends LocalizedActivity {
             h.name.setTextColor(fg);
             h.handle.setColorFilter(fg);
             h.balance.setText("");
-            h.menu.setVisibility(View.GONE);
+            // Unsichtbar und nicht GONE: der Platz des Menü-Symbols bleibt stehen, damit die
+            // Überschrift auf derselben Höhe beginnt wie die Kontennamen darunter.
+            h.menu.setVisibility(View.INVISIBLE);
         }
 
         private void bindAccount(VH h, Account account) {

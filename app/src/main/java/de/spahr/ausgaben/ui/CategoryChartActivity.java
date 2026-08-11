@@ -36,6 +36,7 @@ import de.spahr.ausgaben.db.Booking;
 import de.spahr.ausgaben.db.BookingSplit;
 import de.spahr.ausgaben.db.CategoryBookingFilter;
 import de.spahr.ausgaben.db.CategorySum;
+import de.spahr.ausgaben.db.PlannedExpense;
 import de.spahr.ausgaben.db.Repository;
 import de.spahr.ausgaben.db.ScheduleProjection;
 import de.spahr.ausgaben.db.ScheduledSplit;
@@ -519,11 +520,14 @@ public class CategoryChartActivity extends LocalizedActivity {
         });
     }
 
-    /** Im Zeitraum fällige geplante Auszahlungen einer Kategorie – eine Zeile je Termin. */
+    /**
+     * Im Zeitraum fällige geplante Abflüsse einer Kategorie – eine Zeile je Termin. Dieselbe Auswahl wie
+     * in {@link #addPlanned}, sonst nennt die Torte einen Betrag, den die Liste darunter nicht erklärt.
+     */
     private List<DrilldownRow> plannedRows(String category, boolean isMain) {
         List<DrilldownRow> out = new ArrayList<>();
         for (ScheduledTransaction st : scheduled) {
-            if (st.kind != ScheduledTransaction.KIND_EXPENSE || st.nextDueMs <= 0) {
+            if (st.kind == ScheduledTransaction.KIND_TRANSFER || st.nextDueMs <= 0) {
                 continue;
             }
             List<Long> occ = ScheduleProjection.occurrences(st.nextDueMs, st.occurrence,
@@ -537,17 +541,22 @@ public class CategoryChartActivity extends LocalizedActivity {
                     continue;
                 }
                 for (ScheduledSplit p : parts) {
-                    if (p.category.isEmpty() || !CategoryBookingFilter.matches(p.category, category, isMain)) {
+                    long cents = PlannedExpense.expenseCents(st.kind, p.amountCents);
+                    if (p.category.isEmpty() || cents == 0
+                            || !CategoryBookingFilter.matches(p.category, category, isMain)) {
                         continue;
                     }
                     for (long d : occ) {
-                        out.add(new DrilldownRow(d, true, plannedRow(st, d, Math.abs(p.amountCents))));
+                        out.add(new DrilldownRow(d, true, plannedRow(st, d, cents)));
                     }
                 }
             } else if (!st.counterparty.isEmpty()
                     && CategoryBookingFilter.matches(st.counterparty, category, isMain)) {
-                for (long d : occ) {
-                    out.add(new DrilldownRow(d, true, plannedRow(st, d, st.amountCents)));
+                long cents = PlannedExpense.expenseCents(st.kind, st.amountCents);
+                if (cents > 0) {
+                    for (long d : occ) {
+                        out.add(new DrilldownRow(d, true, plannedRow(st, d, cents)));
+                    }
                 }
             }
         }
@@ -620,11 +629,15 @@ public class CategoryChartActivity extends LocalizedActivity {
         return row;
     }
 
-    /** Zählt die im Fenster fälligen geplanten Auszahlungen je Kategorie hinzu. */
+    /**
+     * Zählt die im Fenster fälligen geplanten Abflüsse je Kategorie hinzu. Was ein Abfluß ist, entscheidet
+     * {@link PlannedExpense} nach derselben Vorzeichenregel wie bei den Ist-Buchungen – auch geplante
+     * Einzahlungen laufen deshalb mit, denn in ihnen steckt die Kapitalertragssteuer als negativer Teil.
+     */
     private void addPlanned(Map<String, Cat> byCat, long fromMs, long toMs) {
         for (ScheduledTransaction st : scheduled) {
-            if (st.kind != ScheduledTransaction.KIND_EXPENSE || st.nextDueMs <= 0) {
-                continue;   // Einnahmen/Umbuchungen bleiben außen vor
+            if (st.kind == ScheduledTransaction.KIND_TRANSFER || st.nextDueMs <= 0) {
+                continue;   // Umbuchungen bleiben außen vor
             }
             int n = ScheduleProjection.occurrences(st.nextDueMs, st.occurrence, st.occurrenceMultiplier,
                     st.endMs, fromMs, toMs - 1, MAX_OCC).size();
@@ -635,13 +648,17 @@ public class CategoryChartActivity extends LocalizedActivity {
                 List<ScheduledSplit> parts = splitsBySched.get(st.id);
                 if (parts != null) {
                     for (ScheduledSplit p : parts) {
-                        if (!p.category.isEmpty()) {
-                            cat(byCat, p.category).planned += n * Math.abs(p.amountCents);
+                        long cents = PlannedExpense.expenseCents(st.kind, p.amountCents);
+                        if (!p.category.isEmpty() && cents > 0) {
+                            cat(byCat, p.category).planned += n * cents;
                         }
                     }
                 }
             } else if (!st.counterparty.isEmpty()) {
-                cat(byCat, st.counterparty).planned += n * st.amountCents;
+                long cents = PlannedExpense.expenseCents(st.kind, st.amountCents);
+                if (cents > 0) {
+                    cat(byCat, st.counterparty).planned += n * cents;
+                }
             }
         }
     }

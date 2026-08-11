@@ -76,16 +76,6 @@ Details, Screenshots und die genaue Bedienung stehen im **[Benutzerhandbuch](doc
 - **Buchungen erfassen**: Ausgabe/Umbuchung/Einnahme, Splitbuchungen, Belegfoto, Spracheingabe
   („Frisör 20 €“), stille Betrag-only-Erfassung per GPS-Standort, lernende Alias-Namen für
   Zahlungsempfänger.
-- **Felder auswählen – überall gleich**: Empfänger, Konto, Kategorie und Ort sind Anzeige, Auswahlliste
-  und Suchfeld in einem. Beim Hineingehen macht der bisherige Eintrag Platz (er steht blass als
-  Platzhalter) und die ganze Liste klappt auf; beim Tippen wird laufend gesucht, auch nach Wortteilen
-  mitten im Namen („kasse“ findet „Sparkasse“). Verlässt man das Feld ohne Auswahl, kommt der alte Wert
-  zurück. Neue **Empfänger** dürfen dabei entstehen – Konten, Kategorien und Orte nicht, die müssen aus
-  der Liste stammen. In den Kontenfeldern stehen zuerst die **Favoriten**, dann die Konten der gerade
-  gewählten **Kontengruppe**, dann alle übrigen – jeder Block mit eigenem Symbol, jedes Konto nur einmal.
-  Die Tastatur geht zu, sobald die Eingabe steht: nach einem Tipp auf einen Eintrag der Liste und auf die
-  **Fertig-Taste**. Bleibt beim Tippen genau ein Treffer übrig, übernimmt die Fertig-Taste ihn – „visa u“
-  genügt für „Visa Urlaub“.
 - **Belegfotos nachbearbeiten**: direkt nach der Aufnahme (oder später über die Beleg-Zeile) lässt sich
   das Bild rechteckig zuschneiden, im Trapez-Modus eine schräg fotografierte Rechnung begradigen und
   Helligkeit/Kontrast anpassen. Das unbearbeitete Original bleibt dauerhaft als `…_original.jpg` erhalten;
@@ -118,6 +108,8 @@ Details, Screenshots und die genaue Bedienung stehen im **[Benutzerhandbuch](doc
   Konto durch einen Import wieder einen Saldo, öffnet es sich von selbst.
 - **Auswertungen**: Verlaufsdiagramm je Konto/Ort/gesamt, Kategorien-Kreisdiagramm („Wofür geht mein
   Geld?“), Budget (Ist/Soll aus KMyMoney oder app-intern berechnet), geplante Buchungen als Vorschau.
+  Ist eine **Kontengruppe** gewählt, steht sie im Verlauf als eigene Sicht hinter „Gesamt" und „Gesamt
+  ohne Depot" – mit den Depots der Gruppe, also derselben Summe wie in der Saldo-Leiste.
 - **Geplante Buchungen**: aus KMyMoney importiert und in die einzelnen Termine aufgefaltet. Langer Druck auf
   den nächsten Termin öffnet ihn vorbefüllt im Editor – dort speichern oder **„Buchung überspringen"**. So
   oder so verschwindet der Termin aus der Liste und die KMyMoney-Regel wird beim nächsten `.kmy`-Export um

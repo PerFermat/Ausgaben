@@ -528,6 +528,7 @@
           "items": [
             "Zeiträume: Tag / Woche / Monat / Jahr.",
             "Sichten: einzelnes Konto, Ort oder Gesamt.",
+            "Ist in der Schublade eine <b>Kontengruppe</b> gewählt, steht sie hinter «Gesamt» und «Gesamt ohne Depot» als eigene Sicht: nur die Konten der Gruppe, deren Depots eingerechnet – dieselbe Summe wie in der Saldo-Leiste der Hauptseite.",
             "<b>Zoomen per Fingergeste</b>: waagerecht = Anzahl der Balken, senkrecht = Y-Achse.",
             "Geschlossene Konten zählen nur in der Gesamtsicht (historischer Saldo)."
           ]
@@ -566,7 +567,7 @@
     },
     {
       "type": "p",
-      "text": "Der <b>Kalender-Schalter</b> oben rechts rechnet die im Zeitraum <b>fälligen geplanten Auszahlungen</b> (Kapitel 8) zu den bereits getätigten hinzu. Dann gilt:"
+      "text": "Der <b>Kalender-Schalter</b> oben rechts rechnet die im Zeitraum <b>fälligen geplanten Ausgaben</b> (Kapitel 8) zu den bereits getätigten hinzu – auch die, die als <b>Abzug in einer geplanten Einzahlung</b> stecken, etwa die Kapitalertragssteuer einer Dividende. Dann gilt:"
     },
     {
       "type": "bullets",

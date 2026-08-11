@@ -78,15 +78,6 @@ Details, screenshots and exact behavior are in the **[user manual](docs/Manual-A
 
 - **Record bookings**: expense/transfer/income, split bookings, receipt photos, voice input
   ("hairdresser 20 €"), silent amount-only entry resolved via GPS location, learning payee aliases.
-- **Picking a value – the same everywhere**: payee, account, category and place fields are display,
-  list and search box in one. Entering a field clears it (the previous entry stays on as a faint
-  placeholder) and opens the full list; typing narrows it live, matching anywhere in the name ("kasse"
-  finds "Sparkasse"). Leaving without a choice brings the old value back. New **payees** may be created
-  this way — accounts, categories and places may not, those have to come from the list. Account fields
-  list your **favourites** first, then the accounts of the currently selected **account group**, then all
-  the rest — each block with its own icon, every account only once. The keyboard closes as soon as the
-  entry stands: after tapping an item in the list, and on the **Done** key. If typing leaves exactly one
-  match, the Done key takes it — "visa u" is enough for "Visa Urlaub".
 - **Edit receipt photos**: right after the shot (or later from the receipt row) you can crop the image to a
   rectangle, straighten a skewed bill in trapezoid mode and adjust brightness/contrast. The untouched
   original is kept as `…_original.jpg` for good; editing again asks whether to continue from the current
@@ -118,6 +109,8 @@ Details, screenshots and exact behavior are in the **[user manual](docs/Manual-A
   import, it reopens by itself.
 - **Analysis**: history chart per account/place/total, category pie chart ("Where does my money go?"),
   budget (actual vs. planned, imported from KMyMoney or computed in-app), scheduled bookings preview.
+  With an **account group** selected, the history offers it as its own view behind "Total" and "Total
+  without portfolio" — including the group's portfolios, so the figure matches the balance bar.
 - **Scheduled bookings**: imported from KMyMoney and unfolded into their individual dates. Long-press the
   next date to open it prefilled in the editor — save it as a real booking, or use **"Skip booking"** there.
   Either way that date disappears from the list and the KMyMoney schedule is moved on by one period on the

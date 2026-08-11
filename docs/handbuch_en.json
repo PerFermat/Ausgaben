@@ -527,6 +527,7 @@
           "items": [
             "Periods: day / week / month / year.",
             "Views: single account, place or total.",
+            "With an <b>account group</b> selected in the drawer, it appears as its own view behind «Total» and «Total without portfolio»: only the accounts of that group, its portfolios included – the same figure as in the balance bar on the main page.",
             "<b>Zoom by gesture</b>: horizontal = number of bars, vertical = Y axis.",
             "Closed accounts count only in the total view (historical balance)."
           ]
@@ -565,7 +566,7 @@
     },
     {
       "type": "p",
-      "text": "The <b>calendar toggle</b> at the top right adds the <b>scheduled expenses due</b> in the period (chapter 8) to the ones already made. Then:"
+      "text": "The <b>calendar toggle</b> at the top right adds the <b>scheduled expenses due</b> in the period (chapter 8) to the ones already made – including those that sit as a <b>deduction inside a scheduled income</b>, such as the capital gains tax on a dividend. Then:"
     },
     {
       "type": "bullets",

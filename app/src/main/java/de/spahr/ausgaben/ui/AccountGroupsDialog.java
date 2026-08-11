@@ -56,6 +56,17 @@ final class AccountGroupsDialog {
             newName.setError(null);
         }));
 
+        // Wer den Haken setzt, will den Namen tippen – also Kursor und Tastatur gleich mit.
+        // setOnClickListener und nicht setOnCheckedChangeListener: den Haken setzt der Beobachter oben
+        // beim Tippen selbst, und das darf die Tastatur nicht erneut anstoßen.
+        newCheck.setOnClickListener(v -> {
+            if (newCheck.isChecked()) {
+                Keyboard.show(newName);
+            } else {
+                Keyboard.hide(newName);
+            }
+        });
+
         final MaterialCheckBox[] boxes = new MaterialCheckBox[groups.size()];
         for (int i = 0; i < groups.size(); i++) {
             AccountGroup group = groups.get(i);

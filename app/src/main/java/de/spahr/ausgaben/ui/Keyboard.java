@@ -5,13 +5,34 @@ import android.view.View;
 import android.view.inputmethod.InputMethodManager;
 
 /**
- * Die System-Tastatur schließen – die eine Stelle, an der das steht. Vorher lagen dieselben vier
- * Zeilen zweimal im Baum, und eine dritte Abschrift wäre dazugekommen, als die Vorschlagsfelder ihre
- * Fertig-Taste bekamen.
+ * Die System-Tastatur öffnen und schließen – die eine Stelle, an der das steht. Vorher lagen dieselben
+ * vier Zeilen zweimal im Baum, und eine dritte Abschrift wäre dazugekommen, als die Vorschlagsfelder
+ * ihre Fertig-Taste bekamen.
  */
 final class Keyboard {
 
     private Keyboard() {
+    }
+
+    /**
+     * Setzt den Kursor in {@code field} und holt die Tastatur dazu – für Stellen, an denen der Benutzer
+     * gerade zu erkennen gegeben hat, daß er tippen will.
+     *
+     * <p>Der Aufruf wartet über {@code post(…)} einen Durchgang ab: in einem eben erst gezeigten Dialog
+     * hängt das Feld noch an keinem Fenster, und die Tastatur bliebe stumm.</p>
+     */
+    static void show(View field) {
+        if (field == null) {
+            return;
+        }
+        field.post(() -> {
+            field.requestFocus();
+            InputMethodManager imm = (InputMethodManager)
+                    field.getContext().getSystemService(Context.INPUT_METHOD_SERVICE);
+            if (imm != null) {
+                imm.showSoftInput(field, InputMethodManager.SHOW_IMPLICIT);
+            }
+        });
     }
 
     /**

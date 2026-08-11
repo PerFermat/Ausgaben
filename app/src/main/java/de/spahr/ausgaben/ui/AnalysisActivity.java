@@ -74,6 +74,10 @@ public class AnalysisActivity extends LocalizedActivity {
     private boolean placesLoaded = false;
     /** Aktive (nicht geschlossene) Konten – nur diese sind als Einzel-/Orts-Sicht wählbar. */
     private java.util.Set<String> activeAccounts = null;
+    /** Name der in der Schublade gewählten Kontengruppe; leer = keine Gruppe gewählt. */
+    private String groupLabel = "";
+    /** Konten dieser Gruppe, klein geschrieben – Depots sind darin enthalten. */
+    private java.util.Set<String> groupAccounts = new java.util.HashSet<>();
 
     private Granularity granularity = Granularity.MONTH;
     private int lastIndex = 0;
@@ -129,7 +133,9 @@ public class AnalysisActivity extends LocalizedActivity {
         }
 
         repository = new Repository(this);
-        defaultAccount = new de.spahr.ausgaben.settings.SettingsStore(this).getDefaultAccount();
+        de.spahr.ausgaben.settings.SettingsStore settings =
+                new de.spahr.ausgaben.settings.SettingsStore(this);
+        defaultAccount = settings.getDefaultAccount();
         chart = findViewById(R.id.barChart);
         textTotal = findViewById(R.id.textTotal);
         fabScrollRight = findViewById(R.id.fabScrollRight);
@@ -186,6 +192,22 @@ public class AnalysisActivity extends LocalizedActivity {
             activeAccounts = new java.util.HashSet<>(names);
             if (bookingsLoaded) setupViewSelector();
         });
+        // Die in der Schublade gewählte Kontengruppe – sie kommt als eigene Sicht dazu.
+        long groupId = settings.getAccountGroup();
+        if (groupId > 0) {
+            repository.getAccountGroup(groupId, g -> {
+                groupLabel = g == null ? "" : g.name;
+                if (bookingsLoaded) setupViewSelector();
+            });
+            repository.getAccountNamesInGroup(groupId, names -> {
+                java.util.Set<String> set = new java.util.HashSet<>();
+                for (String n : names) {
+                    set.add(n.toLowerCase(java.util.Locale.ROOT));
+                }
+                groupAccounts = set;
+                if (bookingsLoaded && placesLoaded) renderChart();
+            });
+        }
     }
 
     private void setupViewSelector() {
@@ -200,6 +222,11 @@ public class AnalysisActivity extends LocalizedActivity {
             viewLabels.add(getString(R.string.saldo_total_nodepot));
             viewKeys.add(MainActivity.VIEW_DEPOT_TOTAL);
             viewLabels.add(getString(R.string.saldo_depot_total));
+        }
+        // Die gewählte Kontengruppe – dieselbe Summe wie in der Saldo-Leiste der Hauptseite, hier im Verlauf.
+        if (!groupLabel.isEmpty()) {
+            viewKeys.add(MainActivity.VIEW_GROUP_TOTAL);
+            viewLabels.add(groupLabel);
         }
         // Jedes aktive Konto (aus den vorhandenen Buchungen, stabile Reihenfolge); geschlossene Konten
         // erscheinen nicht als Einzel-/Orts-Sicht – nur die Gesamtsicht enthält ihren historischen Saldo.
@@ -233,11 +260,13 @@ public class AnalysisActivity extends LocalizedActivity {
         }
         int idx = viewKeys.indexOf(viewKey);
         if (idx < 0) {
-            // Depot-Sichten erscheinen erst nach dem Laden der Bewertung – die gewünschte Sicht dann noch
-            // nicht zurücksetzen, nur vorübergehend „Gesamt" anzeigen (ein späterer Aufruf korrigiert das).
-            boolean depotViewPending = viewKey.equals(MainActivity.VIEW_TOTAL_NODEPOT)
-                    || viewKey.equals(MainActivity.VIEW_DEPOT_TOTAL);
-            if (!depotViewPending) {
+            // Depot- und Gruppen-Sicht erscheinen erst nach dem Laden von Bewertung bzw. Gruppe – die
+            // gewünschte Sicht dann noch nicht zurücksetzen, nur vorübergehend „Gesamt" anzeigen (ein
+            // späterer Aufruf korrigiert das).
+            boolean sichtNochNichtGeladen = viewKey.equals(MainActivity.VIEW_TOTAL_NODEPOT)
+                    || viewKey.equals(MainActivity.VIEW_DEPOT_TOTAL)
+                    || viewKey.equals(MainActivity.VIEW_GROUP_TOTAL);
+            if (!sichtNochNichtGeladen) {
                 viewKey = MainActivity.VIEW_TOTAL;
             }
             idx = 0;
@@ -269,7 +298,14 @@ public class AnalysisActivity extends LocalizedActivity {
         if (viewKey.equals(MainActivity.VIEW_DEPOT_TOTAL)) {
             return events;
         }
-        if (viewKey.startsWith(MainActivity.VIEW_ACCOUNT_PREFIX)) {
+        if (viewKey.equals(MainActivity.VIEW_GROUP_TOTAL)) {
+            // Kontengruppe: alle Buchungen ihrer Konten – dieselbe Regel wie MainActivity.inSelectedGroup().
+            for (Booking b : allBookings) {
+                if (b.account != null && groupAccounts.contains(b.account.toLowerCase(Locale.ROOT))) {
+                    events.add(new long[]{b.createdAt, b.isIncome ? b.amountCents : -b.amountCents});
+                }
+            }
+        } else if (viewKey.startsWith(MainActivity.VIEW_ACCOUNT_PREFIX)) {
             String account = viewKey.substring(MainActivity.VIEW_ACCOUNT_PREFIX.length());
             for (Booking b : allBookings) {
                 if (b.account.equalsIgnoreCase(account)) {
@@ -364,10 +400,27 @@ public class AnalysisActivity extends LocalizedActivity {
                 filterCategory, filterCategoryIsMain, categoryTypes, filterCategoryIsIncome);
     }
 
+    /**
+     * Depotwert zum Stichtag für die gerade gewählte Sicht: in der Gruppen-Sicht nur die Depots der
+     * Gruppe, sonst alle. {@code 0}, solange die Bewertung noch nicht geladen ist.
+     */
+    private long depotCentsAt(long t) {
+        if (depotValuation == null) {
+            return 0;
+        }
+        return viewKey.equals(MainActivity.VIEW_GROUP_TOTAL)
+                ? depotValuation.valueCentsAt(t, groupAccounts)
+                : depotValuation.valueCentsAt(t);
+    }
+
     private void renderChart() {
         // Depot-Beteiligung der Sicht: „Gesamt" enthält den Depotwert zusätzlich, „Depot" zeigt nur ihn.
+        // Die Kontengruppe zählt ihre eigenen Depots mit – wie die Gruppensumme in der Saldo-Leiste.
+        // Steht heute nichts mehr darin, bleibt die Linie weg; ein leerer Strich erklärt nichts.
         boolean depotReady = depotValuation != null && !depotValuation.isEmpty();
-        boolean includeDepot = viewKey.equals(MainActivity.VIEW_TOTAL) && depotReady;
+        boolean groupWithDepot = viewKey.equals(MainActivity.VIEW_GROUP_TOTAL) && depotReady
+                && depotCentsAt(System.currentTimeMillis()) > 0;
+        boolean includeDepot = (viewKey.equals(MainActivity.VIEW_TOTAL) || groupWithDepot) && depotReady;
         boolean depotOnly = viewKey.equals(MainActivity.VIEW_DEPOT_TOTAL) && depotReady;
         boolean useDepot = includeDepot || depotOnly;
 
@@ -378,7 +431,7 @@ public class AnalysisActivity extends LocalizedActivity {
             total += e[1];
         }
         if (useDepot) {
-            total += depotValuation.valueCentsAt(System.currentTimeMillis());
+            total += depotCentsAt(System.currentTimeMillis());
         }
         textTotal.setText(getString(R.string.analysis_total, formatEuro(total)));
 
@@ -453,7 +506,7 @@ public class AnalysisActivity extends LocalizedActivity {
         }
         // Depotwert unmittelbar vor Fensterbeginn – Basis für die Wertänderung der ersten gezeigten Periode.
         long prevDepotCents = (useDepot && !periods.isEmpty())
-                ? depotValuation.valueCentsAt(periods.get(0) - 1) : 0;
+                ? depotCentsAt(periods.get(0) - 1) : 0;
         for (int i = 0; i < periods.size(); i++) {
             long ps = periods.get(i);
             labels.add(label(ps));
@@ -467,7 +520,7 @@ public class AnalysisActivity extends LocalizedActivity {
                     ? periods.get(i + 1) : System.currentTimeMillis() + 1;
             if (useDepot) {
                 // Depotwert am Ende der Periode (für die letzte Periode: aktueller Wert).
-                depotCents = depotValuation.valueCentsAt(nextBoundary - 1);
+                depotCents = depotCentsAt(nextBoundary - 1);
                 depotDelta = depotCents - prevDepotCents;
             }
 

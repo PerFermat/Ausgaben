@@ -12,7 +12,7 @@
         android:background="@color/green_primary"
         android:theme="@style/ThemeOverlay.Ausgaben.Toolbar"
         app:navigationIcon="@drawable/ic_back"
-        app:subtitleTextColor="@color/white"
+        app:subtitleTextColor="@color/toolbar_subtitle"
         app:title="@string/receipt_view_title"
         app:titleTextColor="@color/white" />
 

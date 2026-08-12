@@ -21,6 +21,7 @@
                 android:background="@color/green_primary"
                 android:theme="@style/ThemeOverlay.Ausgaben.Toolbar"
                 app:contentInsetStartWithNavigation="0dp"
+                app:subtitleTextColor="@color/toolbar_subtitle"
                 app:title="@string/app_name"
                 app:titleMarginStart="0dp"
                 app:titleTextColor="@color/white" />

@@ -371,7 +371,7 @@ public class MainActivity extends LocalizedActivity {
                 });
 
         FloatingActionButton fabScrollTop = findViewById(R.id.fabScrollTop);
-        fabScrollTop.setOnClickListener(v -> recycler.smoothScrollToPosition(0));
+        fabScrollTop.setOnClickListener(v -> ScrollToTop.rolle(recycler));
         recycler.addOnScrollListener(new RecyclerView.OnScrollListener() {
             @Override
             public void onScrolled(@NonNull RecyclerView rv, int dx, int dy) {

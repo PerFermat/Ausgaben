@@ -1,5 +1,14 @@
 # -*- coding: utf-8 -*-
-"""Erzeugt das Benutzerhandbuch als PDF basierend auf einer JSON-Sprachdatei."""
+"""Erzeugt das Benutzerhandbuch als PDF basierend auf einer JSON-Sprachdatei.
+
+Von der Kommandozeile:
+
+    python3 docs/build_manual.py Handbuch-Ausgaben-de de
+
+Der Handbuch-Editor ruft stattdessen erzeuge() auf und übergibt seinen ungesicherten Stand samt
+einer Auswahl von Abschnitten – so zeigt die Vorschau dasselbe Layout wie das fertige PDF, ohne
+dass die Stile ein zweites Mal beschrieben werden müssten.
+"""
 import os
 import sys
 import json
@@ -15,18 +24,21 @@ from reportlab.pdfbase import pdfmetrics
 from reportlab.pdfbase.ttfonts import TTFont
 from reportlab.lib.utils import ImageReader
 
-# Pfade festlegen
-DATEI = sys.argv[1] if len(sys.argv) > 1 else "handbuch-ausgaben-de"
-LANG = sys.argv[2] if len(sys.argv) > 1 else "de"
 REPO = os.path.dirname(os.path.dirname(os.path.abspath(__file__)))
-SHOTS = os.path.join(REPO, "screenshots", LANG)
-JSON_PATH = os.path.join(os.path.dirname(__file__), f"handbuch_{LANG}.json")
-OUT = os.path.join(REPO, "docs", f"{DATEI}.pdf")
-os.makedirs(os.path.dirname(OUT), exist_ok=True)
 
-# JSON Daten laden
-with open(JSON_PATH, "r", encoding="utf-8") as f:
-    I18N = json.load(f)
+# Diese drei setzt erzeuge(); die Hilfsfunktionen unten greifen darauf zu.
+LANG = "de"
+SHOTS = os.path.join(REPO, "screenshots", LANG)
+I18N = {}
+
+
+def json_pfad(lang):
+    return os.path.join(os.path.dirname(os.path.abspath(__file__)), f"handbuch_{lang}.json")
+
+
+def lade_sprache(lang):
+    with open(json_pfad(lang), "r", encoding="utf-8") as f:
+        return json.load(f)
 
 # --- Schriften ---
 pdfmetrics.registerFont(TTFont("DejaVu", "/usr/share/fonts/truetype/dejavu/DejaVuSans.ttf"))
@@ -63,6 +75,14 @@ _bm = [0]
 
 # Zustandsvariablen für das abwechselnde Alignment (links/rechts)
 align_left = [True]
+
+
+def _zustand_zuruecksetzen():
+    """Vor jedem Bau leeren – sonst erbte ein zweiter Lauf die Flowables des ersten."""
+    del story[:]
+    _first_h1[0] = True
+    _bm[0] = 0
+    align_left[0] = True
 
 def _heading(t, style, level):
     _bm[0] += 1
@@ -119,6 +139,63 @@ def create_shot_box(fname, caption, width=6.0*cm):
     tbl.setStyle(TableStyle([("ALIGN",(0,0),(-1,-1),"CENTER")]))
     tbl.hAlign = "CENTER"
     return tbl
+# Bild-Höhe schätzen (Platzhalter ist ca. 14cm / 390pt hoch)
+# Ein echtes Screenshot-Bild mit Caption liegt meist bei ~350–420 pt.
+MAX_SIDE_HEIGHT = 380
+
+
+def _geschaetzte_hoehe(tf):
+    """Grobe Höhe eines Flowables aus Typ und Textlänge."""
+    if getattr(getattr(tf, 'style', None), 'name', '') == 'h2':
+        return 35                      # Überschrift hat mehr Abstand
+    return max(16, (len(getattr(tf, 'text', '')) / 45) * 14) + 4
+
+
+def _aufteilen(text_flowables):
+    """Was passt neben das Bild, was rutscht darunter?
+
+    Der Handbuch-Editor benutzt dieselbe Rechnung, um die Blöcke einzufärben – deshalb steht sie
+    hier einzeln und nicht mitten im Seitenaufbau.
+    """
+    side, bottom, hoehe = [], [], 0
+    for tf in text_flowables:
+        geschaetzt = _geschaetzte_hoehe(tf)
+        if (hoehe + geschaetzt <= MAX_SIDE_HEIGHT) or not side:
+            side.append(tf)
+            hoehe += geschaetzt
+        else:
+            bottom.append(tf)
+    return side, bottom
+
+
+def aufteilung_der_inhalte(content_list):
+    """Für jeden Eintrag aus «content»: steht er neben dem Bild, darunter oder halb/halb?
+
+    Ergebnis ist eine Liste aus "neben", "darunter" oder "geteilt" – eine je Position in
+    content_list. Für die Anzeige im Editor, nicht für den Seitenaufbau.
+    """
+    herkunft, flowables = [], []
+    for nummer, item in enumerate(content_list):
+        erzeugt = create_paragraph_elements([item])
+        flowables.extend(erzeugt)
+        herkunft.extend([nummer] * len(erzeugt))
+
+    side, _bottom = _aufteilen(flowables)
+    grenze = len(side)
+    ergebnis = []
+    for nummer in range(len(content_list)):
+        stellen = [i for i, gehoert in enumerate(herkunft) if gehoert == nummer]
+        if not stellen:
+            ergebnis.append("neben")
+        elif all(i < grenze for i in stellen):
+            ergebnis.append("neben")
+        elif all(i >= grenze for i in stellen):
+            ergebnis.append("darunter")
+        else:
+            ergebnis.append("geteilt")
+    return ergebnis
+
+
 def add_single_shot_section(content_list, shot_data):
     """Platziert das Bild und füllt den Platz daneben optimal mit Text/Überschriften aus.
     Restlicher Inhalt fließt nahtlos darunter weiter."""
@@ -133,31 +210,7 @@ def add_single_shot_section(content_list, shot_data):
     gap_w = 0.5 * cm
     text_w = total_w - img_width - gap_w
 
-    # Bild-Höhe schätzen (Platzhalter ist ca. 14cm / 390pt hoch)
-    # Ein echtes Screenshot-Bild mit Caption liegt meist bei ~350–420 pt.
-    max_side_height = 380
-
-    side_flowables = []
-    bottom_flowables = []
-    accumulated_height = 0
-
-    for tf in text_flowables:
-        # Höhe des Flowables anhand des Typs und der Textlänge abschätzen
-        text_content = getattr(tf, 'text', '')
-        text_len = len(text_content)
-
-        # Unterscheidung zwischen Überschrift, Bullet und normalem Text
-        if getattr(getattr(tf, 'style', None), 'name', '') == 'h2':
-            estimated_h = 35 # Überschrift hat mehr Abstand
-        else:
-            estimated_h = max(16, (text_len / 45) * 14) + 4
-
-        # Passt es noch neben das Bild?
-        if (accumulated_height + estimated_h <= max_side_height) or not side_flowables:
-            side_flowables.append(tf)
-            accumulated_height += estimated_h
-        else:
-            bottom_flowables.append(tf)
+    side_flowables, bottom_flowables = _aufteilen(text_flowables)
 
     # 1. Bild & oberer Teil nebeneinander rendern
     if align_left[0]:
@@ -232,21 +285,23 @@ def Paragraph(_t, *a, **k):
     return _RLParagraph(_t, *a, **k)
 
 # --- Dokumentenaufbau ---
-COVER_PATH_DE = os.path.join(SHOTS, "Handbuch Titelseite.png")
-story.append(PageBreak())
+def _vorspann():
+    """Titelseite und Inhaltsverzeichnis."""
+    story.append(PageBreak())
 
-toc = TableOfContents()
-toc.levelStyles = [
-    S("toc0", fontName="DejaVu-Bold", fontSize=10.5, leading=15, textColor=GREEN, spaceBefore=5, firstLineIndent=0, leftIndent=0, rightIndent=14),
-    S("toc1", fontSize=9.5, leading=12.5, textColor=colors.HexColor("#333333"), firstLineIndent=0, leftIndent=16, rightIndent=14),
-]
-toc.dotsMinLevel = 0
-story.append(Paragraph(I18N["toc_title"], st_h1))
-story.append(toc)
-story.append(PageBreak())
+    toc = TableOfContents()
+    toc.levelStyles = [
+        S("toc0", fontName="DejaVu-Bold", fontSize=10.5, leading=15, textColor=GREEN, spaceBefore=5, firstLineIndent=0, leftIndent=0, rightIndent=14),
+        S("toc1", fontSize=9.5, leading=12.5, textColor=colors.HexColor("#333333"), firstLineIndent=0, leftIndent=16, rightIndent=14),
+    ]
+    toc.dotsMinLevel = 0
+    story.append(Paragraph(I18N["toc_title"], st_h1))
+    story.append(toc)
+    story.append(PageBreak())
 
-# Sektionen aus JSON parsen
-for sec in I18N["sections"]:
+
+def _abschnitt(sec):
+    """Einen Block aus der JSON in Flowables übersetzen."""
     stype = sec["type"]
     if stype == "h1":
         h1(sec["text"])
@@ -261,11 +316,11 @@ for sec in I18N["sections"]:
     elif stype == "text_with_single_shot":
         add_single_shot_section(sec["content"], sec["shot"])
     elif stype == "shot_row":
-        shot_row(sec["shots"])
+        shot_row(sec["shots"], sec.get("width", 6.0) * cm)
     elif stype == "text_with_shot_row":
         for elem in create_paragraph_elements(sec["content"]):
             story.append(elem)
-        shot_row(sec["shots"])
+        shot_row(sec["shots"], sec.get("width", 6.0) * cm)
     elif stype == "text_with_pic":
         for elem in create_paragraph_elements(sec["content"]):
             story.append(elem)
@@ -289,12 +344,17 @@ for sec in I18N["sections"]:
         ]))
         story.append(tbl)
         story.append(Paragraph(I18N["table_note"], st_note))
+    elif stype == "pagebreak":
+        # Von Hand gesetzter Seitenumbruch. Vor jeder Kapitelüberschrift kommt ohnehin einer;
+        # dieser hier ist für die Stellen, an denen der Satz sonst ungünstig trennt.
+        story.append(PageBreak())
     elif stype == "code":
         story.append(Paragraph(I18N["code_example"], S("code", fontName="DejaVu", fontSize=8.5, leading=12, backColor=LIGHT, borderPadding=6, textColor=colors.HexColor("#333333"))))
 
 def cover_page(canvas, doc):
     canvas.saveState()
-    canvas.drawImage(COVER_PATH_DE, 0, 0, width=A4[0], height=A4[1])
+    canvas.drawImage(os.path.join(SHOTS, "Handbuch Titelseite.png"), 0, 0,
+                     width=A4[0], height=A4[1])
     box_x = 7.8*mm + 3*mm
     canvas.setFont("DejaVu-Bold", 13)
     canvas.setFillColor(colors.HexColor("#1b1b1b"))
@@ -326,8 +386,6 @@ def _keep_headings_with_next(flowables):
         i += 1
     return out
 
-story = _keep_headings_with_next(story)
-
 class ManualDoc(SimpleDocTemplate):
     def beforeDocument(self):
         self._seen_toc = set()
@@ -343,7 +401,46 @@ class ManualDoc(SimpleDocTemplate):
             text = text.replace('«', '„').replace('»', '“')
             self.notify("TOCEntry", (level, text, self.page, key))
 
-doc = ManualDoc(OUT, pagesize=A4, leftMargin=2*cm, rightMargin=2*cm, topMargin=1.8*cm, bottomMargin=1.8*cm,
-                title=I18N["doc_title"], author=I18N["doc_author"])
-doc.multiBuild(story, onFirstPage=cover_page, onLaterPages=footer)
-print("PDF erzeugt:", OUT)
+def erzeuge(daten, lang, ausgabe, abschnitte=None, vorschau=False):
+    """Baut das PDF und legt es unter «ausgabe» ab.
+
+    daten       – der Inhalt einer Sprachdatei (Dict), nicht der Pfad. So kann der Editor seinen
+                  ungesicherten Stand vorführen.
+    abschnitte  – Auswahl aus daten["sections"]; None heißt: das ganze Handbuch.
+    vorschau    – ohne Titelseite und Inhaltsverzeichnis, für die Kapitelvorschau im Editor.
+    """
+    global I18N, LANG, SHOTS
+    I18N = daten
+    LANG = lang
+    SHOTS = os.path.join(REPO, "screenshots", lang)
+
+    _zustand_zuruecksetzen()
+    if not vorschau:
+        _vorspann()
+    for sec in (daten["sections"] if abschnitte is None else abschnitte):
+        _abschnitt(sec)
+
+    flowables = _keep_headings_with_next(list(story))
+    doc = ManualDoc(ausgabe, pagesize=A4, leftMargin=2*cm, rightMargin=2*cm,
+                    topMargin=1.8*cm, bottomMargin=1.8*cm,
+                    title=I18N["doc_title"], author=I18N["doc_author"])
+    if vorschau:
+        doc.multiBuild(flowables, onFirstPage=footer, onLaterPages=footer)
+    else:
+        doc.multiBuild(flowables, onFirstPage=cover_page, onLaterPages=footer)
+    return ausgabe
+
+
+def main(argv=None):
+    argv = sys.argv[1:] if argv is None else argv
+    datei = argv[0] if argv else "handbuch-ausgaben-de"
+    lang = argv[1] if len(argv) > 1 else "de"
+    ausgabe = os.path.join(REPO, "docs", f"{datei}.pdf")
+    os.makedirs(os.path.dirname(ausgabe), exist_ok=True)
+    erzeuge(lade_sprache(lang), lang, ausgabe)
+    print("PDF erzeugt:", ausgabe)
+    return 0
+
+
+if __name__ == "__main__":
+    sys.exit(main())

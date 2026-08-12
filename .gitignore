@@ -28,3 +28,6 @@
 # Persönliche KMyMoney-Datei (Testdaten, nicht einchecken)
 *.kmy
 docs/__pycache__/
+
+# Übersetzte Python-Zwischenstände der Werkzeuge
+__pycache__/

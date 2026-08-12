@@ -13,8 +13,9 @@ aller Bilder, die das Handbuch verlangt.
 Das Skript navigiert nicht selbst durch die App – gesteuerte Tipper werden bei jedem Umbau der
 Oberfläche brüchig. Sie bedienen den Emulator, das Fenster nimmt Ihnen den Rest ab.
 
-Ein neues Bild einpflegen heißt: im Handbuch einen shot()-Aufruf ergänzen. Beim nächsten Start
-steht es in der Liste – eine zweite Liste, die veralten könnte, gibt es bewusst nicht.
+Ein neues Bild einpflegen heißt: im Handbuch-Editor (tools/handbuch-editor.py) einen Bildblock
+ergänzen. Beim nächsten Start steht es in der Liste – eine zweite Liste, die veralten könnte,
+gibt es bewusst nicht.
 """
 import argparse
 import atexit
@@ -43,8 +44,8 @@ ROH = os.path.join(REPO, "build", "screenshots-roh")
 # zweierlei Rot zeigen. Aus dem vorhandenen Bild ausgelesen.
 ROT = (214, 20, 20)
 
-HANDBUCH = {"de": ("docs/manual_de.py", os.path.join("screenshots", "de")),
-            "en": ("docs/manual_en.py", os.path.join("screenshots", "en"))}
+HANDBUCH = {"de": ("docs/handbuch_de.json", os.path.join("screenshots", "de")),
+            "en": ("docs/handbuch_en.json", os.path.join("screenshots", "en"))}
 
 # Bilder, die nicht einfach aus der laufenden App fallen. Sie stehen trotzdem in der Liste – der
 # Emulator kann ja auch den Startbildschirm zeigen –, der Vermerk erinnert nur an den Umweg.
@@ -58,38 +59,42 @@ ANZEIGE_HOEHE = 620                  # Höhe, auf die jede der drei Spalten skal
 
 # ------------------------------------------------------------------ Handbuch lesen
 def bilder_aus_handbuch(pfad):
-    """Liest die shot()- und shot_row()-Aufrufe als (Dateiname, Bildunterschrift).
+    """Liest aus der Handbuch-JSON alle Bilder als (Dateiname, Bildunterschrift).
 
-    Statisch über ast, nicht durch Ausführen: das Handbuchskript würde sonst das PDF bauen.
-    pic() bleibt außen vor – das zeigt auf docs/img/, also beschriftete Ausschnitte statt
-    Bildschirmfotos."""
-    import ast
+    Gesammelt wird über die Blöcke hinweg, auch aus dem "content" der Bildblöcke. Ausschnitte
+    ("pic") zählen mit, sofern sie unter screenshots/ liegen – das Zuschneiden beherrscht dieses
+    Fenster ja. Ein "pic" mit einem Pfad woandershin bleibt außen vor; es kommt nicht aus dem
+    Emulator und wäre hier nicht aufzunehmen."""
+    import json
+    import posixpath
 
     with open(pfad, encoding="utf-8") as f:
-        baum = ast.parse(f.read())
-
-    def text(knoten):
-        return knoten.value if isinstance(knoten, ast.Constant) and isinstance(knoten.value, str) else None
+        daten = json.load(f)
 
     treffer, gesehen = [], set()
 
-    def merken(name, unterschrift):
+    def merken(eintrag, schluessel="fname"):
+        name = eintrag.get(schluessel)
+        if schluessel == "relpath":
+            if not name or not name.startswith("screenshots/"):
+                return
+            name = posixpath.basename(name)
         if name and name not in gesehen:
             gesehen.add(name)
-            treffer.append((name, unterschrift or ""))
+            treffer.append((name, eintrag.get("caption", "")))
 
-    for knoten in ast.walk(baum):
-        if not (isinstance(knoten, ast.Call) and isinstance(knoten.func, ast.Name)):
-            continue
-        if knoten.func.id == "shot" and knoten.args:
-            merken(text(knoten.args[0]), text(knoten.args[1]) if len(knoten.args) > 1 else None)
-        elif knoten.func.id == "shot_row" and knoten.args:
-            liste = knoten.args[0]
-            if isinstance(liste, (ast.List, ast.Tuple)):
-                for eintrag in liste.elts:
-                    if isinstance(eintrag, (ast.List, ast.Tuple)) and eintrag.elts:
-                        merken(text(eintrag.elts[0]),
-                               text(eintrag.elts[1]) if len(eintrag.elts) > 1 else None)
+    def block(eintrag):
+        if "shot" in eintrag:
+            merken(eintrag["shot"])
+        if "pic" in eintrag:
+            merken(eintrag["pic"], "relpath")
+        for weiteres in eintrag.get("shots", []):
+            merken(weiteres)
+        for kind in eintrag.get("content", []):
+            block(kind)
+
+    for eintrag in daten.get("sections", []):
+        block(eintrag)
     return treffer
 
 

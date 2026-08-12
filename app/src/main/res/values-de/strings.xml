@@ -207,6 +207,10 @@
     <string name="filter_reset">Zurücksetzen</string>
     <string name="cancel">Abbrechen</string>
     <string name="filter_active">Filter aktiv (%1$d)</string>
+    <!-- Umkreis um die eigene Position; der Knopf schaltet durch aus/100 m/500 m/1 km/10 km. -->
+    <string name="filter_radius_off">Umkreis aus</string>
+    <string name="filter_radius">Umkreis %1$s</string>
+    <string name="filter_radius_no_fix">Standort noch nicht bekannt</string>
 
     <!-- Neue Buchung / Bearbeiten -->
     <string name="new_booking">Neue Buchung</string>

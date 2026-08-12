@@ -90,8 +90,9 @@ Details, Screenshots und die genaue Bedienung stehen im **[Benutzerhandbuch](doc
   KMyMoney-Datei** (im CSV-Modus im Sync-Ordner); das Jahr folgt dem Buchungsdatum, und wird es über einen
   Jahreswechsel geändert, wandern die Bilder mit. Belege gelöschter Buchungen räumt die App beim nächsten
   Start selbst weg.
-- **Liste & Filter**: Suche über Empfänger/Notiz/Kategorie, Betrags- und Zeitraumfilter, Rückgängig nach
-  Löschen, eigene Rechentastatur im Betragsfeld.
+- **Liste & Filter**: Suche über Empfänger/Notiz/Kategorie, Betrags-, Zeitraum- und **Umkreisfilter**
+  (100 m bis 10 km um den eigenen Standort, nur bei eingeschaltetem GPS), Rückgängig nach Löschen,
+  eigene Rechentastatur im Betragsfeld.
 - **Konten ordnen**: Die Schublade gliedert wie bisher nach Kontenart (Anlage, Verbindlichkeit, Depot);
   darüber liegen frei vergebene **Kontengruppen** wie „Favoriten" oder „Gemeinsam", denen ein Konto
   mehrfach angehören kann. Zwei Gruppen bringt die `.kmy` selbst mit: aus dem Institutsblock entstehen

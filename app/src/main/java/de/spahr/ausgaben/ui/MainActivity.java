@@ -85,6 +85,13 @@ public class MainActivity extends LocalizedActivity {
     private Long filterAmountTo = null;
     private Long filterDateFrom = null;
     private Long filterDateTo = null;
+    /** Umkreis in Metern um {@link #filterCenter}; 0 = aus (siehe
+     * {@link de.spahr.ausgaben.location.RadiusFilter}). */
+    private int filterRadiusM = 0;
+    /** Eigene Position „lat, lon" im Moment des Anwendens – eingefroren, damit die Liste ruhig bleibt. */
+    private double[] filterCenter = null;
+    /** Empfänger (klein) → gelernte Standorte seines Alias; Rückfall für Buchungen ohne eigenes GPS. */
+    private final java.util.Map<String, java.util.List<double[]>> aliasPoints = new java.util.HashMap<>();
 
     private List<String> catExpense = new ArrayList<>();
     private List<String> catIncome = new ArrayList<>();
@@ -467,6 +474,11 @@ public class MainActivity extends LocalizedActivity {
         findViewById(R.id.fabNumber).setVisibility(gps ? View.VISIBLE : View.GONE);
         if (gps && locationTagger != null && hasLocationPermission()) {
             locationTagger.start();
+        }
+        if (gps) {
+            loadAliasPoints();
+        } else {
+            aliasPoints.clear();
         }
         // Die Favoritengruppe trägt einen übersetzten Namen; nach einem Sprachwechsel bliebe sonst das
         // alte Wort stehen. Ihre Mitglieder rührt das nicht an.
@@ -914,6 +926,39 @@ public class MainActivity extends LocalizedActivity {
         return inSelectedGroup(b.account);
     }
 
+    /**
+     * Lädt die gelernten Standorte der Aliase für den Umkreis-Filter: hat eine Buchung selbst keine
+     * Koordinaten in der Notiz, zählen die ihres Empfängers. Nur bei eingeschaltetem Standort.
+     */
+    private void loadAliasPoints() {
+        repository.getAllAliases(list -> {
+            aliasPoints.clear();
+            for (de.spahr.ausgaben.db.PayeeCorrection a : list) {
+                java.util.List<double[]> punkte = a.gpsPoints();
+                if (punkte.isEmpty()) {
+                    continue;
+                }
+                // Mehrere Aliase können auf denselben Empfänger zeigen (z. B. zwei Filialen) – ihre
+                // Standorte gelten zusammen.
+                String key = a.corrected.toLowerCase(java.util.Locale.ROOT);
+                java.util.List<double[]> alle = aliasPoints.get(key);
+                if (alle == null) {
+                    alle = new ArrayList<>();
+                    aliasPoints.put(key, alle);
+                }
+                alle.addAll(punkte);
+            }
+        });
+    }
+
+    /** Die Alias-Standorte des Empfängers oder {@code null}. */
+    private java.util.List<double[]> aliasPointsFor(String payee) {
+        if (payee == null || payee.isEmpty() || aliasPoints.isEmpty()) {
+            return null;
+        }
+        return aliasPoints.get(payee.toLowerCase(java.util.Locale.ROOT));
+    }
+
     private boolean matchesFilter(Booking b) {
         if (!inCurrentScope(b)) {
             return false;
@@ -936,7 +981,12 @@ public class MainActivity extends LocalizedActivity {
         if (filterDateFrom != null && b.createdAt < filterDateFrom) {
             return false;
         }
-        return filterDateTo == null || b.createdAt <= filterDateTo;
+        if (filterDateTo != null && b.createdAt > filterDateTo) {
+            return false;
+        }
+        // Umkreis um die beim Anwenden eingefrorene Position; ohne Position bleibt nichts übrig.
+        return de.spahr.ausgaben.location.RadiusFilter.matches(
+                filterCenter, filterRadiusM, b.note, aliasPointsFor(b.payee));
     }
 
     /**
@@ -972,7 +1022,8 @@ public class MainActivity extends LocalizedActivity {
     private boolean isFilterActive() {
         return !filterPayee.isEmpty() || !filterCategory.isEmpty()
                 || filterAmountFrom != null || filterAmountTo != null
-                || filterDateFrom != null || filterDateTo != null;
+                || filterDateFrom != null || filterDateTo != null
+                || filterRadiusM > 0;
     }
 
     // ---- Saldo-Leiste (Durchschalten) ----
@@ -1195,6 +1246,23 @@ public class MainActivity extends LocalizedActivity {
         final long dtDataMin = dtMin;
         final long dtDataMax = dtMax;
 
+        // Umkreis: nur bei eingeschaltetem Standort; jeder Tipp schaltet eine Stufe weiter.
+        com.google.android.material.button.MaterialButton radius = view.findViewById(R.id.filterRadius);
+        final int[] radiusM = {filterRadiusM};
+        if (!settings.isGpsEnabled()) {
+            radius.setVisibility(View.GONE);
+        } else {
+            setRadiusLabel(radius, radiusM[0]);
+            radius.setOnClickListener(v -> {
+                radiusM[0] = de.spahr.ausgaben.location.RadiusFilter.next(radiusM[0]);
+                setRadiusLabel(radius, radiusM[0]);
+                // Ohne Berechtigung gäbe es nie eine Position – einmal danach fragen.
+                if (radiusM[0] > 0 && !hasLocationPermission()) {
+                    locationPermissionLauncher.launch(android.Manifest.permission.ACCESS_FINE_LOCATION);
+                }
+            });
+        }
+
         new AppDialog(this)
                 .setTitle(R.string.filter_title)
                 .setView(view)
@@ -1240,6 +1308,14 @@ public class MainActivity extends LocalizedActivity {
                         filterAmountFrom = null;
                         filterAmountTo = null;
                     }
+                    filterRadiusM = radiusM[0];
+                    // Die Position einmal einfrieren: die Liste soll nicht mitwandern, wenn man weitergeht.
+                    filterCenter = filterRadiusM > 0 && locationTagger != null
+                            ? de.spahr.ausgaben.location.Geo.parse(locationTagger.currentCoordinates())
+                            : null;
+                    if (filterRadiusM > 0 && filterCenter == null) {
+                        Toast.makeText(this, R.string.filter_radius_no_fix, Toast.LENGTH_SHORT).show();
+                    }
                     applyFilter();
                     // Filter angelegt/geändert → automatisch die gefilterte Summe anzeigen.
                     if (isFilterActive()) {
@@ -1257,12 +1333,22 @@ public class MainActivity extends LocalizedActivity {
                     filterAmountTo = null;
                     filterDateFrom = null;
                     filterDateTo = null;
+                    filterRadiusM = 0;
+                    filterCenter = null;
                     saldoIndex = 0;
                     applyFilter();
                     showSaldo();
                     flashSaldoBar();
                 })
                 .show();
+    }
+
+    /** Beschriftet den Umkreis-Knopf mit der eingestellten Stufe („Umkreis aus", „Umkreis 500 m"). */
+    private void setRadiusLabel(com.google.android.material.button.MaterialButton button, int radiusM) {
+        button.setText(radiusM <= 0
+                ? getString(R.string.filter_radius_off)
+                : getString(R.string.filter_radius,
+                        de.spahr.ausgaben.location.RadiusFilter.label(radiusM)));
     }
 
     private String formatCents(long cents) {

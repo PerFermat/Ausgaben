@@ -91,8 +91,9 @@ Details, screenshots and exact behavior are in the **[user manual](docs/Manual-A
   KMyMoney file** (in CSV mode into the sync folder); the year follows the booking date, and moving that
   date across new year takes the images along. Receipts of deleted bookings are cleaned up on the next
   app start.
-- **List & filter**: search across payee/note/category, amount and date-range filters, undo after delete,
-  a built-in calculator keyboard in the amount field.
+- **List & filter**: search across payee/note/category, amount, date-range and **radius** filters (100 m
+  to 10 km around your own position, only with location enabled), undo after delete, a built-in
+  calculator keyboard in the amount field.
 - **Organising accounts**: the drawer still groups by account kind (asset, liability, portfolio); on top
   of that come freely chosen **account groups** such as "Favourites" or "Joint", and an account may belong
   to several of them. Two groups come out of the `.kmy` itself: the institutions block yields bank groups,

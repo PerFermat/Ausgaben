@@ -208,6 +208,10 @@
     <string name="filter_reset">Reset</string>
     <string name="cancel">Cancel</string>
     <string name="filter_active">Filter active (%1$d)</string>
+    <!-- Radius around your own position; the button steps through off/100 m/500 m/1 km/10 km. -->
+    <string name="filter_radius_off">Radius off</string>
+    <string name="filter_radius">Radius %1$s</string>
+    <string name="filter_radius_no_fix">Location not known yet</string>
 
     <!-- New booking / edit -->
     <string name="new_booking">New booking</string>

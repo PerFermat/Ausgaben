@@ -29,6 +29,9 @@ public final class PayeeAmounts {
     /** Voreingestellter oberer Rang (Prozent). */
     public static final float DEFAULT_HIGH = 90f;
 
+    /** Abstand eines Empfängers ohne Urteil – ein mittleres Maß, siehe {@link #gap}. */
+    public static final double GAP_UNKNOWN = 2.0;
+
     /**
      * Urteil über einen Betrag. Drei Werte statt ja/nein, weil die Verwendungsstellen verschieden
      * streng sind: die Automatik wirft nur {@link #MISSES} hinaus, die Vorbelegung im Editor verlangt
@@ -69,6 +72,34 @@ public final class PayeeAmounts {
     /** Wie {@link #judge} mit dem voreingestellten Band 10–90 %. */
     public static Verdict judge(List<Long> amountCents, long cents) {
         return judge(amountCents, cents, DEFAULT_LOW, DEFAULT_HIGH);
+    }
+
+    /**
+     * Um welchen <b>Faktor</b> liegt der Betrag neben dem Band? 1 = mittendrin, 1,5 = anderthalbmal
+     * so hoch wie die Obergrenze (oder umgekehrt). Gerechnet wird im Verhältnis und nicht in Euro,
+     * damit ein Empfänger mit kleinen Beträgen nicht immer gegen einen mit großen verliert: bei 15 €
+     * ist das Band 20–100 näher dran (Faktor 1,33) als das Band 5–10 (Faktor 1,5), obwohl beide
+     * 5 € entfernt sind.
+     *
+     * <p>Ohne Urteil ({@link Verdict#UNKNOWN}) gilt {@link #GAP_UNKNOWN}: wer zu wenige Buchungen
+     * hat, reiht sich mittig zwischen die Verfehlten ein.</p>
+     */
+    public static double gap(List<Long> amountCents, long cents, float pctLow, float pctHigh) {
+        long[] sorted = sorted(amountCents);
+        if (sorted.length < MIN_COUNT || cents <= 0) {
+            return GAP_UNKNOWN;
+        }
+        float low = Math.min(pctLow, pctHigh);
+        float high = Math.max(pctLow, pctHigh);
+        long from = Quantile.valueAt(sorted, low);
+        long to = Quantile.valueAt(sorted, high);
+        if (cents > to && to > 0) {
+            return (double) cents / to;
+        }
+        if (cents < from) {
+            return (double) from / cents;
+        }
+        return 1.0;
     }
 
     /**

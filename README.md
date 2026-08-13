@@ -85,7 +85,9 @@ Details, screenshots and exact behavior are in the **[user manual](docs/Manual-A
   ones head the category list as their own block. Where several payees share a location, the **amount**
   decides as well: €80 is a tank of fuel, €10 the car wash. In the silent numeric entry the matching
   name appears live below the amount (tap to cycle through the others); in the editor an unambiguous
-  hit fills the empty payee field. Which amounts count as usual can be set per alias with a slider
+  hit fills the empty payee field. Nobody is ruled out – the amount only sets the order, and if it
+  fits no usual range, the one closest to it comes first (measured as a ratio: at €15 the range
+  €20–100 beats €5–10, at €1 the other way round). Which amounts count as usual can be set per alias with a slider
   (default: the range holding nine out of ten of its bookings) – per booking type, transfers included.
   In the numeric entry and the editor the amount only has a say with the **"Use amount for payee
   suggestions"** switch (off by default); for plain voice entry without a payee – on the phone as from

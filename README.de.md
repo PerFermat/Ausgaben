@@ -83,7 +83,9 @@ Details, Screenshots und die genaue Bedienung stehen im **[Benutzerhandbuch](doc
   Kategorieliste. Stehen mehrere Empfänger am selben Ort, entscheidet zusätzlich der **Betrag**: 80 €
   sind eine Tankfüllung, 10 € die Waschanlage. In der stillen Zifferneingabe steht der passende Name
   live unter dem Betrag (Antippen läuft durch die übrigen); im Editor füllt ein eindeutiger Treffer
-  das leere Empfängerfeld. Welche Beträge als üblich gelten, läßt sich je Alias über einen Regler
+  das leere Empfängerfeld. Ausgeschlossen wird dabei niemand – der Betrag bestimmt nur die
+  Reihenfolge, und paßt er in kein übliches Band, steht der betraglich nächste vorn (im Verhältnis
+  gemessen: bei 15 € gewinnt der Bereich 20–100 € gegen 5–10 €, bei 1 € umgekehrt). Welche Beträge als üblich gelten, läßt sich je Alias über einen Regler
   einstellen (Vorgabe: der Bereich, in dem neun von zehn seiner Buchungen liegen) – je Buchungsart,
   Umbuchungen eingeschlossen. In Zifferneingabe und Editor ist das Mitreden des Betrags über den
   Schalter **„Betrag in den Vorschlägen berücksichtigen"** zuzuschalten (standardmäßig aus); bei

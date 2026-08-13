@@ -215,6 +215,8 @@ class AliasResolver {
         final PayeeCorrection alias;
         /** Passt der Betrag zu diesem Empfänger? Ohne Betrag {@link PayeeAmounts.Verdict#UNKNOWN}. */
         public PayeeAmounts.Verdict verdict = PayeeAmounts.Verdict.UNKNOWN;
+        /** Um welchen Faktor liegt der Betrag neben seinem Band? Siehe {@link PayeeAmounts#gap}. */
+        public double gap = PayeeAmounts.GAP_UNKNOWN;
 
         Candidate(String name, Booking booking, PayeeCorrection alias) {
             this.name = name;
@@ -228,9 +230,9 @@ class AliasResolver {
      * strenger Reihenfolge – bevorzugte Aliase → Buchungen → übrige Aliase; der erste Tier mit Treffer
      * gewinnt, innerhalb eines Tiers der nächstgelegene. Geschlossene Konten werden übersprungen.
      *
-     * <p>Stehen mehrere Empfänger am selben Ort, siebt zusätzlich der <b>Betrag</b>: wer ihn
-     * nachweislich nie hat, fällt heraus – auch ein bevorzugter Alias. Fallen alle heraus, gilt die
-     * alte Rangfolge, denn ein zweifelhafter Empfänger ist besser als keiner.</p>
+     * <p>Stehen mehrere Empfänger am selben Ort, ordnet zusätzlich der <b>Betrag</b> ({@link
+     * #byAmount}): wer ihn nachweislich hat, geht vor – auch vor einem bevorzugten Alias. Paßt er zu
+     * keinem, gewinnt der betraglich nächste, denn ein zweifelhafter Empfänger ist besser als keiner.</p>
      *
      * @param scope die angezeigten Konten ({@link AccountScope}); leer = alle
      */
@@ -249,17 +251,33 @@ class AliasResolver {
         }
     }
 
-    /** Der beste Kandidat eines Durchlaufs: erst sieben, dann die gewohnte Rangfolge. */
+    /** Der beste Kandidat eines Durchlaufs – dieselbe Rangfolge wie in der Ziffernmaske. */
     private Candidate pickGps(double lat, double lon, java.util.Set<String> closed,
                               java.util.Set<String> scope, String filterType,
                               long amountCents, String judgeType) {
-        List<Candidate> alle = nearbyCandidates(lat, lon, closed, scope, filterType, amountCents, judgeType);
+        List<Candidate> alle = byAmount(
+                nearbyCandidates(lat, lon, closed, scope, filterType, amountCents, judgeType));
+        return alle.isEmpty() ? null : alle.get(0);
+    }
+
+    /**
+     * Die Kandidaten nach dem Betrag geordnet: vorn die, in deren Band er liegt (untereinander in der
+     * gewohnten Rangfolge nach Nähe), dahinter die übrigen nach ihrem Betragsabstand
+     * ({@link PayeeAmounts#gap}) – der am wenigsten Verfehlte zuerst, wer kein Urteil hat, mittig.
+     *
+     * <p>Aussortiert wird niemand: sonst stünde bei einem Betrag, den hier noch keiner hatte,
+     * plötzlich niemand mehr zur Wahl.</p>
+     */
+    private static List<Candidate> byAmount(List<Candidate> alle) {
+        List<Candidate> passend = new ArrayList<>();
+        List<Candidate> rest = new ArrayList<>();
         for (Candidate c : alle) {
-            if (c.verdict != PayeeAmounts.Verdict.MISSES) {
-                return c;
-            }
+            (c.verdict == PayeeAmounts.Verdict.FITS ? passend : rest).add(c);
         }
-        return alle.isEmpty() ? null : alle.get(0);   // Notbremse: lieber zweifelhaft als gar nichts
+        // Stabil: bei gleichem Abstand bleibt es bei der Reihenfolge nach Nähe und Rang.
+        java.util.Collections.sort(rest, (x, y) -> Double.compare(x.gap, y.gap));
+        passend.addAll(rest);
+        return passend;
     }
 
     /**
@@ -298,8 +316,9 @@ class AliasResolver {
         if (amountCents > 0) {
             for (Candidate c : out) {
                 float[] band = PayeeAmounts.bandOf(correctionDao.findAllByCorrected(c.name));
-                c.verdict = PayeeAmounts.judge(amountsOf(c.name, judgeType),
-                        amountCents, band[0], band[1]);
+                List<Long> bisher = amountsOf(c.name, judgeType);
+                c.verdict = PayeeAmounts.judge(bisher, amountCents, band[0], band[1]);
+                c.gap = PayeeAmounts.gap(bisher, amountCents, band[0], band[1]);
             }
         }
         return out;
@@ -641,9 +660,15 @@ class AliasResolver {
      * leer → Editor wird nur mit dem Betrag geöffnet.
      */
     /**
-     * Die Empfänger im 100-m-Umkreis, die zum Betrag passen – für die Ziffernmaske: der beste steht
-     * vorn, Antippen läuft der Reihe nach durch. Wer den Betrag nachweislich nie hat, fehlt ganz;
-     * Empfänger ohne genug Buchungen stehen hinten, denn über sie ist nichts bekannt.
+     * Die Empfänger im 100-m-Umkreis, der beste zum Betrag vorn – für die Ziffernmaske, in der man
+     * mit jedem Tipp einen weiter blättert.
+     *
+     * <p>Vorn stehen die, in deren Band der Betrag liegt (der nächstgelegene zuerst). Dahinter die
+     * übrigen nach ihrem Betragsabstand ({@link PayeeAmounts#gap}), also der am wenigsten Verfehlte
+     * zuerst; wer zu wenige Buchungen für ein Urteil hat, reiht sich dort mittig ein.</p>
+     *
+     * <p>Herausgeworfen wird niemand: blättern können muß man immer, sonst stünde bei einem Betrag,
+     * den keiner je hatte, plötzlich niemand mehr zur Wahl.</p>
      *
      * @param amountCents bisher eingetippter Betrag; {@code <= 0} = noch keiner, dann zählt nur die Nähe
      * @param scope       die angezeigten Konten ({@link AccountScope}); leer = alle
@@ -652,21 +677,15 @@ class AliasResolver {
                        final java.util.Set<String> scope,
                        final Callback<List<VoiceResolution>> callback) {
         executor.execute(() -> {
-            final List<VoiceResolution> passend = new ArrayList<>();
-            final List<VoiceResolution> unbekannt = new ArrayList<>();
+            final List<VoiceResolution> out = new ArrayList<>();
             double[] ll = de.spahr.ausgaben.location.Geo.parse(coords);
             if (ll != null) {
-                for (Candidate c : nearbyCandidates(ll[0], ll[1], closedAccounts(), scope, null,
-                        amountCents, type)) {
-                    if (c.verdict == PayeeAmounts.Verdict.MISSES) {
-                        continue;
-                    }
-                    (c.verdict == PayeeAmounts.Verdict.FITS ? passend : unbekannt)
-                            .add(new VoiceResolution(c.booking, c.alias, c.name));
+                for (Candidate c : byAmount(nearbyCandidates(ll[0], ll[1], closedAccounts(), scope,
+                        null, amountCents, type))) {
+                    out.add(new VoiceResolution(c.booking, c.alias, c.name));
                 }
             }
-            passend.addAll(unbekannt);
-            mainHandler.post(() -> callback.onResult(passend));
+            mainHandler.post(() -> callback.onResult(out));
         });
     }
 

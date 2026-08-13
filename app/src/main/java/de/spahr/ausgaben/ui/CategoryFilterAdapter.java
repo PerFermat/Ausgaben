@@ -31,6 +31,8 @@ public class CategoryFilterAdapter extends ArrayAdapter<CategoryFilterAdapter.Ca
     private static final int KIND_GROUP = 1;
     private static final int KIND_MAIN = 2;
     private static final int KIND_SUB = 3;
+    /** Kategorie im Vorspann „bei diesem Empfänger" – dieselbe Kategorie steht unten noch einmal. */
+    private static final int KIND_FAV = 4;
 
     /** Ein Eintrag. {@code value} = zu filternder Kategorietext ("" = alle bzw. Überschrift). */
     public static class CatItem {
@@ -53,7 +55,11 @@ public class CategoryFilterAdapter extends ArrayAdapter<CategoryFilterAdapter.Ca
     }
 
     private final List<CatItem> all;
+    /** Vorspann samt Überschrift: die Kategorien des eingetragenen Empfängers; leer = keiner. */
+    private List<CatItem> favorites = new ArrayList<>();
     private List<CatItem> shown;
+    /** Die zuletzt angezeigte Suchanfrage – leer heißt: das Feld steht offen mit dem ganzen Bestand. */
+    private String lastConstraint = "";
     private final int indentPx;
     /** Liefert die Farbe, die dieselbe Kategorie auch im Kreisdiagramm trägt. */
     private final CategoryColorStore colors;
@@ -107,6 +113,36 @@ public class CategoryFilterAdapter extends ArrayAdapter<CategoryFilterAdapter.Ca
             for (String sub : e.getValue()) {
                 out.add(new CatItem(sub, main + ":" + sub, KIND_SUB, groupLabel, groupIsIncome));
             }
+        }
+    }
+
+    /**
+     * Setzt den Vorspann: die Kategorien des eingetragenen Empfängers, unter der Überschrift
+     * {@code header} und in der übergebenen Reihenfolge. Sie stehen im leeren Feld ganz oben und noch
+     * einmal an ihrem gewohnten Platz; sobald jemand tippt, bleibt nur der gewohnte Platz.
+     *
+     * <p>Was die Liste nicht (mehr) kennt, fällt weg. Die Einträge behalten Richtungspfeil und Farbe
+     * ihrer Kategorie, tragen aber den vollen Namen „Haupt:Unter": im Vorspann fehlt die
+     * Hauptkategorie als Überschrift darüber.</p>
+     */
+    void setFavorites(String header, List<String> values) {
+        List<CatItem> neu = new ArrayList<>();
+        if (values != null) {
+            for (String value : values) {
+                CatItem item = itemFor(value);
+                if (item != null && !item.value.isEmpty()) {
+                    neu.add(new CatItem(item.value, item.value, KIND_FAV, header, item.groupIsIncome));
+                }
+            }
+        }
+        if (!neu.isEmpty()) {
+            neu.add(0, new CatItem(header, "", KIND_GROUP, header, false));
+        }
+        favorites = neu;
+        // Das Feld zeigt gerade die alte Liste; ohne neuen Suchlauf bliebe sie bis zum nächsten Öffnen.
+        // Sucht dort jemand gerade, bleibt seine Trefferliste stehen – der Vorspann kommt beim Leeren.
+        if (lastConstraint.isEmpty()) {
+            getFilter().filter("");
         }
     }
 
@@ -214,7 +250,14 @@ public class CategoryFilterAdapter extends ArrayAdapter<CategoryFilterAdapter.Ca
             List<CatItem> result;
             String q = constraint == null ? "" : constraint.toString().trim().toLowerCase(Locale.getDefault());
             if (q.isEmpty()) {
-                result = all;
+                // Leeres Feld: der Vorspann des Empfängers steht über dem Bestand. Beim Suchen fällt er
+                // weg, die Kategorien stehen dann nur noch an ihrem gewohnten Platz.
+                if (favorites.isEmpty()) {
+                    result = all;
+                } else {
+                    result = new ArrayList<>(favorites);
+                    result.addAll(all);
+                }
             } else {
                 // Passende Kategorien sammeln; eine Gruppen-Überschrift nur zeigen, wenn sie Treffer hat.
                 // Trifft nur eine Unterkategorie zu, wird zusätzlich ihre Hauptkategorie mit angezeigt
@@ -284,6 +327,7 @@ public class CategoryFilterAdapter extends ArrayAdapter<CategoryFilterAdapter.Ca
         @Override
         @SuppressWarnings("unchecked")
         protected void publishResults(CharSequence constraint, FilterResults results) {
+            lastConstraint = constraint == null ? "" : constraint.toString().trim();
             shown = results.values == null ? new ArrayList<>() : (List<CatItem>) results.values;
             clear();
             addAll(shown);
@@ -295,7 +339,7 @@ public class CategoryFilterAdapter extends ArrayAdapter<CategoryFilterAdapter.Ca
             // Nur echte Kategorien liefern einen Wert; Überschriften/„alle" ergeben "".
             if (resultValue instanceof CatItem) {
                 CatItem c = (CatItem) resultValue;
-                return c.kind == KIND_MAIN || c.kind == KIND_SUB ? c.value : "";
+                return c.kind == KIND_MAIN || c.kind == KIND_SUB || c.kind == KIND_FAV ? c.value : "";
             }
             return "";
         }

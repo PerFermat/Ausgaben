@@ -1012,6 +1012,11 @@ public class Repository {
         aliasResolver.getNearbyPayees(lat, lon, callback);
     }
 
+    /** Die Kategorien dieses Empfängers (höchstens {@code PayeeCategories.LIMIT}) für den Editor. */
+    public void getPayeeCategories(String payee, boolean income, Callback<List<String>> callback) {
+        aliasResolver.getPayeeCategories(payee, income, callback);
+    }
+
     public void getAlias(long id, Callback<PayeeCorrection> callback) {
         aliasResolver.getAlias(id, callback);
     }

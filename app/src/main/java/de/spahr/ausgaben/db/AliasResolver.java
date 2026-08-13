@@ -382,6 +382,20 @@ class AliasResolver {
         });
     }
 
+    /**
+     * Die Kategorien dieses Empfängers für die Vorbelegung im Editor: bevorzugte Aliase, Buchungen,
+     * übrige Aliase – die Reihenfolge macht {@link PayeeCategories#rank}.
+     */
+    void getPayeeCategories(final String payee, final boolean income,
+                            final Callback<List<String>> callback) {
+        executor.execute(() -> {
+            final List<String> result = PayeeCategories.rank(
+                    correctionDao.findAllByCorrected(payee),
+                    bookingDao.getCategoriesByPayee(payee, income), income);
+            mainHandler.post(() -> callback.onResult(result));
+        });
+    }
+
     void getAlias(final long id, final Callback<PayeeCorrection> callback) {
         executor.execute(() -> {
             final PayeeCorrection result = correctionDao.getById(id);

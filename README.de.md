@@ -77,7 +77,10 @@ Details, Screenshots und die genaue Bedienung stehen im **[Benutzerhandbuch](doc
   („Frisör 20 €“), stille Betrag-only-Erfassung per GPS-Standort, lernende Alias-Namen für
   Zahlungsempfänger. Oben in der Vorschlagsliste stehen die **sechs nächstgelegenen Empfänger** mit
   Peilpfeil – gemessen am Standort der Buchung: beim Anlegen der aktuelle, beim Bearbeiten die
-  gespeicherte Marke der Buchung. Sobald man tippt, bleibt die alphabetische Liste.
+  gespeicherte Marke der Buchung. Sobald man tippt, bleibt die alphabetische Liste. Steht der
+  Empfänger fest, füllt sich die **erste Kategorie** aus seinen bisherigen Einträgen (bevorzugter
+  Alias → letzte Buchung → übriger Alias); die weiteren stehen als eigener Block oben in der
+  Kategorieliste.
 - **Belegfotos nachbearbeiten**: direkt nach der Aufnahme (oder später über die Beleg-Zeile) lässt sich
   das Bild rechteckig zuschneiden, im Trapez-Modus eine schräg fotografierte Rechnung begradigen und
   Helligkeit/Kontrast anpassen. Das unbearbeitete Original bleibt dauerhaft als `…_original.jpg` erhalten;

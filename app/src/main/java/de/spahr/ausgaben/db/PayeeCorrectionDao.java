@@ -44,6 +44,14 @@ public interface PayeeCorrectionDao {
             + "ORDER BY created_at DESC")
     List<PayeeCorrection> findAllBySpokenExact(String spoken, int pref);
 
+    /**
+     * Alle Aliase, die auf genau diesen Empfänger zeigen (Groß-/Kleinschreibung egal, jüngste zuerst) –
+     * für die Kategorie-Vorbelegung im Editor; dort steht der Zielname im Feld, nicht der gesprochene.
+     */
+    @Query("SELECT * FROM payee_correction WHERE corrected = :corrected COLLATE NOCASE "
+            + "ORDER BY created_at DESC")
+    List<PayeeCorrection> findAllByCorrected(String corrected);
+
     /** Erkannte Begriffe der bevorzugten bzw. übrigen Aliase – Kandidaten für die unscharfe Suche. */
     @Query("SELECT spoken FROM payee_correction WHERE preferred = :pref")
     List<String> getSpokenByPreferred(int pref);

@@ -208,6 +208,8 @@ public class BookingEditActivity extends LocalizedActivity {
     private List<String> nearbyPayees = new ArrayList<>();
     /** Position, zu der {@link #nearbyPayees} gehört – erst ein deutlicher Ortswechsel rechnet neu. */
     private double[] nearbyCenter;
+    /** Empfänger und Buchungsart, zu denen die Kategorie-Favoriten gehören („name|true/false"). */
+    private String payeeCategoryKey;
     /** So weit muß der Standort wandern, damit der Vorspann neu gerechnet wird (Meter). */
     private static final int NEARBY_AGAIN_M = 100;
 
@@ -294,6 +296,10 @@ public class BookingEditActivity extends LocalizedActivity {
             splitCtl.setAdapter(new CategoryFilterAdapter(this, null,
                     getString(R.string.category_group_expense), g.expense,
                     getString(R.string.category_group_income), g.income));
+            // Die Liste kommt aus der Datenbank und damit womöglich später als der vorbelegte Empfänger –
+            // dann sind seine Kategorien noch an keiner Liste angekommen. Also noch einmal fragen.
+            payeeCategoryKey = null;
+            refreshPayeeCategories();
         });
 
         // Ort-Dropdown folgt dem gewählten Konto: bei Ausgabe/Einnahme der Ort, bei Umbuchung der Von-Ort.
@@ -306,6 +312,9 @@ public class BookingEditActivity extends LocalizedActivity {
             }
             applyTypeVisibility();
         });
+        // Steht der Empfänger fest, richten sich die Kategorien nach ihm: Vorspann der Auswahlliste und
+        // Vorbelegung der ersten Zeile.
+        PickerBehaviour.onCommitted(editPayee, value -> refreshPayeeCategories());
         // Bei einer Umbuchung folgt der Nach-Ort dem Nach-Konto.
         PickerBehaviour.onCommitted(editAccountTo, value -> {
             if (isTransferType()) {
@@ -1128,6 +1137,10 @@ public class BookingEditActivity extends LocalizedActivity {
         return toggleType.getCheckedButtonId() == R.id.btnTransfer;
     }
 
+    private boolean isIncomeType() {
+        return toggleType.getCheckedButtonId() == R.id.btnIncome;
+    }
+
     /** Blendet Felder je nach Typ ein/aus (Umbuchung: zwei Konten, keine Kategorie/Ort/Empfänger). */
     private void applyTypeVisibility() {
         boolean transfer = isTransferType();
@@ -1152,7 +1165,46 @@ public class BookingEditActivity extends LocalizedActivity {
         payeeLayout.setHint(getString(transfer ? R.string.transfer_payee_hint : R.string.payee_hint));
         // GPS-/Beleg-Ausgabezeilen aktualisieren (Beleg-Zeile z. B. bei Umbuchung ausblenden).
         updateNoteTagRows();
+        // Durch diese Stelle läuft jeder Wechsel der Buchungsart und jedes Vorbelegen – also auch der
+        // Anlaß, die Kategorien des Empfängers neu zu holen. Wiederholungen fängt der Schlüssel ab.
+        refreshPayeeCategories();
         updateSaveEnabled();
+    }
+
+    /**
+     * Holt die Kategorien des eingetragenen Empfängers: bevorzugte Aliase, dann seine Buchungen, dann
+     * die übrigen Aliase (siehe {@link de.spahr.ausgaben.db.PayeeCategories}). Sie stehen als Vorspann
+     * oben in jeder Kategorieliste; die <b>erste Zeile</b> wird mit der ersten vorbelegt – aber nur,
+     * wenn dort noch nichts steht: eine Vorbelegung füllt, sie überschreibt nicht.
+     *
+     * <p>Umbuchungen haben keine Kategorien, die reine Ansicht nichts zu wählen. Gefragt wird erst,
+     * wenn sich Empfänger oder Buchungsart wirklich geändert haben.</p>
+     */
+    private void refreshPayeeCategories() {
+        if (readOnly || isTransferType()) {
+            return;
+        }
+        String payee = textOf(editPayee).trim();
+        boolean income = isIncomeType();
+        String key = payee.toLowerCase(Locale.ROOT) + "|" + income;
+        if (key.equals(payeeCategoryKey)) {
+            return;
+        }
+        payeeCategoryKey = key;
+        if (payee.isEmpty()) {
+            splitCtl.setCategoryFavorites(getString(R.string.category_group_payee), null);
+            return;
+        }
+        repository.getPayeeCategories(payee, income, cats -> {
+            // Die Antwort kommt später; inzwischen kann ein anderer Empfänger im Feld stehen.
+            if (!key.equals(payeeCategoryKey)) {
+                return;
+            }
+            splitCtl.setCategoryFavorites(getString(R.string.category_group_payee), cats);
+            if (!cats.isEmpty() && splitCtl.isFirstCategoryEmpty()) {
+                splitCtl.setFirstCategory(cats.get(0));
+            }
+        });
     }
 
     // ---- Dynamische Split-Liste ----

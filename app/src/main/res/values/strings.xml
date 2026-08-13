@@ -543,6 +543,7 @@
     <string name="accounts_depot">Portfolios</string>
     <string name="category_group_expense">Expense</string>
     <string name="category_group_income">Income</string>
+    <string name="category_group_payee">For this payee</string>
     <string name="depot_empty">No portfolio imported yet</string>
     <string name="depot_no_history">No transactions</string>
     <string name="depot_shares_unit">shares</string>

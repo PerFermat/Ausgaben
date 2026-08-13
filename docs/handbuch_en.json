@@ -353,6 +353,11 @@
           "type": "p",
           "id": "b-0050a",
           "text": "For the <b>payee</b> the location does the same: the <b>six nearest payees</b> head the list with a <b>bearing arrow</b>, the nearest one first. Distances are measured from the <b>booking's location</b> – whatever the <b>location</b> row shows: in a <b>new booking</b> your current one (only with <b>location (GPS)</b> switched on), while <b>editing</b> the booking's <b>stored mark</b>, and if you pick another point there via <b>«Map»</b>, the block follows. A booking without a mark gets no block – where you stand today says nothing about an old booking. How far away a payee is comes from the same sources as the radius filter: the coordinates in the notes of its bookings and the learned locations of its aliases; the nearest point counts, and anything beyond 10 km does not appear. Below them the complete alphabetical list follows unchanged, so those six appear a second time. <b>As soon as you start typing</b> the block disappears and you see the alphabetical matches alone; delete what you typed and it is back. It does not appear when you view a planned booking."
+        },
+        {
+          "type": "p",
+          "id": "b-0050b",
+          "text": "Once the <b>payee</b> is set, the <b>category</b> follows from it: the app looks for entries of the currently selected booking type – first in the <b>preferred aliases</b> (★), then in your <b>bookings</b> for that payee (the most recent first, the parts of a split booking count too), finally in the <b>remaining aliases</b> – and puts the first find into the <b>first category row</b>; the partial amount jumps to the total. If something is already there it stays: a preset fills, it does not overwrite. The other categories found (up to six) head the list under the heading <b>«FOR THIS PAYEE»</b> – in <b>every</b> category row, so splitting benefits too. <b>As soon as you start typing</b> that block disappears and the categories only appear in their usual place under «EXPENSE» or «INCOME». Switching between expense and income switches block and preset with it; transfers have no categories."
         }
       ],
       "shot": {"fname": "Buchung Empfänger.png", "caption": "Booking editor with type switch, amount, payee and account", "width": 6.0}

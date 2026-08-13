@@ -239,6 +239,38 @@ class SplitRowController {
         return found;
     }
 
+    /** Ob die erste Zeile noch keine Kategorie trägt – dann darf eine Vorbelegung hinein. */
+    boolean isFirstCategoryEmpty() {
+        return container.getChildCount() > 0 && catText(container.getChildAt(0)).isEmpty();
+    }
+
+    /**
+     * Trägt eine Kategorie in die erste Zeile ein (Vorbelegung aus dem Empfänger) samt ihrem bekannten
+     * Typ. Der Weg über {@code setText} ist Absicht: der Beobachter der Zeile füllt daraufhin den
+     * Teilbetrag mit dem Gesamtbetrag und hängt eine neue leere Zeile an – wie bei einer Auswahl von
+     * Hand. Den Typ setzt er dabei zurück, deshalb kommt er erst danach.
+     */
+    void setFirstCategory(String category) {
+        if (category == null || category.trim().isEmpty() || container.getChildCount() == 0) {
+            return;
+        }
+        MaterialAutoCompleteTextView cat = container.getChildAt(0).findViewById(R.id.splitCategory);
+        if (cat == null) {
+            return;
+        }
+        CategoryFilterAdapter.CatItem item =
+                categoryAdapter != null ? categoryAdapter.itemFor(category) : null;
+        cat.setText(category, false);
+        cat.setTag(item != null ? item.groupIsIncome : null);
+    }
+
+    /** Reicht den Vorspann des Empfängers an die gemeinsame Kategorieliste aller Zeilen weiter. */
+    void setCategoryFavorites(String header, List<String> values) {
+        if (categoryAdapter != null) {
+            categoryAdapter.setFavorites(header, values);
+        }
+    }
+
     /** Sorgt für genau eine leere Abschluss-Zeile am Ende. */
     void ensureTrailingRow() {
         if (readOnly) {

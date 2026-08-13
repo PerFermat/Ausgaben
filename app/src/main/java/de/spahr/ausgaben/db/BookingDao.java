@@ -147,6 +147,24 @@ public interface BookingDao {
     @Query("SELECT * FROM booking WHERE note LIKE '%GPS:%' ORDER BY created_at DESC, id DESC LIMIT 500")
     List<Booking> getWithGpsNote();
 
+    /**
+     * Die Kategorien, auf die dieser Empfänger schon gebucht wurde (jüngste zuerst) – Grundlage der
+     * Vorbelegung im Editor. Die Teilzeilen einer Splitbuchung zählen mit, denn in
+     * {@code booking.category} steht dort nur die erste. Der Empfängername muß genau stimmen
+     * (Groß-/Kleinschreibung egal); Umbuchungen haben keine Kategorie.
+     */
+    @Query("SELECT category FROM ("
+            + "SELECT category AS category, created_at AS created_at FROM booking "
+            + "WHERE payee = :payee COLLATE NOCASE AND is_transfer = 0 AND is_income = :income "
+            + "AND category != '' "
+            + "UNION ALL "
+            + "SELECT s.category AS category, b.created_at AS created_at FROM booking_split s "
+            + "JOIN booking b ON s.booking_id = b.id "
+            + "WHERE b.payee = :payee COLLATE NOCASE AND b.is_transfer = 0 AND b.is_income = :income "
+            + "AND s.category != '') "
+            + "ORDER BY created_at DESC LIMIT 200")
+    List<String> getCategoriesByPayee(String payee, boolean income);
+
     /** Ort-Link an allen Buchungen eines Kontos umbenennen (folgt dem Umbenennen in der Ortsverwaltung). */
     @Query("UPDATE booking SET place = :newName WHERE account = :account AND place = :oldName")
     void renamePlace(String account, String oldName, String newName);

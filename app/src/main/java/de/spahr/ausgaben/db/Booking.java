@@ -77,6 +77,33 @@ public class Booking {
     public boolean exported;
 
     /**
+     * Nach dem Export geändert: die Buchung steht in der .kmy-Datei noch in ihrer alten Fassung. Beim
+     * nächsten Übertragen wird die dortige Transaktion geändert (statt eine neue anzulegen) und die
+     * Buchung wieder auf {@link #exported} gestellt. Ist dieses Feld gesetzt, ist {@code exported}
+     * immer {@code false}. Nur der kmy-Modus kennt diesen Zustand; von Hand nicht setzbar (siehe
+     * {@link EditStatus}).
+     */
+    @ColumnInfo(name = "edited")
+    public boolean edited;
+
+    /**
+     * Konto der exportierten Fassung – nur gefüllt, solange {@link #edited} gilt. Zusammen mit
+     * {@link #origSignedCents} und {@link #origCreatedAt} die Signatur, an der die Transaktion in der
+     * .kmy-Datei wiedergefunden wird, auch wenn die Bearbeitung Konto, Betrag oder Datum verändert hat.
+     */
+    @NonNull
+    @ColumnInfo(name = "orig_account")
+    public String origAccount = "";
+
+    /** Vorzeichenbehafteter Betrag in Cent der exportierten Fassung ({@code +} = Einnahme). */
+    @ColumnInfo(name = "orig_signed_cents")
+    public long origSignedCents;
+
+    /** {@link #createdAt} der exportierten Fassung. */
+    @ColumnInfo(name = "orig_created_at")
+    public long origCreatedAt;
+
+    /**
      * Unbenutzt (Spalte bleibt aus Migrationsgründen bestehen). Die Lösch-Synchronisierung mit der
      * .kmy-Datei ({@code KmyPendingDelete}) identifiziert Transaktionen stattdessen über Konto, Datum
      * und Betrag, da importierte Buchungen keine KMyMoney-Transaktions-id kennen.

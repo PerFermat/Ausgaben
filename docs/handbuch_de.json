@@ -1021,6 +1021,11 @@
       "text": "Tippen Sie auf das Export-Symbol ⬇. Die App lädt die aktuelle .kmy vom Sync-Ziel, fügt Ihre neuen Buchungen ein, legt zuvor eine Sicherung an (siehe unten) und schreibt die Datei zurück. Jede Buchung wird nur <b>einmal</b> exportiert und danach als «exportiert» markiert. Im CSV-Modus wird stattdessen je Konto eine CSV-Datei hochgeladen."
     },
     {
+      "type": "p",
+      "id": "b-0009",
+      "text": "<b>Bearbeitete Buchungen.</b> Ändern Sie eine Buchung, die bereits als «exportiert» markiert ist, so trägt sie danach «bearbeitet» (gelb in der Liste). Beim nächsten Export wird keine zweite Transaktion angelegt, sondern die vorhandene in der .kmy-Datei <b>geändert</b> – dieselbe Transaktion an derselben Stelle, ohne Dublette; danach steht die Buchung wieder auf «exportiert». Diesen Status können Sie nicht selbst setzen: er entsteht allein durch das Ändern, und der Schalter «Als exportiert markiert» ist im Buchungseditor dann gesperrt und beschriftet sich entsprechend. Legen Sie den Schalter beim Ändern dagegen selbst aus, gilt Ihr Wille: die Buchung ist «nicht exportiert» und wird beim nächsten Export als neue Transaktion geschrieben. Ist die alte Transaktion in der Datei nicht mehr zu finden (etwa am Rechner gelöscht), sagt die Meldung das und die Buchung bleibt «bearbeitet» – eingefügt wird nichts. Importieren Sie die .kmy-Datei zwischendurch neu, gewinnt die Datei und die Bearbeitung ist verloren. Umbuchungen verhalten sich genauso, obwohl sie aus zwei Zeilen bestehen: in der Datei sind sie eine Transaktion und werden einmal geändert."
+    },
+    {
       "type": "h2",
       "id": "b-0163",
       "text": "Konten (neu) importieren"

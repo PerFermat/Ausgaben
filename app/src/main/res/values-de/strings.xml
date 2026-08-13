@@ -79,6 +79,8 @@
     <string name="scroll_top">Nach oben</string>
     <string name="bookings_title">Buchungen</string>
     <string name="exported_badge">exportiert</string>
+    <string name="edited_badge">bearbeitet</string>
+    <string name="edited_locked">Bearbeitet — wird beim nächsten Übertragen nachgezogen</string>
     <string name="duplicated">Werte übernommen – anpassen und speichern</string>
 
     <!-- Menü -->
@@ -565,6 +567,8 @@
     <string name="kmy_progress_writing">Schreibe KMyMoney-Datei…</string>
     <string name="kmy_none_matched">Keine Buchung konnte zugeordnet werden.</string>
     <string name="kmy_result_written">%1$d Buchung(en) in %2$s geschrieben</string>
+    <string name="kmy_result_updated">, %1$d geändert</string>
+    <string name="kmy_edited_not_found">%1$d bearbeitete Buchung(en) waren in der Datei nicht zu finden und bleiben „bearbeitet".</string>
     <string name="kmy_result_new_payees">, %1$d neue(r) Empfänger</string>
     <string name="kmy_result_deleted">, %1$d gelöscht</string>
     <string name="kmy_result_scheduled">, %1$d geplante Buchung(en) weitergestellt</string>

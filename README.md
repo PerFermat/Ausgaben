@@ -128,6 +128,9 @@ Details, screenshots and exact behavior are in the **[user manual](docs/Manual-A
   concurrent overwrites. The `.kmy` mode also copes with other people's files: freshly created files without
   bookings, accounts in a **foreign currency** (amounts in the account's currency), tagged transactions and
   account names used more than once (shown with their path, e.g. "Bank B:Checking").
+  Change a booking that was already transferred and it becomes **"edited"**: its transaction is changed in
+  the file on the next transfer (same transaction, no duplicate); re-importing the `.kmy` file in the
+  meantime overwrites the edit.
 - **Multilingual**: English/German built in, more languages via a translation file (also on the watch).
 - **Appearance**: dark theme and an app-wide **font size** (Small/Normal/Large/Very large) — applied on
   top of the system font size; long account names/booking titles marquee-scroll when they no longer fit.

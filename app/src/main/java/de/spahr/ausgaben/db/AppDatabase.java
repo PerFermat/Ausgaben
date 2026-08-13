@@ -14,7 +14,7 @@ import androidx.sqlite.db.SupportSQLiteDatabase;
         Budget.class, CategoryType.class, ScheduledTransaction.class, ScheduledSplit.class,
         AnalysisExtra.class, SecurityTxValueOverride.class, KmyPendingDelete.class, SecurityPrice.class,
         ScheduledAdvance.class, AccountGroup.class, AccountGroupMember.class, AccountKindOrder.class},
-        version = 40, exportSchema = false)
+        version = 41, exportSchema = false)
 public abstract class AppDatabase extends RoomDatabase {
 
     /** v1 → v2: Notiz-Spalte ergänzen (bestehende Buchungen bleiben erhalten). */
@@ -515,6 +515,21 @@ public abstract class AppDatabase extends RoomDatabase {
         }
     };
 
+    /**
+     * v40 → v41: Status „bearbeitet" für exportierte Buchungen, die nachträglich geändert wurden. Die drei
+     * {@code orig_*}-Spalten halten die Signatur der exportierten Fassung fest, damit die Transaktion in der
+     * .kmy-Datei auch dann noch zu finden ist, wenn Konto, Betrag oder Datum geändert wurden.
+     */
+    static final Migration MIGRATION_40_41 = new Migration(40, 41) {
+        @Override
+        public void migrate(@NonNull SupportSQLiteDatabase db) {
+            db.execSQL("ALTER TABLE booking ADD COLUMN edited INTEGER NOT NULL DEFAULT 0");
+            db.execSQL("ALTER TABLE booking ADD COLUMN orig_account TEXT NOT NULL DEFAULT ''");
+            db.execSQL("ALTER TABLE booking ADD COLUMN orig_signed_cents INTEGER NOT NULL DEFAULT 0");
+            db.execSQL("ALTER TABLE booking ADD COLUMN orig_created_at INTEGER NOT NULL DEFAULT 0");
+        }
+    };
+
     public abstract BookingDao bookingDao();
 
     public abstract AccountDao accountDao();
@@ -566,7 +581,7 @@ public abstract class AppDatabase extends RoomDatabase {
                                     MIGRATION_28_29, MIGRATION_29_30, MIGRATION_30_31,
                                     MIGRATION_31_32, MIGRATION_32_33, MIGRATION_33_34, MIGRATION_34_35,
                                     MIGRATION_35_36, MIGRATION_36_37, MIGRATION_37_38,
-                                    MIGRATION_38_39, MIGRATION_39_40)
+                                    MIGRATION_38_39, MIGRATION_39_40, MIGRATION_40_41)
                             .build();
                 }
             }

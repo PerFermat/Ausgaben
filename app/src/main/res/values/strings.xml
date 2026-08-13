@@ -79,6 +79,8 @@
     <string name="scroll_top">To top</string>
     <string name="bookings_title">Bookings</string>
     <string name="exported_badge">exported</string>
+    <string name="edited_badge">edited</string>
+    <string name="edited_locked">Edited — will be updated on the next transfer</string>
     <string name="duplicated">Values copied – adjust and save</string>
 
     <!-- Menu -->
@@ -566,6 +568,8 @@
     <string name="kmy_progress_writing">Writing KMyMoney file…</string>
     <string name="kmy_none_matched">No booking could be matched.</string>
     <string name="kmy_result_written">Wrote %1$d booking(s) to %2$s</string>
+    <string name="kmy_result_updated">, %1$d changed</string>
+    <string name="kmy_edited_not_found">%1$d edited booking(s) were not found in the file and stay marked “edited”.</string>
     <string name="kmy_result_new_payees">, %1$d new payee(s)</string>
     <string name="kmy_result_deleted">, %1$d deleted</string>
     <string name="kmy_result_scheduled">, %1$d schedule(s) moved on</string>

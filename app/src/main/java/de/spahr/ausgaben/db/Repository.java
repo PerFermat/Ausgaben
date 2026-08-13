@@ -488,6 +488,7 @@ public class Repository {
     public void updateSplitBooking(final Booking booking, final List<BookingSplit> parts,
                                    final Runnable onDone) {
         executor.execute(() -> {
+            applyEditStatus(booking);
             payeeDao.insertIfAbsent(new Payee(booking.payee));
             accountDao.insertIfAbsent(new Account(booking.account));
             bookingDao.update(booking);
@@ -502,6 +503,22 @@ public class Repository {
                 mainHandler.post(onDone);
             }
         });
+    }
+
+    /**
+     * Setzt an einer zu speichernden Buchung den Status „bearbeitet", wenn sie in der .kmy-Datei schon
+     * steht (siehe {@link EditStatus}). Läuft bereits auf dem Executor-Thread.
+     */
+    private void applyEditStatus(Booking updated) {
+        if (updated == null || updated.id == 0) {
+            return;
+        }
+        EditStatus.apply(bookingDao.getById(updated.id), updated, isKmyMode());
+    }
+
+    /** Ob die Buchungen mit einer gemeinsamen .kmy-Datei abgeglichen werden. */
+    private boolean isKmyMode() {
+        return new de.spahr.ausgaben.settings.SettingsStore(appContext).isKmyMode();
     }
 
     /**
@@ -543,7 +560,7 @@ public class Repository {
                                     final Runnable onDone) {
         executor.execute(() -> {
             String group = UUID.randomUUID().toString();
-            insertTransferPair(from, to, cents, payee, note, createdAt, false, group, fromPlace, toPlace);
+            insertTransferPair(from, to, cents, payee, note, createdAt, null, group, fromPlace, toPlace);
             if (onDone != null) {
                 mainHandler.post(onDone);
             }
@@ -566,10 +583,16 @@ public class Repository {
                                       final long createdAt, final String fromPlace, final String toPlace,
                                       final Runnable onDone) {
         executor.execute(() -> {
+            boolean kmy = isKmyMode();
             if (existing.transferGroup != null && !existing.transferGroup.isEmpty()) {
+                // Beide Seiten werden neu angelegt; der Status muß die alte Von-Zeile überdauern, denn nur
+                // ihre Signatur findet die eine Transaktion in der .kmy-Datei wieder.
+                Booking status = new Booking();
+                status.exported = existing.exported;
+                EditStatus.apply(fromSideOf(existing.transferGroup), status, kmy);
                 rollbackTransferPlaces(existing.transferGroup);
                 bookingDao.deleteByTransferGroup(existing.transferGroup);
-                insertTransferPair(from, to, cents, payee, note, createdAt, existing.exported,
+                insertTransferPair(from, to, cents, payee, note, createdAt, status,
                         existing.transferGroup, fromPlace, toPlace);
             } else {
                 // Importierte einseitige Umbuchung: an das ursprüngliche Konto gebunden lassen.
@@ -589,6 +612,7 @@ public class Repository {
                 existing.isTransfer = true;
                 existing.category = "";
                 existing.payee = payee == null ? "" : payee.trim();
+                EditStatus.apply(bookingDao.getById(existing.id), existing, kmy);
                 bookingDao.deleteSplits(existing.id);
                 if (!existing.payee.isEmpty()) {
                     payeeDao.insertIfAbsent(new Payee(existing.payee));
@@ -603,19 +627,17 @@ public class Repository {
         });
     }
 
-    /** Fügt die beiden Seiten einer Umbuchung ein (läuft bereits auf dem Executor-Thread). */
-    private void insertTransferPair(String from, String to, long cents, String payee, String note,
-                                    long createdAt, boolean exported, String group) {
-        insertTransferPair(from, to, cents, payee, note, createdAt, exported, group, "", "");
-    }
-
     /**
      * Fügt die beiden Seiten einer Umbuchung ein und – falls ein echter Ort gewählt ist – die passenden
      * Ort-Bewegungen (Von-Konto: −Betrag am {@code fromPlace}, Nach-Konto: +Betrag am {@code toPlace}).
      * Läuft bereits auf dem Executor-Thread.
+     *
+     * @param status Buchung, deren Export-Status (exportiert/bearbeitet samt Signatur der exportierten
+     *               Fassung) beide neuen Zeilen erben; {@code null} = frische, noch nicht exportierte
+     *               Umbuchung. Nötig, weil das Ändern einer Umbuchung beide Zeilen neu anlegt.
      */
     private void insertTransferPair(String from, String to, long cents, String payee, String note,
-                                    long createdAt, boolean exported, String group,
+                                    long createdAt, Booking status, String group,
                                     String fromPlace, String toPlace) {
         accountDao.insertIfAbsent(new Account(from));
         accountDao.insertIfAbsent(new Account(to));
@@ -640,7 +662,7 @@ public class Repository {
         out.payee = p;
         out.note = memo;
         out.createdAt = createdAt;
-        out.exported = exported;
+        EditStatus.inherit(status, out);
         out.place = fromP;
         out.placeManaged = fromManaged;
         bookingDao.insert(out);
@@ -658,13 +680,25 @@ public class Repository {
         in.payee = p;
         in.note = memo;
         in.createdAt = createdAt;
-        in.exported = exported;
+        EditStatus.inherit(status, in);
         in.place = toP;
         in.placeManaged = toManaged;
         bookingDao.insert(in);
         if (toManaged) {
             placeEntryDao.insert(new PlaceEntry(to, toP, cents, createdAt, "transfer", moveNote));
         }
+    }
+
+    /** Die Ausgabe-Seite („von") einer Umbuchungs-Gruppe, sonst irgendeine; {@code null} bei leerer Gruppe. */
+    private Booking fromSideOf(String group) {
+        Booking any = null;
+        for (Booking b : bookingDao.getByTransferGroup(group)) {
+            if (!b.isIncome) {
+                return b;
+            }
+            any = b;
+        }
+        return any;
     }
 
     /**
@@ -734,21 +768,23 @@ public class Repository {
 
     /**
      * Merkt eine bereits in der .kmy-Datei vorhandene Buchung (egal ob von der App exportiert oder von
-     * dort importiert – beides markiert {@link Booking#exported}) zum Löschen vor, nur im kmy-Modus (in
+     * dort importiert – beides markiert {@link Booking#exported}, ebenso eine seither geänderte mit
+     * {@link Booking#edited}) zum Löschen vor, nur im kmy-Modus (in
      * anderen Speicherarten gibt es keine gemeinsame Datei, aus der etwas entfernt werden müsste). Die
      * nächste {@code KmyExportCoordinator}-Übertragung sucht die passende Transaktion über Konto, Datum
      * und Betrag und entfernt sie; siehe {@link KmyPendingDelete}.
      */
     private void queueKmyDeleteIfNeeded(Booking old) {
-        if (old == null || !old.exported) {
+        if (old == null || (!old.exported && !old.edited)) {
             return;
         }
-        if (!new de.spahr.ausgaben.settings.SettingsStore(appContext).isKmyMode()) {
+        if (!isKmyMode()) {
             return;
         }
-        long signed = old.isIncome ? old.amountCents : -old.amountCents;
-        kmyPendingDeleteDao.insert(
-                new KmyPendingDelete(old.account, signed, old.createdAt, System.currentTimeMillis()));
+        // Bei „bearbeitet" steht in der Datei noch die exportierte Fassung – nur deren Signatur trifft sie.
+        kmyPendingDeleteDao.insert(new KmyPendingDelete(EditStatus.fileAccount(old),
+                EditStatus.fileSignedCents(old), EditStatus.fileCreatedAt(old),
+                System.currentTimeMillis()));
     }
 
     /** Löscht eine Umbuchung: beide Seiten (über {@code group}) oder die einzelne (importierte) Buchung. */
@@ -889,7 +925,7 @@ public class Repository {
             String fromPlace = isRealPlace(selPlace) ? selPlace : ps.getDefaultPlace(from);
             String toPlace = alias != null ? alias.toPlace
                     : (to.isEmpty() ? "" : ps.getDefaultPlace(to));
-            insertTransferPair(from, to, amount, payee, note, now, false, UUID.randomUUID().toString(),
+            insertTransferPair(from, to, amount, payee, note, now, null, UUID.randomUUID().toString(),
                     fromPlace, toPlace);
             return true;
         }
@@ -1725,6 +1761,7 @@ public class Repository {
             }
             booking.place = np;
             booking.placeManaged = true;
+            EditStatus.apply(old, booking, isKmyMode());
             payeeDao.insertIfAbsent(new Payee(booking.payee));
             accountDao.insertIfAbsent(new Account(booking.account));
             bookingDao.update(booking);

@@ -69,9 +69,16 @@ public class ExportCoordinator {
                 return;
             }
 
-            List<Booking> bookings = onlyUnexported
-                    ? repository.bookingDao().getUnexported()
-                    : repository.bookingDao().getAllBookings();
+            List<Booking> bookings;
+            if (onlyUnexported) {
+                bookings = new ArrayList<>(repository.bookingDao().getUnexported());
+                // Der Status „bearbeitet" gehört zur .kmy-Datei; in eine CSV wird ohnehin neu geschrieben,
+                // also kommen solche Buchungen hier einfach mit (und gelten danach als exportiert). Sonst
+                // blieben sie nach einem Wechsel der Speicherart für immer „bearbeitet" liegen.
+                bookings.addAll(repository.bookingDao().getEdited());
+            } else {
+                bookings = repository.bookingDao().getAllBookings();
+            }
 
             if (bookings.isEmpty()) {
                 post(listener, res.getString(onlyUnexported

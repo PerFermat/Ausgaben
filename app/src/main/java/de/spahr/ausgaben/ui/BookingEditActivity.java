@@ -710,6 +710,10 @@ public class BookingEditActivity extends LocalizedActivity {
         // Export-Status auch bei Umbuchungen änderbar (beide Seiten werden beim Speichern angepasst).
         switchExported.setVisibility(View.VISIBLE);
         switchExported.setChecked(b.exported);
+        // „Bearbeitet" ist kein Schalterzustand, sondern die Folge einer Änderung: nur anzeigen, gesperrt.
+        // Von Hand ist dieser Status damit nicht zu setzen und auch nicht wegzunehmen.
+        switchExported.setEnabled(!b.edited);
+        switchExported.setText(b.edited ? R.string.edited_locked : R.string.mark_exported);
         btnUpdate.setVisibility(View.VISIBLE);
         btnDelete.setVisibility(View.VISIBLE);
         // Bestehende Buchung: GPS/Beleg aus der Notiz in die zwei Zeilen (bleiben beim Aktualisieren erhalten).
@@ -1984,6 +1988,12 @@ public class BookingEditActivity extends LocalizedActivity {
         b.putBoolean("income", booking.isIncome);
         b.putLong("created", booking.createdAt);
         b.putBoolean("exported", booking.exported);
+        // Status „bearbeitet" samt Signatur der exportierten Fassung mitnehmen – sonst käme die Buchung
+        // als vermeintlich neue zurück und stünde beim nächsten Übertragen doppelt in der Datei.
+        b.putBoolean("edited", booking.edited);
+        b.putString("origAccount", booking.origAccount);
+        b.putLong("origSignedCents", booking.origSignedCents);
+        b.putLong("origCreatedAt", booking.origCreatedAt);
         // Ort nur, wenn die Buchung ort-verknüpft war (importierte haben keine Verknüpfung).
         b.putString("place", booking.placeManaged ? booking.place : "");
         b.putBoolean("placeManaged", booking.placeManaged);

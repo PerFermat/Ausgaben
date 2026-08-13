@@ -127,6 +127,9 @@ Details, Screenshots und die genaue Bedienung stehen im **[Benutzerhandbuch](doc
   gleichzeitigem Überschreiben. Der `.kmy`-Modus kommt auch mit fremden Dateien zurecht: frisch angelegte
   Dateien ohne Buchungen, Konten in **Fremdwährung** (Beträge in der Kontowährung), Buchungen mit
   Schlagwörtern und mehrfach vergebene Kontonamen (dann mit ihrem Pfad, z. B. „Bank B:Girokonto").
+  Ändert man eine schon übertragene Buchung, gilt sie als **„bearbeitet"** und ihre Transaktion wird beim
+  nächsten Übertragen in der Datei geändert (gleiche Transaktion, keine Dublette); ein zwischenzeitlicher
+  Neuimport der `.kmy`-Datei überschreibt die Bearbeitung.
 - **Mehrsprachig**: Deutsch/Englisch eingebaut, weitere Sprachen per Übersetzungsdatei nachrüstbar (auch
   für die Uhr).
 - **Darstellung**: dunkles Design und app-weite **Schriftgröße** (Klein/Normal/Groß/Sehr groß) – wirkt

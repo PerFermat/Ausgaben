@@ -32,6 +32,26 @@ public class KmyExporter {
         public final List<Long> writtenIds = new ArrayList<>();
         public final List<String> skipped = new ArrayList<>();
         public int newPayees;
+        /** Wie viele Transaktionen in der Datei geändert wurden (Buchungen mit Status „bearbeitet"). */
+        public int updated;
+        /**
+         * Bearbeitete Buchungen, deren Transaktion in der Datei nicht zu finden war. Sie bleiben
+         * „bearbeitet"; es wird nichts eingefügt, damit keine Dubletten entstehen.
+         */
+        public final List<Long> notFound = new ArrayList<>();
+    }
+
+    /** Eine zusammengebaute Transaktion: die fertigen Splits samt Währung und Notiz. */
+    private static class Built {
+        final List<String> splits;
+        final String commodity;
+        final String memo;
+
+        Built(List<String> splits, String commodity, String memo) {
+            this.splits = splits;
+            this.commodity = commodity;
+            this.memo = memo;
+        }
     }
 
     /** Ergebnis des Entfernens bereits vorhandener, aber lokal gelöschter Transaktionen. */
@@ -50,6 +70,23 @@ public class KmyExporter {
         public final List<Long> writtenIds = new ArrayList<>();
     }
 
+    /** Ende des Hauptbuchs; alles dahinter (z. B. geplante Buchungen) bleibt bei der Suche außen vor. */
+    private static final String LEDGER_END = "</TRANSACTIONS>";
+
+    private static final Pattern TX_BLOCK = Pattern.compile("<TRANSACTION\\b.*?</TRANSACTION>",
+            Pattern.DOTALL);
+    private static final Pattern TX_OPEN_TAG = Pattern.compile("<TRANSACTION\\b[^>]*>");
+    private static final Pattern POSTDATE_ATTR = Pattern.compile("\\bpostdate=\"([^\"]*)\"");
+    private static final Pattern ID_ATTR = Pattern.compile("\\bid=\"([^\"]*)\"");
+    /**
+     * Öffnendes Split-Tag, mit und ohne „/": Splits können Kindelemente haben
+     * ({@code <SPLIT …><TAG id=…/></SPLIT>}). Mit einem Muster nur für {@code <SPLIT …/>} blieben
+     * getaggte Buchungen unauffindbar und damit unlöschbar.
+     */
+    private static final Pattern SPLIT_TAG = Pattern.compile("<SPLIT\\b[^>]*>");
+    private static final Pattern ACCOUNT_ATTR = Pattern.compile("\\baccount=\"([^\"]*)\"");
+    private static final Pattern VALUE_ATTR = Pattern.compile("\\bvalue=\"([^\"]*)\"");
+
     private final KmyDocument doc;
     private final android.content.Context ctx;
     private final SimpleDateFormat dateFormat = new SimpleDateFormat("yyyy-MM-dd", Locale.US);
@@ -64,6 +101,20 @@ public class KmyExporter {
     }
 
     public Result build(List<Booking> bookings, Map<Long, List<BookingSplit>> splitsMap) {
+        return build(bookings, new ArrayList<>(), splitsMap);
+    }
+
+    /**
+     * Schreibt die Buchungen in die XML.
+     *
+     * @param bookings noch nie geschriebene Buchungen – sie kommen als neue Transaktionen hinzu
+     * @param edited   bearbeitete Buchungen (Status „bearbeitet"): ihre Transaktion steht schon in der
+     *                 Datei und wird an derselben Stelle und mit derselben id ersetzt. Nicht gefundene
+     *                 landen in {@link Result#notFound} – dann wird nichts eingefügt, damit keine
+     *                 Dublette entsteht.
+     */
+    public Result build(List<Booking> bookings, List<Booking> edited,
+                        Map<Long, List<BookingSplit>> splitsMap) {
         Result result = new Result();
         long[] nextTx = {doc.maxTransactionNumber() + 1};
         int[] nextPayee = {doc.maxPayeeNumber() + 1};
@@ -76,68 +127,63 @@ public class KmyExporter {
         Set<String> doneTransferGroups = new HashSet<>();
         String today = dateFormat.format(new Date());
 
-        for (Booking b : bookings) {
-            if (b.isTransfer) {
-                writeTransfer(b, result, txFragments, nextTx, today, doneTransferGroups,
-                        newPayeeIds, payeeFragments, nextPayee);
-                continue;
-            }
-            String assetId = doc.accountId(b.account);
-            if (assetId == null) {
-                result.skipped.add(label(b) + ": "
-                        + ctx.getString(de.spahr.ausgaben.R.string.skip_account_not_found, b.account));
-                continue;
-            }
+        String xml = doc.xml();
 
-            String commodity = commodityOf(b.account);
-            String payeeId = resolvePayee(b.payee, result, newPayeeIds, payeeFragments, nextPayee);
-            long signedCents = b.isIncome ? b.amountCents : -b.amountCents;
-            String memo = b.note == null ? "" : b.note;
-
-            // Splitbuchung (≥2 Kategorien): Konto-Split + je Teil ein Kategorie-Split (Gegen-Vorzeichen).
-            List<BookingSplit> parts = splitsMap.get(b.id);
-            if (parts != null && parts.size() >= 2) {
-                List<String> splitXmls = buildSplitParts(b, assetId, payeeId, signedCents, memo, parts,
-                        commodity, result);
-                if (splitXmls == null) {
-                    continue; // eine Kategorie unbekannt → Buchung übersprungen (in result.skipped vermerkt)
-                }
-                String txId = String.format(Locale.US, "T%018d", nextTx[0]++);
-                txFragments.append(transactionElement(txId, dateFor(b.createdAt), today, memo, commodity,
-                        splitXmls));
+        // Erst die bearbeiteten: solange noch keine neue Transaktion eingefügt ist, kann die Suche im
+        // Hauptbuch nicht auf einen frisch geschriebenen Block treffen.
+        Set<String> replacedTxIds = new HashSet<>();
+        for (Booking b : edited) {
+            String group = b.transferGroup == null ? "" : b.transferGroup;
+            if (!group.isEmpty() && doneTransferGroups.contains(group)) {
+                // In der Datei ist die Umbuchung eine Transaktion: die zweite Zeile nur mitmarkieren.
                 result.writtenIds.add(b.id);
                 continue;
             }
-
-            // Einzel-/Ohne-Kategorie: leere Kategorie erlaubt (nicht zugeordnet); unbekannte Kategorie → Skip.
-            String cat = b.category == null ? "" : b.category.trim();
-            String categoryId = null;
-            if (!cat.isEmpty()) {
-                categoryId = doc.categoryId(cat);
-                if (categoryId == null) {
-                    result.skipped.add(label(b) + ": "
-                        + ctx.getString(de.spahr.ausgaben.R.string.skip_category_not_found, cat));
-                    continue;
-                }
-                String clash = currencyClash(commodity, categoryId);
-                if (clash != null) {
-                    result.skipped.add(label(b) + ": " + clash);
-                    continue;
-                }
+            Built built = b.isTransfer
+                    ? buildTransfer(b, result, newPayeeIds, payeeFragments, nextPayee)
+                    : buildNormal(b, result, splitsMap, newPayeeIds, payeeFragments, nextPayee);
+            if (built == null) {
+                continue; // übersprungen (Konto/Kategorie/Währung), in result.skipped vermerkt
             }
-            List<String> splitXmls = new ArrayList<>();
-            splitXmls.add(split("S0001", assetId, payeeId, fraction(signedCents), esc(memo)));
-            if (categoryId != null && !categoryId.isEmpty()) {
-                splitXmls.add(split("S0002", categoryId, payeeId, fraction(-signedCents), esc(memo)));
+            String replaced = replaceTransaction(xml, b, built, today, replacedTxIds);
+            if (replaced == null) {
+                result.notFound.add(b.id);
+                continue;
             }
-            String txId = String.format(Locale.US, "T%018d", nextTx[0]++);
-            txFragments.append(transactionElement(txId, dateFor(b.createdAt), today, memo, commodity,
-                    splitXmls));
+            xml = replaced;
+            result.updated++;
             result.writtenIds.add(b.id);
+            if (!group.isEmpty()) {
+                doneTransferGroups.add(group);
+            }
         }
 
-        String xml = doc.xml();
-        int written = result.writtenIds.size();
+        int newTx = 0;
+        for (Booking b : bookings) {
+            String group = b.transferGroup == null ? "" : b.transferGroup;
+            if (b.isTransfer && !group.isEmpty() && doneTransferGroups.contains(group)) {
+                result.writtenIds.add(b.id); // zweite Seite: nur als exportiert markieren
+                continue;
+            }
+            Built built = b.isTransfer
+                    ? buildTransfer(b, result, newPayeeIds, payeeFragments, nextPayee)
+                    : buildNormal(b, result, splitsMap, newPayeeIds, payeeFragments, nextPayee);
+            if (built == null) {
+                continue;
+            }
+            String txId = String.format(Locale.US, "T%018d", nextTx[0]++);
+            txFragments.append(transactionElement(txId, dateFor(b.createdAt), today, built.memo,
+                    built.commodity, built.splits));
+            newTx++;
+            result.writtenIds.add(b.id);
+            if (b.isTransfer && !group.isEmpty()) {
+                doneTransferGroups.add(group);
+            }
+        }
+
+        // Gezählt wird, was wirklich als Fragment entstanden ist – nicht die Zahl der Buchungen: eine
+        // Umbuchung sind zwei Buchungen, aber eine Transaktion, und bearbeitete kommen nicht hinzu.
+        int written = newTx;
         if (written > 0 || result.newPayees > 0) {
             String merged = xml;
             if (result.newPayees > 0) {
@@ -152,8 +198,13 @@ public class KmyExporter {
             }
             if (merged == null) {
                 // Ohne <PAYEES>- bzw. <TRANSACTIONS>-Block lieber gar nichts schreiben als eine Datei,
-                // deren count-Attribut Buchungen behauptet, die nirgends stehen.
+                // deren count-Attribut Buchungen behauptet, die nirgends stehen. Auch die bereits
+                // ersetzten Blöcke fallen dabei weg – sonst stünde die Änderung in der Datei, ohne dass
+                // die Buchung als exportiert markiert würde.
+                xml = doc.xml();
                 result.writtenIds.clear();
+                result.notFound.clear();
+                result.updated = 0;
                 result.newPayees = 0;
                 result.skipped.add(ctx.getString(de.spahr.ausgaben.R.string.err_kmy_read));
             } else {
@@ -203,49 +254,29 @@ public class KmyExporter {
 
         // Nur im Hauptbuch suchen: hinter </TRANSACTIONS> stehen u. a. die geplanten Buchungen, deren
         // eingebettete <TRANSACTION> sonst zufällig auf eine Vormerkung passen und die Regel zerstören könnte.
-        final String ledgerEnd = "</TRANSACTIONS>";
-        int ledgerIdx = xml.lastIndexOf(ledgerEnd);
+        int ledgerIdx = xml.lastIndexOf(LEDGER_END);
         String tail = "";
         if (ledgerIdx >= 0) {
             tail = xml.substring(ledgerIdx);
             xml = xml.substring(0, ledgerIdx);
         }
 
-        Pattern block = Pattern.compile("<TRANSACTION\\b.*?</TRANSACTION>", Pattern.DOTALL);
-        Pattern postdateAttr = Pattern.compile("\\bpostdate=\"([^\"]*)\"");
-        // Öffnendes Tag, mit und ohne „/": Splits können Kindelemente haben (<SPLIT …><TAG id=…/></SPLIT>).
-        // Mit dem alten Muster „<SPLIT …/>" blieben getaggte Buchungen unauffindbar und damit unlöschbar.
-        Pattern splitTag = Pattern.compile("<SPLIT\\b[^>]*>");
-        Pattern accountAttr = Pattern.compile("\\baccount=\"([^\"]*)\"");
-        Pattern valueAttr = Pattern.compile("\\bvalue=\"([^\"]*)\"");
-
-        Matcher m = block.matcher(xml);
+        Matcher m = TX_BLOCK.matcher(xml);
         StringBuilder sb = new StringBuilder();
         int last = 0;
         int removed = 0;
         while (m.find()) {
             String tx = m.group();
-            Matcher dm = postdateAttr.matcher(tx);
+            Matcher dm = POSTDATE_ATTR.matcher(tx);
             // postdate steht im öffnenden <TRANSACTION …> vor den Splits – erster Treffer genügt.
             String date = dm.find() ? dm.group(1) : null;
             int matchIdx = -1;
             if (date != null) {
-                Matcher sm = splitTag.matcher(tx);
-                while (matchIdx < 0 && sm.find()) {
-                    String splitTagXml = sm.group();
-                    Matcher am = accountAttr.matcher(splitTagXml);
-                    Matcher vm = valueAttr.matcher(splitTagXml);
-                    if (!am.find() || !vm.find()) {
-                        continue;
-                    }
-                    String acc = am.group(1);
-                    long cents = valueToCents(vm.group(1));
-                    for (int i = 0; i < sigAccountId.size(); i++) {
-                        if (!consumed[i] && sigDate.get(i).equals(date) && sigAccountId.get(i).equals(acc)
-                                && sigCents.get(i) == cents) {
-                            matchIdx = i;
-                            break;
-                        }
+                for (int i = 0; i < sigAccountId.size(); i++) {
+                    if (!consumed[i] && sigDate.get(i).equals(date)
+                            && hasSplit(tx, sigAccountId.get(i), sigCents.get(i))) {
+                        matchIdx = i;
+                        break;
                     }
                 }
             }
@@ -264,6 +295,85 @@ public class KmyExporter {
         }
         result.xml = out + tail;
         return result;
+    }
+
+    /**
+     * Ersetzt die Transaktion einer bearbeiteten Buchung in der XML: gesucht wird über die Signatur der
+     * exportierten Fassung (Konto + Datum + Betrag, siehe {@link de.spahr.ausgaben.db.EditStatus}), ersetzt
+     * wird der ganze {@code <TRANSACTION>}-Block – aber mit <b>derselben id an derselben Stelle</b>. Für
+     * KMyMoney bleibt es damit dieselbe Transaktion, sie rutscht nicht ans Ende der Datei und der Zähler
+     * von {@code <TRANSACTIONS>} bleibt unberührt.
+     *
+     * <p>Der Block wird neu gebaut, nicht Feld für Feld geändert; eigene Zusätze von KMyMoney an dieser
+     * Transaktion (etwa Marken an den Splits) gehen dabei verloren – dafür gilt für bearbeitete Buchungen
+     * genau derselbe Bauplan wie für neue.
+     *
+     * @param replacedTxIds in diesem Lauf schon ersetzte Transaktions-ids; verhindert, daß zwei
+     *                      gleichartige Buchungen (gleicher Tag, gleicher Betrag) denselben Block treffen
+     * @return die neue XML oder {@code null}, wenn keine passende Transaktion (mehr) zu finden war
+     */
+    private String replaceTransaction(String xml, Booking b, Built built, String today,
+                                      Set<String> replacedTxIds) {
+        String accountId = doc.accountId(de.spahr.ausgaben.db.EditStatus.fileAccount(b));
+        if (accountId == null) {
+            return null; // Konto der exportierten Fassung gibt es in der Datei nicht (mehr)
+        }
+        String date = dateFor(de.spahr.ausgaben.db.EditStatus.fileCreatedAt(b));
+        long cents = de.spahr.ausgaben.db.EditStatus.fileSignedCents(b);
+
+        // Nur im Hauptbuch suchen: hinter </TRANSACTIONS> stehen u. a. die geplanten Buchungen, deren
+        // eingebettete <TRANSACTION> sonst zufällig passen und deren Regel zerstört werden könnte.
+        int ledgerIdx = xml.lastIndexOf(LEDGER_END);
+        String tail = "";
+        String head = xml;
+        if (ledgerIdx >= 0) {
+            tail = xml.substring(ledgerIdx);
+            head = xml.substring(0, ledgerIdx);
+        }
+
+        Matcher m = TX_BLOCK.matcher(head);
+        while (m.find()) {
+            String tx = m.group();
+            String txId = attributeOfOpeningTag(tx, ID_ATTR);
+            if (txId == null || replacedTxIds.contains(txId)) {
+                continue;
+            }
+            Matcher dm = POSTDATE_ATTR.matcher(tx);
+            String postdate = dm.find() ? dm.group(1) : null;
+            if (postdate == null || !postdate.equals(date) || !hasSplit(tx, accountId, cents)) {
+                continue;
+            }
+            replacedTxIds.add(txId);
+            String replacement = transactionElement(txId, dateFor(b.createdAt), today, built.memo,
+                    built.commodity, built.splits);
+            return head.substring(0, m.start()) + replacement + head.substring(m.end()) + tail;
+        }
+        return null;
+    }
+
+    /** Trägt die Transaktion einen Split auf diesem Konto mit genau diesem Betrag? */
+    private static boolean hasSplit(String tx, String accountId, long cents) {
+        Matcher sm = SPLIT_TAG.matcher(tx);
+        while (sm.find()) {
+            String splitTagXml = sm.group();
+            Matcher am = ACCOUNT_ATTR.matcher(splitTagXml);
+            Matcher vm = VALUE_ATTR.matcher(splitTagXml);
+            if (am.find() && vm.find() && am.group(1).equals(accountId)
+                    && valueToCents(vm.group(1)) == cents) {
+                return true;
+            }
+        }
+        return false;
+    }
+
+    /** Wert eines Attributs aus dem öffnenden Tag (nicht aus den Kindelementen); {@code null} = keins. */
+    private static String attributeOfOpeningTag(String block, Pattern attr) {
+        Matcher om = TX_OPEN_TAG.matcher(block);
+        if (!om.find()) {
+            return null;
+        }
+        Matcher am = attr.matcher(om.group());
+        return am.find() ? am.group(1) : null;
     }
 
     /**
@@ -342,18 +452,61 @@ public class KmyExporter {
         }
     }
 
-    // ---- XML-Bausteine ----
+    // ---- Transaktionen zusammenbauen ----
+
+    /**
+     * Einnahme/Ausgabe: Konto-Split und – sofern eine Kategorie bekannt ist – Kategorie-Splits. Eine leere
+     * Kategorie ist erlaubt (nicht zugeordnet); ein unbekanntes Konto oder eine unbekannte Kategorie
+     * liefert {@code null} und einen Eintrag in {@code result.skipped}.
+     */
+    private Built buildNormal(Booking b, Result result, Map<Long, List<BookingSplit>> splitsMap,
+                              Map<String, String> newPayeeIds, StringBuilder payeeFragments,
+                              int[] nextPayee) {
+        String assetId = doc.accountId(b.account);
+        if (assetId == null) {
+            result.skipped.add(label(b) + ": "
+                    + ctx.getString(de.spahr.ausgaben.R.string.skip_account_not_found, b.account));
+            return null;
+        }
+        String commodity = commodityOf(b.account);
+        String payeeId = resolvePayee(b.payee, result, newPayeeIds, payeeFragments, nextPayee);
+        long signedCents = b.isIncome ? b.amountCents : -b.amountCents;
+        String memo = b.note == null ? "" : b.note;
+
+        // Splitbuchung (≥2 Kategorien): Konto-Split + je Teil ein Kategorie-Split (Gegen-Vorzeichen).
+        List<BookingSplit> parts = splitsMap.get(b.id);
+        if (parts != null && parts.size() >= 2) {
+            List<String> splitXmls = buildSplitParts(b, assetId, payeeId, signedCents, memo, parts,
+                    commodity, result);
+            return splitXmls == null ? null : new Built(splitXmls, commodity, memo);
+        }
+
+        String cat = b.category == null ? "" : b.category.trim();
+        String categoryId = null;
+        if (!cat.isEmpty()) {
+            categoryId = doc.categoryId(cat);
+            if (categoryId == null) {
+                result.skipped.add(label(b) + ": "
+                        + ctx.getString(de.spahr.ausgaben.R.string.skip_category_not_found, cat));
+                return null;
+            }
+            String clash = currencyClash(commodity, categoryId);
+            if (clash != null) {
+                result.skipped.add(label(b) + ": " + clash);
+                return null;
+            }
+        }
+        List<String> splitXmls = new ArrayList<>();
+        splitXmls.add(split("S0001", assetId, payeeId, fraction(signedCents), esc(memo)));
+        if (categoryId != null && !categoryId.isEmpty()) {
+            splitXmls.add(split("S0002", categoryId, payeeId, fraction(-signedCents), esc(memo)));
+        }
+        return new Built(splitXmls, commodity, memo);
+    }
 
     /** Umbuchung: eine Transaktion mit zwei Konto-Splits (Quelle −, Ziel +), keine Kategorie; mit Empfänger. */
-    private void writeTransfer(Booking b, Result result, StringBuilder txFragments, long[] nextTx,
-                               String today, Set<String> doneTransferGroups,
-                               Map<String, String> newPayeeIds, StringBuilder payeeFragments,
-                               int[] nextPayee) {
-        String group = b.transferGroup == null ? "" : b.transferGroup;
-        if (!group.isEmpty() && doneTransferGroups.contains(group)) {
-            result.writtenIds.add(b.id); // zweite Seite: nur als exportiert markieren, nicht erneut schreiben
-            return;
-        }
+    private Built buildTransfer(Booking b, Result result, Map<String, String> newPayeeIds,
+                                StringBuilder payeeFragments, int[] nextPayee) {
         // Aus der Sicht dieser Zeile Quelle/Ziel bestimmen (Einnahme = Geld kam auf dieses Konto).
         String fromAccount = b.isIncome ? b.transferAccount : b.account;
         String toAccount = b.isIncome ? b.account : b.transferAccount;
@@ -364,28 +517,24 @@ public class KmyExporter {
             result.skipped.add(ctx.getString(
                     de.spahr.ausgaben.R.string.skip_transfer_account_not_found,
                     fromAccount, toAccount, missing));
-            return;
+            return null;
         }
         String commodity = commodityOf(fromAccount);
         String clash = currencyClash(commodity, toId);
         if (clash != null) {
             // Umbuchung über Währungsgrenzen: ohne Kurs nicht schreibbar
             result.skipped.add(fromAccount + " → " + toAccount + ": " + clash);
-            return;
+            return null;
         }
         String payeeId = resolvePayee(b.payee, result, newPayeeIds, payeeFragments, nextPayee);
         String memo = b.note == null ? "" : b.note;
         List<String> splitXmls = new ArrayList<>();
         splitXmls.add(split("S0001", fromId, payeeId, fraction(-b.amountCents), esc(memo)));
         splitXmls.add(split("S0002", toId, payeeId, fraction(b.amountCents), esc(memo)));
-        String txId = String.format(Locale.US, "T%018d", nextTx[0]++);
-        txFragments.append(transactionElement(txId, dateFor(b.createdAt), today, memo, commodity,
-                splitXmls));
-        result.writtenIds.add(b.id);
-        if (!group.isEmpty()) {
-            doneTransferGroups.add(group);
-        }
+        return new Built(splitXmls, commodity, memo);
     }
+
+    // ---- XML-Bausteine ----
 
     /**
      * Baut die Kategorie-Splits einer Splitbuchung: Konto-Split (signierter Gesamtbetrag) + je Teil ein

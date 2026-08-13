@@ -113,7 +113,18 @@ public class BookingAdapter extends RecyclerView.Adapter<BookingAdapter.VH> {
                 : h.amount.getResources().getColor(R.color.income_green, null);
         h.amount.setTextColor(color);
 
-        h.exported.setVisibility(b.exported ? View.VISIBLE : View.GONE);
+        // Drei Zustände: nach dem Export geändert (gelb), exportiert (grün) oder noch keines von beidem.
+        if (b.edited) {
+            h.exported.setVisibility(View.VISIBLE);
+            h.exported.setText(R.string.edited_badge);
+            h.exported.setTextColor(h.exported.getResources().getColor(R.color.transfer_yellow, null));
+        } else if (b.exported) {
+            h.exported.setVisibility(View.VISIBLE);
+            h.exported.setText(R.string.exported_badge);
+            h.exported.setTextColor(h.exported.getResources().getColor(R.color.income_green, null));
+        } else {
+            h.exported.setVisibility(View.GONE);
+        }
 
         h.itemView.setOnClickListener(v -> {
             if (listener != null) {

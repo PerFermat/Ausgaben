@@ -151,10 +151,20 @@ public interface BookingDao {
     @Query("UPDATE booking SET place = :newName WHERE account = :account AND place = :oldName")
     void renamePlace(String account, String oldName, String newName);
 
-    @Query("SELECT * FROM booking WHERE exported = 0 ORDER BY created_at ASC, id ASC")
+    /**
+     * Noch nie geschriebene Buchungen – die kommen als neue Transaktion in die Datei. Bearbeitete sind
+     * bewußt nicht dabei: die stehen dort schon und werden geändert, siehe {@link #getEdited()}.
+     */
+    @Query("SELECT * FROM booking WHERE exported = 0 AND edited = 0 ORDER BY created_at ASC, id ASC")
     List<Booking> getUnexported();
 
-    @Query("UPDATE booking SET exported = 1 WHERE id IN (:ids)")
+    /** Nach dem Export geänderte Buchungen (Status „bearbeitet", siehe {@link EditStatus}). */
+    @Query("SELECT * FROM booking WHERE edited = 1 ORDER BY created_at ASC, id ASC")
+    List<Booking> getEdited();
+
+    /** Setzt geschriebene Buchungen auf „exportiert" und räumt einen etwaigen Status „bearbeitet" ab. */
+    @Query("UPDATE booking SET exported = 1, edited = 0, orig_account = '', orig_signed_cents = 0, "
+            + "orig_created_at = 0 WHERE id IN (:ids)")
     void markExported(List<Long> ids);
 
     @Query("DELETE FROM booking")
@@ -188,7 +198,12 @@ public interface BookingDao {
             + "AND (created_at < :createdAt OR (created_at = :createdAt AND id <= :id))")
     long getBalanceUpTo(String account, long createdAt, long id);
 
-    @Query("DELETE FROM booking WHERE account = :account AND exported = 1")
+    /**
+     * Alles, was aus der .kmy-Datei stammt oder dorthin gehört – auch bearbeitete Buchungen. Der Import
+     * ist die Wahrheit: eine Bearbeitung, die noch nicht übertragen wurde, wird dabei überschrieben.
+     * Bliebe sie stehen, stünde sie nach dem Import doppelt da.
+     */
+    @Query("DELETE FROM booking WHERE account = :account AND (exported = 1 OR edited = 1)")
     void deleteExportedByAccount(String account);
 
     @Query("DELETE FROM booking WHERE account = :account")
@@ -257,7 +272,7 @@ public interface BookingDao {
     void deleteAllSplits();
 
     @Query("DELETE FROM booking_split WHERE booking_id IN "
-            + "(SELECT id FROM booking WHERE account = :account AND exported = 1)")
+            + "(SELECT id FROM booking WHERE account = :account AND (exported = 1 OR edited = 1))")
     void deleteSplitsForExportedAccount(String account);
 
     @Query("DELETE FROM booking_split WHERE booking_id IN "

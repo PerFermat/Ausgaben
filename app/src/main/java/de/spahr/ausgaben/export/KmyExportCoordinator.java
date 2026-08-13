@@ -64,12 +64,16 @@ public class KmyExportCoordinator {
             String file = fileOf(path);
 
             List<Booking> bookings = repository.bookingDao().getUnexported();
+            // Nach dem Export geänderte Buchungen: ihre Transaktion wird in der Datei geändert, nicht neu
+            // angelegt (siehe KmyExporter.build).
+            List<Booking> edited = repository.bookingDao().getEdited();
             List<de.spahr.ausgaben.db.KmyPendingDelete> pendingDeletes =
                     repository.kmyPendingDeleteDao().getAll();
             // Erledigte/übersprungene geplante Buchungen: die zugehörige KMyMoney-Regel wird weitergestellt.
             List<de.spahr.ausgaben.db.ScheduledAdvance> advances =
                     repository.scheduledAdvanceDao().getAll();
-            if (bookings.isEmpty() && pendingDeletes.isEmpty() && advances.isEmpty()) {
+            if (bookings.isEmpty() && edited.isEmpty() && pendingDeletes.isEmpty()
+                    && advances.isEmpty()) {
                 complete(listener, r.getString(de.spahr.ausgaben.R.string.export_none), false);
                 return;
             }
@@ -92,7 +96,7 @@ public class KmyExportCoordinator {
                 progress(listener, r.getString(de.spahr.ausgaben.R.string.kmy_progress_processing));
                 KmyDocument doc = new KmyDocument(raw, appContext);
                 KmyExporter exporter = new KmyExporter(doc, r);
-                KmyExporter.Result res = exporter.build(bookings, loadSplits());
+                KmyExporter.Result res = exporter.build(bookings, edited, loadSplits());
 
                 // Bereits vorhandene, lokal inzwischen gelöschte Buchungen aus der XML entfernen (nur im
                 // kmy-Modus vorgemerkt, siehe Repository.queueKmyDeleteIfNeeded); Suche über Konto/Datum/
@@ -107,7 +111,7 @@ public class KmyExportCoordinator {
                 if (res.writtenIds.isEmpty() && delRes.resolvedIds.isEmpty()
                         && schedRes.resolvedIds.isEmpty()) {
                     complete(listener, r.getString(de.spahr.ausgaben.R.string.kmy_none_matched)
-                            + "\n" + skippedText(r, res), false);
+                            + "\n" + skippedText(r, res) + notFoundText(r, res), false);
                     return;
                 }
 
@@ -166,7 +170,11 @@ public class KmyExportCoordinator {
     private String buildMessage(Context r, KmyExporter.Result res, int removedCount, int advancedCount,
                                 String file, String backup) {
         StringBuilder sb = new StringBuilder();
-        sb.append(r.getString(de.spahr.ausgaben.R.string.kmy_result_written, res.writtenIds.size(), file));
+        sb.append(r.getString(de.spahr.ausgaben.R.string.kmy_result_written,
+                res.writtenIds.size() - res.updated, file));
+        if (res.updated > 0) {
+            sb.append(r.getString(de.spahr.ausgaben.R.string.kmy_result_updated, res.updated));
+        }
         if (res.newPayees > 0) {
             sb.append(r.getString(de.spahr.ausgaben.R.string.kmy_result_new_payees, res.newPayees));
         }
@@ -180,7 +188,19 @@ public class KmyExportCoordinator {
         if (!res.skipped.isEmpty()) {
             sb.append("\n").append(skippedText(r, res));
         }
+        sb.append(notFoundText(r, res));
         return sb.toString();
+    }
+
+    /**
+     * Hinweis auf bearbeitete Buchungen, deren Transaktion in der Datei fehlt (etwa weil sie am Rechner
+     * gelöscht wurde). Sie bleiben „bearbeitet"; eingefügt wird nichts, damit keine Dublette entsteht.
+     */
+    private String notFoundText(Context r, KmyExporter.Result res) {
+        if (res.notFound.isEmpty()) {
+            return "";
+        }
+        return "\n" + r.getString(de.spahr.ausgaben.R.string.kmy_edited_not_found, res.notFound.size());
     }
 
     private String skippedText(Context r, KmyExporter.Result res) {

@@ -1021,6 +1021,11 @@
       "text": "Tap the export symbol ⬇. The app loads the current .kmy from the sync target, inserts your new bookings, makes a backup first (see below) and writes the file back. Each booking is exported only <b>once</b> and then marked «exported». In CSV mode one CSV file per account is uploaded instead."
     },
     {
+      "type": "p",
+      "id": "b-0009",
+      "text": "<b>Edited bookings.</b> Change a booking that is already marked «exported» and it carries «edited» afterwards (yellow in the list). The next export does not add a second transaction: the existing one in the .kmy file is <b>changed</b> instead – the same transaction in the same place, no duplicate; the booking then reads «exported» again. You cannot set this status yourself: it only arises from a change, and the «Marked as exported» switch in the booking editor is locked and relabelled accordingly. If you switch it off yourself while editing, your choice wins: the booking is «not exported» and will be written as a new transaction on the next export. If the old transaction is no longer in the file (deleted on the computer, say), the message says so and the booking stays «edited» – nothing is inserted. Re-import the .kmy file in between and the file wins: the edit is gone. Transfers behave the same way even though they consist of two rows: in the file they are one transaction and are changed once."
+    },
+    {
       "type": "h2",
       "id": "b-0163",
       "text": "(Re-)importing accounts"

@@ -419,6 +419,11 @@ public class MainActivity extends LocalizedActivity {
         b.isIncome = u.getBoolean("income");
         b.createdAt = u.getLong("created");
         b.exported = u.getBoolean("exported");
+        // Status „bearbeitet" samt Signatur der exportierten Fassung wiederherstellen.
+        b.edited = u.getBoolean("edited");
+        b.origAccount = u.getString("origAccount", "");
+        b.origSignedCents = u.getLong("origSignedCents");
+        b.origCreatedAt = u.getLong("origCreatedAt");
         final String place = u.getString("place", "");
         final Runnable done = () -> {
             refreshBookings();

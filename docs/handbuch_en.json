@@ -420,7 +420,7 @@
         {
           "type": "p",
           "id": "b-0062",
-          "text": "Choose the type «Transfer», then the From and To accounts plus an optional payee. This creates a linked booking in both accounts (marked → or ← in the list). You can also choose a <b>from-place</b> and a <b>to-place</b>; then the respective place journal is updated (from-account −amount, to-account +amount). Editing or deleting the transfer rolls the place movements back."
+          "text": "Choose the type «Transfer», then the From and To accounts plus an optional payee. This creates a linked booking in both accounts (marked → or ← in the list). You can also choose a <b>from-place</b> and a <b>to-place</b>; then the respective place journal is updated (from-account −amount, to-account +amount). Both fields are preset with the <b>default place</b> of the respective account; «no place» leaves that side's journal untouched. Editing or deleting the transfer rolls the place movements back."
         }
       ],
       "shot": {"fname": "Buchung Umbuchung.png", "caption": "Detail view of a transfer with balance before/after", "width": 6.0}

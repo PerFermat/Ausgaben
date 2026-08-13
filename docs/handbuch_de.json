@@ -420,7 +420,7 @@
         {
           "type": "p",
           "id": "b-0062",
-          "text": "Wählen Sie den Typ «Umbuchung», dann Von- und Nach-Konto sowie optional einen Empfänger. Es entsteht eine verknüpfte Buchung in beiden Konten (in der Liste mit → bzw. ← markiert). Zusätzlich können Sie einen <b>Von-Ort</b> und einen <b>Nach-Ort</b> wählen; dann wird das jeweilige Ortsjournal mitgeführt (Von-Konto −Betrag, Nach-Konto +Betrag). Bearbeiten oder Löschen der Umbuchung rollt die Ort-Bewegungen wieder zurück."
+          "text": "Wählen Sie den Typ «Umbuchung», dann Von- und Nach-Konto sowie optional einen Empfänger. Es entsteht eine verknüpfte Buchung in beiden Konten (in der Liste mit → bzw. ← markiert). Zusätzlich können Sie einen <b>Von-Ort</b> und einen <b>Nach-Ort</b> wählen; dann wird das jeweilige Ortsjournal mitgeführt (Von-Konto −Betrag, Nach-Konto +Betrag). Beide Felder sind mit dem <b>Standardort</b> des jeweiligen Kontos vorbelegt; mit «ohne Ort» bleibt das Journal dieser Seite unberührt. Bearbeiten oder Löschen der Umbuchung rollt die Ort-Bewegungen wieder zurück."
         }
       ],
       "shot": {"fname": "Buchung Umbuchung.png", "caption": "Detailansicht einer Umbuchung mit Kontostand vorher/nachher", "width": 6.0}

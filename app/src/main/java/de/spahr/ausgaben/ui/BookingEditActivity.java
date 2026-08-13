@@ -61,10 +61,8 @@ public class BookingEditActivity extends LocalizedActivity {
     public static final String EXTRA_VOICE_SPOKEN_PAYEE = "voice_spoken_payee";
     /** Passender Alias (ID) für eine neue Sprachbuchung – füllt Konto/Kategorien/Von-Bis vor. */
     public static final String EXTRA_ALIAS_ID = "alias_id";
-    /** Neue Buchung mit vorbelegtem Konto (aus der Ort-Ansicht der Bestände). */
+    /** Neue Buchung mit vorbelegtem Konto (das in der Buchungsliste angezeigte). */
     public static final String EXTRA_PRESET_ACCOUNT = "preset_account";
-    /** Neue Buchung mit vorbelegtem Ort (aus der Ort-Ansicht der Bestände; leer = „ohne Ort"). */
-    public static final String EXTRA_PRESET_PLACE = "preset_place";
     /**
      * Bei einer per Alias/Vorlage aufgelösten Umbuchung: das in der Buchungsliste angezeigte Konto
      * (Nutzereingabe). Steckt es bereits als Von- oder Nach-Konto in Alias/Vorlage, bleiben beide Konten
@@ -433,16 +431,13 @@ public class BookingEditActivity extends LocalizedActivity {
             repository.getBookingById(id, this::bindEditMode);
         } else {
             setupNewMode();
-            // Vorbelegtes Konto+Ort (aus der Ort-Ansicht der Bestände).
+            // Vorbelegtes Konto (das in der Buchungsliste angezeigte). Das Ortsfeld richtet sich dann nach
+            // diesem Konto – also dessen Standardort – und nicht nach dem Standardkonto, das setupNewMode()
+            // eben eingetragen hat. Ein per Code gesetzter Text meldet sich nicht von selbst.
             String presetAccount = getIntent().getStringExtra(EXTRA_PRESET_ACCOUNT);
             if (presetAccount != null && !presetAccount.isEmpty()) {
                 editAccount.setText(presetAccount, false);
                 setupPlaceDropdown(presetAccount);
-                String presetPlace = getIntent().getStringExtra(EXTRA_PRESET_PLACE);
-                editPlace.setText(presetPlace == null || presetPlace.isEmpty()
-                        ? PlacesStore.NO_PLACE : presetPlace, false);
-                // Das Ortsfeld richtet sich nach dem vorbelegten Konto, nicht nach dem Standardkonto, das
-                // setupNewMode() eben eingetragen hat. Ein gesetzter Text meldet sich nicht von selbst.
                 applyTypeVisibility();
             }
             // Fallback der Sprach-Erfassung (keine Vorlage gefunden): Empfänger/Betrag vorbelegen.
@@ -1189,27 +1184,27 @@ public class BookingEditActivity extends LocalizedActivity {
                 && !placesStore.getPlaces(account.trim()).isEmpty();
     }
 
+    /** Ort-Dropdown der Ausgabe/Einnahme: Orte des Kontos, vorbelegt mit dessen Standardort. */
     private void setupPlaceDropdown(String account) {
-        List<String> options = new ArrayList<>(placesStore.getPlaces(account));
-        options.add(PlacesStore.NO_PLACE);
-        PickerAdapters.places(editPlace, options);
-        String def = placesStore.getDefaultPlace(account);
-        String preset = (!def.isEmpty() && options.contains(def)) ? def : PlacesStore.NO_PLACE;
-        editPlace.setText(preset, false);
+        setupPlaceOptions(editPlace, account, false);
     }
 
     /**
-     * Befüllt ein Ort-Dropdown (Umbuchung) mit den Orten des Kontos; Standard ist „ohne Ort", sodass ohne
-     * bewusste Auswahl keine Ortsbewegung entsteht. {@code keepCurrent} behält einen gültigen aktuellen Wert.
+     * Befüllt ein Ort-Dropdown mit den Orten des Kontos und belegt es mit dessen Standardort vor (hat das
+     * Konto keinen, mit „ohne Ort"). {@code keepCurrent} behält stattdessen einen gültigen aktuellen Wert.
      */
     private void setupPlaceOptions(MaterialAutoCompleteTextView field, String account, boolean keepCurrent) {
         List<String> options = new ArrayList<>(placesStore.getPlaces(account));
         options.add(PlacesStore.NO_PLACE);
         PickerAdapters.places(field, options);
         String cur = textOf(field).trim();
-        if (!(keepCurrent && !cur.isEmpty() && options.contains(cur))) {
-            field.setText(PlacesStore.NO_PLACE, false);
+        if (keepCurrent && !cur.isEmpty() && options.contains(cur)) {
+            return;
         }
+        // In der reinen Ansicht (geplante Buchung) gilt allein der gespeicherte Ort – ein Standardort würde
+        // dort einen Ort vortäuschen, den die Planung gar nicht hat.
+        String def = readOnly ? "" : placesStore.getDefaultPlace(account);
+        field.setText(!def.isEmpty() && options.contains(def) ? def : PlacesStore.NO_PLACE, false);
     }
 
     /** Ausgewählter Nach-Ort (Umbuchung), normalisiert: „ohne Ort"/leer → {@code ""}. */

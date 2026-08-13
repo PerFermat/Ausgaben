@@ -231,15 +231,17 @@ class AliasResolver {
      * <p>Stehen mehrere Empfänger am selben Ort, siebt zusätzlich der <b>Betrag</b>: wer ihn
      * nachweislich nie hat, fällt heraus – auch ein bevorzugter Alias. Fallen alle heraus, gilt die
      * alte Rangfolge, denn ein zweifelhafter Empfänger ist besser als keiner.</p>
+     *
+     * @param scope die angezeigten Konten ({@link AccountScope}); leer = alle
      */
-    void resolveGps(double lat, double lon, java.util.Set<String> closed, String type,
-                    long amountCents, Booking[] outBooking, PayeeCorrection[] outAlias) {
+    void resolveGps(double lat, double lon, java.util.Set<String> closed, java.util.Set<String> scope,
+                    String type, long amountCents, Booking[] outBooking, PayeeCorrection[] outAlias) {
         // Globaler Zweipass (100-m-Radius bleibt in beiden Durchläufen, nur der Typfilter fällt im 2. weg).
         // Fürs Betragsurteil gilt aber immer die gewünschte Buchungsart – der Filter grenzt nur die
         // Kandidaten ein, die Buchung entsteht so oder so als das, was die Uhr angefordert hat.
-        Candidate c = pickGps(lat, lon, closed, type, amountCents, type);
+        Candidate c = pickGps(lat, lon, closed, scope, type, amountCents, type);
         if (c == null && type != null) {
-            c = pickGps(lat, lon, closed, null, amountCents, type);
+            c = pickGps(lat, lon, closed, scope, null, amountCents, type);
         }
         if (c != null) {
             outBooking[0] = c.booking;
@@ -248,9 +250,10 @@ class AliasResolver {
     }
 
     /** Der beste Kandidat eines Durchlaufs: erst sieben, dann die gewohnte Rangfolge. */
-    private Candidate pickGps(double lat, double lon, java.util.Set<String> closed, String filterType,
+    private Candidate pickGps(double lat, double lon, java.util.Set<String> closed,
+                              java.util.Set<String> scope, String filterType,
                               long amountCents, String judgeType) {
-        List<Candidate> alle = nearbyCandidates(lat, lon, closed, filterType, amountCents, judgeType);
+        List<Candidate> alle = nearbyCandidates(lat, lon, closed, scope, filterType, amountCents, judgeType);
         for (Candidate c : alle) {
             if (c.verdict != PayeeAmounts.Verdict.MISSES) {
                 return c;
@@ -266,23 +269,28 @@ class AliasResolver {
      * <p>Die Koordinaten entscheiden, <b>wer</b> Kandidat ist; die Beträge steuert der volle Bestand
      * dieses Namens bei – auch Buchungen ohne Standort.</p>
      *
+     * <p>Ist eine Kontoauswahl angezeigt, zählen nur deren Empfänger: wer in der Ansicht „Bargeld"
+     * bucht, meint keinen, den es bisher nur auf dem Girokonto gab.</p>
+     *
+     * @param scope      die angezeigten Konten ({@link AccountScope}); leer = alle
      * @param filterType grenzt die Kandidaten auf eine Buchungsart ein ({@code null} = alle)
      * @param amountCents zu prüfender Betrag; {@code <= 0} = kein Urteil
      * @param judgeType  Buchungsart, deren bisherige Beträge das Urteil tragen
      */
     List<Candidate> nearbyCandidates(double lat, double lon, java.util.Set<String> closed,
-                                     String filterType, long amountCents, String judgeType) {
+                                     java.util.Set<String> scope, String filterType,
+                                     long amountCents, String judgeType) {
         java.util.Map<String, Candidate> gefunden = new java.util.LinkedHashMap<>();
-        for (PayeeCorrection a : nearAliases(lat, lon,
-                filterAliases(openAliases(correctionDao.getWithGps(1), closed), filterType))) {
+        for (PayeeCorrection a : nearAliases(lat, lon, scopedAliases(
+                filterAliases(openAliases(correctionDao.getWithGps(1), closed), filterType), scope))) {
             merke(gefunden, a.corrected, null, a);
         }
-        for (Booking b : nearBookings(lat, lon,
-                filterBookings(openBookings(bookingDao.getWithGpsNote(), closed), filterType))) {
+        for (Booking b : nearBookings(lat, lon, scopedBookings(
+                filterBookings(openBookings(bookingDao.getWithGpsNote(), closed), filterType), scope))) {
             merke(gefunden, b.payee, b, null);
         }
-        for (PayeeCorrection a : nearAliases(lat, lon,
-                filterAliases(openAliases(correctionDao.getWithGps(0), closed), filterType))) {
+        for (PayeeCorrection a : nearAliases(lat, lon, scopedAliases(
+                filterAliases(openAliases(correctionDao.getWithGps(0), closed), filterType), scope))) {
             merke(gefunden, a.corrected, null, a);
         }
 
@@ -341,6 +349,35 @@ class AliasResolver {
         for (Booking b : list) {
             if (!closed.contains(b.account)) {
                 out.add(b);
+            }
+        }
+        return out;
+    }
+
+    /** Nur die Buchungen der angezeigten Konten; leere Auswahl läßt alles stehen. */
+    private static List<Booking> scopedBookings(List<Booking> list, java.util.Set<String> scope) {
+        if (scope == null || scope.isEmpty()) {
+            return list;
+        }
+        List<Booking> out = new ArrayList<>();
+        for (Booking b : list) {
+            if (AccountScope.covers(scope, b)) {
+                out.add(b);
+            }
+        }
+        return out;
+    }
+
+    /** Nur die Aliase, die kein anderes Konto nennen; leere Auswahl läßt alles stehen. */
+    private static List<PayeeCorrection> scopedAliases(List<PayeeCorrection> list,
+                                                       java.util.Set<String> scope) {
+        if (scope == null || scope.isEmpty()) {
+            return list;
+        }
+        List<PayeeCorrection> out = new ArrayList<>();
+        for (PayeeCorrection a : list) {
+            if (AccountScope.covers(scope, a)) {
+                out.add(a);
             }
         }
         return out;
@@ -609,15 +646,17 @@ class AliasResolver {
      * Empfänger ohne genug Buchungen stehen hinten, denn über sie ist nichts bekannt.
      *
      * @param amountCents bisher eingetippter Betrag; {@code <= 0} = noch keiner, dann zählt nur die Nähe
+     * @param scope       die angezeigten Konten ({@link AccountScope}); leer = alle
      */
     void resolveNearby(final String coords, final long amountCents, final String type,
+                       final java.util.Set<String> scope,
                        final Callback<List<VoiceResolution>> callback) {
         executor.execute(() -> {
             final List<VoiceResolution> passend = new ArrayList<>();
             final List<VoiceResolution> unbekannt = new ArrayList<>();
             double[] ll = de.spahr.ausgaben.location.Geo.parse(coords);
             if (ll != null) {
-                for (Candidate c : nearbyCandidates(ll[0], ll[1], closedAccounts(), null,
+                for (Candidate c : nearbyCandidates(ll[0], ll[1], closedAccounts(), scope, null,
                         amountCents, type)) {
                     if (c.verdict == PayeeAmounts.Verdict.MISSES) {
                         continue;
@@ -635,12 +674,15 @@ class AliasResolver {
      * Der Empfänger, den der Betrag im 100-m-Umkreis <b>eindeutig</b> belegt – für die Vorbelegung im
      * Buchungseditor. Nur wenn genau einer im Band liegt; sonst {@code null}. Hier gilt keine
      * Notbremse: nicht vorbelegen ist besser als raten.
+     *
+     * <p>Ohne Kontoauswahl: im Editor steht das Konto im Formular und läßt sich jederzeit ändern.</p>
      */
     void suggestPayeeByAmount(final double lat, final double lon, final long amountCents,
                               final String type, final Callback<String> callback) {
         executor.execute(() -> {
             String treffer = null;
-            for (Candidate c : nearbyCandidates(lat, lon, closedAccounts(), null, amountCents, type)) {
+            for (Candidate c : nearbyCandidates(lat, lon, closedAccounts(),
+                    java.util.Collections.emptySet(), null, amountCents, type)) {
                 if (c.verdict != PayeeAmounts.Verdict.FITS) {
                     continue;
                 }

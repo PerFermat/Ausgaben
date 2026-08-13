@@ -599,8 +599,8 @@ public class MainActivity extends LocalizedActivity {
             }
             // Nur Betrag → per Standort auflösen (kein Treffer → Editor nur mit Betrag).
             String coords = locationTagger != null ? locationTagger.currentCoordinates() : null;
-            repository.resolveNearby(coords, amount, Repository.VOICE_TYPE_EXPENSE, list ->
-                    openVoiceEditor(list.isEmpty() ? NO_PAYEE : list.get(0), amount, ""));
+            repository.resolveNearby(coords, amount, Repository.VOICE_TYPE_EXPENSE, visibleAccounts(),
+                    list -> openVoiceEditor(list.isEmpty() ? NO_PAYEE : list.get(0), amount, ""));
             return;
         }
         // Aktuelle Position mitgeben (nur bei GPS an) → bei mehreren gleichnamigen Empfängern der nächste.
@@ -715,14 +715,21 @@ public class MainActivity extends LocalizedActivity {
         // beim Tippen der passende Name – 8 € sind die Waschanlage, 80 € die Tankstelle.
         final List<Repository.VoiceResolution> candidates = new ArrayList<>();
         final int[] pick = {0};                       // Stelle im Rundlauf; hinter dem Ende: ohne Empfänger
+        final boolean[] angetippt = {false};          // ab dem ersten Tipp stehen Namen statt der Anzahl
+        final boolean[] zeigtAnzahl = {false};        // steht gerade die Anzahl statt eines Namens da?
         final Runnable showPick = () -> {
             String name;
+            zeigtAnzahl[0] = false;
             if (candidates.isEmpty()) {
                 name = "—";
             } else if (pick[0] >= candidates.size()) {
                 name = getString(R.string.nearby_payee_none);
-            } else if (betragZaehlt && pick[0] == 0 && candidates.size() > 1 && !hasAmount(field)) {
+            } else if (betragZaehlt && pick[0] == 0 && candidates.size() > 1
+                    && !angetippt[0] && !hasAmount(field)) {
+                zeigtAnzahl[0] = true;
                 // Ohne Betrag ist noch nichts entschieden – dann nur sagen, wie viele in Frage kommen.
+                // Nur solange nicht getippt wurde: sonst verdeckte die Anzahl den ersten Namen und der
+                // Rundlauf zeigte ihn nie.
                 name = getString(R.string.nearby_payee_count, candidates.size());
             } else {
                 name = candidates.get(pick[0]).payee;
@@ -737,16 +744,18 @@ public class MainActivity extends LocalizedActivity {
             }
             // Ohne Betrag (0) urteilt niemand: alle Nachbarn bleiben stehen, geordnet nach Nähe.
             long cents = betragZaehlt ? amountOf(field) : 0;
-            repository.resolveNearby(coords, cents, Repository.VOICE_TYPE_EXPENSE, list -> {
-                if (!payeeNames(list).equals(payeeNames(candidates))) {
-                    // Andere Reihenfolge (neuer Betrag, neuer Fix) → wieder der beste Vorschlag.
-                    // Bei gleicher Liste bleibt stehen, was der Nutzer angetippt hat.
-                    pick[0] = 0;
-                }
-                candidates.clear();
-                candidates.addAll(list);
-                showPick.run();
-            });
+            repository.resolveNearby(coords, cents, Repository.VOICE_TYPE_EXPENSE, visibleAccounts(),
+                    list -> {
+                        if (!payeeNames(list).equals(payeeNames(candidates))) {
+                            // Andere Reihenfolge (neuer Betrag, neuer Fix) → wieder der beste Vorschlag.
+                            // Bei gleicher Liste bleibt stehen, was der Nutzer angetippt hat.
+                            pick[0] = 0;
+                            angetippt[0] = false;
+                        }
+                        candidates.clear();
+                        candidates.addAll(list);
+                        showPick.run();
+                    });
         };
         showPick.run();
         resolveShow.run();
@@ -770,7 +779,13 @@ public class MainActivity extends LocalizedActivity {
             if (candidates.isEmpty()) {
                 return;
             }
-            pick[0] = pick[0] >= candidates.size() ? 0 : pick[0] + 1;
+            if (zeigtAnzahl[0]) {
+                // Hinter der Anzahl steckt der erste Kandidat – der erste Tipp deckt ihn auf,
+                // sonst käme er im Rundlauf nie zum Vorschein.
+                angetippt[0] = true;
+            } else {
+                pick[0] = pick[0] >= candidates.size() ? 0 : pick[0] + 1;
+            }
             showPick.run();
         });
 
@@ -1095,6 +1110,19 @@ public class MainActivity extends LocalizedActivity {
     private boolean categoryMatchesBooking(Booking b) {
         return de.spahr.ausgaben.db.CategoryBookingFilter.matchesBooking(b, splitsByBooking,
                 filterCategory, filterCategoryIsMain, categoryTypes, filterCategoryIsIncome);
+    }
+
+    /**
+     * Die gerade angezeigten Konten für die automatische Empfängersuche: das gewählte Konto, sonst die
+     * Konten der gewählten Kontengruppe, sonst (Alle Konten ohne Gruppe) keine Einschränkung.
+     */
+    private java.util.Set<String> visibleAccounts() {
+        if (!selectedAccount.isEmpty()) {
+            return de.spahr.ausgaben.db.AccountScope.of(selectedAccount);
+        }
+        return selectedGroup > 0
+                ? de.spahr.ausgaben.db.AccountScope.of(groupAccounts)
+                : java.util.Collections.emptySet();
     }
 
     /** Gehört das Konto zur gewählten Kontengruppe? Ohne Gruppe gehört jedes Konto dazu. */

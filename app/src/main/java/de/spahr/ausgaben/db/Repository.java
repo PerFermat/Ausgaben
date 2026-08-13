@@ -868,8 +868,9 @@ public class Repository {
             double[] ll = de.spahr.ausgaben.location.Geo.parse(coords);
             if (ll != null) {
                 // Der Betrag siebt mit: bei mehreren Empfängern am selben Ort fällt heraus, wer
-                // solche Beträge nachweislich nie hat (80 € sind keine Autowäsche).
-                aliasResolver.resolveGps(ll[0], ll[1], closed, type, amountCents,
+                // solche Beträge nachweislich nie hat (80 € sind keine Autowäsche). Das auf der Uhr
+                // (graue Taste) bzw. im Widget gewählte Konto grenzt die Kandidaten zusätzlich ein.
+                aliasResolver.resolveGps(ll[0], ll[1], closed, AccountScope.of(def), type, amountCents,
                         resolvedBooking, resolvedAlias);
             }
         } else {
@@ -1053,10 +1054,14 @@ public class Repository {
         aliasResolver.resolveVoice(term, coords, callback);
     }
 
-    /** Die zum Betrag passenden Empfänger im 100-m-Umkreis, der beste zuerst (Ziffernmaske). */
-    public void resolveNearby(String coords, long amountCents, String type,
+    /**
+     * Die zum Betrag passenden Empfänger im 100-m-Umkreis, der beste zuerst (Ziffernmaske).
+     *
+     * @param scope die angezeigten Konten ({@link AccountScope}); leer = alle
+     */
+    public void resolveNearby(String coords, long amountCents, String type, java.util.Set<String> scope,
                               Callback<List<VoiceResolution>> callback) {
-        aliasResolver.resolveNearby(coords, amountCents, type, callback);
+        aliasResolver.resolveNearby(coords, amountCents, type, scope, callback);
     }
 
     /** Der vom Betrag eindeutig belegte Empfänger im 100-m-Umkreis, sonst {@code null} (Editor). */

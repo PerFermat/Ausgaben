@@ -87,7 +87,9 @@ Details, Screenshots und die genaue Bedienung stehen im **[Benutzerhandbuch](doc
   einstellen (Vorgabe: der Bereich, in dem neun von zehn seiner Buchungen liegen) – je Buchungsart,
   Umbuchungen eingeschlossen. In Zifferneingabe und Editor ist das Mitreden des Betrags über den
   Schalter **„Betrag in den Vorschlägen berücksichtigen"** zuzuschalten (standardmäßig aus); bei
-  reiner Spracheingabe ohne Empfänger – am Handy wie von der Uhr – zählt er immer.
+  reiner Spracheingabe ohne Empfänger – am Handy wie von der Uhr – zählt er immer. Sucht die App den
+  Empfänger selbst, kommen nur die der **angezeigten Konten** in Frage (auf der Uhr das dort gewählte);
+  ein Alias ohne eigenes Konto zählt überall.
 - **Belegfotos nachbearbeiten**: direkt nach der Aufnahme (oder später über die Beleg-Zeile) lässt sich
   das Bild rechteckig zuschneiden, im Trapez-Modus eine schräg fotografierte Rechnung begradigen und
   Helligkeit/Kontrast anpassen. Das unbearbeitete Original bleibt dauerhaft als `…_original.jpg` erhalten;

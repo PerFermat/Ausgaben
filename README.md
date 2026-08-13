@@ -89,7 +89,9 @@ Details, screenshots and exact behavior are in the **[user manual](docs/Manual-A
   (default: the range holding nine out of ten of its bookings) – per booking type, transfers included.
   In the numeric entry and the editor the amount only has a say with the **"Use amount for payee
   suggestions"** switch (off by default); for plain voice entry without a payee – on the phone as from
-  the watch – it always counts.
+  the watch – it always counts. Where the app picks the payee itself, only those of the **accounts on
+  display** qualify (on the watch the one selected there); an alias without an account of its own
+  counts everywhere.
 - **Edit receipt photos**: right after the shot (or later from the receipt row) you can crop the image to a
   rectangle, straighten a skewed bill in trapezoid mode and adjust brightness/contrast. The untouched
   original is kept as `…_original.jpg` for good; editing again asks whether to continue from the current

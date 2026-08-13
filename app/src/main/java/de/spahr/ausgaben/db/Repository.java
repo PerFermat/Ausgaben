@@ -1007,6 +1007,11 @@ public class Repository {
         aliasResolver.getAllAliases(callback);
     }
 
+    /** Die nächstgelegenen Empfänger (höchstens {@code NearbyPayees.LIMIT}) für den Buchungs-Editor. */
+    public void getNearbyPayees(double lat, double lon, Callback<List<String>> callback) {
+        aliasResolver.getNearbyPayees(lat, lon, callback);
+    }
+
     public void getAlias(long id, Callback<PayeeCorrection> callback) {
         aliasResolver.getAlias(id, callback);
     }

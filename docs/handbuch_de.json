@@ -348,6 +348,11 @@
           "type": "p",
           "id": "b-0050",
           "text": "In den <b>Kontenfeldern</b> steht vorn, was Sie am ehesten brauchen: zuerst Ihre <b>Favoriten</b> (Stern), dahinter die Konten der gerade gewählten <b>Kontengruppe</b> (Symbol der Gruppe), dann alle übrigen mit dem Symbol ihrer Kontenart. Ihre eigene Kontenreihenfolge bleibt innerhalb jedes Blocks erhalten."
+        },
+        {
+          "type": "p",
+          "id": "b-0050a",
+          "text": "Dasselbe leistet beim <b>Empfänger</b> der Standort: ganz oben stehen die <b>sechs nächstgelegenen Empfänger</b> mit einem <b>Peilpfeil</b>, der nächste zuerst. Gemessen wird vom <b>Standort der Buchung</b> – also von dem, was in der Zeile <b>Standort</b> steht: bei einer <b>neuen Buchung</b> Ihr aktueller (nur bei eingeschaltetem <b>Standort (GPS)</b>), beim <b>Bearbeiten</b> die <b>gespeicherte Marke</b> der Buchung, und wählen Sie dort über <b>«Karte»</b> einen anderen Punkt, wandert der Vorspann mit. Hat eine Buchung keine Marke, gibt es keinen Vorspann – Ihr jetziger Standort sagt über eine alte Buchung nichts. Wie weit ein Empfänger entfernt ist, ergibt sich aus denselben Quellen wie beim Umkreis-Filter: den Koordinaten in den Notizen seiner Buchungen und den gelernten Standorten seiner Aliase; es zählt jeweils der nächste Punkt, und weiter als 10 km entfernte kommen nicht vor. Darunter folgt unverändert die vollständige alphabetische Liste, die sechs stehen dort also ein zweites Mal. <b>Sobald Sie zu tippen beginnen</b>, verschwindet der Vorspann und Sie sehen allein die alphabetischen Treffer; löschen Sie das Getippte wieder, ist er zurück. Beim Ansehen einer geplanten Buchung gibt es ihn nicht."
         }
       ],
       "shot": {"fname": "Buchung Empfänger.png", "caption": "Buchungs-Editor mit Typ-Umschalter, Betrag, Empfänger und Konto", "width": 6.0}

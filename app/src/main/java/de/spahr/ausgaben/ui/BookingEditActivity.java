@@ -202,6 +202,15 @@ public class BookingEditActivity extends LocalizedActivity {
     private String presetTransferFromAccount = "";
     private final Set<String> knownAccountNames = new HashSet<>();
 
+    /** Alle Empfänger (alphabetisch) für die Vorschlagsliste; wird einmal aus der Datenbank geholt. */
+    private List<String> payeeNames = new ArrayList<>();
+    /** Die nächstgelegenen Empfänger – der Vorspann der Vorschlagsliste (nur bei neuer Buchung). */
+    private List<String> nearbyPayees = new ArrayList<>();
+    /** Position, zu der {@link #nearbyPayees} gehört – erst ein deutlicher Ortswechsel rechnet neu. */
+    private double[] nearbyCenter;
+    /** So weit muß der Standort wandern, damit der Vorspann neu gerechnet wird (Meter). */
+    private static final int NEARBY_AGAIN_M = 100;
+
     /** Verwaltet die dynamische Kategorie-/Teilbetrag-Liste (Splitbuchung). */
     private SplitRowController splitCtl;
 
@@ -266,7 +275,10 @@ public class BookingEditActivity extends LocalizedActivity {
         btnUpdate = findViewById(R.id.btnUpdate);
         btnDelete = findViewById(R.id.btnDelete);
 
-        repository.getPayeeNames(names -> PickerAdapters.payees(editPayee, names));
+        repository.getPayeeNames(names -> {
+            payeeNames = names == null ? new ArrayList<>() : names;
+            refreshPayeeSuggestions();
+        });
         repository.getAccountNames(names -> {
             knownAccountNames.clear();
             for (String name : names) {
@@ -511,6 +523,50 @@ public class BookingEditActivity extends LocalizedActivity {
         }
         gpsRowCoords = coords;
         updateNoteTagRows();
+    }
+
+    /**
+     * Holt die nächstgelegenen Empfänger für den Vorspann der Vorschlagsliste. Maßgeblich ist der
+     * <b>Standort der Buchung</b>, also die Standort-Zeile des Editors: bei einer neuen Buchung der
+     * laufende Standort, beim Bearbeiten die gespeicherte Marke der Notiz, nach «Karte» der von Hand
+     * gewählte Punkt. Ohne Marke gibt es keinen Vorspann – die jetzige Position sagt über eine alte
+     * Buchung nichts.
+     *
+     * <p>Neu gerechnet wird erst, wenn der Punkt um mehr als {@link #NEARBY_AGAIN_M} gewandert ist: der
+     * Standort meldet sich laufend, und die Liste soll nicht bei jedem Zucken neu aus der Datenbank
+     * kommen.</p>
+     */
+    private void refreshNearbyPayees() {
+        double[] hier = readOnly ? null : de.spahr.ausgaben.location.Geo.parse(gpsRowCoords);
+        if (hier == null) {
+            if (nearbyCenter != null) {
+                nearbyCenter = null;
+                nearbyPayees = new ArrayList<>();
+                refreshPayeeSuggestions();
+            }
+            return;
+        }
+        if (nearbyCenter != null && de.spahr.ausgaben.location.Geo.distanceMeters(
+                nearbyCenter[0], nearbyCenter[1], hier[0], hier[1]) <= NEARBY_AGAIN_M) {
+            return;
+        }
+        nearbyCenter = hier;
+        repository.getNearbyPayees(hier[0], hier[1], names -> {
+            nearbyPayees = names == null ? new ArrayList<>() : names;
+            refreshPayeeSuggestions();
+        });
+    }
+
+    /**
+     * Setzt die Vorschlagsliste des Empfängerfelds neu: die nahen Empfänger als Vorspann, darunter alle
+     * alphabetisch. Steht der Nutzer gerade im Feld, bleibt die Liste, wie sie ist – ein Austausch unter
+     * dem Finger ließe die offene Auswahl springen; der nächste Aufruf holt es nach.
+     */
+    private void refreshPayeeSuggestions() {
+        if (editPayee == null || editPayee.hasFocus()) {
+            return;
+        }
+        PickerAdapters.payees(editPayee, payeeNames, nearbyPayees);
     }
 
     /**
@@ -1311,7 +1367,9 @@ public class BookingEditActivity extends LocalizedActivity {
         if (rowGps == null) {
             return; // Views noch nicht gebunden
         }
-        // GPS-Zeile
+        // GPS-Zeile. Hier läuft jede Änderung des Buchungs-Standorts zusammen – neue Buchung, geladene
+        // Buchung, Kartenwahl –, deshalb hängt der Vorspann der Empfängerliste an dieser einen Stelle.
+        refreshNearbyPayees();
         double[] ll = de.spahr.ausgaben.location.Geo.parse(gpsRowCoords);
         if (ll != null) {
             textGps.setText(getString(R.string.gps_row_label, gpsDisplay(gpsRowCoords)));

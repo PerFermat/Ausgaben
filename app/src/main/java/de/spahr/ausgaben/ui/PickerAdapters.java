@@ -96,8 +96,27 @@ public final class PickerAdapters {
 
     /** Empfänger – das einzige Feld, in dem ein unbekannter Name stehenbleiben darf: er ist der neue. */
     public static void payees(AutoCompleteTextView field, List<String> names) {
-        attach(field, iconAdapter(field.getContext(), names, R.drawable.ic_payee));
+        payees(field, names, null);
+    }
+
+    /**
+     * Wie {@link #payees(AutoCompleteTextView, List)}, mit den Empfängern in der Nähe als Vorspann: sie
+     * stehen mit dem Peilpfeil ganz oben, der nächste zuerst, und noch einmal an ihrem alphabetischen
+     * Platz. Sobald jemand tippt, bleibt allein die alphabetische Trefferliste stehen.
+     */
+    public static void payees(AutoCompleteTextView field, List<String> names, List<String> nearby) {
+        attach(field, payeeAdapter(field.getContext(), names, nearby));
         PickerBehaviour.searchable(field, PickerBehaviour.Unknown.KEEP);
+    }
+
+    private static ArrayAdapter<String> payeeAdapter(Context context, List<String> names,
+                                                     List<String> nearby) {
+        return new RowAdapter(context, names, nearby) {
+            @Override
+            int iconFor(String value) {
+                return R.drawable.ic_payee;
+            }
+        };
     }
 
     public static void places(AutoCompleteTextView field, List<String> places) {
@@ -195,15 +214,38 @@ public final class PickerAdapters {
 
         private final int iconTint;
         private final List<String> stock;
+        /** Vorspann (nahe Empfänger): steht im leeren Feld über dem Bestand, beim Suchen nicht. */
+        private final List<String> lead;
+        /** Wieviele Zeilen der gerade angezeigten Liste zum Vorspann gehören. */
+        private int leadShown;
 
         RowAdapter(Context context, List<String> values) {
+            this(context, values, null);
+        }
+
+        RowAdapter(Context context, List<String> values, List<String> lead) {
             // Eigene Kopie: die Aufrufer reichen teils feste Listen (Arrays.asList) herein, und ein
-            // ArrayAdapter besteht darauf, seinen Bestand ändern zu dürfen.
-            super(context, R.layout.item_picker_row, R.id.pickerText,
-                    values == null ? new java.util.ArrayList<>() : new java.util.ArrayList<>(values));
+            // ArrayAdapter besteht darauf, seinen Bestand ändern zu dürfen. Von Anfang an mit Vorspann –
+            // so steht dort auch dann das Richtige, wenn die Liste ohne Suchlauf aufklappt.
+            super(context, R.layout.item_picker_row, R.id.pickerText, mit(lead, values));
             this.stock = values == null
                     ? new java.util.ArrayList<>() : new java.util.ArrayList<>(values);
+            this.lead = lead == null
+                    ? new java.util.ArrayList<>() : new java.util.ArrayList<>(lead);
+            this.leadShown = this.lead.size();
             this.iconTint = iconTint(context);
+        }
+
+        /** Vorspann und Bestand hintereinander – die eine Liste, die im leeren Feld dasteht. */
+        private static List<String> mit(List<String> lead, List<String> values) {
+            List<String> alle = new java.util.ArrayList<>();
+            if (lead != null) {
+                alle.addAll(lead);
+            }
+            if (values != null) {
+                alle.addAll(values);
+            }
+            return alle;
         }
 
         @Override
@@ -227,6 +269,11 @@ public final class PickerAdapters {
             protected FilterResults performFiltering(CharSequence constraint) {
                 List<String> hits = new java.util.ArrayList<>();
                 String query = constraint == null ? "" : constraint.toString();
+                if (query.trim().isEmpty()) {
+                    // Leeres Feld: der Vorspann steht oben, darunter der vollständige Bestand. Sobald
+                    // gesucht wird, bleibt allein die Trefferliste – ganz ohne Zutun des Feldes.
+                    hits.addAll(lead);
+                }
                 for (String value : stock) {
                     if (AccountOrder.matches(value, query)) {
                         hits.add(value);
@@ -241,6 +288,8 @@ public final class PickerAdapters {
             @Override
             @SuppressWarnings("unchecked")
             protected void publishResults(CharSequence constraint, FilterResults results) {
+                String query = constraint == null ? "" : constraint.toString();
+                leadShown = query.trim().isEmpty() ? lead.size() : 0;
                 setNotifyOnChange(false); // sonst meldet schon das Leeren eine leere Liste
                 clear();
                 addAll((List<String>) results.values);
@@ -259,7 +308,9 @@ public final class PickerAdapters {
             String value = getItem(position);
             ((TextView) row.findViewById(R.id.pickerText)).setText(value);
             ImageView icon = row.findViewById(R.id.pickerIcon);
-            int res = iconFor(value);
+            // Der Vorspann trägt sein Symbol nach der Stelle, nicht nach dem Namen: derselbe Empfänger
+            // steht ein zweites Mal weiter unten, dort mit dem gewöhnlichen Symbol seiner Liste.
+            int res = position < leadShown ? R.drawable.ic_near_me : iconFor(value);
             if (res == 0) {
                 icon.setImageDrawable(null);
             } else {

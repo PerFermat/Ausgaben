@@ -370,6 +370,18 @@ class AliasResolver {
         });
     }
 
+    /**
+     * Die Empfänger in der Nähe von {@code lat/lon} für den Vorspann der Vorschlagsliste – aus denselben
+     * beiden Quellen wie der Umkreis-Filter (GPS-Marke der Buchungen, gelernte Alias-Standorte).
+     */
+    void getNearbyPayees(final double lat, final double lon, final Callback<List<String>> callback) {
+        executor.execute(() -> {
+            final List<String> result = de.spahr.ausgaben.location.NearbyPayees.rank(
+                    bookingDao.getWithGpsNote(), correctionDao.getAll(), lat, lon);
+            mainHandler.post(() -> callback.onResult(result));
+        });
+    }
+
     void getAlias(final long id, final Callback<PayeeCorrection> callback) {
         executor.execute(() -> {
             final PayeeCorrection result = correctionDao.getById(id);

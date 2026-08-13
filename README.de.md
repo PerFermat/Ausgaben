@@ -75,7 +75,9 @@ Details, Screenshots und die genaue Bedienung stehen im **[Benutzerhandbuch](doc
 
 - **Buchungen erfassen**: Ausgabe/Umbuchung/Einnahme, Splitbuchungen, Belegfoto, Spracheingabe
   („Frisör 20 €“), stille Betrag-only-Erfassung per GPS-Standort, lernende Alias-Namen für
-  Zahlungsempfänger.
+  Zahlungsempfänger. Oben in der Vorschlagsliste stehen die **sechs nächstgelegenen Empfänger** mit
+  Peilpfeil – gemessen am Standort der Buchung: beim Anlegen der aktuelle, beim Bearbeiten die
+  gespeicherte Marke der Buchung. Sobald man tippt, bleibt die alphabetische Liste.
 - **Belegfotos nachbearbeiten**: direkt nach der Aufnahme (oder später über die Beleg-Zeile) lässt sich
   das Bild rechteckig zuschneiden, im Trapez-Modus eine schräg fotografierte Rechnung begradigen und
   Helligkeit/Kontrast anpassen. Das unbearbeitete Original bleibt dauerhaft als `…_original.jpg` erhalten;

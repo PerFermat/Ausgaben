@@ -78,6 +78,9 @@ Details, screenshots and exact behavior are in the **[user manual](docs/Manual-A
 
 - **Record bookings**: expense/transfer/income, split bookings, receipt photos, voice input
   ("hairdresser 20 €"), silent amount-only entry resolved via GPS location, learning payee aliases.
+  The **six nearest payees** head the suggestion list with a bearing arrow – measured from the
+  booking's location: the current one while creating, the booking's stored mark while editing. As soon
+  as you type, the plain alphabetical list is back.
 - **Edit receipt photos**: right after the shot (or later from the receipt row) you can crop the image to a
   rectangle, straighten a skewed bill in trapezoid mode and adjust brightness/contrast. The untouched
   original is kept as `…_original.jpg` for good; editing again asks whether to continue from the current

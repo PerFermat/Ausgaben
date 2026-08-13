@@ -87,6 +87,9 @@ Details, screenshots and exact behavior are in the **[user manual](docs/Manual-A
   name appears live below the amount (tap to cycle through the others); in the editor an unambiguous
   hit fills the empty payee field. Which amounts count as usual can be set per alias with a slider
   (default: the range holding nine out of ten of its bookings) – per booking type, transfers included.
+  In the numeric entry and the editor the amount only has a say with the **"Use amount for payee
+  suggestions"** switch (off by default); for plain voice entry without a payee – on the phone as from
+  the watch – it always counts.
 - **Edit receipt photos**: right after the shot (or later from the receipt row) you can crop the image to a
   rectangle, straighten a skewed bill in trapezoid mode and adjust brightness/contrast. The untouched
   original is kept as `…_original.jpg` for good; editing again asks whether to continue from the current

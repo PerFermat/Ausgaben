@@ -1197,9 +1197,14 @@ public class BookingEditActivity extends LocalizedActivity {
      * Standort-Marke genau <b>ein</b> Empfänger im Betragsband, wird er ins <b>leere</b> Feld
      * geschrieben – und zieht über {@link #refreshPayeeCategories()} seine Kategorie nach.
      *
-     * <p>Bei mehreren oder keinem Treffer geschieht nichts: raten wäre schlimmer als nichts tun.</p>
+     * <p>Bei mehreren oder keinem Treffer geschieht nichts: raten wäre schlimmer als nichts tun.
+     * Abgeschaltet (Standard) unterbleibt der Vorschlag ganz – hier wählt man den Empfänger ohnehin
+     * selbst.</p>
      */
     private void suggestPayeeFromAmount() {
+        if (!settings.isAmountSuggestEnabled()) {
+            return;
+        }
         if (readOnly || !textOf(editPayee).trim().isEmpty()) {
             return;
         }

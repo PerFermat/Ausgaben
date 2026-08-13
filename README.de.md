@@ -85,7 +85,9 @@ Details, Screenshots und die genaue Bedienung stehen im **[Benutzerhandbuch](doc
   live unter dem Betrag (Antippen läuft durch die übrigen); im Editor füllt ein eindeutiger Treffer
   das leere Empfängerfeld. Welche Beträge als üblich gelten, läßt sich je Alias über einen Regler
   einstellen (Vorgabe: der Bereich, in dem neun von zehn seiner Buchungen liegen) – je Buchungsart,
-  Umbuchungen eingeschlossen.
+  Umbuchungen eingeschlossen. In Zifferneingabe und Editor ist das Mitreden des Betrags über den
+  Schalter **„Betrag in den Vorschlägen berücksichtigen"** zuzuschalten (standardmäßig aus); bei
+  reiner Spracheingabe ohne Empfänger – am Handy wie von der Uhr – zählt er immer.
 - **Belegfotos nachbearbeiten**: direkt nach der Aufnahme (oder später über die Beleg-Zeile) lässt sich
   das Bild rechteckig zuschneiden, im Trapez-Modus eine schräg fotografierte Rechnung begradigen und
   Helligkeit/Kontrast anpassen. Das unbearbeitete Original bleibt dauerhaft als `…_original.jpg` erhalten;

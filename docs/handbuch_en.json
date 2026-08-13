@@ -362,7 +362,7 @@
         {
           "type": "p",
           "id": "b-0050c",
-          "text": "The other way round, the <b>amount</b> can supply the payee: leave the amount field, and if within <b>100 m</b> of the location mark there is exactly <b>one</b> payee whose usual amounts match it, that name goes into the <b>empty</b> payee field – bringing its category along. This applies to every booking type, <b>transfers</b> included – there compared against the amounts of your previous transfers to that payee. If several match, or none, nothing happens; a payee you entered yourself is never touched. The suggestion list itself is unaffected: it still lists every payee within 10 km."
+          "text": "The other way round, the <b>amount</b> can supply the payee: leave the amount field, and if within <b>100 m</b> of the location mark there is exactly <b>one</b> payee whose usual amounts match it, that name goes into the <b>empty</b> payee field – bringing its category along. This applies to every booking type, <b>transfers</b> included – there compared against the amounts of your previous transfers to that payee. If several match, or none, nothing happens; a payee you entered yourself is never touched. The suggestion list itself is unaffected: it still lists every payee within 10 km. This pre-fill is <b>off</b> by default; switch it on under <b>«Use amount for payee suggestions»</b> in the settings."
         }
       ],
       "shot": {"fname": "Buchung Empfänger.png", "caption": "Booking editor with type switch, amount, payee and account", "width": 6.0}
@@ -482,7 +482,7 @@
         {
           "type": "p",
           "id": "b-0070a",
-          "text": "Where <b>several</b> known payees share your location (petrol station and car wash, supermarket and bakery), the <b>amount</b> decides as well. Before you type, the field below states how many come into question; while you type, the name matching the amount appears: €8 is the car wash, €80 the petrol station. <b>Tap the name</b> to cycle through the remaining candidates and finally through <b>«no payee»</b> – then you fill it in later yourself. Whatever is shown when you confirm is what gets booked. Usual means the range holding <b>nine out of ten</b> of that payee's previous bookings; anyone with fewer than five bookings is never ruled out. And if only one payee is nearby, it wins even with an unusual amount – filling the tank once is no reason to leave the booking blank."
+          "text": "Where <b>several</b> known payees share your location (petrol station and car wash, supermarket and bakery), the <b>amount</b> decides as well. Before you type, the field below states how many come into question; while you type, the name matching the amount appears: €8 is the car wash, €80 the petrol station. <b>Tap the name</b> to cycle through the remaining candidates and finally through <b>«no payee»</b> – then you fill it in later yourself. Whatever is shown when you confirm is what gets booked. Usual means the range holding <b>nine out of ten</b> of that payee's previous bookings; anyone with fewer than five bookings is never ruled out. And if only one payee is nearby, it wins even with an unusual amount – filling the tank once is no reason to leave the booking blank. The amount only has a say here with the <b>«Use amount for payee suggestions»</b> switch on (<b>off</b> by default). Without it the nearest payee appears at once and stays put while you type – you then choose by tapping alone."
         }
       ],
       "shot": {"fname": "Buchung Betrag - Automatischer Empfänger anhand GPS.png", "caption": "Amount-only entry: the payee is resolved via the current location", "width": 6.0}
@@ -590,7 +590,7 @@
         {
           "type": "p",
           "id": "b-0090a",
-          "text": "Below that sits <b>«Usual amounts»</b>: a two-handled slider defining which amounts are typical for this payee – the <b>amount filter</b> used when several payees share a location. The slider does not move in amounts but in <b>ranks</b>: the default 10–90 % drops a tenth of the previous bookings at each end, so a single outlier cannot stretch the range. The corresponding amounts are shown above and on the handle. Narrow it, and this payee only wins on very typical amounts; widen it to 0–100 %, and every amount it ever had counts. With fewer than five bookings the slider is greyed out – that few say nothing yet. The slider belongs to the <b>booking type</b> selected above: switch to income or transfer and it shows the amounts of that type. For transfers only the outgoing side counts – otherwise every amount would appear twice."
+          "text": "Below that sits <b>«Usual amounts»</b>: a two-handled slider defining which amounts are typical for this payee – the <b>amount filter</b> used when several payees share a location. The slider does not move in amounts but in <b>ranks</b>: the default 10–90 % drops a tenth of the previous bookings at each end, so a single outlier cannot stretch the range. The corresponding amounts are shown above and on the handle. Narrow it, and this payee only wins on very typical amounts; widen it to 0–100 %, and every amount it ever had counts. With fewer than five bookings the slider is greyed out – that few say nothing yet. The slider belongs to the <b>booking type</b> selected above: switch to income or transfer and it shows the amounts of that type. For transfers only the outgoing side counts – otherwise every amount would appear twice. The range always applies when only an amount was spoken; in the number pad and the booking editor it takes the <b>«Use amount for payee suggestions»</b> switch."
         }
       ],
       "shot": {"fname": "Aliase.png", "caption": "Managing alias names: spoken term → real payee", "width": 6.0}
@@ -1350,7 +1350,8 @@
       "id": "b-0210",
       "items": [
         "<b>App lock</b>: optional via biometrics/device credential (fingerprint, face, PIN, pattern, password) – on start and when returning from the background. When the app hands over to another app itself – camera, gallery, file picker, speech input – returning within five minutes does not ask again. Stay away longer and the lock is back.",
-        "<b>Location (GPS)</b> switch (default <b>off</b>): controls all location use. Off = no permission prompt, no GPS note, no amount-only entry, no alias location. The position is used locally only, never sent to a service."
+        "<b>Location (GPS)</b> switch (default <b>off</b>): controls all location use. Off = no permission prompt, no GPS note, no amount-only entry, no alias location. The position is used locally only, never sent to a service.",
+        "<b>Use amount for payee suggestions</b> (default <b>off</b>): on = the amount helps decide where several payees share a location – in the number pad the name shown changes with the amount, and the booking editor pre-fills an unambiguous payee. Off = both stay quiet; the number pad shows the nearest payee, which you change by tapping. <b>Regardless</b> of this switch, plain <b>voice entry without a payee</b> – on the phone as from the watch – always uses the amount, because there is nothing to choose there."
       ]
     },
     {

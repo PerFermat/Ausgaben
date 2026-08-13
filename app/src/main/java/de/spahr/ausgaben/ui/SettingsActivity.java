@@ -190,6 +190,11 @@ public class SettingsActivity extends LocalizedActivity implements SmbWizardCont
         switchGps.setChecked(settings.isGpsEnabled());
         switchGps.setOnCheckedChangeListener((b, checked) -> settings.setGpsEnabled(checked));
 
+        MaterialSwitch switchAmountSuggest = findViewById(R.id.switchAmountSuggest);
+        switchAmountSuggest.setChecked(settings.isAmountSuggestEnabled());
+        switchAmountSuggest.setOnCheckedChangeListener(
+                (b, checked) -> settings.setAmountSuggestEnabled(checked));
+
         // Nur im full-Build (Wear-Anbindung): Offline-Sprachpaket auf der Uhr installieren lassen.
         // Der Zustand reist über LanguageSync (/language-DataItem) zur Uhr.
         MaterialSwitch switchWearModel = findViewById(R.id.switchWearOfflineModel);

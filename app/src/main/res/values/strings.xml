@@ -303,6 +303,7 @@
     <string name="security_section">Security</string>
     <string name="app_lock_switch">Protect app with biometrics</string>
     <string name="gps_switch">Use location (GPS)</string>
+    <string name="amount_suggest_switch">Use amount for payee suggestions</string>
 
     <!-- Receipt photos -->
     <string name="receipt_switch">Receipt photos (capture &amp; sync)</string>

@@ -29,6 +29,7 @@ public class SettingsStore {
     private static final String KEY_KMY_PATH = "kmy_path";
     private static final String KEY_APP_LOCK = "app_lock";
     private static final String KEY_GPS_ENABLED = "gps_enabled";
+    private static final String KEY_AMOUNT_SUGGEST = "amount_suggest";
     private static final String KEY_RECEIPT_ENABLED = "receipt_enabled";
     private static final String KEY_SCHEDULED_REMINDER = "scheduled_reminder";
     private static final String KEY_WEAR_INSTALL_MODEL = "wear_install_offline_model";
@@ -393,6 +394,20 @@ public class SettingsStore {
 
     public void setGpsEnabled(boolean enabled) {
         prefs.edit().putBoolean(KEY_GPS_ENABLED, enabled).apply();
+    }
+
+    /**
+     * Ob der Betrag bei der Empfängersuche mitentscheidet (Standard: aus). Betrifft die Ziffernmaske
+     * und die Vorbelegung im Buchungseditor – also die Stellen, an denen man den Empfänger ohnehin
+     * selbst wählen kann. Die reine Spracheingabe ohne Empfänger (Handy wie Uhr) nutzt den Betrag
+     * unabhängig davon, denn dort gibt es nichts zu wählen.
+     */
+    public boolean isAmountSuggestEnabled() {
+        return prefs.getBoolean(KEY_AMOUNT_SUGGEST, false);
+    }
+
+    public void setAmountSuggestEnabled(boolean enabled) {
+        prefs.edit().putBoolean(KEY_AMOUNT_SUGGEST, enabled).apply();
     }
 
     /**

@@ -302,6 +302,7 @@
     <string name="security_section">Sicherheit</string>
     <string name="app_lock_switch">App mit Biometrie schützen</string>
     <string name="gps_switch">Standort (GPS) nutzen</string>
+    <string name="amount_suggest_switch">Betrag in den Vorschlägen berücksichtigen</string>
 
     <!-- Belegfotos -->
     <string name="receipt_switch">Belegfotos (aufnehmen &amp; synchronisieren)</string>

@@ -595,6 +595,14 @@
             android:layout_marginTop="8dp"
             android:text="@string/gps_switch" />
 
+        <!-- Setzt den Standort voraus, deshalb gleich unter dem GPS-Schalter. -->
+        <com.google.android.material.materialswitch.MaterialSwitch
+            android:id="@+id/switchAmountSuggest"
+            android:layout_width="match_parent"
+            android:layout_height="wrap_content"
+            android:layout_marginTop="8dp"
+            android:text="@string/amount_suggest_switch" />
+
         <com.google.android.material.materialswitch.MaterialSwitch
             android:id="@+id/switchReceipt"
             android:layout_width="match_parent"

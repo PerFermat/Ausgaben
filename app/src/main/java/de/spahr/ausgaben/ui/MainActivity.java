@@ -667,12 +667,25 @@ public class MainActivity extends LocalizedActivity {
         return amountOf(field) > 0;
     }
 
+    /** Die Empfängernamen in ihrer Reihenfolge – daran erkennt man, ob sich der Vorschlag geändert hat. */
+    private static List<String> payeeNames(List<Repository.VoiceResolution> list) {
+        List<String> namen = new ArrayList<>();
+        for (Repository.VoiceResolution r : list) {
+            namen.add(r.payee);
+        }
+        return namen;
+    }
+
     /**
      * Stille Zifferneingabe: Betrag eintippen → Betrag-only-Pfad (Auflösung per Standort). Unter dem
      * Betrag steht, wer in Frage kommt – vor der Eingabe die Anzahl, beim Tippen der zum Betrag
      * passende Empfänger. Antippen läuft im Kreis durch die Kandidaten; was dasteht, wird gebucht.
+     *
+     * <p>Ist der Betragsvorschlag abgeschaltet (Standard), steht sofort der nächstgelegene Empfänger
+     * da und bleibt beim Tippen stehen – gewählt wird dann allein durch Antippen.
      */
     private void showNumberEntry() {
+        final boolean betragZaehlt = settings.isAmountSuggestEnabled();
         if (locationTagger != null && !hasLocationPermission()) {
             locationPermissionLauncher.launch(android.Manifest.permission.ACCESS_FINE_LOCATION);
         }
@@ -708,7 +721,7 @@ public class MainActivity extends LocalizedActivity {
                 name = "—";
             } else if (pick[0] >= candidates.size()) {
                 name = getString(R.string.nearby_payee_none);
-            } else if (pick[0] == 0 && candidates.size() > 1 && !hasAmount(field)) {
+            } else if (betragZaehlt && pick[0] == 0 && candidates.size() > 1 && !hasAmount(field)) {
                 // Ohne Betrag ist noch nichts entschieden – dann nur sagen, wie viele in Frage kommen.
                 name = getString(R.string.nearby_payee_count, candidates.size());
             } else {
@@ -722,10 +735,16 @@ public class MainActivity extends LocalizedActivity {
             if (coords == null) {
                 return;
             }
-            repository.resolveNearby(coords, amountOf(field), Repository.VOICE_TYPE_EXPENSE, list -> {
+            // Ohne Betrag (0) urteilt niemand: alle Nachbarn bleiben stehen, geordnet nach Nähe.
+            long cents = betragZaehlt ? amountOf(field) : 0;
+            repository.resolveNearby(coords, cents, Repository.VOICE_TYPE_EXPENSE, list -> {
+                if (!payeeNames(list).equals(payeeNames(candidates))) {
+                    // Andere Reihenfolge (neuer Betrag, neuer Fix) → wieder der beste Vorschlag.
+                    // Bei gleicher Liste bleibt stehen, was der Nutzer angetippt hat.
+                    pick[0] = 0;
+                }
                 candidates.clear();
                 candidates.addAll(list);
-                pick[0] = 0;                          // neuer Betrag → wieder der beste Vorschlag
                 showPick.run();
             });
         };
@@ -734,12 +753,14 @@ public class MainActivity extends LocalizedActivity {
         if (locationTagger != null) {
             locationTagger.setOnLocationUpdate(resolveShow::run);
         }
-        // Jede Ziffer ändert das Bild – aber erst, wenn die Eingabe kurz ruht (sonst zählt „8" von „80" mit).
-        final android.os.Handler typed = new android.os.Handler(android.os.Looper.getMainLooper());
-        field.addTextChangedListener(new SimpleWatcher(() -> {
-            typed.removeCallbacksAndMessages(null);
-            typed.postDelayed(resolveShow, 250L);
-        }));
+        if (betragZaehlt) {
+            // Jede Ziffer ändert das Bild – aber erst, wenn die Eingabe kurz ruht (sonst zählt „8" von „80" mit).
+            final android.os.Handler typed = new android.os.Handler(android.os.Looper.getMainLooper());
+            field.addTextChangedListener(new SimpleWatcher(() -> {
+                typed.removeCallbacksAndMessages(null);
+                typed.postDelayed(resolveShow, 250L);
+            }));
+        }
         // Antippen läuft im Kreis durch die Kandidaten und zuletzt über „ohne Empfänger“.
         android.util.TypedValue ripple = new android.util.TypedValue();
         if (getTheme().resolveAttribute(android.R.attr.selectableItemBackground, ripple, true)) {
@@ -773,8 +794,10 @@ public class MainActivity extends LocalizedActivity {
                 return;
             }
             String amt = de.spahr.ausgaben.settings.MoneyFormat.plain(cents);
-            if (pick[0] != 0) {
-                // Von Hand durchgetippt: genau das gilt, was dasteht (auch „ohne Empfänger").
+            if (pick[0] != 0 || (!betragZaehlt && !candidates.isEmpty())) {
+                // Genau das gilt, was dasteht (auch „ohne Empfänger"). Bei abgeschaltetem
+                // Betragsvorschlag auch ohne Antippen – sonst zöge das erneute Auflösen doch wieder
+                // das Betragssieb der Spracheingabe und buchte einen anderen als den angezeigten.
                 openVoiceEditor(pick[0] >= candidates.size() ? NO_PAYEE : candidates.get(pick[0]),
                         cents, "");
             } else {

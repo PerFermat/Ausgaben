@@ -165,6 +165,22 @@ public interface BookingDao {
             + "ORDER BY created_at DESC LIMIT 200")
     List<String> getCategoriesByPayee(String payee, boolean income);
 
+    /**
+     * Die Beträge, auf die dieser Empfänger schon gebucht wurde – Grundlage des Betragssiebs
+     * ({@link PayeeAmounts}). Bewußt <b>ohne</b> Standort-Bedingung: die Koordinaten entscheiden, wer
+     * überhaupt Kandidat ist, die Beträge steuert der volle Bestand bei. Und ohne Teilzeilen, denn
+     * verglichen wird mit dem Gesamtbetrag, und der steht auch bei einer Splitbuchung hier.
+     *
+     * <p>Eine Umbuchung liegt als <b>zwei</b> Zeilen mit demselben Betrag vor (Ausgangs- und
+     * Eingangsseite). Der Aufrufer fragt deshalb bei {@code transfer} immer die Ausgangsseite
+     * ({@code income = false}) ab, sonst zählte jeder Betrag doppelt.</p>
+     */
+    @Query("SELECT amount_cents FROM booking "
+            + "WHERE payee = :payee COLLATE NOCASE "
+            + "AND is_transfer = :transfer AND is_income = :income "
+            + "ORDER BY created_at DESC LIMIT 50")
+    List<Long> getAmountsByPayee(String payee, boolean income, boolean transfer);
+
     /** Ort-Link an allen Buchungen eines Kontos umbenennen (folgt dem Umbenennen in der Ortsverwaltung). */
     @Query("UPDATE booking SET place = :newName WHERE account = :account AND place = :oldName")
     void renamePlace(String account, String oldName, String newName);

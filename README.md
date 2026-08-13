@@ -82,7 +82,11 @@ Details, screenshots and exact behavior are in the **[user manual](docs/Manual-A
   booking's location: the current one while creating, the booking's stored mark while editing. As soon
   as you type, the plain alphabetical list is back. Once the payee is set, the **first category** is
   filled from its previous entries (preferred alias → latest booking → other alias); the remaining
-  ones head the category list as their own block.
+  ones head the category list as their own block. Where several payees share a location, the **amount**
+  decides as well: €80 is a tank of fuel, €10 the car wash. In the silent numeric entry the matching
+  name appears live below the amount (tap to cycle through the others); in the editor an unambiguous
+  hit fills the empty payee field. Which amounts count as usual can be set per alias with a slider
+  (default: the range holding nine out of ten of its bookings) – per booking type, transfers included.
 - **Edit receipt photos**: right after the shot (or later from the receipt row) you can crop the image to a
   rectangle, straighten a skewed bill in trapezoid mode and adjust brightness/contrast. The untouched
   original is kept as `…_original.jpg` for good; editing again asks whether to continue from the current

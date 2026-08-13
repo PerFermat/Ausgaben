@@ -297,6 +297,39 @@
                     android:text="@string/alias_gps_add" />
             </LinearLayout>
 
+            <!-- Übliche Beträge dieses Empfängers: das Sieb, wenn mehrere Empfänger am selben Ort
+                 stehen. Gilt für jede Buchungsart, auch für Umbuchungen. -->
+            <LinearLayout
+                android:id="@+id/aliasBandSection"
+                android:layout_width="match_parent"
+                android:layout_height="wrap_content"
+                android:orientation="vertical">
+
+                <TextView
+                    android:layout_width="wrap_content"
+                    android:layout_height="wrap_content"
+                    android:layout_marginTop="16dp"
+                    android:text="@string/alias_band_section"
+                    android:textSize="16sp"
+                    android:textStyle="bold" />
+
+                <TextView
+                    android:id="@+id/textAliasBand"
+                    android:layout_width="match_parent"
+                    android:layout_height="wrap_content"
+                    android:layout_marginTop="4dp"
+                    android:textSize="14sp" />
+
+                <com.google.android.material.slider.RangeSlider
+                    android:id="@+id/sliderAliasBand"
+                    android:layout_width="match_parent"
+                    android:layout_height="wrap_content"
+                    android:layout_marginTop="4dp"
+                    android:valueFrom="0"
+                    android:valueTo="100"
+                    android:stepSize="1" />
+            </LinearLayout>
+
             <com.google.android.material.materialswitch.MaterialSwitch
                 android:id="@+id/switchAliasPreferred"
                 android:layout_width="match_parent"

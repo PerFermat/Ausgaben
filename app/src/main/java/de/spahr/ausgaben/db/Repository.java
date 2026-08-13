@@ -867,7 +867,10 @@ public class Repository {
         if (term.isEmpty()) {
             double[] ll = de.spahr.ausgaben.location.Geo.parse(coords);
             if (ll != null) {
-                aliasResolver.resolveGps(ll[0], ll[1], closed, type, resolvedBooking, resolvedAlias);
+                // Der Betrag siebt mit: bei mehreren Empfängern am selben Ort fällt heraus, wer
+                // solche Beträge nachweislich nie hat (80 € sind keine Autowäsche).
+                aliasResolver.resolveGps(ll[0], ll[1], closed, type, amountCents,
+                        resolvedBooking, resolvedAlias);
             }
         } else {
             // Mit Empfänger: bei mehreren gleichnamigen Treffern den zur aktuellen Position nächsten wählen.
@@ -1012,6 +1015,11 @@ public class Repository {
         aliasResolver.getNearbyPayees(lat, lon, callback);
     }
 
+    /** Die bisherigen Beträge dieses Empfängers, sortiert – für den Betragsband-Regler im Alias. */
+    public void getPayeeAmounts(String payee, String type, Callback<long[]> callback) {
+        aliasResolver.getPayeeAmounts(payee, type, callback);
+    }
+
     /** Die Kategorien dieses Empfängers (höchstens {@code PayeeCategories.LIMIT}) für den Editor. */
     public void getPayeeCategories(String payee, boolean income, Callback<List<String>> callback) {
         aliasResolver.getPayeeCategories(payee, income, callback);
@@ -1045,8 +1053,16 @@ public class Repository {
         aliasResolver.resolveVoice(term, coords, callback);
     }
 
-    public void resolveVoiceByGps(String coords, Callback<VoiceResolution> callback) {
-        aliasResolver.resolveVoiceByGps(coords, callback);
+    /** Die zum Betrag passenden Empfänger im 100-m-Umkreis, der beste zuerst (Ziffernmaske). */
+    public void resolveNearby(String coords, long amountCents, String type,
+                              Callback<List<VoiceResolution>> callback) {
+        aliasResolver.resolveNearby(coords, amountCents, type, callback);
+    }
+
+    /** Der vom Betrag eindeutig belegte Empfänger im 100-m-Umkreis, sonst {@code null} (Editor). */
+    public void suggestPayeeByAmount(double lat, double lon, long amountCents, String type,
+                                     Callback<String> callback) {
+        aliasResolver.suggestPayeeByAmount(lat, lon, amountCents, type, callback);
     }
 
     /**

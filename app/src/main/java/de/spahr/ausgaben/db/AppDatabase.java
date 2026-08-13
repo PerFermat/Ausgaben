@@ -14,7 +14,7 @@ import androidx.sqlite.db.SupportSQLiteDatabase;
         Budget.class, CategoryType.class, ScheduledTransaction.class, ScheduledSplit.class,
         AnalysisExtra.class, SecurityTxValueOverride.class, KmyPendingDelete.class, SecurityPrice.class,
         ScheduledAdvance.class, AccountGroup.class, AccountGroupMember.class, AccountKindOrder.class},
-        version = 41, exportSchema = false)
+        version = 42, exportSchema = false)
 public abstract class AppDatabase extends RoomDatabase {
 
     /** v1 → v2: Notiz-Spalte ergänzen (bestehende Buchungen bleiben erhalten). */
@@ -530,6 +530,18 @@ public abstract class AppDatabase extends RoomDatabase {
         }
     };
 
+    /**
+     * v41 → v42: einstellbares Betragsband je Alias. Über die beiden Ränge (Vorgabe 10–90 %) entscheidet
+     * sich, welche Beträge als typisch für diesen Empfänger gelten – das Sieb der Standort-Auflösung.
+     */
+    static final Migration MIGRATION_41_42 = new Migration(41, 42) {
+        @Override
+        public void migrate(@NonNull SupportSQLiteDatabase db) {
+            db.execSQL("ALTER TABLE payee_correction ADD COLUMN pct_low REAL NOT NULL DEFAULT 10");
+            db.execSQL("ALTER TABLE payee_correction ADD COLUMN pct_high REAL NOT NULL DEFAULT 90");
+        }
+    };
+
     public abstract BookingDao bookingDao();
 
     public abstract AccountDao accountDao();
@@ -581,7 +593,8 @@ public abstract class AppDatabase extends RoomDatabase {
                                     MIGRATION_28_29, MIGRATION_29_30, MIGRATION_30_31,
                                     MIGRATION_31_32, MIGRATION_32_33, MIGRATION_33_34, MIGRATION_34_35,
                                     MIGRATION_35_36, MIGRATION_36_37, MIGRATION_37_38,
-                                    MIGRATION_38_39, MIGRATION_39_40, MIGRATION_40_41)
+                                    MIGRATION_38_39, MIGRATION_39_40, MIGRATION_40_41,
+                                    MIGRATION_41_42)
                             .build();
                 }
             }

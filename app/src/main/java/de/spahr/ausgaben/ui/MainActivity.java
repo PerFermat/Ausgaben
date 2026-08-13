@@ -599,7 +599,8 @@ public class MainActivity extends LocalizedActivity {
             }
             // Nur Betrag → per Standort auflösen (kein Treffer → Editor nur mit Betrag).
             String coords = locationTagger != null ? locationTagger.currentCoordinates() : null;
-            repository.resolveVoiceByGps(coords, res -> openVoiceEditor(res, amount, ""));
+            repository.resolveNearby(coords, amount, Repository.VOICE_TYPE_EXPENSE, list ->
+                    openVoiceEditor(list.isEmpty() ? NO_PAYEE : list.get(0), amount, ""));
             return;
         }
         // Aktuelle Position mitgeben (nur bei GPS an) → bei mehreren gleichnamigen Empfängern der nächste.
@@ -651,9 +652,25 @@ public class MainActivity extends LocalizedActivity {
         startActivity(i);
     }
 
+    /** „Kein Treffer": der Editor öffnet nur mit dem Betrag, der Empfänger bleibt leer. */
+    private static final Repository.VoiceResolution NO_PAYEE =
+            new Repository.VoiceResolution(null, null, "");
+
+    /** Der eingetippte Betrag in Cent, {@code 0} bei leerem oder unfertigem Feld. */
+    private static long amountOf(android.widget.EditText field) {
+        String raw = field.getText() == null ? "" : field.getText().toString().trim();
+        Long cents = raw.isEmpty() ? null : de.spahr.ausgaben.settings.AmountExpression.toCents(raw);
+        return cents == null || cents < 0 ? 0 : cents;
+    }
+
+    private static boolean hasAmount(android.widget.EditText field) {
+        return amountOf(field) > 0;
+    }
+
     /**
-     * Stille Zifferneingabe: Betrag eintippen → Betrag-only-Pfad (Auflösung per Standort). Der anhand der
-     * aktuellen GPS-Position ermittelte Empfänger wird live unter dem Betrag angezeigt.
+     * Stille Zifferneingabe: Betrag eintippen → Betrag-only-Pfad (Auflösung per Standort). Unter dem
+     * Betrag steht, wer in Frage kommt – vor der Eingabe die Anzahl, beim Tippen der zum Betrag
+     * passende Empfänger. Antippen läuft im Kreis durch die Kandidaten; was dasteht, wird gebucht.
      */
     private void showNumberEntry() {
         if (locationTagger != null && !hasLocationPermission()) {
@@ -681,24 +698,60 @@ public class MainActivity extends LocalizedActivity {
         payeeView.setPadding(0, pad / 2, 0, pad);
         box.addView(payeeView);
 
-        // Empfänger anhand der aktuellen Position ermitteln und anzeigen (aktualisiert sich bei neuem Fix).
-        final Repository.VoiceResolution[] lastRes = new Repository.VoiceResolution[1];
+        // Empfänger anhand von Position und Betrag ermitteln. Vor der Eingabe steht die Anzahl da,
+        // beim Tippen der passende Name – 8 € sind die Waschanlage, 80 € die Tankstelle.
+        final List<Repository.VoiceResolution> candidates = new ArrayList<>();
+        final int[] pick = {0};                       // Stelle im Rundlauf; hinter dem Ende: ohne Empfänger
+        final Runnable showPick = () -> {
+            String name;
+            if (candidates.isEmpty()) {
+                name = "—";
+            } else if (pick[0] >= candidates.size()) {
+                name = getString(R.string.nearby_payee_none);
+            } else if (pick[0] == 0 && candidates.size() > 1 && !hasAmount(field)) {
+                // Ohne Betrag ist noch nichts entschieden – dann nur sagen, wie viele in Frage kommen.
+                name = getString(R.string.nearby_payee_count, candidates.size());
+            } else {
+                name = candidates.get(pick[0]).payee;
+            }
+            payeeView.setText(getString(R.string.voice_payee_resolved, name));
+        };
         final Runnable resolveShow = () -> {
             String coords = settings.isGpsEnabled() && locationTagger != null
                     ? locationTagger.currentCoordinates() : null;
             if (coords == null) {
                 return;
             }
-            repository.resolveVoiceByGps(coords, res -> {
-                lastRes[0] = res;
-                String name = res != null && res.payee != null && !res.payee.isEmpty() ? res.payee : "—";
-                payeeView.setText(getString(R.string.voice_payee_resolved, name));
+            repository.resolveNearby(coords, amountOf(field), Repository.VOICE_TYPE_EXPENSE, list -> {
+                candidates.clear();
+                candidates.addAll(list);
+                pick[0] = 0;                          // neuer Betrag → wieder der beste Vorschlag
+                showPick.run();
             });
         };
+        showPick.run();
         resolveShow.run();
         if (locationTagger != null) {
             locationTagger.setOnLocationUpdate(resolveShow::run);
         }
+        // Jede Ziffer ändert das Bild – aber erst, wenn die Eingabe kurz ruht (sonst zählt „8" von „80" mit).
+        final android.os.Handler typed = new android.os.Handler(android.os.Looper.getMainLooper());
+        field.addTextChangedListener(new SimpleWatcher(() -> {
+            typed.removeCallbacksAndMessages(null);
+            typed.postDelayed(resolveShow, 250L);
+        }));
+        // Antippen läuft im Kreis durch die Kandidaten und zuletzt über „ohne Empfänger“.
+        android.util.TypedValue ripple = new android.util.TypedValue();
+        if (getTheme().resolveAttribute(android.R.attr.selectableItemBackground, ripple, true)) {
+            payeeView.setBackgroundResource(ripple.resourceId);   // sichtbar machen, daß man tippen darf
+        }
+        payeeView.setOnClickListener(v -> {
+            if (candidates.isEmpty()) {
+                return;
+            }
+            pick[0] = pick[0] >= candidates.size() ? 0 : pick[0] + 1;
+            showPick.run();
+        });
 
         // Einziges Feld im Dialog: OK auf der Rechentastatur übernimmt direkt (kein separater
         // Speichern-Knopf nötig) – Rechnung ist bereits ausgewertet, wenn valid == true.
@@ -720,10 +773,13 @@ public class MainActivity extends LocalizedActivity {
                 return;
             }
             String amt = de.spahr.ausgaben.settings.MoneyFormat.plain(cents);
-            if (lastRes[0] != null) {
-                // Bereits per Standort ermittelten Empfänger wiederverwenden (konsistent mit Anzeige).
-                openVoiceEditor(lastRes[0], cents, "");
+            if (pick[0] != 0) {
+                // Von Hand durchgetippt: genau das gilt, was dasteht (auch „ohne Empfänger").
+                openVoiceEditor(pick[0] >= candidates.size() ? NO_PAYEE : candidates.get(pick[0]),
+                        cents, "");
             } else {
+                // Nichts angetippt → mit dem endgültigen Betrag noch einmal auflösen; die Anzeige
+                // hinkt sonst um die Entprellung hinterher, wenn OK gleich nach der letzten Ziffer kommt.
                 handleVoiceResult(amt); // payee leer + Betrag → Betrag-only-Pfad
             }
             if (dialogRef[0] != null) {

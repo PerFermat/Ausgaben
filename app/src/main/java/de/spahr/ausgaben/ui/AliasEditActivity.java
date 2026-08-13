@@ -52,6 +52,10 @@ public class AliasEditActivity extends LocalizedActivity {
     private View toPlaceLayout;
     private PlacesStore placesStore;
     private com.google.android.material.materialswitch.MaterialSwitch switchPreferred;
+    private android.widget.TextView textBand;
+    private com.google.android.material.slider.RangeSlider sliderBand;
+    /** Bisherige Beträge des Zielempfängers, aufsteigend – Beschriftung und Ränge des Reglers. */
+    private long[] bandAmounts = new long[0];
     private MaterialButton btnDelete;
     private View gpsSection;
     private android.widget.LinearLayout gpsContainer;
@@ -99,6 +103,9 @@ public class AliasEditActivity extends LocalizedActivity {
         switchPreferred = findViewById(R.id.switchAliasPreferred);
         btnDelete = findViewById(R.id.btnDeleteAlias);
 
+        textBand = findViewById(R.id.textAliasBand);
+        sliderBand = findViewById(R.id.sliderAliasBand);
+
         // Ort-Felder folgen dem jeweils getippten Konto und erscheinen nur, wenn das Konto Orte hat.
         editAccount.addTextChangedListener(afterText(() ->
                 setupPlaceField(editPlace, placeLayout, text(editAccount))));
@@ -136,6 +143,12 @@ public class AliasEditActivity extends LocalizedActivity {
                 getString(R.string.alias_type_transfer)};
         PickerAdapters.plain(editType, java.util.Arrays.asList(typeLabels));
         selectType(Repository.VOICE_TYPE_EXPENSE);
+
+        // Erst jetzt, denn der Regler fragt über currentType() die eben gesetzten Typ-Beschriftungen ab.
+        setupBandSlider();
+        editCorrected.addTextChangedListener(afterText(this::refreshBandAmounts));
+        editType.addTextChangedListener(afterText(this::refreshBandAmounts));
+        refreshBandAmounts();
 
         repository.getAccountNames(names -> {
             knownAccountNames.clear();
@@ -195,10 +208,64 @@ public class AliasEditActivity extends LocalizedActivity {
         editFromPlace.setText(a.fromPlace, false);
         editToPlace.setText(a.toPlace, false);
         switchPreferred.setChecked(a.preferred);
+        sliderBand.setValues(Math.min(a.pctLow, a.pctHigh), Math.max(a.pctLow, a.pctHigh));
+        refreshBandAmounts();
         gpsContainer.removeAllViews();
         for (double[] p : a.gpsPoints()) {
             addGpsRow(p[0], p[1]);
         }
+    }
+
+    /**
+     * Der Regler läuft in <b>Rängen</b> (0–100 %), beschriftet werden die zugehörigen <b>Beträge</b> –
+     * dieselbe Trennung wie bei den Betragsfiltern der Auswertung ({@link AmountRange}). So zieht ein
+     * einzelner Ausreißer das Band nicht auf, und man sieht trotzdem, welche Spanne man einstellt.
+     */
+    private void setupBandSlider() {
+        sliderBand.setLabelFormatter(value -> de.spahr.ausgaben.settings.MoneyFormat.plain(
+                de.spahr.ausgaben.util.Quantile.valueAt(bandAmounts, value)));
+        sliderBand.setValues(de.spahr.ausgaben.db.PayeeAmounts.DEFAULT_LOW,
+                de.spahr.ausgaben.db.PayeeAmounts.DEFAULT_HIGH);
+        sliderBand.addOnChangeListener((s, value, fromUser) -> updateBandLabel());
+    }
+
+    /** Holt die Beträge des Zielempfängers für die aktuell gewählte Buchungsart. */
+    private void refreshBandAmounts() {
+        String payee = text(editCorrected);
+        String type = currentType();
+        if (payee.isEmpty()) {
+            bandAmounts = new long[0];
+            updateBandLabel();
+            return;
+        }
+        final String key = payee.toLowerCase(Locale.ROOT) + "|" + type;
+        repository.getPayeeAmounts(payee, type, amounts -> {
+            // Die Antwort kommt später; inzwischen kann etwas anderes im Feld stehen.
+            if (!key.equals(text(editCorrected).toLowerCase(Locale.ROOT) + "|" + currentType())) {
+                return;
+            }
+            bandAmounts = amounts == null ? new long[0] : amounts;
+            updateBandLabel();
+        });
+    }
+
+    /** Zeigt die eingestellte Spanne als Beträge – oder den Hinweis, daß es zu wenige Buchungen sind. */
+    private void updateBandLabel() {
+        boolean genug = bandAmounts.length >= de.spahr.ausgaben.db.PayeeAmounts.MIN_COUNT;
+        sliderBand.setEnabled(genug);
+        if (!genug) {
+            textBand.setText(getString(R.string.alias_band_too_few,
+                    de.spahr.ausgaben.db.PayeeAmounts.MIN_COUNT));
+            return;
+        }
+        float low = sliderBand.getValues().get(0);
+        float high = sliderBand.getValues().get(1);
+        textBand.setText(getString(R.string.alias_band_range,
+                de.spahr.ausgaben.settings.MoneyFormat.plain(
+                        de.spahr.ausgaben.util.Quantile.valueAt(bandAmounts, low)),
+                de.spahr.ausgaben.settings.MoneyFormat.plain(
+                        de.spahr.ausgaben.util.Quantile.valueAt(bandAmounts, high)),
+                Math.round(low), Math.round(high)));
     }
 
     private void save() {
@@ -230,6 +297,8 @@ public class AliasEditActivity extends LocalizedActivity {
         a.fromPlace = text(editFromPlace);
         a.toPlace = text(editToPlace);
         a.preferred = switchPreferred.isChecked();
+        a.pctLow = sliderBand.getValues().get(0);
+        a.pctHigh = sliderBand.getValues().get(1);
         // Standorte aus den Zeilen übernehmen (nur Zeilen mit gültiger Breite UND Länge).
         List<double[]> points = new ArrayList<>();
         for (int i = 0; i < gpsContainer.getChildCount(); i++) {

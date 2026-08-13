@@ -205,43 +205,119 @@ class AliasResolver {
         return out;
     }
 
+    /** Ein Empfänger im Umkreis: sein Name, die Vorlage, aus der er stammt, und sein Betragsurteil. */
+    static final class Candidate {
+        /** Empfängername in der Schreibweise der Quelle. */
+        public final String name;
+        /** Vorlage-Buchung, falls er aus einer Buchung stammt – sonst {@code null}. */
+        final Booking booking;
+        /** Alias, falls er aus einem Alias stammt – sonst {@code null}. */
+        final PayeeCorrection alias;
+        /** Passt der Betrag zu diesem Empfänger? Ohne Betrag {@link PayeeAmounts.Verdict#UNKNOWN}. */
+        public PayeeAmounts.Verdict verdict = PayeeAmounts.Verdict.UNKNOWN;
+
+        Candidate(String name, Booking booking, PayeeCorrection alias) {
+            this.name = name;
+            this.booking = booking;
+            this.alias = alias;
+        }
+    }
+
     /**
      * Auflösung per Standort (Betrag-only): innerhalb {@link de.spahr.ausgaben.location.Geo#RADIUS_M} in
      * strenger Reihenfolge – bevorzugte Aliase → Buchungen → übrige Aliase; der erste Tier mit Treffer
      * gewinnt, innerhalb eines Tiers der nächstgelegene. Geschlossene Konten werden übersprungen.
+     *
+     * <p>Stehen mehrere Empfänger am selben Ort, siebt zusätzlich der <b>Betrag</b>: wer ihn
+     * nachweislich nie hat, fällt heraus – auch ein bevorzugter Alias. Fallen alle heraus, gilt die
+     * alte Rangfolge, denn ein zweifelhafter Empfänger ist besser als keiner.</p>
      */
     void resolveGps(double lat, double lon, java.util.Set<String> closed, String type,
-                    Booking[] outBooking, PayeeCorrection[] outAlias) {
+                    long amountCents, Booking[] outBooking, PayeeCorrection[] outAlias) {
         // Globaler Zweipass (100-m-Radius bleibt in beiden Durchläufen, nur der Typfilter fällt im 2. weg).
-        if (resolveGpsPass(lat, lon, closed, type, outBooking, outAlias)) {
-            return;
+        // Fürs Betragsurteil gilt aber immer die gewünschte Buchungsart – der Filter grenzt nur die
+        // Kandidaten ein, die Buchung entsteht so oder so als das, was die Uhr angefordert hat.
+        Candidate c = pickGps(lat, lon, closed, type, amountCents, type);
+        if (c == null && type != null) {
+            c = pickGps(lat, lon, closed, null, amountCents, type);
         }
-        if (type != null) {
-            resolveGpsPass(lat, lon, closed, null, outBooking, outAlias);
+        if (c != null) {
+            outBooking[0] = c.booking;
+            outAlias[0] = c.alias;
         }
     }
 
-    private boolean resolveGpsPass(double lat, double lon, java.util.Set<String> closed, String type,
-                                   Booking[] outBooking, PayeeCorrection[] outAlias) {
-        PayeeCorrection a = nearestAlias(lat, lon,
-                filterAliases(openAliases(correctionDao.getWithGps(1), closed), type));
-        if (a != null) {
-            outAlias[0] = a;
-            return true;
+    /** Der beste Kandidat eines Durchlaufs: erst sieben, dann die gewohnte Rangfolge. */
+    private Candidate pickGps(double lat, double lon, java.util.Set<String> closed, String filterType,
+                              long amountCents, String judgeType) {
+        List<Candidate> alle = nearbyCandidates(lat, lon, closed, filterType, amountCents, judgeType);
+        for (Candidate c : alle) {
+            if (c.verdict != PayeeAmounts.Verdict.MISSES) {
+                return c;
+            }
         }
-        Booking b = nearestBooking(lat, lon,
-                filterBookings(openBookings(bookingDao.getWithGpsNote(), closed), type));
-        if (b != null) {
-            outBooking[0] = b;
-            return true;
+        return alle.isEmpty() ? null : alle.get(0);   // Notbremse: lieber zweifelhaft als gar nichts
+    }
+
+    /**
+     * Alle Empfänger im 100-m-Umkreis, entdoppelt und in der gewohnten Rangfolge (bevorzugte Aliase →
+     * Buchungen → übrige Aliase, je Stufe der nächstgelegene zuerst), jeder mit seinem Betragsurteil.
+     *
+     * <p>Die Koordinaten entscheiden, <b>wer</b> Kandidat ist; die Beträge steuert der volle Bestand
+     * dieses Namens bei – auch Buchungen ohne Standort.</p>
+     *
+     * @param filterType grenzt die Kandidaten auf eine Buchungsart ein ({@code null} = alle)
+     * @param amountCents zu prüfender Betrag; {@code <= 0} = kein Urteil
+     * @param judgeType  Buchungsart, deren bisherige Beträge das Urteil tragen
+     */
+    List<Candidate> nearbyCandidates(double lat, double lon, java.util.Set<String> closed,
+                                     String filterType, long amountCents, String judgeType) {
+        java.util.Map<String, Candidate> gefunden = new java.util.LinkedHashMap<>();
+        for (PayeeCorrection a : nearAliases(lat, lon,
+                filterAliases(openAliases(correctionDao.getWithGps(1), closed), filterType))) {
+            merke(gefunden, a.corrected, null, a);
         }
-        a = nearestAlias(lat, lon,
-                filterAliases(openAliases(correctionDao.getWithGps(0), closed), type));
-        if (a != null) {
-            outAlias[0] = a;
-            return true;
+        for (Booking b : nearBookings(lat, lon,
+                filterBookings(openBookings(bookingDao.getWithGpsNote(), closed), filterType))) {
+            merke(gefunden, b.payee, b, null);
         }
-        return false;
+        for (PayeeCorrection a : nearAliases(lat, lon,
+                filterAliases(openAliases(correctionDao.getWithGps(0), closed), filterType))) {
+            merke(gefunden, a.corrected, null, a);
+        }
+
+        List<Candidate> out = new ArrayList<>(gefunden.values());
+        if (amountCents > 0) {
+            for (Candidate c : out) {
+                float[] band = PayeeAmounts.bandOf(correctionDao.findAllByCorrected(c.name));
+                c.verdict = PayeeAmounts.judge(amountsOf(c.name, judgeType),
+                        amountCents, band[0], band[1]);
+            }
+        }
+        return out;
+    }
+
+    /**
+     * Die bisherigen Beträge dieses Empfängers für eine Buchungsart. Bei <b>Umbuchungen</b> zählt nur
+     * die Ausgangsseite: jede Umbuchung liegt als zwei Zeilen mit demselben Betrag vor, gezählt würde
+     * sonst doppelt und die Fünfergrenze wäre schon bei drei Umbuchungen erreicht.
+     */
+    private List<Long> amountsOf(String payee, String type) {
+        boolean transfer = Repository.VOICE_TYPE_TRANSFER.equals(type);
+        boolean income = !transfer && Repository.VOICE_TYPE_INCOME.equals(type);
+        return bookingDao.getAmountsByPayee(payee, income, transfer);
+    }
+
+    /** Nimmt den Empfänger auf, sofern er nicht schon (aus einer besseren Stufe) dabei ist. */
+    private static void merke(java.util.Map<String, Candidate> gefunden, String name,
+                              Booking booking, PayeeCorrection alias) {
+        if (name == null || name.trim().isEmpty()) {
+            return;
+        }
+        String key = name.trim().toLowerCase(Locale.ROOT);
+        if (!gefunden.containsKey(key)) {
+            gefunden.put(key, new Candidate(name.trim(), booking, alias));
+        }
     }
 
     /** Namen der geschlossenen Konten (läuft bereits auf dem Executor-Thread). */
@@ -283,34 +359,38 @@ class AliasResolver {
         return out;
     }
 
-    private PayeeCorrection nearestAlias(double lat, double lon, List<PayeeCorrection> list) {
-        PayeeCorrection best = null;
-        double bestD = de.spahr.ausgaben.location.Geo.RADIUS_M;
+    /** Die Aliase innerhalb des 100-m-Umkreises, der nächstgelegene zuerst. */
+    private List<PayeeCorrection> nearAliases(double lat, double lon, List<PayeeCorrection> list) {
+        List<PayeeCorrection> out = new ArrayList<>();
+        final java.util.Map<PayeeCorrection, Double> meter = new java.util.IdentityHashMap<>();
         for (PayeeCorrection a : list) {
             double d = nearestPointMeters(lat, lon, a);
-            if (d <= bestD) {
-                bestD = d;
-                best = a;
+            if (d <= de.spahr.ausgaben.location.Geo.RADIUS_M) {
+                meter.put(a, d);
+                out.add(a);
             }
         }
-        return best;
+        java.util.Collections.sort(out, (x, y) -> Double.compare(meter.get(x), meter.get(y)));
+        return out;
     }
 
-    private Booking nearestBooking(double lat, double lon, List<Booking> list) {
-        Booking best = null;
-        double bestD = de.spahr.ausgaben.location.Geo.RADIUS_M;
+    /** Die Buchungen mit Standortmarke innerhalb des 100-m-Umkreises, die nächstgelegene zuerst. */
+    private List<Booking> nearBookings(double lat, double lon, List<Booking> list) {
+        List<Booking> out = new ArrayList<>();
+        final java.util.Map<Booking, Double> meter = new java.util.IdentityHashMap<>();
         for (Booking b : list) {
             double[] ll = de.spahr.ausgaben.location.Geo.parse(b.note);
             if (ll == null) {
                 continue;
             }
             double d = de.spahr.ausgaben.location.Geo.distanceMeters(lat, lon, ll[0], ll[1]);
-            if (d <= bestD) {
-                bestD = d;
-                best = b;
+            if (d <= de.spahr.ausgaben.location.Geo.RADIUS_M) {
+                meter.put(b, d);
+                out.add(b);
             }
         }
-        return best;
+        java.util.Collections.sort(out, (x, y) -> Double.compare(meter.get(x), meter.get(y)));
+        return out;
     }
 
     /** Speichert einen Alias autoritativ (Editor): ersetzt einen bestehenden mit gleichem
@@ -378,6 +458,17 @@ class AliasResolver {
         executor.execute(() -> {
             final List<String> result = de.spahr.ausgaben.location.NearbyPayees.rank(
                     bookingDao.getWithGpsNote(), correctionDao.getAll(), lat, lon);
+            mainHandler.post(() -> callback.onResult(result));
+        });
+    }
+
+    /**
+     * Die bisherigen Beträge dieses Empfängers, aufsteigend sortiert – Grundlage des Reglers im
+     * Alias-Formular ({@link PayeeAmounts}).
+     */
+    void getPayeeAmounts(final String payee, final String type, final Callback<long[]> callback) {
+        executor.execute(() -> {
+            final long[] result = PayeeAmounts.sorted(amountsOf(payee, type));
             mainHandler.post(() -> callback.onResult(result));
         });
     }
@@ -512,20 +603,55 @@ class AliasResolver {
      * Vorlage (bevorzugte Aliase → Buchungen → übrige Aliase, 100 m). Ohne Standort/Treffer bleibt alles
      * leer → Editor wird nur mit dem Betrag geöffnet.
      */
-    void resolveVoiceByGps(final String coords, final Callback<VoiceResolution> callback) {
+    /**
+     * Die Empfänger im 100-m-Umkreis, die zum Betrag passen – für die Ziffernmaske: der beste steht
+     * vorn, Antippen läuft der Reihe nach durch. Wer den Betrag nachweislich nie hat, fehlt ganz;
+     * Empfänger ohne genug Buchungen stehen hinten, denn über sie ist nichts bekannt.
+     *
+     * @param amountCents bisher eingetippter Betrag; {@code <= 0} = noch keiner, dann zählt nur die Nähe
+     */
+    void resolveNearby(final String coords, final long amountCents, final String type,
+                       final Callback<List<VoiceResolution>> callback) {
         executor.execute(() -> {
-            Booking[] booking = new Booking[1];
-            PayeeCorrection[] alias = new PayeeCorrection[1];
+            final List<VoiceResolution> passend = new ArrayList<>();
+            final List<VoiceResolution> unbekannt = new ArrayList<>();
             double[] ll = de.spahr.ausgaben.location.Geo.parse(coords);
             if (ll != null) {
-                resolveGps(ll[0], ll[1], closedAccounts(), null, booking, alias);
+                for (Candidate c : nearbyCandidates(ll[0], ll[1], closedAccounts(), null,
+                        amountCents, type)) {
+                    if (c.verdict == PayeeAmounts.Verdict.MISSES) {
+                        continue;
+                    }
+                    (c.verdict == PayeeAmounts.Verdict.FITS ? passend : unbekannt)
+                            .add(new VoiceResolution(c.booking, c.alias, c.name));
+                }
             }
-            String payee = alias[0] != null ? alias[0].corrected
-                    : (booking[0] != null ? booking[0].payee : "");
-            final Booking fb = booking[0];
-            final PayeeCorrection fa = alias[0];
-            final String fp = payee;
-            mainHandler.post(() -> callback.onResult(new VoiceResolution(fb, fa, fp)));
+            passend.addAll(unbekannt);
+            mainHandler.post(() -> callback.onResult(passend));
+        });
+    }
+
+    /**
+     * Der Empfänger, den der Betrag im 100-m-Umkreis <b>eindeutig</b> belegt – für die Vorbelegung im
+     * Buchungseditor. Nur wenn genau einer im Band liegt; sonst {@code null}. Hier gilt keine
+     * Notbremse: nicht vorbelegen ist besser als raten.
+     */
+    void suggestPayeeByAmount(final double lat, final double lon, final long amountCents,
+                              final String type, final Callback<String> callback) {
+        executor.execute(() -> {
+            String treffer = null;
+            for (Candidate c : nearbyCandidates(lat, lon, closedAccounts(), null, amountCents, type)) {
+                if (c.verdict != PayeeAmounts.Verdict.FITS) {
+                    continue;
+                }
+                if (treffer != null) {
+                    treffer = null;                 // zwei Treffer sind kein Beleg
+                    break;
+                }
+                treffer = c.name;
+            }
+            final String result = treffer;
+            mainHandler.post(() -> callback.onResult(result));
         });
     }
 }

@@ -103,6 +103,14 @@ public class PayeeCorrection {
     @ColumnInfo(name = "gps_list")
     public String gpsList = "";
 
+    /** Rangband der üblichen Beträge in Prozent (Vorgabe 10–90) – das Betragssieb der Standort-Auflösung,
+     * siehe {@link PayeeAmounts}. Wer eng zieht, läßt seinen Empfänger nur bei typischen Beträgen gewinnen. */
+    @ColumnInfo(name = "pct_low", defaultValue = "10")
+    public float pctLow = PayeeAmounts.DEFAULT_LOW;
+
+    @ColumnInfo(name = "pct_high", defaultValue = "90")
+    public float pctHigh = PayeeAmounts.DEFAULT_HIGH;
+
     public PayeeCorrection() {
     }
 

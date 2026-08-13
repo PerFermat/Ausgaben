@@ -210,6 +210,8 @@ public class BookingEditActivity extends LocalizedActivity {
     private double[] nearbyCenter;
     /** Empfänger und Buchungsart, zu denen die Kategorie-Favoriten gehören („name|true/false"). */
     private String payeeCategoryKey;
+    /** Betrag, Art und Ort, zu denen zuletzt ein Empfänger vorgeschlagen wurde – fragt nicht zweimal. */
+    private String payeeAmountKey;
     /** So weit muß der Standort wandern, damit der Vorspann neu gerechnet wird (Meter). */
     private static final int NEARBY_AGAIN_M = 100;
 
@@ -240,7 +242,9 @@ public class BookingEditActivity extends LocalizedActivity {
         amountLayout = findViewById(R.id.amountLayout);
         calcKeyboard = findViewById(R.id.calcKeyboard);
         // Haupt-Betragsfeld an die eigene Rechentastatur binden (Teilbeträge folgen unten über den Binder).
-        wireCalcField(editAmount, amountLayout);
+        // Steht der Betrag fest, darf er einen Empfänger vorschlagen – während des Tippens stünde
+        // zwischendurch „8" da, wo „80" gemeint ist.
+        wireCalcField(editAmount, amountLayout, this::suggestPayeeFromAmount);
         payeeLayout = findViewById(R.id.payeeLayout);
         editPayee = findViewById(R.id.editPayee);
         accountLayout = findViewById(R.id.accountLayout);
@@ -1137,6 +1141,14 @@ public class BookingEditActivity extends LocalizedActivity {
         return toggleType.getCheckedButtonId() == R.id.btnTransfer;
     }
 
+    /** Die gewählte Buchungsart als Drahtwert ({@code Repository.VOICE_TYPE_*}). */
+    private String currentVoiceType() {
+        if (isTransferType()) {
+            return Repository.VOICE_TYPE_TRANSFER;
+        }
+        return isIncomeType() ? Repository.VOICE_TYPE_INCOME : Repository.VOICE_TYPE_EXPENSE;
+    }
+
     private boolean isIncomeType() {
         return toggleType.getCheckedButtonId() == R.id.btnIncome;
     }
@@ -1180,6 +1192,39 @@ public class BookingEditActivity extends LocalizedActivity {
      * <p>Umbuchungen haben keine Kategorien, die reine Ansicht nichts zu wählen. Gefragt wird erst,
      * wenn sich Empfänger oder Buchungsart wirklich geändert haben.</p>
      */
+    /**
+     * Schlägt aus dem eingetippten Betrag einen Empfänger vor: liegt im 100-m-Umkreis der
+     * Standort-Marke genau <b>ein</b> Empfänger im Betragsband, wird er ins <b>leere</b> Feld
+     * geschrieben – und zieht über {@link #refreshPayeeCategories()} seine Kategorie nach.
+     *
+     * <p>Bei mehreren oder keinem Treffer geschieht nichts: raten wäre schlimmer als nichts tun.</p>
+     */
+    private void suggestPayeeFromAmount() {
+        if (readOnly || !textOf(editPayee).trim().isEmpty()) {
+            return;
+        }
+        double[] hier = de.spahr.ausgaben.location.Geo.parse(gpsRowCoords);
+        Long cents = parseAmountToCents(textOf(editAmount));
+        if (hier == null || cents == null || cents <= 0) {
+            return;
+        }
+        String type = currentVoiceType();
+        String key = cents + "|" + type + "|" + gpsRowCoords;
+        if (key.equals(payeeAmountKey)) {
+            return;
+        }
+        payeeAmountKey = key;
+        repository.suggestPayeeByAmount(hier[0], hier[1], cents, type, name -> {
+            // Die Antwort kommt später; inzwischen kann der Empfänger von Hand gefüllt sein.
+            if (name == null || name.isEmpty() || !key.equals(payeeAmountKey)
+                    || !textOf(editPayee).trim().isEmpty()) {
+                return;
+            }
+            editPayee.setText(name, false);
+            refreshPayeeCategories();
+        });
+    }
+
     private void refreshPayeeCategories() {
         if (readOnly || isTransferType()) {
             return;
@@ -2192,6 +2237,15 @@ public class BookingEditActivity extends LocalizedActivity {
      * {@code layout} darf {@code null} sein (Teilbeträge zeigen keinen Feld-Fehler).
      */
     void wireCalcField(final TextInputEditText field, final TextInputLayout layout) {
+        wireCalcField(field, layout, null);
+    }
+
+    /**
+     * @param onSettled läuft, nachdem das Feld verlassen und die Rechnung ausgewertet ist – erst dann
+     *                  steht der Betrag endgültig fest ({@code null} = nichts zu tun)
+     */
+    void wireCalcField(final TextInputEditText field, final TextInputLayout layout,
+                       final Runnable onSettled) {
         AmountField.prepareCalc(field);
         field.setShowSoftInputOnFocus(false);
         field.setOnFocusChangeListener((v, hasFocus) -> {
@@ -2212,6 +2266,9 @@ public class BookingEditActivity extends LocalizedActivity {
             } else {
                 calcKeyboard.setVisibility(View.GONE);
                 evaluateCalcField(field, layout);   // „=": beim Verlassen auswerten und ersetzen
+                if (onSettled != null) {
+                    onSettled.run();
+                }
             }
         });
         if (layout != null) {

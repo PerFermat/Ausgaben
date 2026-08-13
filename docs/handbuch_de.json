@@ -358,6 +358,11 @@
           "type": "p",
           "id": "b-0050b",
           "text": "Steht der <b>Empfänger</b> fest, richtet sich die <b>Kategorie</b> nach ihm: Die App sucht Einträge der gerade gewählten Buchungsart – zuerst in den <b>bevorzugten Aliasen</b> (★), dann in Ihren <b>Buchungen</b> bei diesem Empfänger (die jüngste zuerst, Teilzeilen einer Splitbuchung zählen mit), zuletzt in den <b>übrigen Aliasen</b> – und trägt den ersten Fund in die <b>erste Kategoriezeile</b> ein; der Teilbetrag springt dabei auf den Gesamtbetrag. Steht dort schon etwas, bleibt es stehen: eine Vorbelegung füllt, sie überschreibt nicht. Die weiteren gefundenen Kategorien (bis zu sechs) stehen unter der Überschrift <b>«BEI DIESEM EMPFÄNGER»</b> ganz oben in der Auswahlliste – in <b>jeder</b> Kategoriezeile, also auch beim Aufteilen. <b>Sobald Sie zu tippen beginnen</b>, verschwindet dieser Block und die Kategorien stehen nur noch an ihrem gewohnten Platz unter «AUSGABE» bzw. «EINNAHME». Schalten Sie zwischen Ausgabe und Einnahme um, wechseln Block und Vorbelegung mit; Umbuchungen haben keine Kategorien."
+        },
+        {
+          "type": "p",
+          "id": "b-0050c",
+          "text": "Umgekehrt kann auch der <b>Betrag</b> den Empfänger vorgeben: Verlassen Sie das Betragsfeld und liegt im <b>100-m-Umkreis</b> der Standort-Marke genau <b>ein</b> Empfänger, zu dessen üblichen Beträgen dieser paßt, wird er in das <b>leere</b> Empfängerfeld eingetragen – und zieht seine Kategorie gleich mit. Das gilt für jede Buchungsart, auch für <b>Umbuchungen</b> – dort verglichen mit den Beträgen Ihrer bisherigen Umbuchungen an diesen Empfänger. Passen mehrere oder keiner, geschieht nichts; ein selbst eingetragener Empfänger bleibt unangetastet. Die Vorschlagsliste selbst ändert sich dadurch nicht: dort stehen weiterhin alle Empfänger im 10-km-Umkreis."
         }
       ],
       "shot": {"fname": "Buchung Empfänger.png", "caption": "Buchungs-Editor mit Typ-Umschalter, Betrag, Empfänger und Konto", "width": 6.0}
@@ -473,6 +478,11 @@
           "type": "p",
           "id": "b-0070",
           "text": "Bei eingeschaltetem Standort erscheint unten das Ziffernblock-Symbol. Tippen Sie nur einen Betrag ein: Die App sucht an Ihrem aktuellen Standort eine passende Vorlage und zeigt den gefundenen Empfänger bereits vor dem Speichern an."
+        },
+        {
+          "type": "p",
+          "id": "b-0070a",
+          "text": "Stehen an Ihrem Standort <b>mehrere</b> bekannte Empfänger (Tankstelle und Waschanlage, Rewe und Bäcker), entscheidet der <b>Betrag</b> mit. Vor der Eingabe steht unter dem Feld, wie viele in Frage kommen; während Sie tippen, erscheint der Name, zu dem der Betrag paßt: 8 € ist die Waschanlage, 80 € die Tankstelle. <b>Tippen Sie auf den Namen</b>, geht es der Reihe nach durch die übrigen Kandidaten und zuletzt über <b>«ohne Empfänger»</b> – dann tragen Sie ihn später selbst ein. Gebucht wird immer genau das, was beim Bestätigen dasteht. Als üblich gilt der Bereich, in dem <b>neun von zehn</b> bisherigen Buchungen dieses Empfängers liegen; wer weniger als fünf Buchungen hat, wird nie ausgeschlossen. Und wenn nur ein Empfänger in der Nähe ist, gewinnt er auch bei ungewöhnlichem Betrag – einmal groß zu tanken ist kein Grund, die Buchung leer zu lassen."
         }
       ],
       "shot": {"fname": "Buchung Betrag - Automatischer Empfänger anhand GPS.png", "caption": "Betrag-only-Erfassung: der Empfänger wird über den Standort gefunden", "width": 6.0}
@@ -576,6 +586,11 @@
           "type": "p",
           "id": "b-0090",
           "text": "Ein Alias kann <b>beliebig viele Standorte</b> führen (z. B. mehrere Filialen). Im Alias-Formular fügt «Koordinate hinzufügen» eine Zeile mit Breite/Länge und «Karte öffnen» hinzu; der Minus-Knopf entfernt eine Koordinate wieder. Beim Auffinden (Betrag-only/Sprache) passt der Alias, wenn der aktuelle Standort <b>einer beliebigen</b> seiner Koordinaten nahe ist. Wird ein Alias erneut aus einer Buchung an einem anderen Ort gelernt, wird die Koordinate <b>ergänzt</b> (nicht überschrieben)."
+        },
+        {
+          "type": "p",
+          "id": "b-0090a",
+          "text": "Darunter steht <b>«Übliche Beträge»</b>: ein Regler mit zwei Griffen, der festlegt, welche Beträge für diesen Empfänger typisch sind – das <b>Betragssieb</b>, wenn mehrere Empfänger am selben Ort stehen. Der Regler läuft nicht über Beträge, sondern über <b>Ränge</b>: die Vorgabe 10–90 % läßt oben und unten je ein Zehntel der bisherigen Buchungen weg, damit ein einzelner Ausreißer das Band nicht aufreißt. Die zugehörigen Beträge stehen darüber und am Griff. Ziehen Sie enger, gewinnt dieser Empfänger nur noch bei sehr typischen Beträgen; ziehen Sie auf 0–100 %, zählt jeder Betrag, den er je hatte. Unter fünf Buchungen ist der Regler abgeblendet – so wenige sagen noch nichts. Der Regler gehört zur oben gewählten <b>Buchungsart</b>: schalten Sie auf Einnahme oder Umbuchung um, stehen dort die Beträge dieser Art. Bei Umbuchungen zählt dabei nur die Ausgangsseite – sonst stünde jeder Betrag doppelt in der Reihe."
         }
       ],
       "shot": {"fname": "Aliase.png", "caption": "Verwaltung der Alias-Namen: gesprochener Begriff → echter Empfänger", "width": 6.0}

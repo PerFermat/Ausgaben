@@ -53,6 +53,11 @@
     <string name="alias_lon">Longitude</string>
     <string name="alias_map">Open map</string>
     <string name="alias_gps_add">Add coordinate</string>
+    <string name="alias_band_section">Usual amounts</string>
+    <string name="alias_band_range">%1$s to %2$s (%3$d–%4$d %%)</string>
+    <string name="alias_band_too_few">Fewer than %1$d bookings – amounts are not used to tell this payee apart yet.</string>
+    <string name="nearby_payee_count">%1$d payees nearby</string>
+    <string name="nearby_payee_none">no payee</string>
     <string name="map_pick_title">Pick location</string>
     <string name="map_pick_confirm">Use this location</string>
     <string name="alias_delete_confirm_title">Delete alias?</string>

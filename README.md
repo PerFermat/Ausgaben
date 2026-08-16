@@ -76,7 +76,8 @@ for F-Droid packaging notes.
 
 Details, screenshots and exact behavior are in the **[user manual](docs/Manual-Ausgaben-en.pdf)**.
 
-- **Record bookings**: expense/transfer/income, split bookings, receipt photos, voice input
+- **Record bookings**: expense/transfer/income, split bookings, receipt photos (transfers included –
+  both accounts then show the same image), voice input
   ("hairdresser 20 €"), silent amount-only entry resolved via GPS location, learning payee aliases.
   The **six nearest payees** head the suggestion list with a bearing arrow – measured from the
   booking's location: the current one while creating, the booking's stored mark while editing. As soon

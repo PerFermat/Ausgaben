@@ -73,7 +73,8 @@ zur F-Droid-Paketierung in [`fdroid/`](fdroid/).
 
 Details, Screenshots und die genaue Bedienung stehen im **[Benutzerhandbuch](docs/Handbuch-Ausgaben-de.pdf)**.
 
-- **Buchungen erfassen**: Ausgabe/Umbuchung/Einnahme, Splitbuchungen, Belegfoto, Spracheingabe
+- **Buchungen erfassen**: Ausgabe/Umbuchung/Einnahme, Splitbuchungen, Belegfoto (auch an einer
+  Umbuchung – beide Konten zeigen dann dasselbe Bild), Spracheingabe
   („Frisör 20 €“), stille Betrag-only-Erfassung per GPS-Standort, lernende Alias-Namen für
   Zahlungsempfänger. Oben in der Vorschlagsliste stehen die **sechs nächstgelegenen Empfänger** mit
   Peilpfeil – gemessen am Standort der Buchung: beim Anlegen der aktuelle, beim Bearbeiten die

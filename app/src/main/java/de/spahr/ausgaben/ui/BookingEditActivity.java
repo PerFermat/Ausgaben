@@ -1193,7 +1193,7 @@ public class BookingEditActivity extends LocalizedActivity {
         splitSection.setVisibility(transfer ? View.GONE : View.VISIBLE);
         accountLayout.setHint(getString(transfer ? R.string.transfer_from : R.string.account_hint));
         payeeLayout.setHint(getString(transfer ? R.string.transfer_payee_hint : R.string.payee_hint));
-        // GPS-/Beleg-Ausgabezeilen aktualisieren (Beleg-Zeile z. B. bei Umbuchung ausblenden).
+        // GPS-/Beleg-Ausgabezeilen aktualisieren (GPS-Zeile z. B. bei Umbuchung ausblenden).
         updateNoteTagRows();
         // Durch diese Stelle läuft jeder Wechsel der Buchungsart und jedes Vorbelegen – also auch der
         // Anlaß, die Kategorien des Empfängers neu zu holen. Wiederholungen fängt der Schlüssel ab.
@@ -1443,12 +1443,16 @@ public class BookingEditActivity extends LocalizedActivity {
         final String payee = textOf(editPayee).trim();
         final String fromPlace = selectedPlace();
         final String toPlace = selectedPlaceTo();
-        maybeAskCorrection(payee, () -> maybeDateConfirm(() ->
-                repository.saveTransferBooking(from, to, cents, payee, note,
-                composeTimestamp(), fromPlace, toPlace, () -> {
+        maybeAskCorrection(payee, () -> maybeDateConfirm(() -> {
+            long ts = composeTimestamp();
+            // Der Beleg wird erst hier festgeschrieben – bis zur Bestätigung ist nichts gespeichert.
+            // Beide Seiten bekommen dieselbe Notiz und damit denselben BELEG:-Tag.
+            repository.saveTransferBooking(from, to, cents, payee, withReceiptTag(note, ts, true),
+                ts, fromPlace, toPlace, () -> {
                     Toast.makeText(this, R.string.transfer_saved, Toast.LENGTH_SHORT).show();
                     finishAfterSave();
-                })));
+                });
+        }));
     }
 
     private void persistNew(Booking b, String place, List<SplitRowController.Part> parts) {
@@ -1531,7 +1535,9 @@ public class BookingEditActivity extends LocalizedActivity {
             textReceipt.setText(getString(R.string.receipt_row_label,
                     getString(R.string.receipt_pages_count, receiptPages.size())));
             btnReceipt.setVisibility(View.GONE);
-        } else if (receiptEnabled && !isTransferType()) {
+        } else if (receiptEnabled) {
+            // Auch bei einer Umbuchung: der Tag steht in der gemeinsamen Notiz, also zeigen beide Seiten
+            // denselben Beleg.
             rowReceipt.setVisibility(View.VISIBLE);
             textReceipt.setText(getString(R.string.receipt_row_label, receiptPages.isEmpty()
                     ? getString(R.string.receipt_none)
@@ -1892,8 +1898,20 @@ public class BookingEditActivity extends LocalizedActivity {
      * angehängtes Bild verlinkt. Danach {@code then} (der eigentliche Speichervorgang).
      */
     private void attachReceipt(Booking b, boolean asNew, Runnable then) {
+        b.note = withReceiptTag(b.note, b.createdAt, asNew);
+        then.run();
+    }
+
+    /**
+     * Wie {@link #attachReceipt}, aber allein auf der Notiz – für die <b>Umbuchung</b>, die keine
+     * {@link Booking} zum Füllen hat, sondern ihre Notiz als Text an beide Seiten weiterreicht.
+     *
+     * @param createdAt Zeitpunkt der Buchung; sein Jahr bestimmt den Ordner der Belege
+     * @return die Notiz mit dem {@code BELEG:}-Tag, falls es Seiten gibt
+     */
+    private String withReceiptTag(String note, long createdAt, boolean asNew) {
         // Der Jahresordner der Belege folgt dem Buchungsdatum – er steckt nicht mehr im Dateinamen.
-        final int year = yearFromMillis(b.createdAt);
+        final int year = yearFromMillis(createdAt);
         if (asNew) {
             // Kopie/Neu: bestehende Seiten gehören zur Vorlage und werden nicht übernommen.
             for (java.util.Iterator<Page> it = receiptPages.iterator(); it.hasNext(); ) {
@@ -1942,11 +1960,11 @@ public class BookingEditActivity extends LocalizedActivity {
         }
         // In die Notiz kommt nur die Basis (die UUID); die Seiten findet die App darüber selbst.
         if (!receiptPages.isEmpty()) {
-            b.note = NoteReceipt.withFileName(b.note, NoteReceipt.tagOf(receiptPages.get(0).savedName));
+            note = NoteReceipt.withFileName(note, NoteReceipt.tagOf(receiptPages.get(0).savedName));
             moveReceiptYear(year);
             ReceiptSync.syncPending(this);
         }
-        then.run();
+        return note;
     }
 
     /**
@@ -2068,12 +2086,14 @@ public class BookingEditActivity extends LocalizedActivity {
         final String toPlace = selectedPlaceTo();
         // Export-Status aus dem Schalter übernehmen; updateTransferBooking überträgt ihn auf beide Seiten.
         booking.exported = switchExported.isChecked();
-        maybeAskCorrection(payee, () ->
-                repository.updateTransferBooking(booking, from, to, cents, payee, note,
-                composeTimestamp(), fromPlace, toPlace, () -> {
+        maybeAskCorrection(payee, () -> {
+            long ts = composeTimestamp();
+            repository.updateTransferBooking(booking, from, to, cents, payee,
+                withReceiptTag(note, ts, false), ts, fromPlace, toPlace, () -> {
                     Toast.makeText(this, R.string.booking_updated, Toast.LENGTH_SHORT).show();
                     finish();
-                }));
+                });
+        });
     }
 
     private void convertNormalToTransfer() {
@@ -2096,7 +2116,10 @@ public class BookingEditActivity extends LocalizedActivity {
         maybeAskCorrection(payee, () -> {
             long ts = composeTimestamp();
             repository.deleteBooking(oldId, null);
-            repository.saveTransferBooking(from, to, cents, payee, note, ts, fromPlace, toPlace, () -> {
+            // Umwandeln heißt löschen und neu anlegen – der Beleg gehört aber weiter zu dieser Buchung
+            // (asNew = false), sonst bliebe er nach dem Wechsel der Buchungsart herrenlos liegen.
+            repository.saveTransferBooking(from, to, cents, payee,
+                    withReceiptTag(note, ts, false), ts, fromPlace, toPlace, () -> {
                 Toast.makeText(this, R.string.booking_updated, Toast.LENGTH_SHORT).show();
                 finish();
             });
@@ -2125,7 +2148,8 @@ public class BookingEditActivity extends LocalizedActivity {
                 finish();
             };
             nb.note = composeNoteForSave(true);
-            attachReceipt(nb, true, () -> {
+            // Wie beim Umwandeln in die andere Richtung: der Beleg bleibt an der Buchung.
+            attachReceipt(nb, false, () -> {
                 if (parts.size() >= 2) {
                     repository.saveSplitBooking(nb, toSplits(parts), fp, done);
                 } else {

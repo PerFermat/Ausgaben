@@ -499,7 +499,7 @@
         {
           "type": "p",
           "id": "b-0072",
-          "text": "In the booking editor the <b>«Receipt»</b> button lets you <b>take a photo</b> of the receipt or <b>pick one from the gallery</b> (one photo per booking; can be turned off under <i>Settings → Receipt photos</i>). The image is stored privately on the phone and uploaded <b>in the background</b> to a «Belege» folder – with a sub-folder per year – inside your configured sync folder (WebDAV/Nextcloud or SMB); photos taken offline upload on the next app start with a connection."
+          "text": "In the booking editor the <b>«Receipt»</b> button lets you <b>take a photo</b> of the receipt or <b>pick one from the gallery</b> (one photo per booking; can be turned off under <i>Settings → Receipt photos</i>). The image is stored privately on the phone and uploaded <b>in the background</b> to a «Belege» folder – with a sub-folder per year – inside your configured sync folder (WebDAV/Nextcloud or SMB); photos taken offline upload on the next app start with a connection. This works for <b>every booking type</b>, transfers included – the bank statement for a wire, say. As both sides of a transfer carry the same note, <b>both accounts</b> show the same receipt; you can attach and change it from either side."
         },
         {
           "type": "p",

@@ -499,7 +499,7 @@
         {
           "type": "p",
           "id": "b-0072",
-          "text": "Im Buchungseditor können Sie über den Knopf <b>«Beleg»</b> ein Foto des Belegs <b>aufnehmen</b> oder eines <b>aus der Galerie</b> wählen (ein Foto je Buchung; abschaltbar unter <i>Einstellungen → Belegfotos</i>). Das Bild wird privat auf dem Handy gespeichert und <b>im Hintergrund</b> in den Ordner «Belege», darunter je Jahr ein Unterordner, Ihres konfigurierten Sync-Ordners (WebDAV/Nextcloud oder SMB) hochgeladen – offline aufgenommene Fotos folgen beim nächsten App-Start mit Verbindung."
+          "text": "Im Buchungseditor können Sie über den Knopf <b>«Beleg»</b> ein Foto des Belegs <b>aufnehmen</b> oder eines <b>aus der Galerie</b> wählen (ein Foto je Buchung; abschaltbar unter <i>Einstellungen → Belegfotos</i>). Das Bild wird privat auf dem Handy gespeichert und <b>im Hintergrund</b> in den Ordner «Belege», darunter je Jahr ein Unterordner, Ihres konfigurierten Sync-Ordners (WebDAV/Nextcloud oder SMB) hochgeladen – offline aufgenommene Fotos folgen beim nächsten App-Start mit Verbindung. Das gilt für <b>jede Buchungsart</b>, auch für <b>Umbuchungen</b> – etwa den Kontoauszug zu einer Überweisung. Da beide Seiten einer Umbuchung dieselbe Notiz tragen, zeigen <b>beide Konten</b> denselben Beleg; anhängen und ändern können Sie ihn von jeder der beiden Seiten aus."
         },
         {
           "type": "p",

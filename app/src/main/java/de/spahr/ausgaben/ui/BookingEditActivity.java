@@ -157,6 +157,7 @@ public class BookingEditActivity extends LocalizedActivity {
     /**
      * Eine Belegseite: entweder bereits gespeichert ({@code savedName}) oder frisch aufgenommen
      * ({@code pending}, ein komprimiertes Temp, das beim Speichern seinen endgültigen Namen bekommt).
+     * Ob es ein Foto oder ein PDF ist, sagt die Endung des Namens – ein eigenes Feld braucht es nicht.
      */
     private static final class Page {
         String savedName;
@@ -170,6 +171,10 @@ public class BookingEditActivity extends LocalizedActivity {
         java.io.File file(android.content.Context ctx) {
             return pending != null ? pending : Receipts.localFile(ctx, savedName);
         }
+
+        boolean isPdf() {
+            return NoteReceipt.isPdf(pending != null ? pending.getName() : savedName);
+        }
     }
 
     /** Die Seiten des Belegs in Seitenreihenfolge; leer = kein Beleg. */
@@ -180,6 +185,8 @@ public class BookingEditActivity extends LocalizedActivity {
     private java.io.File cameraTempFile;
     private ActivityResultLauncher<android.net.Uri> takePictureLauncher;
     private ActivityResultLauncher<String> pickImageLauncher;
+    /** Dateiauswahl des Systems für ein PDF-Dokument. */
+    private ActivityResultLauncher<String[]> pickPdfLauncher;
     /** Zuschneiden/Begradigen/Aufhellen eines Belegs ({@link ReceiptEditActivity}). */
     private ActivityResultLauncher<Intent> receiptEditLauncher;
     /** Beim Bearbeiten einer bereits gespeicherten Seite: deren Name für das Hochladen danach. */
@@ -370,6 +377,12 @@ public class BookingEditActivity extends LocalizedActivity {
                 new ActivityResultContracts.GetContent(), uri -> {
                     if (uri != null) {
                         ingestReceipt(uri, null);
+                    }
+                });
+        pickPdfLauncher = registerForActivityResult(
+                new ActivityResultContracts.OpenDocument(), uri -> {
+                    if (uri != null) {
+                        ingestPdf(uri);
                     }
                 });
         receiptEditLauncher = registerForActivityResult(
@@ -790,7 +803,7 @@ public class BookingEditActivity extends LocalizedActivity {
         btnDelete.setVisibility(View.VISIBLE);
         // Bestehende Buchung: GPS/Beleg aus der Notiz in die zwei Zeilen (bleiben beim Aktualisieren erhalten).
         gpsRowCoords = parseGpsCoords(b.note);
-        loadReceiptPages(NoteReceipt.fileName(b.note), yearFromMillis(b.createdAt));
+        loadReceiptPages(b.note, yearFromMillis(b.createdAt));
         populateFrom(b, null);
         updateNoteTagRows();
         if (readOnly) {
@@ -974,7 +987,7 @@ public class BookingEditActivity extends LocalizedActivity {
 
         // GPS-/Beleg-Ausgabezeilen (Werte aus der Notiz; nicht editierbar, mit Karten- bzw. Bild-Icon).
         gpsRowCoords = parseGpsCoords(booking.note);
-        loadReceiptPages(NoteReceipt.fileName(booking.note), yearFromMillis(booking.createdAt));
+        loadReceiptPages(booking.note, yearFromMillis(booking.createdAt));
         updateNoteTagRows();
     }
 
@@ -1532,8 +1545,7 @@ public class BookingEditActivity extends LocalizedActivity {
         // Beleg-Kopfzeile + eine Zeile je Seite
         if (readOnly) {
             rowReceipt.setVisibility(receiptPages.isEmpty() ? View.GONE : View.VISIBLE);
-            textReceipt.setText(getString(R.string.receipt_row_label,
-                    getString(R.string.receipt_pages_count, receiptPages.size())));
+            textReceipt.setText(getString(R.string.receipt_row_label, receiptCountText()));
             btnReceipt.setVisibility(View.GONE);
         } else if (receiptEnabled) {
             // Auch bei einer Umbuchung: der Tag steht in der gemeinsamen Notiz, also zeigen beide Seiten
@@ -1541,7 +1553,7 @@ public class BookingEditActivity extends LocalizedActivity {
             rowReceipt.setVisibility(View.VISIBLE);
             textReceipt.setText(getString(R.string.receipt_row_label, receiptPages.isEmpty()
                     ? getString(R.string.receipt_none)
-                    : getString(R.string.receipt_pages_count, receiptPages.size())));
+                    : receiptCountText()));
             btnReceipt.setVisibility(View.VISIBLE);
             btnReceipt.setImageResource(android.R.drawable.ic_menu_camera);
             btnReceipt.setOnClickListener(v -> showReceiptSourceDialog());
@@ -1552,9 +1564,13 @@ public class BookingEditActivity extends LocalizedActivity {
     }
 
     /**
-     * Baut die Anzeige der Belegseiten neu auf. In der <b>Ansicht</b> genügt ein Bild-Symbol je Seite,
-     * rechtsbündig in der Kopfzeile; im <b>Bearbeiten</b>-Modus steht je Seite eine eigene Zeile mit
-     * Beschriftung, Zuschneiden und Löschen darunter.
+     * Baut die Anzeige der Belegseiten neu auf. Bei <b>Fotos</b> genügt in der Ansicht ein Bild-Symbol
+     * rechtsbündig in der Kopfzeile – geblättert wird dann im eigenen Betrachter; im Bearbeiten-Modus steht
+     * je Seite eine Zeile mit Beschriftung, Zuschneiden und Löschen darunter.
+     *
+     * <p>Ein <b>PDF</b> bekommt immer eine eigene Zeile, auch in der Ansicht: es öffnet sich einzeln im
+     * Betrachter des Geräts, und bei mehreren muss zu sehen sein, welches man antippt. Zuschneiden gibt es
+     * dort nicht, in der Ansicht auch kein Löschen.</p>
      */
     private void fillReceiptPages() {
         receiptPagesView.removeAllViews();
@@ -1562,7 +1578,7 @@ public class BookingEditActivity extends LocalizedActivity {
         if (rowReceipt.getVisibility() != View.VISIBLE) {
             return;
         }
-        if (readOnly) {
+        if (readOnly && !hasPdfPages()) {
             // Ein einziges Symbol – wie viele Seiten es sind, steht schon im Text daneben; im Betrachter
             // wird dann geblättert.
             if (savedPageNames().isEmpty()) {
@@ -1580,19 +1596,63 @@ public class BookingEditActivity extends LocalizedActivity {
         LayoutInflater inflater = LayoutInflater.from(this);
         for (int i = 0; i < receiptPages.size(); i++) {
             final Page page = receiptPages.get(i);
+            final boolean pdf = page.isPdf();
             View row = inflater.inflate(R.layout.item_receipt_page, receiptPagesView, false);
             android.widget.TextView label = row.findViewById(R.id.textReceiptPage);
-            label.setText(getString(page.pending != null ? R.string.receipt_page_new
-                    : R.string.receipt_page_label, i + 1));
-            // Eine bereits gespeicherte Seite lässt sich ansehen; ein frisches Bild liegt nur als Temp vor.
-            if (page.savedName != null) {
+            label.setText(getString(pdf
+                    ? (page.pending != null ? R.string.receipt_pdf_new : R.string.receipt_pdf_label)
+                    : (page.pending != null ? R.string.receipt_page_new : R.string.receipt_page_label),
+                    i + 1));
+            label.setCompoundDrawablesRelativeWithIntrinsicBounds(pdf ? R.drawable.ic_pdf : 0, 0, 0, 0);
+            label.setCompoundDrawablePadding(pdf ? dp(8) : 0);
+            if (pdf) {
+                // Ein PDF öffnet der Betrachter des Geräts – auch ein noch nicht gespeichertes Temp.
+                label.setOnClickListener(v -> openPdf(page));
+            } else if (page.savedName != null) {
+                // Eine bereits gespeicherte Seite lässt sich ansehen; ein frisches Bild liegt nur als Temp vor.
                 final int index = savedPageNames().indexOf(page.savedName);
                 label.setOnClickListener(v -> openReceiptViewer(index));
             }
-            row.findViewById(R.id.btnReceiptPageEdit).setOnClickListener(v -> editReceipt(page));
-            row.findViewById(R.id.btnReceiptPageDelete).setOnClickListener(v -> removeReceiptPage(page));
+            View edit = row.findViewById(R.id.btnReceiptPageEdit);
+            View delete = row.findViewById(R.id.btnReceiptPageDelete);
+            edit.setVisibility(pdf || readOnly ? View.GONE : View.VISIBLE);
+            delete.setVisibility(readOnly ? View.GONE : View.VISIBLE);
+            edit.setOnClickListener(v -> editReceipt(page));
+            delete.setOnClickListener(v -> removeReceiptPage(page));
             receiptPagesView.addView(row);
         }
+    }
+
+    /**
+     * Öffnet ein PDF im Standard-Betrachter des Geräts. Eine bereits gespeicherte Datei wird bei Bedarf
+     * erst vom Netzlaufwerk geholt (deshalb der Hintergrund-Thread), dann als {@code content://}-Verweis
+     * des FileProviders weitergereicht – der fremden App wird nur Lesen für diese eine Datei gestattet.
+     */
+    private void openPdf(Page page) {
+        final java.io.File pending = page.pending;
+        final String saved = page.savedName;
+        final int year = receiptYear();
+        Toast.makeText(this, R.string.receipt_opening, Toast.LENGTH_SHORT).show();
+        new Thread(() -> {
+            final java.io.File file = pending != null ? pending : ReceiptSync.ensureLocal(this, saved, year);
+            runOnUiThread(() -> {
+                if (file == null || !file.exists()) {
+                    Toast.makeText(this, R.string.receipt_not_found, Toast.LENGTH_SHORT).show();
+                    return;
+                }
+                try {
+                    android.net.Uri uri = androidx.core.content.FileProvider.getUriForFile(
+                            this, getPackageName() + ".fileprovider", file);
+                    startActivity(new Intent(Intent.ACTION_VIEW)
+                            .setDataAndType(uri, "application/pdf")
+                            .addFlags(Intent.FLAG_GRANT_READ_URI_PERMISSION));
+                } catch (android.content.ActivityNotFoundException e) {
+                    Toast.makeText(this, R.string.receipt_pdf_no_viewer, Toast.LENGTH_LONG).show();
+                } catch (Exception e) {
+                    Toast.makeText(this, R.string.receipt_error, Toast.LENGTH_SHORT).show();
+                }
+            });
+        }).start();
     }
 
     private int dp(int value) {
@@ -1665,21 +1725,72 @@ public class BookingEditActivity extends LocalizedActivity {
 
     // ---- Beleg-Foto ----
 
+    /**
+     * Kamera, Galerie oder PDF-Dokument. Eine Buchung trägt entweder Fotoseiten oder PDFs – der unpassende
+     * Eintrag ist deshalb abgeblendet, bis alle vorhandenen Seiten gelöscht sind.
+     */
     private void showReceiptSourceDialog() {
-        CharSequence[] items = {
+        String[] items = {
                 getString(R.string.receipt_source_camera),
-                getString(R.string.receipt_source_gallery)
+                getString(R.string.receipt_source_gallery),
+                getString(R.string.receipt_source_document)
+        };
+        final boolean pdf = hasPdfPages();
+        final boolean photo = hasPhotoPages();
+        // Ein ArrayAdapter statt setItems: nur er kann einzelne Einträge sperren (die Liste des Dialogs
+        // richtet sich nach isEnabled).
+        android.widget.ArrayAdapter<String> adapter = new android.widget.ArrayAdapter<String>(
+                this, android.R.layout.simple_list_item_1, items) {
+            @Override
+            public boolean isEnabled(int position) {
+                return position == 2 ? !photo : !pdf;
+            }
+
+            @Override
+            public View getView(int position, View convertView, android.view.ViewGroup parent) {
+                View v = super.getView(position, convertView, parent);
+                v.setAlpha(isEnabled(position) ? 1f : 0.4f);
+                return v;
+            }
         };
         new AppDialog(this)
                 .setTitle(R.string.receipt_add)
-                .setItems(items, (d, which) -> {
+                .setAdapter(adapter, (d, which) -> {
                     if (which == 0) {
                         startReceiptCamera();
-                    } else {
+                    } else if (which == 1) {
                         pickImageLauncher.launch("image/*");
+                    } else {
+                        pickPdfLauncher.launch(new String[]{"application/pdf"});
                     }
                 })
                 .show();
+    }
+
+    /** „3 Seite(n)" bzw. „2 Dokument(e)" – je nachdem, woraus der Beleg besteht. */
+    private String receiptCountText() {
+        return getString(hasPdfPages() ? R.string.receipt_pdfs_count : R.string.receipt_pages_count,
+                receiptPages.size());
+    }
+
+    /** Hängt an der Buchung mindestens ein PDF? */
+    private boolean hasPdfPages() {
+        for (Page p : receiptPages) {
+            if (p.isPdf()) {
+                return true;
+            }
+        }
+        return false;
+    }
+
+    /** Hängt an der Buchung mindestens eine Fotoseite? */
+    private boolean hasPhotoPages() {
+        for (Page p : receiptPages) {
+            if (!p.isPdf()) {
+                return true;
+            }
+        }
+        return false;
     }
 
     private void startReceiptCamera() {
@@ -1724,6 +1835,40 @@ public class BookingEditActivity extends LocalizedActivity {
         }).start();
     }
 
+    /**
+     * Übernimmt ein gewähltes PDF: es wird unverändert ins Temp kopiert – anders als beim Foto gibt es
+     * nichts zu skalieren, zu drehen oder nachzubearbeiten. Finalisierung wie dort erst beim Speichern.
+     */
+    private void ingestPdf(android.net.Uri src) {
+        final java.io.File tmp = new java.io.File(Receipts.dir(this),
+                "pend_" + java.util.UUID.randomUUID() + NoteReceipt.PDF);
+        new Thread(() -> {
+            boolean ok;
+            try (java.io.InputStream in = getContentResolver().openInputStream(src);
+                 java.io.OutputStream out = new java.io.FileOutputStream(tmp)) {
+                byte[] buf = new byte[8192];
+                int n;
+                while (in != null && (n = in.read(buf)) > 0) {
+                    out.write(buf, 0, n);
+                }
+                ok = tmp.exists() && tmp.length() > 0;
+            } catch (Exception e) {
+                ok = false;
+            }
+            final boolean fok = ok;
+            runOnUiThread(() -> {
+                if (fok) {
+                    receiptPages.add(new Page(null, tmp));
+                    updateNoteTagRows();
+                    Toast.makeText(this, R.string.receipt_pdf_attached, Toast.LENGTH_SHORT).show();
+                } else {
+                    tmp.delete();
+                    Toast.makeText(this, R.string.receipt_error, Toast.LENGTH_SHORT).show();
+                }
+            });
+        }).start();
+    }
+
     /** Alle Seiten vergessen (Neu-Modus/Kopie); noch nicht gespeicherte Temps werden gelöscht. */
     private void clearReceiptPages() {
         for (Page p : receiptPages) {
@@ -1737,20 +1882,24 @@ public class BookingEditActivity extends LocalizedActivity {
     }
 
     /**
-     * Ermittelt zum Beleg-Tag einer Buchung alle Seiten (siehe {@link ReceiptPages#find}) und zeigt sie an.
-     * Das Suchen kann den Server befragen und läuft deshalb im Hintergrund.
+     * Ermittelt zum Beleg-Tag einer Notiz alle Seiten (siehe {@link ReceiptPages#find}) und zeigt sie an.
+     * Welche Art es ist, sagt die Notiz selbst: {@code BELEG:} steht für Fotoseiten, {@code BELEG (PDF):}
+     * für PDF-Dokumente. Das Suchen kann den Server befragen und läuft deshalb im Hintergrund.
      */
-    private void loadReceiptPages(String tagName, int year) {
+    private void loadReceiptPages(String note, int year) {
         clearReceiptPages();
         origReceiptYear = -1;
+        final String pdfTag = NoteReceipt.pdfName(note);
+        final String tagName = pdfTag != null ? pdfTag : NoteReceipt.fileName(note);
         if (tagName == null) {
             return;
         }
+        final String ext = pdfTag != null ? NoteReceipt.PDF : NoteReceipt.JPG;
         origReceiptYear = year;
         // Seite 1 steht sofort fest, damit die Zeile nicht erst leer aufblitzt.
-        receiptPages.add(new Page(tagName, null));
+        receiptPages.add(new Page(pdfTag != null ? NoteReceipt.pageName(tagName, 1, ext) : tagName, null));
         new Thread(() -> {
-            final java.util.List<String> found = ReceiptPages.find(this, tagName, year);
+            final java.util.List<String> found = ReceiptPages.find(this, tagName, year, ext);
             runOnUiThread(() -> {
                 // Nichts gefunden (Datei weg oder offline) → die Vorbelegung mit dem Tag-Namen bleibt stehen.
                 if (isFinishing() || found.isEmpty() || found.equals(savedNames())) {
@@ -1945,7 +2094,8 @@ public class BookingEditActivity extends LocalizedActivity {
             if (p.pending == null) {
                 continue;
             }
-            String name = NoteReceipt.pageName(base, ReceiptPages.nextFreePage(taken));
+            String name = NoteReceipt.pageName(base, ReceiptPages.nextFreePage(taken),
+                    p.isPdf() ? NoteReceipt.PDF : NoteReceipt.JPG);
             if (finalizeReceipt(p, name, year)) {
                 taken.add(name);
             }
@@ -1958,9 +2108,11 @@ public class BookingEditActivity extends LocalizedActivity {
             ReceiptPages.rename(this, names.get(i), target.get(i), year);
             receiptPages.get(i).savedName = target.get(i);
         }
-        // In die Notiz kommt nur die Basis (die UUID); die Seiten findet die App darüber selbst.
+        // In die Notiz kommt nur die Basis (die UUID); die Seiten findet die App darüber selbst. Bei PDFs
+        // steht dort der eigene Tag – daran erkennt das Laden später, welche Endung zu suchen ist.
         if (!receiptPages.isEmpty()) {
-            note = NoteReceipt.withFileName(note, NoteReceipt.tagOf(receiptPages.get(0).savedName));
+            String tag = NoteReceipt.tagOf(receiptPages.get(0).savedName);
+            note = hasPdfPages() ? NoteReceipt.withPdfName(note, tag) : NoteReceipt.withFileName(note, tag);
             moveReceiptYear(year);
             ReceiptSync.syncPending(this);
         }

@@ -62,4 +62,16 @@ public class ReceiptPagesTest {
         assertEquals(Collections.singletonList("2026_abc_p1.jpg"),
                 ReceiptPages.renumber(Collections.singletonList("2026_abc_p2.jpg")));
     }
+
+    @Test
+    public void nextFreePage_countsPdfsLikePages() {
+        assertEquals(3, ReceiptPages.nextFreePage(Arrays.asList("abc_p1.pdf", "abc_p2.pdf")));
+    }
+
+    @Test
+    public void renumber_keepsThePdfExtension() {
+        // Ohne diese Rücksicht würde ein nachrückendes PDF beim Umbenennen zur .jpg-Datei.
+        assertEquals(Collections.singletonList("abc_p1.pdf"),
+                ReceiptPages.renumber(Collections.singletonList("abc_p2.pdf")));
+    }
 }

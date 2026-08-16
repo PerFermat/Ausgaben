@@ -29,6 +29,24 @@ public class ReceiptGcTest {
     }
 
     @Test
+    public void basesOf_readsThePdfTagToo() {
+        // Ohne diesen Zweig hielte der Aufräumlauf jedes PDF für herrenlos und löschte es beim nächsten Start.
+        Set<String> bases = ReceiptGc.basesOf(Arrays.asList(
+                "Rechnung BELEG (PDF): pdf123",
+                "Kaffee BELEG: abc123"));
+        assertEquals(2, bases.size());
+        assertTrue(bases.contains("pdf123"));
+        assertTrue(bases.contains("abc123"));
+    }
+
+    @Test
+    public void orphans_keepsThePdfsOfAUsedBase() {
+        List<String> files = Arrays.asList("pdf123_p1.pdf", "pdf123_p2.pdf", "weg_p1.pdf");
+        List<String> orphans = ReceiptGc.orphans(files, Collections.singleton("pdf123"));
+        assertEquals(Collections.singletonList("weg_p1.pdf"), orphans);
+    }
+
+    @Test
     public void orphans_keepsEveryPageAndOriginalOfAUsedBase() {
         List<String> files = Arrays.asList(
                 "abc123_p1.jpg", "abc123_p2.jpg", "abc123_p2_original.jpg",

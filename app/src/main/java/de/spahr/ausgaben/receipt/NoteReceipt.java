@@ -9,23 +9,40 @@ import java.util.regex.Pattern;
  * Belegfotos wird als {@code BELEG: <jahr>_<uuid>.jpg} an die Notiz angehängt; da die Notiz als KMyMoney-Memo
  * exportiert und re-importiert wird, überlebt die Zuordnung einen Neu-Import (kein Fingerprint, keine Tabelle).
  *
- * <p>Rein und testbar – kein Android. Der {@code BELEG:}-Tag und ein evtl. vorhandener {@code GPS:}-Tag werden
+ * <p>Ein <b>PDF-Beleg</b> trägt statt dessen den Tag {@code BELEG (PDF): <uuid>}. Beide Tags schließen
+ * einander aus: eine Buchung hat entweder Fotoseiten oder PDF-Dateien. Die Muster können sich nicht in die
+ * Quere kommen, denn auf {@code BELEG} folgt einmal ein Doppelpunkt und einmal ein Leerzeichen.</p>
+ *
+ * <p>Rein und testbar – kein Android. Die Beleg-Tags und ein evtl. vorhandener {@code GPS:}-Tag werden
  * unabhängig voneinander behandelt (kein gegenseitiges Überschreiben).</p>
  */
 public final class NoteReceipt {
 
     /** Passt auf „BELEG: <datei>" (Datei = zusammenhängende Nicht-Leerzeichen). */
     private static final Pattern TAG = Pattern.compile("\\s*BELEG:\\s*(\\S+)", Pattern.CASE_INSENSITIVE);
+    /** Passt auf „BELEG (PDF): <datei>". */
+    private static final Pattern TAG_PDF =
+            Pattern.compile("\\s*BELEG\\s*\\(PDF\\):\\s*(\\S+)", Pattern.CASE_INSENSITIVE);
 
     private NoteReceipt() {
     }
 
     /** Dateiname aus dem {@code BELEG:}-Tag der Notiz, sonst {@code null}. */
     public static String fileName(String note) {
+        return match(TAG, note);
+    }
+
+    /** Dateiname aus dem {@code BELEG (PDF):}-Tag der Notiz, sonst {@code null}. */
+    public static String pdfName(String note) {
+        return match(TAG_PDF, note);
+    }
+
+    /** Der letzte Treffer eines Tag-Musters in der Notiz. */
+    private static String match(Pattern pattern, String note) {
         if (note == null) {
             return null;
         }
-        Matcher m = TAG.matcher(note);
+        Matcher m = pattern.matcher(note);
         String last = null;
         while (m.find()) {
             last = m.group(1);
@@ -35,20 +52,35 @@ public final class NoteReceipt {
 
     /** Setzt/ersetzt den {@code BELEG:}-Tag und hängt ihn ans Ende an (GPS-Tag bleibt unberührt). */
     public static String withFileName(String note, String file) {
+        return withTag(note, file, "BELEG: ");
+    }
+
+    /** Setzt/ersetzt den {@code BELEG (PDF):}-Tag und hängt ihn ans Ende an. */
+    public static String withPdfName(String note, String file) {
+        return withTag(note, file, "BELEG (PDF): ");
+    }
+
+    /**
+     * Hängt einen Beleg-Tag ans Ende der Notiz. Beide Beleg-Tags fallen dabei zuvor weg, denn eine Buchung
+     * trägt entweder Fotos oder PDFs – nie beides.
+     */
+    private static String withTag(String note, String file, String prefix) {
         String base = strip(note);
         if (file == null || file.trim().isEmpty()) {
             return base;
         }
-        String tag = "BELEG: " + file.trim();
+        String tag = prefix + file.trim();
         return base.isEmpty() ? tag : base + " " + tag;
     }
 
-    /** Entfernt einen evtl. vorhandenen {@code BELEG:}-Tag; der Rest (inkl. GPS) bleibt erhalten. */
+    /** Entfernt beide Beleg-Tags; der Rest (inkl. GPS) bleibt erhalten. */
     public static String strip(String note) {
         if (note == null) {
             return "";
         }
-        return TAG.matcher(note).replaceAll("").replaceAll("\\s+$", "").replaceAll("^\\s+", "");
+        // Beide Muster nacheinander; sie überschneiden sich nicht, die Reihenfolge ist also gleichgültig.
+        String s = TAG_PDF.matcher(note).replaceAll("");
+        return TAG.matcher(s).replaceAll("").replaceAll("\\s+$", "").replaceAll("^\\s+", "");
     }
 
     /** Neuer, eindeutiger Dateiname der ersten Seite: {@code <uuid>_Seite1.jpg}. */
@@ -74,10 +106,25 @@ public final class NoteReceipt {
         return yearOf(pageName) >= 0 ? pageName : baseOf(pageName);
     }
 
-    /** Dateiname der {@code page}-ten Seite zu einer Basis: {@code <basis>_Seite<n>.jpg}. */
+    /** Dateiname der {@code page}-ten Seite zu einer Basis: {@code <basis>_p<n>.jpg}. */
     public static String pageName(String base, int page) {
-        return base + PAGE + page + ".jpg";
+        return pageName(base, page, JPG);
     }
+
+    /** Wie {@link #pageName(String, int)}, aber mit gewählter Endung – {@link #JPG} oder {@link #PDF}. */
+    public static String pageName(String base, int page, String ext) {
+        return base + PAGE + page + ext;
+    }
+
+    /** Ist {@code file} ein PDF-Beleg? Entschieden wird an der Endung. */
+    public static boolean isPdf(String file) {
+        return file != null && file.trim().toLowerCase(java.util.Locale.ROOT).endsWith(PDF);
+    }
+
+    /** Die Endung eines Belegfotos. */
+    public static final String JPG = ".jpg";
+    /** Die Endung eines PDF-Belegs. */
+    public static final String PDF = ".pdf";
 
     /**
      * Die gemeinsame Basis eines Belegnamens: Endung, ein evtl. {@code _original} und ein evtl.

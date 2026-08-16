@@ -310,6 +310,7 @@
     <string name="receipt_attached">Beleg ✓</string>
     <string name="receipt_source_camera">Foto aufnehmen</string>
     <string name="receipt_source_gallery">Aus Galerie wählen</string>
+    <string name="receipt_source_document">PDF-Dokument wählen</string>
     <string name="receipt_remove">Beleg entfernen</string>
     <string name="receipt_view_title">Beleg</string>
     <string name="receipt_opening">Beleg wird geöffnet…</string>
@@ -338,6 +339,11 @@
     <string name="receipt_add_page">Seite hinzufügen</string>
     <string name="receipt_pages_loading">Weitere Seiten werden gesucht …</string>
     <string name="receipt_pages_count">%1$d Seite(n)</string>
+    <string name="receipt_pdf_label">Dokument %1$d</string>
+    <string name="receipt_pdf_new">Dokument %1$d (neu)</string>
+    <string name="receipt_pdfs_count">%1$d Dokument(e)</string>
+    <string name="receipt_pdf_no_viewer">Keine App für PDF-Dokumente installiert</string>
+    <string name="receipt_pdf_attached">Dokument ✓</string>
     <string name="gps_row_label">GPS: %1$s</string>
     <string name="gps_row_none">Standort: zum Setzen die Karte antippen</string>
     <string name="compass_n">N</string>

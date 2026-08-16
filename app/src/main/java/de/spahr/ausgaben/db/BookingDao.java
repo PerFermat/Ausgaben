@@ -139,8 +139,11 @@ public interface BookingDao {
     @Query("SELECT COUNT(*) FROM booking")
     int countAll();
 
-    /** Nur die Notizen mit Beleg-Verweis – Grundlage für das Aufräumen verwaister Belegdateien. */
-    @Query("SELECT note FROM booking WHERE note LIKE '%BELEG:%'")
+    /**
+     * Nur die Notizen mit Beleg-Verweis – Grundlage für das Aufräumen verwaister Belegdateien. Beide Arten:
+     * {@code BELEG:} für Fotoseiten, {@code BELEG (PDF):} für PDF-Belege.
+     */
+    @Query("SELECT note FROM booking WHERE note LIKE '%BELEG:%' OR note LIKE '%BELEG (PDF):%'")
     List<String> getReceiptNotes();
 
     /** Buchungen mit Standort in der Notiz (neueste zuerst) – Vorlagen für die Betrag-only-Erfassung. */

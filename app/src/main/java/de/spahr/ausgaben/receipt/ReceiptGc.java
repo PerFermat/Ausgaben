@@ -138,9 +138,11 @@ public final class ReceiptGc {
             return bases;
         }
         for (String note : notes) {
-            String tag = NoteReceipt.fileName(note);
-            if (tag != null) {
-                bases.add(NoteReceipt.baseOf(tag));
+            // Beide Beleg-Arten: ein PDF gilt ebenso als benötigt wie eine Fotoseite.
+            for (String tag : new String[]{NoteReceipt.fileName(note), NoteReceipt.pdfName(note)}) {
+                if (tag != null) {
+                    bases.add(NoteReceipt.baseOf(tag));
+                }
             }
         }
         return bases;

@@ -510,6 +510,11 @@
           "type": "p",
           "id": "b-0076",
           "text": "A booking can hold <b>several pages</b> – for the second half of a till roll or an invoice spanning multiple sheets. The camera icon in the receipt row <b>appends another page</b> every time; while editing, each page gets its own line with crop and delete. When merely <b>viewing</b> a booking one line is enough: the page count on the left, a single image icon on the right that opens the viewer."
+        },
+        {
+          "type": "p",
+          "id": "b-0076a",
+          "text": "Instead of a photo you may attach a <b>PDF document</b> – the invoice you downloaded, a bank statement, the confirmation of a transfer. The receipt dialog offers <b>«Choose PDF document»</b> for it and opens the device's file picker. Several documents per booking are possible; each gets its own line with a PDF icon. Tapping it opens the document in your device's <b>usual PDF viewer</b>, with all its pages; a PDF is never cropped, only attached or deleted. A booking carries <b>either</b> photos <b>or</b> documents – the other entry in the dialog stays dimmed until you have deleted the existing pages. A PDF is uploaded just like a photo, into the same year folder; the note records it as <b>«BELEG (PDF): …»</b>."
         }
       ],
       "shot": {"fname": "Beleg Seiten.png", "caption": "While editing, each page gets its own row with crop and delete", "width": 4.0}

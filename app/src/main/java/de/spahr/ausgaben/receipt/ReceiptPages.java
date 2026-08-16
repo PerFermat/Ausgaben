@@ -12,6 +12,9 @@ import java.util.List;
  * {@code <jahr>_<uuid>} fest. Die weiteren Seiten {@code <basis>_Seite2.jpg}, {@code …_Seite3.jpg} sucht
  * die App selbst – erst im lokalen Beleg-Ordner, dann bei Bedarf auf dem Netzlaufwerk.
  *
+ * <p>Für <b>PDF-Belege</b> gilt dasselbe, nur mit der Endung {@code .pdf} und dem Tag
+ * {@code BELEG (PDF):}; jede angehängte Datei ist dort eine „Seite".</p>
+ *
  * <p>Die Seiten bleiben immer <b>lückenlos</b> nummeriert: wird eine mittlere Seite gelöscht, rücken die
  * folgenden nach ({@link #renumber}). So bleibt der Tag in der Notiz gültig und die Suche kann bei der
  * ersten fehlenden Nummer aufhören.</p>
@@ -30,19 +33,29 @@ public final class ReceiptPages {
      * sich nicht einmal die erste Seite auftreiben lässt.
      */
     public static List<String> find(Context context, String tagName, int year) {
+        return find(context, tagName, year, NoteReceipt.JPG);
+    }
+
+    /**
+     * Wie {@link #find(Context, String, int)}, aber für eine bestimmte Endung – {@code .jpg} für Fotoseiten,
+     * {@code .pdf} für PDF-Belege. Die Schreibweise ohne Seitenzusatz gibt es nur bei den Fotos: PDFs tragen
+     * von der ersten Fassung an immer ein {@code _p<n>}.
+     */
+    public static List<String> find(Context context, String tagName, int year, String ext) {
         List<String> pages = new ArrayList<>();
         if (tagName == null || tagName.trim().isEmpty()) {
             return pages;
         }
         Context app = context.getApplicationContext();
         String base = NoteReceipt.baseOf(tagName);
+        boolean photos = NoteReceipt.JPG.equals(ext);
         // Seite 1: zuerst die alte Schreibweise ohne Zusatz, dann die neue.
-        String legacy = base + ".jpg";
-        if (Receipts.localFile(app, legacy).exists()) {
+        String legacy = base + ext;
+        if (photos && Receipts.localFile(app, legacy).exists()) {
             pages.add(legacy);
         }
         for (int n = pages.isEmpty() ? 1 : 2; n <= MAX_PAGES; n++) {
-            String name = NoteReceipt.pageName(base, n);
+            String name = NoteReceipt.pageName(base, n, ext);
             if (!Receipts.localFile(app, name).exists()) {
                 break;
             }
@@ -53,14 +66,16 @@ public final class ReceiptPages {
         }
         // Nichts lokal (z. B. nach einem Handywechsel): vom Netzlaufwerk nachladen. Der Tag benennt bei
         // Altbelegen die Datei selbst, sonst nur die Basis – dann ist Seite 1 die erste zu holende Datei.
-        String first = NoteReceipt.yearOf(tagName) >= 0 ? tagName : NoteReceipt.pageName(base, 1);
+        String first = photos && NoteReceipt.yearOf(tagName) >= 0
+                ? tagName
+                : NoteReceipt.pageName(base, 1, ext);
         File got = ReceiptSync.ensureLocal(app, first, year);
         if (got == null || !got.exists()) {
             return pages;
         }
         pages.add(first);
         for (int n = NoteReceipt.pageOf(first) + 1; n <= MAX_PAGES; n++) {
-            String name = NoteReceipt.pageName(base, n);
+            String name = NoteReceipt.pageName(base, n, ext);
             File f = ReceiptSync.ensureLocal(app, name, year);
             if (f == null || !f.exists()) {
                 break;
@@ -104,7 +119,8 @@ public final class ReceiptPages {
             boolean legacyFirst = want == 1 && name != null && !NoteReceipt.hasPageSuffix(name);
             out.add(legacyFirst || name == null || NoteReceipt.pageOf(name) == want
                     ? name
-                    : NoteReceipt.pageName(NoteReceipt.baseOf(name), want));
+                    : NoteReceipt.pageName(NoteReceipt.baseOf(name), want,
+                            NoteReceipt.isPdf(name) ? NoteReceipt.PDF : NoteReceipt.JPG));
         }
         return out;
     }

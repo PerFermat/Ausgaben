@@ -510,6 +510,11 @@
           "type": "p",
           "id": "b-0076",
           "text": "Eine Buchung kann <b>mehrere Seiten</b> haben – für die zweite Seite eines Kassenbons oder eine Rechnung über mehrere Blätter. Das Kamera-Symbol in der Beleg-Zeile <b>hängt jedes Mal eine weitere Seite an</b>; darunter erscheint beim Bearbeiten je Seite eine eigene Zeile mit Zuschneiden und Löschen. Beim reinen <b>Ansehen</b> genügt eine Zeile: links steht die Seitenzahl, rechts ein einzelnes Bild-Symbol, das den Betrachter öffnet."
+        },
+        {
+          "type": "p",
+          "id": "b-0076a",
+          "text": "Statt eines Fotos können Sie auch ein <b>PDF-Dokument</b> anhängen – die Rechnung aus dem Netz, den Kontoauszug, die Bestätigung einer Überweisung. Im Beleg-Dialog steht dafür der Eintrag <b>«PDF-Dokument wählen»</b>; es öffnet sich die Dateiauswahl des Geräts. Mehrere Dokumente je Buchung sind möglich, jedes bekommt eine eigene Zeile mit PDF-Symbol. Ein Tipp darauf öffnet es im <b>gewohnten PDF-Betrachter</b> Ihres Geräts, mit allen Seiten; zugeschnitten wird ein PDF nicht, es wird nur angehängt oder gelöscht. Eine Buchung trägt <b>entweder</b> Fotos <b>oder</b> Dokumente – der jeweils andere Eintrag im Dialog ist abgeblendet, bis Sie die vorhandenen Seiten gelöscht haben. Hochgeladen wird ein PDF wie ein Foto, in denselben Jahresordner; in der Notiz steht dafür das Kürzel <b>«BELEG (PDF): …»</b>."
         }
       ],
       "shot": {"fname": "Beleg Seiten.png", "caption": "Beim Bearbeiten je Seite eine Zeile mit Zuschneiden und Löschen", "width": 4.0}

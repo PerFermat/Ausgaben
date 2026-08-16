@@ -311,6 +311,7 @@
     <string name="receipt_attached">Receipt ✓</string>
     <string name="receipt_source_camera">Take photo</string>
     <string name="receipt_source_gallery">Choose from gallery</string>
+    <string name="receipt_source_document">Choose PDF document</string>
     <string name="receipt_remove">Remove receipt</string>
     <string name="receipt_view_title">Receipt</string>
     <string name="receipt_opening">Opening receipt…</string>
@@ -339,6 +340,11 @@
     <string name="receipt_add_page">Add page</string>
     <string name="receipt_pages_loading">Looking for further pages…</string>
     <string name="receipt_pages_count">%1$d page(s)</string>
+    <string name="receipt_pdf_label">Document %1$d</string>
+    <string name="receipt_pdf_new">Document %1$d (new)</string>
+    <string name="receipt_pdfs_count">%1$d document(s)</string>
+    <string name="receipt_pdf_no_viewer">No app for PDF documents installed</string>
+    <string name="receipt_pdf_attached">Document ✓</string>
     <string name="gps_row_label">GPS: %1$s</string>
     <string name="gps_row_none">Location: tap the map to set</string>
     <string name="compass_n">N</string>

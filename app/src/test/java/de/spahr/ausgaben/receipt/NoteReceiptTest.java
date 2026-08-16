@@ -47,6 +47,52 @@ public class NoteReceiptTest {
     }
 
     @Test
+    public void pdfName_readsItsOwnTag() {
+        assertEquals("ab12", NoteReceipt.pdfName("Rechnung BELEG (PDF): ab12"));
+        assertNull(NoteReceipt.pdfName("Kaffee BELEG: 2025_a.jpg"));
+    }
+
+    @Test
+    public void fileName_doesNotSeeThePdfTag() {
+        // Die beiden Muster dürfen sich nicht überschneiden: auf BELEG folgt hier kein Doppelpunkt.
+        assertNull(NoteReceipt.fileName("Rechnung BELEG (PDF): ab12"));
+    }
+
+    @Test
+    public void withPdfName_appendsAndKeepsGps() {
+        String out = NoteReceipt.withPdfName("Rechnung GPS: 48.1, 11.5", "ab12");
+        assertEquals("Rechnung GPS: 48.1, 11.5 BELEG (PDF): ab12", out);
+        assertEquals("ab12", NoteReceipt.pdfName(out));
+    }
+
+    @Test
+    public void theTwoReceiptTagsExcludeEachOther() {
+        // Eine Buchung trägt entweder Fotoseiten oder PDFs – der jeweils andere Tag fällt weg.
+        String pdf = NoteReceipt.withPdfName("Kaffee BELEG: 2025_a.jpg", "ab12");
+        assertEquals("Kaffee BELEG (PDF): ab12", pdf);
+        assertNull(NoteReceipt.fileName(pdf));
+        String foto = NoteReceipt.withFileName(pdf, "cd34_p1.jpg");
+        assertEquals("Kaffee BELEG: cd34_p1.jpg", foto);
+        assertNull(NoteReceipt.pdfName(foto));
+    }
+
+    @Test
+    public void strip_removesBothReceiptTags() {
+        assertEquals("Rechnung GPS: 48.1, 11.5",
+                NoteReceipt.strip("Rechnung GPS: 48.1, 11.5 BELEG (PDF): ab12"));
+        assertEquals("", NoteReceipt.strip("BELEG (PDF): ab12"));
+    }
+
+    @Test
+    public void pdfPagesShareTheNamingOfPhotos() {
+        assertEquals("ab12_p2.pdf", NoteReceipt.pageName("ab12", 2, NoteReceipt.PDF));
+        assertEquals("ab12", NoteReceipt.baseOf("ab12_p2.pdf"));
+        assertEquals(2, NoteReceipt.pageOf("ab12_p2.pdf"));
+        assertTrue(NoteReceipt.isPdf("ab12_p2.pdf"));
+        assertFalse(NoteReceipt.isPdf("ab12_p2.jpg"));
+    }
+
+    @Test
     public void newFileName_isPageOneWithoutYear() {
         String f = NoteReceipt.newFileName();
         assertTrue(f.endsWith("_p1.jpg"));

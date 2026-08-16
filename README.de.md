@@ -71,112 +71,35 @@ zur F-Droid-Paketierung in [`fdroid/`](fdroid/).
 
 ## Funktionen im Überblick
 
-Details, Screenshots und die genaue Bedienung stehen im **[Benutzerhandbuch](docs/Handbuch-Ausgaben-de.pdf)**.
+Diese Liste nennt nur die Hauptfunktionen. Die genaue Bedienung, alle Feinheiten und Bildschirmfotos
+stehen im **[Benutzerhandbuch](docs/Handbuch-Ausgaben-de.pdf)**.
 
-- **Buchungen erfassen**: Ausgabe/Umbuchung/Einnahme, Splitbuchungen, Belegfoto (auch an einer
-  Umbuchung – beide Konten zeigen dann dasselbe Bild), Spracheingabe
-  („Frisör 20 €“), stille Betrag-only-Erfassung per GPS-Standort, lernende Alias-Namen für
-  Zahlungsempfänger. Oben in der Vorschlagsliste stehen die **sechs nächstgelegenen Empfänger** mit
-  Peilpfeil – gemessen am Standort der Buchung: beim Anlegen der aktuelle, beim Bearbeiten die
-  gespeicherte Marke der Buchung. Sobald man tippt, bleibt die alphabetische Liste. Steht der
-  Empfänger fest, füllt sich die **erste Kategorie** aus seinen bisherigen Einträgen (bevorzugter
-  Alias → letzte Buchung → übriger Alias); die weiteren stehen als eigener Block oben in der
-  Kategorieliste. Die Vorbelegung folgt dem Empfänger: wählt man einen anderen, wandert die Kategorie
-  mit – bis man in den Kategoriezeilen selbst etwas ändert, dann bleibt die eigene Eingabe stehen
-  (beim Bearbeiten einer gespeicherten Buchung ohnehin). Stehen mehrere Empfänger am selben Ort, entscheidet zusätzlich der **Betrag**: 80 €
-  sind eine Tankfüllung, 10 € die Waschanlage. In der stillen Zifferneingabe steht der passende Name
-  live unter dem Betrag (Antippen läuft durch die übrigen); im Editor füllt ein eindeutiger Treffer
-  das leere Empfängerfeld. Ausgeschlossen wird dabei niemand – der Betrag bestimmt nur die
-  Reihenfolge, und paßt er in kein übliches Band, steht der betraglich nächste vorn (im Verhältnis
-  gemessen: bei 15 € gewinnt der Bereich 20–100 € gegen 5–10 €, bei 1 € umgekehrt). Welche Beträge als üblich gelten, läßt sich je Alias über einen Regler
-  einstellen (Vorgabe: der Bereich, in dem neun von zehn seiner Buchungen liegen) – je Buchungsart,
-  Umbuchungen eingeschlossen. In Zifferneingabe und Editor ist das Mitreden des Betrags über den
-  Schalter **„Betrag in den Vorschlägen berücksichtigen"** zuzuschalten (standardmäßig aus); bei
-  reiner Spracheingabe ohne Empfänger – am Handy wie von der Uhr – zählt er immer. Sucht die App den
-  Empfänger selbst, kommen nur die der **angezeigten Konten** in Frage (auf der Uhr das dort gewählte);
-  ein Alias ohne eigenes Konto zählt überall.
-- **Belegfotos nachbearbeiten**: direkt nach der Aufnahme (oder später über die Beleg-Zeile) lässt sich
-  das Bild rechteckig zuschneiden, im Trapez-Modus eine schräg fotografierte Rechnung begradigen und
-  Helligkeit/Kontrast anpassen. Das unbearbeitete Original bleibt dauerhaft als `…_original.jpg` erhalten;
-  beim erneuten Bearbeiten fragt die App, ob die bisherige Bearbeitung fortgesetzt oder wieder beim Original
-  begonnen wird. Wer nichts ändern will, übernimmt das Foto wie es ist.
-- **Belege ansehen**: eigener Betrachter in der App – Wischen blättert durch die Seiten, Pinch und
-  Doppeltipp vergrößern. Bewusst keine fremde Foto-App: die zeigt nach dem Bearbeiten aus ihrem Cache
-  gern noch die alte Fassung.
-- **Mehrseitige Belege**: eine Buchung nimmt beliebig viele Seiten auf (`<uuid>_p1.jpg`, `<uuid>_p2.jpg`, …
-  mit gemeinsamer UUID), jede einzeln ansehbar, zuschneidbar und löschbar. In der KMyMoney-Notiz steht nur
-  `BELEG: <uuid>` – die Seiten findet die App selbst. Hochgeladen wird nach `Belege/<Jahr>/` **neben der
-  KMyMoney-Datei** (im CSV-Modus im Sync-Ordner); das Jahr folgt dem Buchungsdatum, und wird es über einen
-  Jahreswechsel geändert, wandern die Bilder mit. Belege gelöschter Buchungen räumt die App beim nächsten
-  Start selbst weg.
-- **Liste & Filter**: Suche über Empfänger/Notiz/Kategorie, Betrags-, Zeitraum- und **Umkreisfilter**
-  (100 m bis 10 km um den eigenen Standort, nur bei eingeschaltetem GPS), Rückgängig nach Löschen,
-  eigene Rechentastatur im Betragsfeld.
-- **Konten ordnen**: Die Schublade gliedert wie bisher nach Kontenart (Anlage, Verbindlichkeit, Depot);
-  darüber liegen frei vergebene **Kontengruppen** wie „Favoriten" oder „Gemeinsam", denen ein Konto
-  mehrfach angehören kann. Zwei Gruppen bringt die `.kmy` selbst mit: aus dem Institutsblock entstehen
-  Bank-Gruppen, und die in KMyMoney als bevorzugt gekennzeichneten Konten bilden die Gruppe „Favoriten",
-  die in der Auswahl ganz oben steht. Beide spiegeln nur die Datei und sind deshalb nicht änderbar; sie
-  werden bei jedem Import neu gesetzt. Ein Tipp auf „Konten" klappt die Gruppen als Liste auf; die
-  gewählte trägt ein Häkchen und gilt dann app-weit für Buchungsliste, Saldoleiste und Bestände. Die **Lupe** auf dem kMyMoney-Zeichen
-  sucht Konten nach Namensteilen – die Eingabe tritt kurz an die Stelle der Überschrift und wird nirgends
-  gespeichert. Über das Zahnrad lassen sich Konten und ganze
-  Kontenarten **frei sortieren** (Reihenfolge gilt überall). Das ⋮ am Konto öffnet die Gruppen als
-  Ankreuzliste: alle eigenen Gruppen auf einmal an- und abwählen, oben ein freies Feld für eine neue,
-  übernommen wird mit „OK". Dieselbe Ankreuzliste schließt das Konto oder eröffnet es wieder. Eine
-  eigene Gruppe verschwindet, sobald ihr das letzte Konto entzogen wird. Geschlossene Konten stehen nur dort, in grauer Schrift; bekommt ein geschlossenes
-  Konto durch einen Import wieder einen Saldo, öffnet es sich von selbst.
-- **Auswertungen**: Verlaufsdiagramm je Konto/Ort/gesamt, Kategorien-Kreisdiagramm („Wofür geht mein
-  Geld?“), Budget (Ist/Soll aus KMyMoney oder app-intern berechnet), geplante Buchungen als Vorschau.
-  Ist eine **Kontengruppe** gewählt, steht sie im Verlauf als eigene Sicht hinter „Gesamt" und „Gesamt
-  ohne Depot" – mit den Depots der Gruppe, also derselben Summe wie in der Saldo-Leiste.
-- **Geplante Buchungen**: aus KMyMoney importiert und in die einzelnen Termine aufgefaltet. Langer Druck auf
-  den nächsten Termin öffnet ihn vorbefüllt im Editor – dort speichern oder **„Buchung überspringen"**. So
-  oder so verschwindet der Termin aus der Liste und die KMyMoney-Regel wird beim nächsten `.kmy`-Export um
-  eine Periode weitergestellt (die Regel selbst bleibt erhalten, spätere Termine unverändert).
-- **Bestände & Depot**: mehrere Bargeld-**Orte** je Konto mit eigenem Bewegungsjournal und Kassensturz
-  (Empfänger und Kategorie der Ausgleichsbuchung legt man einmal selbst fest, danach sind sie vorbelegt);
-  Orte zeigen sich nur dort, wo welche angelegt sind — kein Ort, kein Ortsfeld, und ohne Orte überhaupt
-  verschwindet der Knopf **„Umbuchen"**;
-  Depot-Import mit vollständiger **Kurshistorie**, Käufen/Verkäufen/Dividenden, Gewinn/Verlust-Auswertung.
-  Der Depotwert zählt wie ein Konto in **„Gesamt"** und in die Vermögensgrafik; im Verlauf zusätzlich als
-  eigene Sichten **„Gesamt ohne Depot"** und **„Depot"**.
-- **Synchronisierung**: Nextcloud/WebDAV/SMB, `.kmy`-Modus (direktes Schreiben/Lesen der KMyMoney-Datei
-  inkl. Splits, Umbuchungen und Depot) oder CSV-Export; automatische Sicherung vor jedem Export, Schutz vor
-  gleichzeitigem Überschreiben. Der `.kmy`-Modus kommt auch mit fremden Dateien zurecht: frisch angelegte
-  Dateien ohne Buchungen, Konten in **Fremdwährung** (Beträge in der Kontowährung), Buchungen mit
-  Schlagwörtern und mehrfach vergebene Kontonamen (dann mit ihrem Pfad, z. B. „Bank B:Girokonto").
-  Ändert man eine schon übertragene Buchung, gilt sie als **„bearbeitet"** und ihre Transaktion wird beim
-  nächsten Übertragen in der Datei geändert (gleiche Transaktion, keine Dublette); ein zwischenzeitlicher
-  Neuimport der `.kmy`-Datei überschreibt die Bearbeitung.
-- **Mehrsprachig**: Deutsch/Englisch eingebaut, weitere Sprachen per Übersetzungsdatei nachrüstbar (auch
-  für die Uhr).
-- **Darstellung**: dunkles Design und app-weite **Schriftgröße** (Klein/Normal/Groß/Sehr groß) – wirkt
-  zusätzlich zur System-Schriftgröße; lange Kontonamen/Buchungstitel laufen bei Bedarf als Laufschrift.
-- **Sicherung**: „Sicherung erstellen" schreibt **Daten und Einstellungen** (Konten, Orte, Kategoriefarben,
-  Server-Zugang) in eine ZIP-Datei. Das Server-Passwort kommt nur auf Nachfrage mit; auf Wunsch wird die
-  ganze Datei mit einem eigenen Sicherungspasswort verschlüsselt (AES-256-GCM, Endung `.abk`). Beim
-  Einspielen fragt die App, was zurückkommen soll: nur Daten, nur Einstellungen oder beides.
-- **Alles neu einlesen**: langer Druck auf „Alle Konten" – oder in dieser Ansicht nach unten ziehen – liest
-  Konten, Depots und geplante Buchungen in einem Zug neu aus der `.kmy` (nur im kmy-Modus).
-- **Sicherheit**: optionale biometrische App-Sperre, GPS standardmäßig aus, verschlüsselte Zugangsdaten.
-  Startet die App selbst eine fremde App – Kamera, Galerie, Dateiauswahl, Spracheingabe –, fragt sie beim
-  Zurückkommen innerhalb von fünf Minuten nicht erneut nach dem Fingerabdruck; man hat die App ja nie
-  wirklich verlassen. Wer länger wegbleibt, muss sich wieder ausweisen.
-
-## Wear OS (Sprach-Schnellerfassung)
-
-Ein zusätzliches Modul `:wear` erfasst eine Bargeldausgabe per Sprache direkt auf einer Wear-OS-Uhr
-(„Frisör 20 Euro“). Die Uhr nimmt nur den Text auf; Verarbeitung und Buchungsanlage passieren auf dem
-Smartphone (derselbe Parser). Die Erkennung folgt der gewählten App-Sprache und **bevorzugt Offline**-
-Spracherkennung, sodass die Aufnahme auch bei ausgeschaltetem Handy klappt; ist offline keine Sprache
-verfügbar, fällt die Uhr auf den stillen Zahlenblock zurück. Offline aufgenommene Buchungen werden
-zwischengespeichert (inkl. GPS) und automatisch nachgereicht, sobald das Handy erreichbar ist – ohne
-Verlust und ohne Dopplung. Ein optionaler Handy-Schalter („Offline-Sprachpaket auf der Uhr installieren“,
-nur `full`-Build) lädt das Offline-Sprachmodell der gewählten Sprache auf die Uhr. Details im Handbuch,
-Kapitel „Wear OS“.
-
-Voraussetzung: Phone- und Wear-App haben dieselbe `applicationId` **und** dieselbe Signatur.
+- **Buchungen erfassen** – Ausgabe, Einnahme, Umbuchung, Splitbuchungen; eigene Rechentastatur im
+  Betragsfeld.
+- **Unterwegs ohne Tippen** – Spracheingabe („Frisör 20 €“) und stille Betrag-only-Erfassung: aus
+  Standort und Betrag schlägt die App den Empfänger vor und füllt seine Kategorie vor. Empfänger lernt
+  sie über Alias-Namen dazu.
+- **Belege** – Foto oder PDF-Dokument je Buchung, mehrseitig, auch an einer Umbuchung. Fotos lassen
+  sich zuschneiden und begradigen; alles wird in den Sync-Ordner hochgeladen.
+- **Liste & Filter** – Suche über Empfänger, Notiz und Kategorie, dazu Betrags-, Zeitraum- und
+  Umkreisfilter; Rückgängig nach dem Löschen.
+- **Konten ordnen** – Gliederung nach Kontenart, dazu frei vergebene Kontengruppen (auch aus der `.kmy`
+  übernommene), freie Sortierung und Kontensuche.
+- **Auswertungen** – Verlauf je Konto/Ort/gesamt, Kategorien-Kreisdiagramm, Budget (Ist/Soll) und
+  geplante Buchungen als Vorschau.
+- **Bestände & Depot** – mehrere Bargeld-Orte je Konto mit Kassensturz; Depot-Import mit Kurshistorie,
+  Käufen, Verkäufen, Dividenden und Gewinn/Verlust.
+- **Geplante Buchungen** – aus KMyMoney übernommen, einzeln buchbar oder überspringbar; die Regel
+  wandert beim nächsten Export eine Periode weiter.
+- **Synchronisierung** – Nextcloud/WebDAV/SMB, `.kmy`-Modus (direktes Lesen und Schreiben der
+  KMyMoney-Datei) oder CSV; automatische Sicherung vor jedem Export. Nachträglich geänderte Buchungen
+  werden in der Datei geändert statt doppelt angelegt.
+- **Wear OS** – gesprochene Ausgabe direkt vom Handgelenk, auch offline; die Uhr nimmt nur den Text auf,
+  gebucht wird auf dem Handy. Offline erfaßtes wird nachgereicht, ohne Verlust und ohne Dopplung.
+- **Sicherheit & Sicherung** – optionale biometrische Sperre, GPS standardmäßig aus, verschlüsselte
+  Zugangsdaten; Sicherung von Daten und Einstellungen in eine (auf Wunsch verschlüsselte) Datei.
+- **Darstellung & Sprache** – helles und dunkles Design, app-weite Schriftgröße, Deutsch und Englisch
+  eingebaut, weitere Sprachen per Übersetzungsdatei.
 
 ## CSV-Format (Export)
 
@@ -192,15 +115,49 @@ Datum;Empfänger;Konto;Typ;Betrag;Notiz;Kategorie
 
 ## Technik
 
-- Java, Gradle 8.9 / AGP 8.7.3, `minSdk 26` (`:app`) bzw. `minSdk 30` (`:wear`), `compileSdk 34`.
-- Module: `:app` (Phone) und `:wear` (Wear OS).
-- [Room](https://developer.android.com/training/data-storage/room) (SQLite), OkHttp (WebDAV),
-  [smbj](https://github.com/hierynomus/smbj) (SMB), [MPAndroidChart](https://github.com/PhilJay/MPAndroidChart),
-  [osmdroid](https://github.com/osmdroid/osmdroid) (Karten-Auswahl),
-  [androidx.security](https://developer.android.com/jetpack/androidx/releases/security)
-  (verschlüsselte Prefs), [androidx.biometric](https://developer.android.com/jetpack/androidx/releases/biometric),
-  [play-services-wearable](https://developer.android.com/training/wearables/data/data-layer) (Data Layer)
-  und [androidx.wear.tiles](https://developer.android.com/training/wearables/tiles) (Tile).
+**Rahmen.** Reines Java 17, kein Kotlin. Gradle 8.9 / AGP 8.7.3, `compileSdk` und `targetSdk` 34,
+`minSdk 26` (`:app`) bzw. `minSdk 30` (`:wear`). Zwei Module: `:app` (Handy, rund 180 Quelldateien) und
+`:wear` (Uhr, rund 15). Kein Dependency-Injection-Rahmenwerk, keine Reflexion auf App-Code, keine
+Analyse-, Absturz- oder Werbe-Bibliothek.
+
+**Aufbau.** Die Pakete unter `de.spahr.ausgaben` schneiden nach Aufgabe: `db` (Room und Rechenlogik),
+`export` (KMyMoney und CSV), `net` (WebDAV/SMB), `receipt` (Belege), `voice` (Sprach-Erfassung),
+`location`, `security`, `settings`, `backup`, `i18n`, `notify`, `widget`, `wear` und `ui`.
+
+**Datenhaltung.** [Room](https://developer.android.com/training/data-storage/room) über SQLite,
+Datenbankfassung 42 mit lückenloser Migrationskette – ein Update behält den Bestand, ein
+Neuinstallieren ist nie nötig. Beträge liegen durchgehend als `long` in Cent, nie als Fließkommazahl.
+
+**KMyMoney.** Die `.kmy`-Datei ist gzip-gepacktes XML und wird direkt gelesen **und geschrieben** –
+samt Splits, Umbuchungen, Depot und geplanten Buchungen. Geschrieben wird in den vorhandenen Baum
+hinein (gleiche Transaktions-Kennungen an gleicher Stelle), damit KMyMoney die Datei unverändert
+weiterverwendet; vor jedem Schreiben legt die App eine Sicherung an.
+
+**Prüfbarkeit.** Alles, was rechnet oder entscheidet, steckt in reinen Klassen **ohne Android** –
+`PayeeAmounts`, `PayeeCategories`, `AccountScope`, `BudgetMath`, `RadiusFilter`, `EditStatus`,
+`NoteReceipt` und andere. Sie sind mit JUnit 4 ohne Emulator und ohne Mocks prüfbar; derzeit laufen
+**372 Unit-Tests**, darunter Prüfungen gegen echte `.kmy`-Dateien (dafür Robolectric, das im APK nicht
+landet).
+
+**Belege.** Fotos und PDFs liegen app-privat und werden im Hintergrund nach `Belege/<Jahr>/` neben der
+KMyMoney-Datei hochgeladen. Der Verweis darauf steht als Kürzel in der Buchungsnotiz und übersteht
+damit Export und Neu-Import; ein PDF reicht die App über einen `FileProvider` an den Betrachter des
+Geräts weiter.
+
+**Varianten.** Google Play Services stecken ausschließlich im `full`-Flavor unter `app/src/full/`; der
+`foss`-Flavor enthält davon keine einzige Zeile. Handy- und Uhren-App brauchen dieselbe
+`applicationId` **und** dieselbe Signatur, sonst findet der Data Layer sie nicht.
+
+**Fremde Bibliotheken.** [Room](https://developer.android.com/training/data-storage/room), OkHttp
+(WebDAV), [smbj](https://github.com/hierynomus/smbj) mit BouncyCastle (SMB2/3),
+[MPAndroidChart](https://github.com/PhilJay/MPAndroidChart) – als Quellcode-Submodul, weil F-Droid
+JitPack nicht zuläßt –, [osmdroid](https://github.com/osmdroid/osmdroid) (Karten-Auswahl ohne
+API-Schlüssel), [androidx.security](https://developer.android.com/jetpack/androidx/releases/security)
+(verschlüsselte Prefs),
+[androidx.biometric](https://developer.android.com/jetpack/androidx/releases/biometric) sowie
+[play-services-wearable](https://developer.android.com/training/wearables/data/data-layer) und
+[androidx.wear.tiles](https://developer.android.com/training/wearables/tiles) – die letzten beiden nur
+in `full` bzw. `:wear`.
 
 ## Bauen
 
@@ -221,25 +178,14 @@ lokal in einen selbst gewählten Ordner exportiert.
 
 - **Nextcloud**: Basis-URL des Servers + ein **App-Passwort** (Nextcloud → Sicherheit → App-Passwort).
 - **WebDAV (generisch)**: vollständige DAV-Wurzel-URL, Auth per HTTP-Basic.
-- **SMB/Samba**: **Einrichtungsassistent** – die App sucht die SMB-Server im lokalen Netz (mDNS,
-  NetBIOS und Port 445), danach anmelden, aus den gefundenen **Freigaben** wählen und den Zielordner
-  durchklicken; gespeichert wird daraus `smb://Host/Freigabe/Ordner`. Leerer Benutzer = Gast, Domäne als
-  `DOMÄNE\Benutzer`, SMB2/3. Lauscht der Server nicht auf dem Standardport 445, trägt man den Port im
-  Assistenten ein bzw. schreibt ihn in die Adresse (`smb://Host:7777/Freigabe`). Antwortet dort
-  niemand, versucht die App zusätzlich den **Standardport 445** und korrigiert die gespeicherte
-  Adresse – ein aus der Server-Auskunft (mDNS) übernommener Port führt so nicht mehr in die Irre.
-  Über „Server manuell eingeben" bleibt die Adresseingabe von Hand möglich.
-  **Passwortlose Freigaben**: Passwortfeld leer lassen – die App arbeitet dann als Gast weiter, auch
-  wenn ein Benutzername eingetragen ist. Nur wer ein Passwort eingibt und trotzdem als Gast
-  eingestuft wird, bekommt weiterhin eine Fehlermeldung (Schutz vor stiller Gast-Herabstufung).
-  Unterstützt werden auch Freigaben mit **SMB3-Verschlüsselung** (`smb encrypt = required`), **DFS**
-  und rein **anonyme** Freigaben; verlangt der Server Signierung, wird signiert.
-- **Diagnose**: Der Knopf „Verbindung prüfen (Diagnose)" – in den Einstellungen **und** im
-  Erststart-Assistenten – geht die ganze Kette durch (Verbinden → Aushandeln → Anmelden → Freigaben →
-  Freigabe → Ordner lesen → **Schreibrecht** → Datei) und zeigt je Schritt Ergebnis, Dauer und – im
-  Fehlerfall – den rohen Statuscode. Geprüft wird auch, ob der Zielordner **beschreibbar** ist: ein
-  nur lesbares Verzeichnis fällt sonst erst beim Rückschreiben auf. Der Bericht lässt sich kopieren
-  und enthält weder Passwort noch Benutzernamen.
+- **SMB/Samba**: ein **Einrichtungsassistent** sucht die Server im lokalen Netz, danach Freigabe und
+  Zielordner durchklicken. SMB2/3, auch verschlüsselte, anonyme und DFS-Freigaben.
+- **Diagnose**: Der Knopf „Verbindung prüfen (Diagnose)" geht die ganze Kette bis zum Schreibrecht
+  durch und zeigt je Schritt Ergebnis, Dauer und Fehlercode. Der Bericht läßt sich kopieren und enthält
+  weder Passwort noch Benutzernamen.
+
+Alle Feinheiten – Ports, Gast-Zugänge, Domänen, Fehlerbilder – stehen im
+**[Benutzerhandbuch](docs/Handbuch-Ausgaben-de.pdf)**.
 
 ## Lizenz
 

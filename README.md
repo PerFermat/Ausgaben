@@ -74,108 +74,35 @@ for F-Droid packaging notes.
 
 ## Features at a glance
 
-Details, screenshots and exact behavior are in the **[user manual](docs/Manual-Ausgaben-en.pdf)**.
+This list names the main features only. The exact behaviour, every detail and screenshots are in the
+**[user manual](docs/Manual-Ausgaben-en.pdf)**.
 
-- **Record bookings**: expense/transfer/income, split bookings, receipt photos (transfers included –
-  both accounts then show the same image), voice input
-  ("hairdresser 20 €"), silent amount-only entry resolved via GPS location, learning payee aliases.
-  The **six nearest payees** head the suggestion list with a bearing arrow – measured from the
-  booking's location: the current one while creating, the booking's stored mark while editing. As soon
-  as you type, the plain alphabetical list is back. Once the payee is set, the **first category** is
-  filled from its previous entries (preferred alias → latest booking → other alias); the remaining
-  ones head the category list as their own block. The preset follows the payee: pick another one and
-  the category moves along – until you change something in the category rows yourself, after which
-  your entry stays (and when editing a saved booking it is left alone anyway). Where several payees share a location, the **amount**
-  decides as well: €80 is a tank of fuel, €10 the car wash. In the silent numeric entry the matching
-  name appears live below the amount (tap to cycle through the others); in the editor an unambiguous
-  hit fills the empty payee field. Nobody is ruled out – the amount only sets the order, and if it
-  fits no usual range, the one closest to it comes first (measured as a ratio: at €15 the range
-  €20–100 beats €5–10, at €1 the other way round). Which amounts count as usual can be set per alias with a slider
-  (default: the range holding nine out of ten of its bookings) – per booking type, transfers included.
-  In the numeric entry and the editor the amount only has a say with the **"Use amount for payee
-  suggestions"** switch (off by default); for plain voice entry without a payee – on the phone as from
-  the watch – it always counts. Where the app picks the payee itself, only those of the **accounts on
-  display** qualify (on the watch the one selected there); an alias without an account of its own
-  counts everywhere.
-- **Edit receipt photos**: right after the shot (or later from the receipt row) you can crop the image to a
-  rectangle, straighten a skewed bill in trapezoid mode and adjust brightness/contrast. The untouched
-  original is kept as `…_original.jpg` for good; editing again asks whether to continue from the current
-  version or start over from that original. If you don't want to change anything, keep the photo as it is.
-- **View receipts**: a viewer built into the app — swipe to page through a multi-page receipt, pinch and
-  double-tap to zoom. Deliberately not an external photo app: those tend to serve the pre-edit version
-  from their cache.
-- **Multi-page receipts**: a booking takes as many pages as you like (`<uuid>_p1.jpg`, `<uuid>_p2.jpg`, …
-  sharing one UUID), each one viewable, croppable and removable on its own. The KMyMoney note only holds
-  `BELEG: <uuid>` — the app finds the pages by itself. They are uploaded to `Belege/<year>/` **next to the
-  KMyMoney file** (in CSV mode into the sync folder); the year follows the booking date, and moving that
-  date across new year takes the images along. Receipts of deleted bookings are cleaned up on the next
-  app start.
-- **List & filter**: search across payee/note/category, amount, date-range and **radius** filters (100 m
-  to 10 km around your own position, only with location enabled), undo after delete, a built-in
-  calculator keyboard in the amount field.
-- **Organising accounts**: the drawer still groups by account kind (asset, liability, portfolio); on top
-  of that come freely chosen **account groups** such as "Favourites" or "Joint", and an account may belong
-  to several of them. Two groups come out of the `.kmy` itself: the institutions block yields bank groups,
-  and the accounts marked as preferred in KMyMoney form the "Favourites" group, which sits at the top of
-  the picker. Both merely mirror the file and therefore cannot be edited; they are rebuilt on every
-  import. Tapping "Accounts" drops the groups down as a list; the chosen one carries a tick and then
-  applies app-wide to the booking list, the balance bar and the holdings view. The **magnifier** on the kMyMoney
-  emblem searches accounts by part of their name — the input briefly takes the place of the heading and is
-  never stored. The gear icon opens a view where accounts and whole
-  account kinds can be **reordered freely** (the order applies everywhere). The ⋮ next to an account
-  opens its groups as a tick list: check and uncheck all your own groups at once, with a free field on
-  top for a new one, applied with "OK". The same list also closes or reopens the account. A group of
-  your own disappears as soon as its last account is taken out of it. Closed accounts appear only there, in grey; if a closed account regains a balance on
-  import, it reopens by itself.
-- **Analysis**: history chart per account/place/total, category pie chart ("Where does my money go?"),
-  budget (actual vs. planned, imported from KMyMoney or computed in-app), scheduled bookings preview.
-  With an **account group** selected, the history offers it as its own view behind "Total" and "Total
-  without portfolio" — including the group's portfolios, so the figure matches the balance bar.
-- **Scheduled bookings**: imported from KMyMoney and unfolded into their individual dates. Long-press the
-  next date to open it prefilled in the editor — save it as a real booking, or use **"Skip booking"** there.
-  Either way that date disappears from the list and the KMyMoney schedule is moved on by one period on the
-  next `.kmy` export (the schedule itself is kept, later dates stay untouched).
-- **Holdings & portfolio**: several cash **places** per account with their own movement journal and
-  reconciliation (you set the payee and category of the balancing booking once, they are prefilled from
-  then on); places only ever show up where you have created some — no place, no place field, and without
-  any places at all the "Transfer" button is gone; portfolio import with the full **price history**,
-  buys/sells/dividends, gain/loss
-  analysis. The portfolio value counts like an account in **"Total"** and in the net-worth graph; the
-  history additionally offers the views **"Total without portfolio"** and **"Portfolio"**.
-- **Sync**: Nextcloud/WebDAV/SMB, `.kmy` mode (writes/reads the KMyMoney file directly, including splits,
-  transfers and the portfolio) or CSV export; automatic backup before every export, protection against
-  concurrent overwrites. The `.kmy` mode also copes with other people's files: freshly created files without
-  bookings, accounts in a **foreign currency** (amounts in the account's currency), tagged transactions and
-  account names used more than once (shown with their path, e.g. "Bank B:Checking").
-  Change a booking that was already transferred and it becomes **"edited"**: its transaction is changed in
-  the file on the next transfer (same transaction, no duplicate); re-importing the `.kmy` file in the
-  meantime overwrites the edit.
-- **Multilingual**: English/German built in, more languages via a translation file (also on the watch).
-- **Appearance**: dark theme and an app-wide **font size** (Small/Normal/Large/Very large) — applied on
-  top of the system font size; long account names/booking titles marquee-scroll when they no longer fit.
-- **Backup**: "Create backup" writes **data and settings** (accounts, places, category colours, server
-  access) into a ZIP file. The server password is only included if you ask for it, and the whole file can be
-  encrypted with a backup password of your own (AES-256-GCM, extension `.abk`). When restoring, the app asks
-  what should come back: data only, settings only or both.
-- **Reload everything**: a long press on "All accounts" — or pulling down in that view — reloads accounts,
-  portfolios and scheduled transactions from the `.kmy` in one go (kmy mode only).
-- **Security**: optional biometric app lock, GPS off by default, encrypted credentials. When the app hands
-  over to another app itself — camera, gallery, file picker, speech input — returning within five minutes
-  does not ask for your fingerprint again; from your point of view you never left. Stay away longer and the
-  lock is back.
-
-## Wear OS (voice quick capture)
-
-An additional `:wear` module records a cash expense by voice right on a Wear OS watch ("hairdresser 20
-euros"). The watch only captures the text; processing and creating the booking happen on the phone (the
-same parser). Recognition follows the selected app language and **prefers offline** speech, so recording
-works even with the phone off; if offline speech isn't available the watch falls back to the silent number
-pad. Bookings recorded offline are buffered (incl. GPS) and sent automatically once the phone is reachable
-— without loss or duplication. An opt-in phone setting ("Install offline speech package on the watch",
-`full` build only) lets the watch download the offline speech model for the chosen language. See the
-"Wear OS" chapter in the manual for details.
-
-Requirement: the phone and watch app share the same `applicationId` **and** the same signature.
+- **Record bookings** — expense, income, transfer, split bookings; a built-in calculator keyboard in the
+  amount field.
+- **No typing on the go** — voice input ("hairdresser 20 €") and silent amount-only entry: from your
+  location and the amount the app suggests the payee and prefills its category. Payees are learnt as
+  aliases.
+- **Receipts** — a photo or a PDF document per booking, multi-page, transfers included. Photos can be
+  cropped and straightened; everything is uploaded into the sync folder.
+- **List & filter** — search across payee, note and category, plus amount, date-range and radius
+  filters; undo after delete.
+- **Organising accounts** — grouped by account kind, plus freely chosen account groups (including ones
+  taken from the `.kmy`), free ordering and account search.
+- **Analysis** — history per account/place/total, category pie chart, budget (actual vs. planned) and a
+  preview of scheduled bookings.
+- **Holdings & portfolio** — several cash places per account with reconciliation; portfolio import with
+  price history, buys, sells, dividends and gain/loss.
+- **Scheduled bookings** — taken from KMyMoney, bookable or skippable one date at a time; the schedule
+  moves on by one period with the next export.
+- **Sync** — Nextcloud/WebDAV/SMB, `.kmy` mode (reads and writes the KMyMoney file directly) or CSV;
+  automatic backup before every export. Bookings changed after the fact are edited in the file rather
+  than added twice.
+- **Wear OS** — speak an expense right from your wrist, offline too; the watch only captures the text,
+  the phone creates the booking. Anything recorded offline is sent on later, without loss or duplication.
+- **Security & backup** — optional biometric lock, GPS off by default, encrypted credentials; data and
+  settings can be backed up into a file that may be encrypted.
+- **Appearance & language** — light and dark theme, app-wide font size, English and German built in,
+  further languages via a translation file.
 
 ## CSV format (export)
 
@@ -191,15 +118,45 @@ Datum;Empfänger;Konto;Typ;Betrag;Notiz;Kategorie
 
 ## Tech
 
-- Java, Gradle 8.9 / AGP 8.7.3, `minSdk 26` (`:app`) / `minSdk 30` (`:wear`), `compileSdk 34`.
-- Modules: `:app` (phone) and `:wear` (Wear OS).
-- [Room](https://developer.android.com/training/data-storage/room) (SQLite), OkHttp (WebDAV),
-  [smbj](https://github.com/hierynomus/smbj) (SMB), [MPAndroidChart](https://github.com/PhilJay/MPAndroidChart),
-  [osmdroid](https://github.com/osmdroid/osmdroid) (map picker),
-  [androidx.security](https://developer.android.com/jetpack/androidx/releases/security)
-  (encrypted prefs), [androidx.biometric](https://developer.android.com/jetpack/androidx/releases/biometric),
-  [play-services-wearable](https://developer.android.com/training/wearables/data/data-layer) (Data Layer)
-  and [androidx.wear.tiles](https://developer.android.com/training/wearables/tiles) (tile).
+**Frame.** Plain Java 17, no Kotlin. Gradle 8.9 / AGP 8.7.3, `compileSdk` and `targetSdk` 34, `minSdk 26`
+(`:app`) / `minSdk 30` (`:wear`). Two modules: `:app` (phone, around 180 source files) and `:wear`
+(watch, around 15). No dependency-injection framework, no reflection on app code, no analytics, crash
+reporting or ad library.
+
+**Layout.** The packages under `de.spahr.ausgaben` are cut by job: `db` (Room and the computing logic),
+`export` (KMyMoney and CSV), `net` (WebDAV/SMB), `receipt`, `voice`, `location`, `security`, `settings`,
+`backup`, `i18n`, `notify`, `widget`, `wear` and `ui`.
+
+**Storage.** [Room](https://developer.android.com/training/data-storage/room) on SQLite, database
+version 42 with an unbroken chain of migrations — an update keeps your data, a fresh install is never
+required. Amounts are `long` cents throughout, never floating point.
+
+**KMyMoney.** The `.kmy` file is gzipped XML and is read **and written** directly — splits, transfers,
+portfolio and schedules included. Writing happens into the existing tree (same transaction ids in the
+same place) so KMyMoney carries on with the file unchanged; a backup is written before every such run.
+
+**Testability.** Everything that computes or decides lives in pure classes **without Android** —
+`PayeeAmounts`, `PayeeCategories`, `AccountScope`, `BudgetMath`, `RadiusFilter`, `EditStatus`,
+`NoteReceipt` and others. They run under JUnit 4 with no emulator and no mocks; **372 unit tests** at
+present, among them checks against real `.kmy` files (via Robolectric, which never ships in the APK).
+
+**Receipts.** Photos and PDFs are kept app-private and uploaded in the background into `Belege/<year>/`
+next to the KMyMoney file. The reference is a short tag inside the booking note, so it survives export
+and re-import; a PDF is handed to the device's viewer through a `FileProvider`.
+
+**Flavors.** Google Play Services exist solely in the `full` flavor under `app/src/full/`; the `foss`
+flavor contains not a line of it. Phone and watch app need the same `applicationId` **and** the same
+signature, or the Data Layer will not pair them.
+
+**Third-party libraries.** [Room](https://developer.android.com/training/data-storage/room), OkHttp
+(WebDAV), [smbj](https://github.com/hierynomus/smbj) with BouncyCastle (SMB2/3),
+[MPAndroidChart](https://github.com/PhilJay/MPAndroidChart) — as a source submodule, since F-Droid does
+not allow JitPack —, [osmdroid](https://github.com/osmdroid/osmdroid) (map picker, no API key),
+[androidx.security](https://developer.android.com/jetpack/androidx/releases/security) (encrypted prefs),
+[androidx.biometric](https://developer.android.com/jetpack/androidx/releases/biometric), plus
+[play-services-wearable](https://developer.android.com/training/wearables/data/data-layer) and
+[androidx.wear.tiles](https://developer.android.com/training/wearables/tiles) — the last two only in
+`full` and `:wear` respectively.
 
 ## Building
 
@@ -220,24 +177,14 @@ folder you choose.
 - **Nextcloud**: base URL of the server + an **app password** (Nextcloud → Settings → Security → App
   password).
 - **WebDAV (generic)**: the full DAV root URL, auth via HTTP basic.
-- **SMB/Samba**: **setup wizard** — the app scans the local network for SMB servers (mDNS, NetBIOS and
-  port 445), then you log in, pick one of the **shares** it lists and browse to the target folder; that
-  becomes `smb://host/share/folder`. Empty user = guest, a Windows domain as `DOMAIN\user`, SMB2/3.
-  If the server does not listen on the default port 445, enter the port in the wizard or put it into the
-  address (`smb://host:7777/share`). If nothing answers there, the app also tries the **default port
-  445** and corrects the stored address — a port picked up from the server's own mDNS announcement can
-  no longer lead you astray. "Enter server manually" still allows typing the address yourself.
-  **Shares without a password**: leave the password field empty and the app continues as guest, even
-  with a user name filled in. Only if you do enter a password and are still downgraded to guest do you
-  get an error (the guard against silent guest downgrades).
-  Shares with **SMB3 encryption** (`smb encrypt = required`), **DFS** and purely **anonymous** shares
-  work as well; if the server requires signing, traffic is signed.
-- **Diagnostics**: the button "Check connection (diagnostics)" — in the settings **and** in the
-  first-start wizard — walks the whole chain (connect → negotiate → log in → shares → share → read
-  folder → **write permission** → file) and shows, per step, the result, the duration and — on
-  failure — the raw status code. It also checks that the target folder is **writable**: a read-only
-  directory would otherwise only surface when writing back. The report can be copied and contains
-  neither the password nor the user name.
+- **SMB/Samba**: a **setup wizard** scans the local network for servers, then you pick a share and
+  browse to the target folder. SMB2/3, encrypted, anonymous and DFS shares included.
+- **Diagnostics**: the button "Check connection (diagnostics)" walks the whole chain up to the write
+  permission and shows, per step, the result, the duration and the error code. The report can be copied
+  and contains neither the password nor the user name.
+
+Every detail — ports, guest access, domains, error cases — is in the
+**[user manual](docs/Manual-Ausgaben-en.pdf)**.
 
 ## License
 

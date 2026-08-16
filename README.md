@@ -82,7 +82,9 @@ Details, screenshots and exact behavior are in the **[user manual](docs/Manual-A
   booking's location: the current one while creating, the booking's stored mark while editing. As soon
   as you type, the plain alphabetical list is back. Once the payee is set, the **first category** is
   filled from its previous entries (preferred alias → latest booking → other alias); the remaining
-  ones head the category list as their own block. Where several payees share a location, the **amount**
+  ones head the category list as their own block. The preset follows the payee: pick another one and
+  the category moves along – until you change something in the category rows yourself, after which
+  your entry stays (and when editing a saved booking it is left alone anyway). Where several payees share a location, the **amount**
   decides as well: €80 is a tank of fuel, €10 the car wash. In the silent numeric entry the matching
   name appears live below the amount (tap to cycle through the others); in the editor an unambiguous
   hit fills the empty payee field. Nobody is ruled out – the amount only sets the order, and if it

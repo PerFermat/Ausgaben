@@ -80,7 +80,9 @@ Details, Screenshots und die genaue Bedienung stehen im **[Benutzerhandbuch](doc
   gespeicherte Marke der Buchung. Sobald man tippt, bleibt die alphabetische Liste. Steht der
   Empfänger fest, füllt sich die **erste Kategorie** aus seinen bisherigen Einträgen (bevorzugter
   Alias → letzte Buchung → übriger Alias); die weiteren stehen als eigener Block oben in der
-  Kategorieliste. Stehen mehrere Empfänger am selben Ort, entscheidet zusätzlich der **Betrag**: 80 €
+  Kategorieliste. Die Vorbelegung folgt dem Empfänger: wählt man einen anderen, wandert die Kategorie
+  mit – bis man in den Kategoriezeilen selbst etwas ändert, dann bleibt die eigene Eingabe stehen
+  (beim Bearbeiten einer gespeicherten Buchung ohnehin). Stehen mehrere Empfänger am selben Ort, entscheidet zusätzlich der **Betrag**: 80 €
   sind eine Tankfüllung, 10 € die Waschanlage. In der stillen Zifferneingabe steht der passende Name
   live unter dem Betrag (Antippen läuft durch die übrigen); im Editor füllt ein eindeutiger Treffer
   das leere Empfängerfeld. Ausgeschlossen wird dabei niemand – der Betrag bestimmt nur die

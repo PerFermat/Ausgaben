@@ -53,6 +53,10 @@ class SplitRowController {
     private boolean suppressSplitEvents;
     private boolean syncingAmounts;
     private AmountFieldBinder amountBinder;
+    /** Stammt der Inhalt der Kategoriezeilen noch allein aus Vorbelegungen? */
+    private boolean categoryAuto = true;
+    /** Läuft gerade eine Vorbelegung? Dann ist die Änderung kein Handgriff des Nutzers. */
+    private boolean prefilling;
 
     /** Hängt ein Teilbetrag-Feld an die gemeinsame Rechentastatur (von der Activity gesetzt). */
     interface AmountFieldBinder {
@@ -136,6 +140,7 @@ class SplitRowController {
             // einer Dropdown-Auswahl läuft dieser Watcher VOR dem Klick-Listener unten (Android ruft bei
             // performCompletion() erst setText(), dann den Item-Klick), der den Typ danach korrekt setzt.
             cat.setTag(null);
+            noteUserEdit();
             onSplitCategoryChanged(row);
         }));
         // Über PickerBehaviour: die Kategorie kann auch getippt und stehengelassen werden, dann fällt
@@ -145,11 +150,15 @@ class SplitRowController {
                     categoryAdapter != null ? categoryAdapter.itemFor(value) : null;
             cat.setTag(item != null ? item.groupIsIncome : null);
         });
-        amt.addTextChangedListener(new SimpleWatcher(() -> onPartialChanged(row)));
+        amt.addTextChangedListener(new SimpleWatcher(() -> {
+            noteUserEdit();
+            onPartialChanged(row);
+        }));
         if (amountBinder != null) {
             amountBinder.bind(amt);   // Teilbetrag-Feld an die Rechentastatur binden
         }
         remove.setOnClickListener(v -> {
+            categoryAuto = false;      // von Hand entfernt – hier wird nichts mehr nachgezogen
             container.removeView(row);
             ensureTrailingRow();
             recomputeTotalFromParts();
@@ -239,9 +248,45 @@ class SplitRowController {
         return found;
     }
 
-    /** Ob die erste Zeile noch keine Kategorie trägt – dann darf eine Vorbelegung hinein. */
-    boolean isFirstCategoryEmpty() {
-        return container.getChildCount() > 0 && catText(container.getChildAt(0)).isEmpty();
+    /**
+     * Merkt einen Handgriff des Nutzers in den Zeilen vor: ab jetzt wird die Kategorie nicht mehr
+     * nachgezogen. Programmgesteuerte Schreibvorgänge zählen nicht mit – weder das Vorbelegen selbst
+     * noch der Teilbetrag, den {@link #onSplitCategoryChanged} und {@link #onTotalChanged} setzen.
+     */
+    private void noteUserEdit() {
+        if (!prefilling && !suppressSplitEvents && !syncingAmounts) {
+            categoryAuto = false;
+        }
+    }
+
+    /** Ob die Kategoriezeilen noch allein aus Vorbelegungen stammen – dann darf eine neue hinein. */
+    boolean isCategoryAuto() {
+        return categoryAuto;
+    }
+
+    /**
+     * Erklärt die jetzigen Zeilen für unantastbar: bei einer gespeicherten oder geplanten Buchung ist
+     * die Kategorie gesetzte Wahrheit und keine Vorbelegung.
+     */
+    void lockCategories() {
+        categoryAuto = false;
+    }
+
+    /**
+     * Ersetzt den vorbelegten Satz durch diese eine Kategorie – der Empfänger hat gewechselt. Was der
+     * Nutzer selbst eingetragen hat, bleibt unangetastet ({@link #isCategoryAuto()}). Ohne Kategorie
+     * bleibt allein die leere Abschlusszeile stehen.
+     */
+    void replaceAutoCategories(String category) {
+        if (!categoryAuto) {
+            return;
+        }
+        prefilling = true;
+        clear();
+        ensureTrailingRow();
+        setFirstCategory(category);
+        prefilling = false;
+        onChanged.run();
     }
 
     /**

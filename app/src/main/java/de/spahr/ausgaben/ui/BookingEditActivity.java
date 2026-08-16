@@ -210,6 +210,10 @@ public class BookingEditActivity extends LocalizedActivity {
     private double[] nearbyCenter;
     /** Empfänger und Buchungsart, zu denen die Kategorie-Favoriten gehören („name|true/false"). */
     private String payeeCategoryKey;
+    /** Empfänger und Buchungsart, für die die vorbelegten Kategoriezeilen gelten – sonst {@code null}. */
+    private String categorySourceKey;
+    /** Kommen die geladenen Kategorien aus einer echten Buchung oder Planung? Dann bleiben sie stehen. */
+    private boolean keepLoadedCategories;
     /** Betrag, Art und Ort, zu denen zuletzt ein Empfänger vorgeschlagen wurde – fragt nicht zweimal. */
     private String payeeAmountKey;
     /** So weit muß der Standort wandern, damit der Vorspann neu gerechnet wird (Meter). */
@@ -721,6 +725,8 @@ public class BookingEditActivity extends LocalizedActivity {
         }
         splitCtl.setSuppressEvents(false);
         splitCtl.ensureTrailingRow();
+        // Diese Zeilen gehören zum Empfänger des Alias – erst ein anderer Empfänger zieht neue nach.
+        markCategorySource();
         // Betrag (z. B. aus der Spracherfassung bereits im Gesamtfeld) in den Teilbetrag übernehmen,
         // sofern genau eine Kategorie gesetzt ist (Alias ohne echte zweite Splitkategorie).
         splitCtl.onTotalChanged();
@@ -762,6 +768,8 @@ public class BookingEditActivity extends LocalizedActivity {
             return;
         }
         booking = b;
+        // Gespeicherte Buchung: die Kategorie ist gesetzte Wahrheit und keine Vorbelegung.
+        keepLoadedCategories = true;
         origIsTransfer = b.isTransfer;
         origTransferGroup = b.transferGroup == null ? "" : b.transferGroup;
         origPlaceManaged = b.placeManaged; // importiert (false): ein Ort wird beim Ändern nicht übernommen
@@ -860,6 +868,8 @@ public class BookingEditActivity extends LocalizedActivity {
         final Booking b = bookingFromSchedule(st, dueMs);
         // Ansicht: „booking" trägt den Typ für applyReadOnly. Buchen: null = NEUE Buchung (wie bindTemplate).
         booking = preview ? b : null;
+        // Die Kategorien stehen so in der Planung – auch beim Buchen nicht überschreiben.
+        keepLoadedCategories = true;
         origIsTransfer = b.isTransfer;
         origPlaceManaged = !preview;   // neue Buchung ist ort-verknüpft, die Vorschau nie
         openedFromExistingBooking = true;
@@ -1133,6 +1143,14 @@ public class BookingEditActivity extends LocalizedActivity {
         }
         splitCtl.setSuppressEvents(false);
         splitCtl.ensureTrailingRow();
+        // Aus einer echten Buchung oder Planung geladen? Dann bleibt die Kategorie, wie sie ist. Aus
+        // einer Vorlage der Spracherfassung gehört sie zum gefundenen Empfänger – und weicht einem
+        // anderen, falls die Automatik danebenlag.
+        if (keepLoadedCategories) {
+            splitCtl.lockCategories();
+        } else {
+            markCategorySource();
+        }
         editAmount.setText(formatCents(total));
         updateSaveEnabled();
     }
@@ -1184,15 +1202,6 @@ public class BookingEditActivity extends LocalizedActivity {
     }
 
     /**
-     * Holt die Kategorien des eingetragenen Empfängers: bevorzugte Aliase, dann seine Buchungen, dann
-     * die übrigen Aliase (siehe {@link de.spahr.ausgaben.db.PayeeCategories}). Sie stehen als Vorspann
-     * oben in jeder Kategorieliste; die <b>erste Zeile</b> wird mit der ersten vorbelegt – aber nur,
-     * wenn dort noch nichts steht: eine Vorbelegung füllt, sie überschreibt nicht.
-     *
-     * <p>Umbuchungen haben keine Kategorien, die reine Ansicht nichts zu wählen. Gefragt wird erst,
-     * wenn sich Empfänger oder Buchungsart wirklich geändert haben.</p>
-     */
-    /**
      * Schlägt aus dem eingetippten Betrag einen Empfänger vor: liegt im 100-m-Umkreis der
      * Standort-Marke genau <b>ein</b> Empfänger im Betragsband, wird er ins <b>leere</b> Feld
      * geschrieben – und zieht über {@link #refreshPayeeCategories()} seine Kategorie nach.
@@ -1230,6 +1239,29 @@ public class BookingEditActivity extends LocalizedActivity {
         });
     }
 
+    /**
+     * Holt die Kategorien des eingetragenen Empfängers: bevorzugte Aliase, dann seine Buchungen, dann
+     * die übrigen Aliase (siehe {@link de.spahr.ausgaben.db.PayeeCategories}). Sie stehen als Vorspann
+     * oben in jeder Kategorieliste; die <b>erste</b> belegt die Kategoriezeilen vor.
+     *
+     * <p>Die Vorbelegung <b>folgt dem Empfänger</b>: wählt man einen anderen (oder schaltet die
+     * Buchungsart um), tritt dessen Kategorie an die Stelle der bisherigen – die Automatik hat sich ja
+     * womöglich geirrt. Sobald der Nutzer in den Zeilen selbst etwas getan hat, bleibt seine Eingabe
+     * ({@link SplitRowController#isCategoryAuto()}); {@link #categorySourceKey} verhindert, daß ein
+     * mehrzeiliger Satz aus Alias oder Vorlage gleich beim Öffnen zusammenfällt.</p>
+     *
+     * <p>Umbuchungen haben keine Kategorien, die reine Ansicht nichts zu wählen. Gefragt wird erst,
+     * wenn sich Empfänger oder Buchungsart wirklich geändert haben.</p>
+     */
+    /**
+     * Hält fest, für welchen Empfänger und welche Buchungsart die eben vorbelegten Kategoriezeilen
+     * gelten. Solange beides gleich bleibt, rührt {@link #refreshPayeeCategories()} sie nicht an – ein
+     * Alias mit zwei Kategorien behält so seine zweite Zeile.
+     */
+    private void markCategorySource() {
+        categorySourceKey = textOf(editPayee).trim().toLowerCase(Locale.ROOT) + "|" + isIncomeType();
+    }
+
     private void refreshPayeeCategories() {
         if (readOnly || isTransferType()) {
             return;
@@ -1251,8 +1283,9 @@ public class BookingEditActivity extends LocalizedActivity {
                 return;
             }
             splitCtl.setCategoryFavorites(getString(R.string.category_group_payee), cats);
-            if (!cats.isEmpty() && splitCtl.isFirstCategoryEmpty()) {
-                splitCtl.setFirstCategory(cats.get(0));
+            if (splitCtl.isCategoryAuto() && !key.equals(categorySourceKey)) {
+                splitCtl.replaceAutoCategories(cats.isEmpty() ? null : cats.get(0));
+                categorySourceKey = key;
             }
         });
     }

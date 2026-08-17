@@ -84,6 +84,10 @@ public class KmyDocument {
     private final Map<String, String> payeeNameToId = new LinkedHashMap<>();
     private final Map<String, String> payeeIdToName = new LinkedHashMap<>();
 
+    /** Stichwörter aus dem {@code <TAGS>}-Block: id → Name und Name (klein) → id. */
+    private final Map<String, String> tagIdToName = new LinkedHashMap<>();
+    private final Map<String, String> tagNameToId = new LinkedHashMap<>();
+
     private long maxTransactionNumber = 0;
     private int maxPayeeNumber = 0;
     /** Anzahl der Buchungen laut {@code <TRANSACTIONS count="…">}; 0 = unbekannt. */
@@ -232,6 +236,21 @@ public class KmyDocument {
         return payeeIdToName.get(id);
     }
 
+    /** Alle Stichwörter der Datei in Dateireihenfolge. */
+    public List<String> tagNames() {
+        return new ArrayList<>(tagIdToName.values());
+    }
+
+    /** Name eines Stichworts zu seiner id (beim Lesen der Splits). */
+    public String tagName(String id) {
+        return tagIdToName.get(id);
+    }
+
+    /** id eines Stichworts zu seinem Namen, oder {@code null}: dann kennt die Datei es nicht. */
+    public String tagId(String name) {
+        return name == null ? null : tagNameToId.get(name.trim().toLowerCase(Locale.GERMANY));
+    }
+
     /** Anzeigename eines beliebigen Kontos (auch Depot/Aktie/ETF), für Investment-Umbuchungen. */
     public String accountNameById(String id) {
         return accountName.get(id);
@@ -356,6 +375,15 @@ public class KmyDocument {
                         if (id != null && name != null) {
                             payeeNameToId.put(name.trim().toLowerCase(Locale.GERMANY), id);
                             payeeIdToName.put(id, name);
+                        }
+                    } else if ("TAG".equals(tag)) {
+                        // Der <TAGS>-Kopfblock steht vor <ACCOUNTS>; die gleichnamigen Verweise in den
+                        // Splits liegen jenseits von <TRANSACTIONS>, wo diese Schleife längst abbricht.
+                        String id = parser.getAttributeValue(null, "id");
+                        String name = parser.getAttributeValue(null, "name");
+                        if (id != null && name != null && !name.trim().isEmpty()) {
+                            tagIdToName.put(id, name.trim());
+                            tagNameToId.put(name.trim().toLowerCase(Locale.GERMANY), id);
                         }
                     } else if ("INSTITUTION".equals(tag)) {
                         // Steht vor dem ACCOUNTS-Block; liefert die Namen der Bank-Kontengruppen.

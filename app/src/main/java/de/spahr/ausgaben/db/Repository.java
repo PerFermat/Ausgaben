@@ -29,6 +29,7 @@ public class Repository {
     private final AccountDao accountDao;
     private final AccountGroupDao accountGroupDao;
     private final PayeeDao payeeDao;
+    private final TagDao tagDao;
     private final PlaceEntryDao placeEntryDao;
     private final PayeeCorrectionDao correctionDao;
     private final TranslationDao translationDao;
@@ -58,6 +59,7 @@ public class Repository {
         this.accountDao = db.accountDao();
         this.accountGroupDao = db.accountGroupDao();
         this.payeeDao = db.payeeDao();
+        this.tagDao = db.tagDao();
         this.placeEntryDao = db.placeEntryDao();
         this.correctionDao = db.payeeCorrectionDao();
         this.translationDao = db.translationDao();
@@ -550,17 +552,23 @@ public class Repository {
     public void saveTransferBooking(final String from, final String to, final long cents,
                                     final String payee, final String note, final long createdAt,
                                     final Runnable onDone) {
-        saveTransferBooking(from, to, cents, payee, note, createdAt, "", "", onDone);
+        saveTransferBooking(from, to, cents, payee, note, "", createdAt, "", "", onDone);
     }
 
-    /** Wie {@link #saveTransferBooking}, füllt zusätzlich das Ortsjournal für Von-/Nach-Ort. */
+    /**
+     * Wie {@link #saveTransferBooking}, füllt zusätzlich das Ortsjournal für Von-/Nach-Ort. Die
+     * Stichwörter bekommen <b>beide</b> Zeilen: in der {@code .kmy}-Datei ist die Umbuchung eine
+     * Transaktion, also gehören sie zu ihr als Ganzes.
+     */
     public void saveTransferBooking(final String from, final String to, final long cents,
-                                    final String payee, final String note, final long createdAt,
+                                    final String payee, final String note, final String tags,
+                                    final long createdAt,
                                     final String fromPlace, final String toPlace,
                                     final Runnable onDone) {
         executor.execute(() -> {
             String group = UUID.randomUUID().toString();
-            insertTransferPair(from, to, cents, payee, note, createdAt, null, group, fromPlace, toPlace);
+            insertTransferPair(from, to, cents, payee, note, tags, createdAt, null, group,
+                    fromPlace, toPlace);
             if (onDone != null) {
                 mainHandler.post(onDone);
             }
@@ -574,13 +582,14 @@ public class Repository {
     public void updateTransferBooking(final Booking existing, final String from, final String to,
                                       final long cents, final String payee, final String note,
                                       final long createdAt, final Runnable onDone) {
-        updateTransferBooking(existing, from, to, cents, payee, note, createdAt, "", "", onDone);
+        updateTransferBooking(existing, from, to, cents, payee, note, "", createdAt, "", "", onDone);
     }
 
     /** Wie {@link #updateTransferBooking}, aktualisiert zusätzlich das Ortsjournal (Von-/Nach-Ort). */
     public void updateTransferBooking(final Booking existing, final String from, final String to,
                                       final long cents, final String payee, final String note,
-                                      final long createdAt, final String fromPlace, final String toPlace,
+                                      final String tags, final long createdAt,
+                                      final String fromPlace, final String toPlace,
                                       final Runnable onDone) {
         executor.execute(() -> {
             boolean kmy = isKmyMode();
@@ -592,7 +601,7 @@ public class Repository {
                 EditStatus.apply(fromSideOf(existing.transferGroup), status, kmy);
                 rollbackTransferPlaces(existing.transferGroup);
                 bookingDao.deleteByTransferGroup(existing.transferGroup);
-                insertTransferPair(from, to, cents, payee, note, createdAt, status,
+                insertTransferPair(from, to, cents, payee, note, tags, createdAt, status,
                         existing.transferGroup, fromPlace, toPlace);
             } else {
                 // Importierte einseitige Umbuchung: an das ursprüngliche Konto gebunden lassen.
@@ -608,6 +617,7 @@ public class Repository {
                 }
                 existing.amountCents = cents;
                 existing.note = note == null ? "" : note;
+                existing.tags = tags == null ? "" : tags;
                 existing.createdAt = createdAt;
                 existing.isTransfer = true;
                 existing.category = "";
@@ -637,11 +647,12 @@ public class Repository {
      *               Umbuchung. Nötig, weil das Ändern einer Umbuchung beide Zeilen neu anlegt.
      */
     private void insertTransferPair(String from, String to, long cents, String payee, String note,
-                                    long createdAt, Booking status, String group,
+                                    String tags, long createdAt, Booking status, String group,
                                     String fromPlace, String toPlace) {
         accountDao.insertIfAbsent(new Account(from));
         accountDao.insertIfAbsent(new Account(to));
         String memo = note == null ? "" : note;
+        String tagList = tags == null ? "" : tags;
         String p = payee == null ? "" : payee.trim();
         if (!p.isEmpty()) {
             payeeDao.insertIfAbsent(new Payee(p));
@@ -661,6 +672,7 @@ public class Repository {
         out.transferGroup = group;
         out.payee = p;
         out.note = memo;
+        out.tags = tagList;
         out.createdAt = createdAt;
         EditStatus.inherit(status, out);
         out.place = fromP;
@@ -679,6 +691,7 @@ public class Repository {
         in.transferGroup = group;
         in.payee = p;
         in.note = memo;
+        in.tags = tagList;
         in.createdAt = createdAt;
         EditStatus.inherit(status, in);
         in.place = toP;
@@ -929,8 +942,9 @@ public class Repository {
             String fromPlace = isRealPlace(selPlace) ? selPlace : ps.getDefaultPlace(from);
             String toPlace = alias != null ? alias.toPlace
                     : (to.isEmpty() ? "" : ps.getDefaultPlace(to));
-            insertTransferPair(from, to, amount, payee, note, now, null, UUID.randomUUID().toString(),
-                    fromPlace, toPlace);
+            // Sprach-/Widget-Erfassung: Stichwörter gibt es erst in der Bearbeitungsmaske.
+            insertTransferPair(from, to, amount, payee, note, "", now, null,
+                    UUID.randomUUID().toString(), fromPlace, toPlace);
             return true;
         }
 
@@ -1198,6 +1212,7 @@ public class Repository {
             analysisExtraDao.deleteAll();
             accountDao.deleteAll();
             payeeDao.deleteAll();
+            tagDao.deleteAll();
             correctionDao.deleteAll();
             if (onDone != null) {
                 mainHandler.post(onDone);
@@ -1209,6 +1224,34 @@ public class Repository {
         executor.execute(() -> {
             final List<Booking> result = bookingDao.getAllBookings();
             mainHandler.post(() -> callback.onResult(result));
+        });
+    }
+
+    /** Die wählbaren Stichwörter – leer, solange keine {@code .kmy}-Datei gelesen wurde. */
+    public void getTagNames(final Callback<List<String>> callback) {
+        executor.execute(() -> {
+            final List<String> result = tagDao.getAllNames();
+            mainHandler.post(() -> callback.onResult(result));
+        });
+    }
+
+    /**
+     * Übernimmt die Stichwortliste aus der {@code .kmy}-Datei. Ersetzt statt zu ergänzen, damit ein
+     * dort gelöschtes Stichwort auch hier verschwindet; eine leere Liste lässt den Bestand stehen
+     * (die Datei hatte dann schlicht keinen Stichwort-Block).
+     */
+    public void replaceTags(final List<String> names) {
+        if (names == null || names.isEmpty()) {
+            return;
+        }
+        executor.execute(() -> {
+            tagDao.deleteAll();
+            for (String name : names) {
+                String clean = BookingTags.sanitize(name);
+                if (!clean.isEmpty()) {
+                    tagDao.insertIfAbsent(new Tag(clean));
+                }
+            }
         });
     }
 

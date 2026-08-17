@@ -441,6 +441,26 @@
       "shot": {"fname": "Buchung Umbuchung.png", "caption": "Detail view of a transfer with balance before/after", "width": 6.0}
     },
     {
+      "type": "h2",
+      "id": "b-0062a",
+      "text": "Tags"
+    },
+    {
+      "type": "p",
+      "id": "b-0062b",
+      "text": "KMyMoney has <b>tags</b>: freely maintained keywords such as «Holiday», «Business trip» or «Tax», any number of which a booking may carry. The app reads them when syncing with the KMyMoney file and writes them back on export – including when you change a booking that has already been transferred. Below the note field there is a <b>«Tags»</b> row for them: it names the tags, and once there are too many for one line, only their number."
+    },
+    {
+      "type": "p",
+      "id": "b-0062c",
+      "text": "The <b>pencil symbol</b> opens a small window listing every tag of this booking, each with its own delete cross; below it a field adds another one. It behaves like the category, account and payee fields – typing shows the matches, tapping one takes it. <b>Only what already exists in KMyMoney can be entered</b>: the app never invents a tag, an unknown name is discarded when you leave the field. The <b>bin symbol</b> on the row clears all tags of the booking in one go. None of this takes effect until you save the booking; leave the screen without saving and everything stays as it was."
+    },
+    {
+      "type": "p",
+      "id": "b-0062d",
+      "text": "Tags work the same for <b>expenses, income and transfers</b>; on a transfer both account sides carry the same ones, since in the KMyMoney file it is a single booking. On a <b>scheduled booking</b> the rule's tags can only be viewed, not changed – book it and they come along and can then be edited. If the app does not know <b>any</b> tags yet – before the first sync, say, or in CSV mode where there is no KMyMoney file – the whole row does not appear at all."
+    },
+    {
       "type": "h1",
       "id": "b-0063",
       "text": "7. Voice input and location capture"
@@ -617,7 +637,7 @@
             "In the list the note is truncated to at most two lines; in the editor the note field spans four lines.",
             "<b>Pull down</b> (in an account or portfolio view): in the <b>kmy variant</b> the .kmy file is re-read and that account or portfolio is refreshed. In the <b>CSV variant</b> this is not available – there you refresh an account via the account menu (long-press the account in the drawer).",
             "Markers: «Split», → / ← (transfer), «exported»; colours red/green.",
-            "<b>Filter</b> (funnel ▽): with a <b>search field</b> that searches <b>payee, note and category</b> (substring, case-insensitive – so you can find a booking by its note as well); plus category (as a tree), amount (slider) and <b>date from–to</b> (slider in whole-month steps; type an exact day into the field). For the <b>amount</b>, expenses count negative and income positive; the slider runs from the largest expense on the left to the largest income on the right, with a thin mark showing the zero in between. It moves in <b>shares</b>, not in amounts: the right thumb at 90 % cuts off the largest tenth – so a single outlier no longer stretches the whole slider. For an exact bound, type it into the field. At the bottom – only with <b>location (GPS)</b> switched on – sits the <b>Radius</b> button: each tap steps through «off», 100 m, 500 m, 1 km, 10 km and back to «off». On a step only those bookings remain that were made within that radius of where you are now – the coordinates sit in the booking note, and where they are missing the learned location of the payee from the alias applies. Your position is captured once when you apply, so the list does not travel with you; if no position is known yet the list stays empty and the title line shows «Filter active (0)». «Reset» restores «Radius off», after which location no longer matters. The filter applies to the list and the analysis (the radius to the list only). With a category filter a split booking shows only the partial amount of the chosen category.",
+            "<b>Filter</b> (funnel ▽): with a <b>search field</b> that searches <b>payee, note and category</b> (substring, case-insensitive – so you can find a booking by its note as well); plus category (as a tree), <b>tag</b> (only present when the app knows tags from the KMyMoney file; «All» clears the choice), amount (slider) and <b>date from–to</b> (slider in whole-month steps; type an exact day into the field). For the <b>amount</b>, expenses count negative and income positive; the slider runs from the largest expense on the left to the largest income on the right, with a thin mark showing the zero in between. It moves in <b>shares</b>, not in amounts: the right thumb at 90 % cuts off the largest tenth – so a single outlier no longer stretches the whole slider. For an exact bound, type it into the field. At the bottom – only with <b>location (GPS)</b> switched on – sits the <b>Radius</b> button: each tap steps through «off», 100 m, 500 m, 1 km, 10 km and back to «off». On a step only those bookings remain that were made within that radius of where you are now – the coordinates sit in the booking note, and where they are missing the learned location of the payee from the alias applies. Your position is captured once when you apply, so the list does not travel with you; if no position is known yet the list stays empty and the title line shows «Filter active (0)». «Reset» restores «Radius off», after which location no longer matters. The filter applies to the list and the analysis (the radius to the list only). With a category filter a split booking shows only the partial amount of the chosen category.",
             "<b>Undo</b>: after deleting a booking, «Undo» appears briefly at the bottom – one tap recreates it. In the place journal the deletion and the recreation stay visible as movements. Transfers have no undo.",
             "<b>Long press on the app icon</b> (home screen): «New booking» opens the editor directly."
           ]

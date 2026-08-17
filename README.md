@@ -96,7 +96,7 @@ This list names the main features only. The exact behaviour, every detail and sc
   moves on by one period with the next export.
 - **Sync** — Nextcloud/WebDAV/SMB, `.kmy` mode (reads and writes the KMyMoney file directly) or CSV;
   automatic backup before every export. Bookings changed after the fact are edited in the file rather
-  than added twice.
+  than added twice. KMyMoney's **tags** are read, edited, filtered and written back.
 - **Wear OS** — speak an expense right from your wrist, offline too; the watch only captures the text,
   the phone creates the booking. Anything recorded offline is sent on later, without loss or duplication.
 - **Security & backup** — optional biometric lock, GPS off by default, encrypted credentials; data and
@@ -128,7 +128,7 @@ reporting or ad library.
 `backup`, `i18n`, `notify`, `widget`, `wear` and `ui`.
 
 **Storage.** [Room](https://developer.android.com/training/data-storage/room) on SQLite, database
-version 42 with an unbroken chain of migrations — an update keeps your data, a fresh install is never
+version 43 with an unbroken chain of migrations — an update keeps your data, a fresh install is never
 required. Amounts are `long` cents throughout, never floating point.
 
 **KMyMoney.** The `.kmy` file is gzipped XML and is read **and written** directly — splits, transfers,
@@ -137,7 +137,7 @@ same place) so KMyMoney carries on with the file unchanged; a backup is written 
 
 **Testability.** Everything that computes or decides lives in pure classes **without Android** —
 `PayeeAmounts`, `PayeeCategories`, `AccountScope`, `BudgetMath`, `RadiusFilter`, `EditStatus`,
-`NoteReceipt` and others. They run under JUnit 4 with no emulator and no mocks; **372 unit tests** at
+`NoteReceipt` and others. They run under JUnit 4 with no emulator and no mocks; **382 unit tests** at
 present, among them checks against real `.kmy` files (via Robolectric, which never ships in the APK).
 
 **Receipts.** Photos and PDFs are kept app-private and uploaded in the background into `Belege/<year>/`

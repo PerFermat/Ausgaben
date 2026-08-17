@@ -13,8 +13,9 @@ import androidx.sqlite.db.SupportSQLiteDatabase;
         PayeeCorrection.class, Translation.class, Language.class, Security.class, SecurityTx.class,
         Budget.class, CategoryType.class, ScheduledTransaction.class, ScheduledSplit.class,
         AnalysisExtra.class, SecurityTxValueOverride.class, KmyPendingDelete.class, SecurityPrice.class,
-        ScheduledAdvance.class, AccountGroup.class, AccountGroupMember.class, AccountKindOrder.class},
-        version = 42, exportSchema = false)
+        ScheduledAdvance.class, AccountGroup.class, AccountGroupMember.class, AccountKindOrder.class,
+        Tag.class},
+        version = 43, exportSchema = false)
 public abstract class AppDatabase extends RoomDatabase {
 
     /** v1 → v2: Notiz-Spalte ergänzen (bestehende Buchungen bleiben erhalten). */
@@ -542,6 +543,22 @@ public abstract class AppDatabase extends RoomDatabase {
         }
     };
 
+    /**
+     * v42 → v43: Stichwörter (die „Tags" aus KMyMoney). Je Buchung und je geplanter Buchung ein
+     * Textfeld mit den Namen, dazu die aus der Datei übernommene Liste des Wählbaren.
+     */
+    static final Migration MIGRATION_42_43 = new Migration(42, 43) {
+        @Override
+        public void migrate(@NonNull SupportSQLiteDatabase db) {
+            db.execSQL("ALTER TABLE booking ADD COLUMN tags TEXT NOT NULL DEFAULT ''");
+            db.execSQL("ALTER TABLE scheduled_transaction ADD COLUMN tags TEXT NOT NULL DEFAULT ''");
+            db.execSQL("CREATE TABLE IF NOT EXISTS tag ("
+                    + "id INTEGER PRIMARY KEY AUTOINCREMENT NOT NULL, "
+                    + "name TEXT NOT NULL)");
+            db.execSQL("CREATE UNIQUE INDEX IF NOT EXISTS index_tag_name ON tag (name)");
+        }
+    };
+
     public abstract BookingDao bookingDao();
 
     public abstract AccountDao accountDao();
@@ -549,6 +566,8 @@ public abstract class AppDatabase extends RoomDatabase {
     public abstract AccountGroupDao accountGroupDao();
 
     public abstract PayeeDao payeeDao();
+
+    public abstract TagDao tagDao();
 
     public abstract PlaceEntryDao placeEntryDao();
 
@@ -594,7 +613,7 @@ public abstract class AppDatabase extends RoomDatabase {
                                     MIGRATION_31_32, MIGRATION_32_33, MIGRATION_33_34, MIGRATION_34_35,
                                     MIGRATION_35_36, MIGRATION_36_37, MIGRATION_37_38,
                                     MIGRATION_38_39, MIGRATION_39_40, MIGRATION_40_41,
-                                    MIGRATION_41_42)
+                                    MIGRATION_41_42, MIGRATION_42_43)
                             .build();
                 }
             }

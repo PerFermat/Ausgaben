@@ -93,7 +93,8 @@ stehen im **[Benutzerhandbuch](docs/Handbuch-Ausgaben-de.pdf)**.
   wandert beim nächsten Export eine Periode weiter.
 - **Synchronisierung** – Nextcloud/WebDAV/SMB, `.kmy`-Modus (direktes Lesen und Schreiben der
   KMyMoney-Datei) oder CSV; automatische Sicherung vor jedem Export. Nachträglich geänderte Buchungen
-  werden in der Datei geändert statt doppelt angelegt.
+  werden in der Datei geändert statt doppelt angelegt. Die **Stichwörter** aus KMyMoney werden gelesen,
+  bearbeitet, gefiltert und zurückgeschrieben.
 - **Wear OS** – gesprochene Ausgabe direkt vom Handgelenk, auch offline; die Uhr nimmt nur den Text auf,
   gebucht wird auf dem Handy. Offline erfaßtes wird nachgereicht, ohne Verlust und ohne Dopplung.
 - **Sicherheit & Sicherung** – optionale biometrische Sperre, GPS standardmäßig aus, verschlüsselte
@@ -125,7 +126,7 @@ Analyse-, Absturz- oder Werbe-Bibliothek.
 `location`, `security`, `settings`, `backup`, `i18n`, `notify`, `widget`, `wear` und `ui`.
 
 **Datenhaltung.** [Room](https://developer.android.com/training/data-storage/room) über SQLite,
-Datenbankfassung 42 mit lückenloser Migrationskette – ein Update behält den Bestand, ein
+Datenbankfassung 43 mit lückenloser Migrationskette – ein Update behält den Bestand, ein
 Neuinstallieren ist nie nötig. Beträge liegen durchgehend als `long` in Cent, nie als Fließkommazahl.
 
 **KMyMoney.** Die `.kmy`-Datei ist gzip-gepacktes XML und wird direkt gelesen **und geschrieben** –
@@ -136,7 +137,7 @@ weiterverwendet; vor jedem Schreiben legt die App eine Sicherung an.
 **Prüfbarkeit.** Alles, was rechnet oder entscheidet, steckt in reinen Klassen **ohne Android** –
 `PayeeAmounts`, `PayeeCategories`, `AccountScope`, `BudgetMath`, `RadiusFilter`, `EditStatus`,
 `NoteReceipt` und andere. Sie sind mit JUnit 4 ohne Emulator und ohne Mocks prüfbar; derzeit laufen
-**372 Unit-Tests**, darunter Prüfungen gegen echte `.kmy`-Dateien (dafür Robolectric, das im APK nicht
+**382 Unit-Tests**, darunter Prüfungen gegen echte `.kmy`-Dateien (dafür Robolectric, das im APK nicht
 landet).
 
 **Belege.** Fotos und PDFs liegen app-privat und werden im Hintergrund nach `Belege/<Jahr>/` neben der

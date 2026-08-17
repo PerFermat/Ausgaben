@@ -345,6 +345,15 @@
     <string name="receipt_pdfs_count">%1$d document(s)</string>
     <string name="receipt_pdf_no_viewer">No app for PDF documents installed</string>
     <string name="receipt_pdf_attached">Document ✓</string>
+    <string name="tags_row">Tags: %1$s</string>
+    <string name="tags_dialog_title">Tags</string>
+    <string name="tags_edit">Edit tags</string>
+    <string name="tags_clear">Remove all tags</string>
+    <string name="tags_remove">Remove tag</string>
+    <string name="tags_add_hint">Add tag</string>
+    <string name="tags_filter_hint">Tag</string>
+    <string name="tags_none">—</string>
+    <string name="tags_done">Done</string>
     <string name="gps_row_label">GPS: %1$s</string>
     <string name="gps_row_none">Location: tap the map to set</string>
     <string name="compass_n">N</string>

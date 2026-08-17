@@ -102,6 +102,8 @@ public final class KmyAccountImport {
                                 ui.phase(app.getString(R.string.import_stage_reading),
                                         ImportPhase.READ_FILE_FROM, ImportPhase.READ_FILE_TO)),
                         app);
+                // Die Stichwortliste der Datei: nur was dort steht, ist in der App wählbar.
+                repository.replaceTags(importer.tagNames());
                 List<String> available = importer.accountNames();
                 List<String> targets = new ArrayList<>();
                 if (account == null) {

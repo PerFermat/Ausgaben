@@ -496,10 +496,11 @@ public class KmyExporter {
                 return null;
             }
         }
+        String tags = tagChildren(b.tags);
         List<String> splitXmls = new ArrayList<>();
-        splitXmls.add(split("S0001", assetId, payeeId, fraction(signedCents), esc(memo)));
+        splitXmls.add(split("S0001", assetId, payeeId, fraction(signedCents), esc(memo), tags));
         if (categoryId != null && !categoryId.isEmpty()) {
-            splitXmls.add(split("S0002", categoryId, payeeId, fraction(-signedCents), esc(memo)));
+            splitXmls.add(split("S0002", categoryId, payeeId, fraction(-signedCents), esc(memo), tags));
         }
         return new Built(splitXmls, commodity, memo);
     }
@@ -528,9 +529,10 @@ public class KmyExporter {
         }
         String payeeId = resolvePayee(b.payee, result, newPayeeIds, payeeFragments, nextPayee);
         String memo = b.note == null ? "" : b.note;
+        String tags = tagChildren(b.tags);
         List<String> splitXmls = new ArrayList<>();
-        splitXmls.add(split("S0001", fromId, payeeId, fraction(-b.amountCents), esc(memo)));
-        splitXmls.add(split("S0002", toId, payeeId, fraction(b.amountCents), esc(memo)));
+        splitXmls.add(split("S0001", fromId, payeeId, fraction(-b.amountCents), esc(memo), tags));
+        splitXmls.add(split("S0002", toId, payeeId, fraction(b.amountCents), esc(memo), tags));
         return new Built(splitXmls, commodity, memo);
     }
 
@@ -543,8 +545,9 @@ public class KmyExporter {
     private List<String> buildSplitParts(Booking b, String assetId, String payeeId, long signedCents,
                                          String memo, List<BookingSplit> parts, String commodity,
                                          Result result) {
+        String tags = tagChildren(b.tags);
         List<String> splitXmls = new ArrayList<>();
-        splitXmls.add(split("S0001", assetId, payeeId, fraction(signedCents), esc(memo)));
+        splitXmls.add(split("S0001", assetId, payeeId, fraction(signedCents), esc(memo), tags));
         int idx = 2;
         for (BookingSplit p : parts) {
             String cat = p.category == null ? "" : p.category.trim();
@@ -562,7 +565,7 @@ public class KmyExporter {
             // App-Teilbetrag (in Gesamt-Einheiten) → Kategorie-Split mit Gegen-Vorzeichen zum Konto-Split.
             long catValue = b.isIncome ? -p.amountCents : p.amountCents;
             splitXmls.add(split(String.format(Locale.US, "S%04d", idx++), categoryId, payeeId,
-                    fraction(catValue), esc(memo)));
+                    fraction(catValue), esc(memo), tags));
         }
         return splitXmls;
     }
@@ -629,10 +632,35 @@ public class KmyExporter {
                 + "</TRANSACTION>";
     }
 
-    private String split(String id, String accountId, String payeeId, String value, String memo) {
-        return "<SPLIT reconcileflag=\"0\" payee=\"" + esc(payeeId) + "\" number=\"\" bankid=\"\" memo=\""
+    /**
+     * Ein Split. Trägt die Buchung Stichwörter, wird er nicht selbstschließend geschrieben, sondern
+     * nimmt sie als {@code <TAG id=…/>}-Kindelemente auf – so, wie KMyMoney sie erwartet.
+     */
+    private String split(String id, String accountId, String payeeId, String value, String memo,
+                         String tagChildren) {
+        String open = "<SPLIT reconcileflag=\"0\" payee=\"" + esc(payeeId) + "\" number=\"\" bankid=\"\" memo=\""
                 + memo + "\" value=\"" + value + "\" reconciledate=\"\" account=\"" + esc(accountId)
-                + "\" id=\"" + id + "\" price=\"1/1\" shares=\"" + value + "\" action=\"\"/>";
+                + "\" id=\"" + id + "\" price=\"1/1\" shares=\"" + value + "\" action=\"\"";
+        return tagChildren.isEmpty()
+                ? open + "/>"
+                : open + ">" + tagChildren + "</SPLIT>";
+    }
+
+    /**
+     * Die {@code <TAG>}-Kindelemente zu den Stichwörtern einer Buchung. Die App führt sie je Buchung,
+     * also bekommt jeder Split derselben Transaktion dieselben – damit trägt auch bei einer Umbuchung
+     * jede Kontoseite das Stichwort. Ein Name, den die Datei nicht kennt, fällt weg: die App legt nie
+     * einen Eintrag im {@code <TAGS>}-Block an.
+     */
+    private String tagChildren(String tags) {
+        StringBuilder sb = new StringBuilder();
+        for (String name : de.spahr.ausgaben.db.BookingTags.parse(tags)) {
+            String id = doc.tagId(name);
+            if (id != null) {
+                sb.append("<TAG id=\"").append(esc(id)).append("\"/>");
+            }
+        }
+        return sb.toString();
     }
 
     private String payeeElement(String id, String name) {

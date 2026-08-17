@@ -1,0 +1,41 @@
+<?xml version="1.0" encoding="utf-8"?>
+<!-- Stichwörter einer Buchung: die vergebenen als Zeilen, darunter das Feld zum Hinzufügen. -->
+<ScrollView xmlns:android="http://schemas.android.com/apk/res/android"
+    android:layout_width="match_parent"
+    android:layout_height="wrap_content">
+
+    <LinearLayout
+        android:layout_width="match_parent"
+        android:layout_height="wrap_content"
+        android:orientation="vertical"
+        android:paddingHorizontal="24dp"
+        android:paddingTop="8dp">
+
+        <!-- Wird in showTagsDialog() mit item_tag_row.xml gefüllt. -->
+        <LinearLayout
+            android:id="@+id/tagRows"
+            android:layout_width="match_parent"
+            android:layout_height="wrap_content"
+            android:orientation="vertical" />
+
+        <com.google.android.material.textfield.TextInputLayout
+            android:layout_width="match_parent"
+            android:layout_height="wrap_content"
+            android:layout_marginTop="8dp"
+            android:hint="@string/tags_add_hint">
+
+            <de.spahr.ausgaben.ui.PickerTextView
+                android:id="@+id/editTagNew"
+                android:layout_width="match_parent"
+                android:layout_height="wrap_content"
+                android:completionThreshold="1"
+                android:inputType="text"
+                android:minHeight="64dp"
+                android:paddingVertical="14dp"
+                android:paddingStart="16dp"
+                android:paddingEnd="16dp"
+                android:textSize="18sp" />
+        </com.google.android.material.textfield.TextInputLayout>
+
+    </LinearLayout>
+</ScrollView>

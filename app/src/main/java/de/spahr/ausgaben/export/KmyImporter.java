@@ -48,6 +48,11 @@ public class KmyImporter {
         return doc.accountNames();
     }
 
+    /** Die Stichwörter der Datei – daraus wird die Liste des in der App Wählbaren. */
+    public List<String> tagNames() {
+        return doc.tagNames();
+    }
+
     /** Anzeigenamen der Depots (Investment-Konten). */
     public List<String> depotNames() {
         return doc.depotNames();
@@ -380,12 +385,9 @@ public class KmyImporter {
                         txCommodity = orEmpty(parser.getAttributeValue(null, "commodity")).trim();
                         splits = new ArrayList<>();
                     } else if (inLedger && "SPLIT".equals(tag) && splits != null) {
-                        splits.add(new String[]{
-                                orEmpty(parser.getAttributeValue(null, "account")),
-                                orEmpty(parser.getAttributeValue(null, "value")),
-                                orEmpty(parser.getAttributeValue(null, "payee")),
-                                orEmpty(parser.getAttributeValue(null, "memo")),
-                                orEmpty(parser.getAttributeValue(null, "shares"))});
+                        splits.add(newSplit(parser));
+                    } else if (inLedger && "TAG".equals(tag)) {
+                        addTagId(splits, parser.getAttributeValue(null, "id"));
                     }
                 } else if (event == XmlPullParser.END_TAG) {
                     String tag = parser.getName();
@@ -432,7 +434,7 @@ public class KmyImporter {
             String entrydate = null;
             String txMemo = "";
             String txCommodity = "";
-            List<String[]> splits = null; // je Split: {account, value, payeeId, memo, shares}
+            List<String[]> splits = null; // je Split: {account, value, payeeId, memo, shares, tagIds}
             while (event != XmlPullParser.END_DOCUMENT) {
                 if (event == XmlPullParser.START_TAG) {
                     String tag = parser.getName();
@@ -445,12 +447,9 @@ public class KmyImporter {
                         txCommodity = orEmpty(parser.getAttributeValue(null, "commodity")).trim();
                         splits = new ArrayList<>();
                     } else if (inLedger && "SPLIT".equals(tag) && splits != null) {
-                        splits.add(new String[]{
-                                orEmpty(parser.getAttributeValue(null, "account")),
-                                orEmpty(parser.getAttributeValue(null, "value")),
-                                orEmpty(parser.getAttributeValue(null, "payee")),
-                                orEmpty(parser.getAttributeValue(null, "memo")),
-                                orEmpty(parser.getAttributeValue(null, "shares"))});
+                        splits.add(newSplit(parser));
+                    } else if (inLedger && "TAG".equals(tag)) {
+                        addTagId(splits, parser.getAttributeValue(null, "id"));
                     }
                 } else if (event == XmlPullParser.END_TAG) {
                     String tag = parser.getName();
@@ -513,6 +512,7 @@ public class KmyImporter {
         b.isIncome = signedCents > 0;
         b.account = accountName;
         b.note = !own[3].isEmpty() ? own[3] : txMemo;
+        b.tags = tagsOf(splits);
         b.createdAt = parseDate(postdate, entrydate);
         b.exported = true;
 
@@ -699,12 +699,9 @@ public class KmyImporter {
                         txCommodity = orEmpty(parser.getAttributeValue(null, "commodity")).trim();
                         splits = new ArrayList<>();
                     } else if (inSchedules && "SPLIT".equals(tag) && splits != null) {
-                        splits.add(new String[]{
-                                orEmpty(parser.getAttributeValue(null, "account")),
-                                orEmpty(parser.getAttributeValue(null, "value")),
-                                orEmpty(parser.getAttributeValue(null, "payee")),
-                                orEmpty(parser.getAttributeValue(null, "memo")),
-                                orEmpty(parser.getAttributeValue(null, "shares"))});
+                        splits.add(newSplit(parser));
+                    } else if (inSchedules && "TAG".equals(tag)) {
+                        addTagId(splits, parser.getAttributeValue(null, "id"));
                     }
                 } else if (event == XmlPullParser.END_TAG) {
                     String tag = parser.getName();
@@ -771,6 +768,7 @@ public class KmyImporter {
                 endMs < 0 ? 0 : endMs);
         // Umbuchungs-Richtung: b.isIncome = Geld fließt IN das Primärkonto (dieses Konto ist „Nach").
         st.incoming = (b.isTransfer && b.isIncome) ? 1 : 0;
+        st.tags = b.tags; // toBooking hat die Stichwörter der Splits schon vereinigt
         // Splitbuchung: mehrere Kategorien → Kennzeichen + Kategorie-Teile für die Detail-Maske sichern.
         if (b.parts != null && b.parts.size() >= 2) {
             st.split = 1;
@@ -840,5 +838,56 @@ public class KmyImporter {
 
     private static String orEmpty(String s) {
         return s == null ? "" : s;
+    }
+
+    /** Feld einer gelesenen Split-Zeile, das die Kennungen ihrer Stichwörter sammelt. */
+    private static final int SPLIT_TAGS = 5;
+
+    /** Eine Split-Zeile: {@code {account, value, payeeId, memo, shares, tagIds}}. */
+    private static String[] newSplit(XmlPullParser parser) {
+        return new String[]{
+                orEmpty(parser.getAttributeValue(null, "account")),
+                orEmpty(parser.getAttributeValue(null, "value")),
+                orEmpty(parser.getAttributeValue(null, "payee")),
+                orEmpty(parser.getAttributeValue(null, "memo")),
+                orEmpty(parser.getAttributeValue(null, "shares")),
+                ""};
+    }
+
+    /**
+     * Merkt eine Stichwort-Kennung am zuletzt gelesenen Split: {@code <TAG>} steht als Kindelement im
+     * Split und kommt daher immer nach dessen öffnendem Tag.
+     */
+    private static void addTagId(List<String[]> splits, String id) {
+        if (splits == null || splits.isEmpty() || id == null || id.trim().isEmpty()) {
+            return;
+        }
+        String[] last = splits.get(splits.size() - 1);
+        last[SPLIT_TAGS] = last[SPLIT_TAGS].isEmpty()
+                ? id.trim()
+                : last[SPLIT_TAGS] + "," + id.trim();
+    }
+
+    /**
+     * Die Stichwörter aller Splits einer Transaktion, zu Namen aufgelöst. Die App führt sie je Buchung,
+     * also werden die der einzelnen Splits vereinigt; unbekannte Kennungen fallen weg.
+     */
+    private String tagsOf(List<String[]> splits) {
+        String tags = "";
+        if (splits == null) {
+            return tags;
+        }
+        for (String[] s : splits) {
+            if (s.length <= SPLIT_TAGS || s[SPLIT_TAGS].isEmpty()) {
+                continue;
+            }
+            for (String id : s[SPLIT_TAGS].split(",")) {
+                String name = doc.tagName(id);
+                if (name != null) {
+                    tags = de.spahr.ausgaben.db.BookingTags.add(tags, name);
+                }
+            }
+        }
+        return tags;
     }
 }

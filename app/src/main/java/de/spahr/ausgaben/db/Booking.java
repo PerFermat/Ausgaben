@@ -53,6 +53,15 @@ public class Booking {
     public String note = "";
 
     /**
+     * Die Stichwörter dieser Buchung (die „Tags" aus KMyMoney), durch {@code |} getrennt – siehe
+     * {@link BookingTags}. In der Datei hängen sie am einzelnen Split; die App führt sie je Buchung
+     * und schreibt sie beim Export an jeden Split derselben Transaktion.
+     */
+    @NonNull
+    @ColumnInfo(name = "tags", defaultValue = "")
+    public String tags = "";
+
+    /**
      * Loser Link auf den Bargeld-Ort, dem diese Buchung ihre Ort-Bewegung gutgeschrieben hat
      * (leer = „ohne Ort"). Nur relevant, solange {@link #placeManaged} gesetzt ist; dient dazu,
      * spätere Betrags-/Ort-/Lösch-Änderungen als Ausgleichs-Bewegung im Ort-Journal nachzuziehen.

@@ -117,6 +117,59 @@ public class KmyRobustnessTest {
         assertTrue(r.xml.contains("<TRANSACTIONS count=\"0\">"));
     }
 
+    /** Das Stichwort am Split wird gelesen und steht danach an der Buchung. */
+    @Test
+    public void tagsAreReadFromTheSplit() throws Exception {
+        List<Booking> back = new KmyImporter(doc("tagged-split.xml"), ctx).bookingsForAccount("Bargeld");
+        assertEquals(1, back.size());
+        // Es hängt am Kategorie-Split; die App führt die Stichwörter je Buchung, also steht es hier.
+        assertEquals("Urlaub", back.get(0).tags);
+    }
+
+    /**
+     * Die eigentliche Probe: eine Buchung mit Stichwort, in der App geändert und zurückgeschrieben,
+     * hat danach <b>wieder</b> ihr {@code <TAG>}. Bis diese Fassung die Stichwörter kannte, baute
+     * {@code replaceTransaction} die Splits ohne sie neu – das Stichwort war still verloren.
+     */
+    @Test
+    public void editingKeepsTheTag() throws Exception {
+        KmyDocument d = doc("tagged-split.xml");
+        Booking b = new KmyImporter(d, ctx).bookingsForAccount("Bargeld").get(0);
+        b.id = 3;
+        b.edited = true;
+        b.origAccount = b.account;
+        b.origSignedCents = -250;
+        b.origCreatedAt = b.createdAt;
+        b.amountCents = 399; // der Nutzer hat den Betrag berichtigt
+
+        KmyExporter.Result r = new KmyExporter(d, ctx)
+                .build(new ArrayList<>(), Collections.singletonList(b), new HashMap<>());
+
+        assertEquals(Collections.emptyList(), r.skipped);
+        assertEquals(1, r.updated);
+        assertTrue(r.xml.contains("-399/100"));
+        // Beide Splits tragen es: die App führt die Stichwörter je Buchung.
+        assertEquals(2, countOf(r.xml, "<TAG id=\"G000001\"/>"));
+        // Und der Kopfblock bleibt, wie er war.
+        assertEquals(1, countOf(r.xml, "<TAGS count=\"1\">"));
+    }
+
+    /** Ein Name, den die Datei nicht kennt, wird übergangen – die App legt nie ein Stichwort an. */
+    @Test
+    public void unknownTagIsNeverCreated() throws Exception {
+        KmyDocument d = doc("tagged-split.xml");
+        Booking b = expense("Bargeld", "Essen", 250, "Bäcker");
+        b.tags = "Erfunden";
+
+        KmyExporter.Result r = new KmyExporter(d, ctx).build(Collections.singletonList(b));
+
+        assertEquals(Collections.emptyList(), r.skipped);
+        assertFalse(r.xml.contains("Erfunden"));
+        // Nur die beiden Splits der alten Buchung tragen ein Stichwort, die neuen bleiben ohne.
+        assertEquals(1, countOf(r.xml, "<TAG id=\"G000001\"/>"));
+        assertEquals(1, countOf(r.xml, "<TAGS count=\"1\">"));
+    }
+
     // ---- Fremdwährung ----
 
     /** Konto in USD, Transaktion in EUR: maßgeblich ist {@code shares} (USD), nicht {@code value}. */

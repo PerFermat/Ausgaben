@@ -75,6 +75,14 @@ public class ScheduledTransaction {
     @ColumnInfo(name = "incoming")
     public int incoming;
 
+    /**
+     * Die Stichwörter der Regel (siehe {@link BookingTags}). Sie sind nur zu sehen, nicht zu ändern;
+     * wird aus der Planung eine Buchung, nimmt diese sie mit.
+     */
+    @NonNull
+    @ColumnInfo(name = "tags", defaultValue = "")
+    public String tags = "";
+
     /** Nur beim Import gefüllt (nicht persistiert) – wird in {@code scheduled_split} geschrieben. */
     @Ignore
     public java.util.List<ScheduledSplit> splitParts;

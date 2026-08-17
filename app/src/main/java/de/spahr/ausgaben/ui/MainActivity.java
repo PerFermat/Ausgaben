@@ -81,6 +81,10 @@ public class MainActivity extends LocalizedActivity {
     private boolean filterCategoryIsMain = false;
     /** Typ der gefilterten Kategorie (Einnahme/Ausgabe), {@code null} = kein Typ gewählt ("Alle"). */
     private Boolean filterCategoryIsIncome = null;
+    /** Gefiltertes Stichwort (leer = alle); die Buchung muß es tragen. */
+    private String filterTag = "";
+    /** Die in KMyMoney vorhandenen Stichwörter; leer = das Filterfeld erscheint gar nicht. */
+    private List<String> knownTagNames = new ArrayList<>();
     private Long filterAmountFrom = null;
     private Long filterAmountTo = null;
     private Long filterDateFrom = null;
@@ -860,6 +864,8 @@ public class MainActivity extends LocalizedActivity {
             catIncome = g.income;
         });
         repository.getCategoryTypes(types -> categoryTypes = types);
+        // Die wählbaren Stichwörter; sie ändern sich mit jedem Abgleich mit der .kmy-Datei.
+        repository.getTagNames(names -> knownTagNames = names == null ? new ArrayList<>() : names);
         repository.getAccountNames(this::populateAccountDrawer);
         repository.getAllBookings(result -> {
             allBookings = result;
@@ -1069,6 +1075,9 @@ public class MainActivity extends LocalizedActivity {
         if (!filterCategory.isEmpty() && !categoryMatchesBooking(b)) {
             return false;
         }
+        if (!de.spahr.ausgaben.db.BookingTags.contains(b.tags, filterTag)) {
+            return false;
+        }
         // Betragsgrenzen sind vorzeichenbehaftet: −50 … −10 meint Ausgaben zwischen 10 und 50.
         long signed = signedOf(b);
         if (filterAmountFrom != null && signed < filterAmountFrom) {
@@ -1132,7 +1141,7 @@ public class MainActivity extends LocalizedActivity {
     }
 
     private boolean isFilterActive() {
-        return !filterPayee.isEmpty() || !filterCategory.isEmpty()
+        return !filterPayee.isEmpty() || !filterCategory.isEmpty() || !filterTag.isEmpty()
                 || filterAmountFrom != null || filterAmountTo != null
                 || filterDateFrom != null || filterDateTo != null
                 || filterRadiusM > 0;
@@ -1304,6 +1313,21 @@ public class MainActivity extends LocalizedActivity {
             }
         });
 
+        // Stichwort: dieselbe Bedienung wie das Kategoriefeld, mit „Alle" als erstem Eintrag. Ohne
+        // bekannte Stichwörter (CSV-Betrieb, noch kein Abgleich) bleibt das ganze Feld weg.
+        View tagLayout = view.findViewById(R.id.filterTagLayout);
+        MaterialAutoCompleteTextView fTag = view.findViewById(R.id.filterTag);
+        if (knownTagNames.isEmpty()) {
+            tagLayout.setVisibility(View.GONE);
+        } else {
+            tagLayout.setVisibility(View.VISIBLE);
+            List<String> tagChoices = new ArrayList<>();
+            tagChoices.add(getString(R.string.category_all));
+            tagChoices.addAll(knownTagNames);
+            PickerAdapters.plainSearchable(fTag, tagChoices);
+            fTag.setText(filterTag, false);
+        }
+
         // Betrag-Range: vorzeichenbehaftete Beträge der gerade sichtbaren Buchungen, sortiert – der
         // Regler läuft über ihre Ränge, nicht über die Beträge (siehe AmountRange).
         java.util.List<Long> scope = new ArrayList<>();
@@ -1391,6 +1415,11 @@ public class MainActivity extends LocalizedActivity {
                         catIsIncome[0] = typeForCategory(typedCategory);
                     }
 
+                    // „Alle" heißt: kein Stichwort gewählt.
+                    String tag = textOf(fTag).trim();
+                    filterTag = knownTagNames.isEmpty() || tag.equals(getString(R.string.category_all))
+                            ? "" : tag;
+
                     filterCategory = catValue[0] == null ? "" : catValue[0].trim();
                     filterCategoryIsMain = catIsMain[0];
                     filterCategoryIsIncome = filterCategory.isEmpty() ? null : catIsIncome[0];
@@ -1439,6 +1468,7 @@ public class MainActivity extends LocalizedActivity {
                 .setNeutralButton(R.string.filter_reset, (d, w) -> {
                     filterPayee = "";
                     filterCategory = "";
+                    filterTag = "";
                     filterCategoryIsMain = false;
                     filterCategoryIsIncome = null;
                     filterAmountFrom = null;

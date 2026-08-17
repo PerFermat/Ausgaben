@@ -286,6 +286,42 @@
                     android:contentDescription="@string/alias_map" />
             </LinearLayout>
 
+            <!-- Stichwörter als Ausgabezeile (Namen bzw. Anzahl + Bearbeiten + Leeren). Bleibt
+                 unsichtbar, solange die App keine Stichwörter aus einer .kmy kennt. -->
+            <LinearLayout
+                android:id="@+id/rowTags"
+                android:layout_width="match_parent"
+                android:layout_height="wrap_content"
+                android:layout_marginTop="2dp"
+                android:gravity="center_vertical"
+                android:orientation="horizontal"
+                android:visibility="gone">
+
+                <TextView
+                    android:id="@+id/textTags"
+                    android:layout_width="0dp"
+                    android:layout_height="wrap_content"
+                    android:layout_weight="1"
+                    android:textColor="?android:attr/textColorSecondary"
+                    android:textSize="14sp" />
+
+                <ImageButton
+                    android:id="@+id/btnTagsEdit"
+                    android:layout_width="48dp"
+                    android:layout_height="48dp"
+                    android:background="?attr/selectableItemBackgroundBorderless"
+                    android:contentDescription="@string/tags_edit"
+                    android:src="@android:drawable/ic_menu_edit" />
+
+                <ImageButton
+                    android:id="@+id/btnTagsClear"
+                    android:layout_width="48dp"
+                    android:layout_height="48dp"
+                    android:background="?attr/selectableItemBackgroundBorderless"
+                    android:contentDescription="@string/tags_clear"
+                    android:src="@android:drawable/ic_menu_delete" />
+            </LinearLayout>
+
             <!-- Beleg-Kopfzeile (Beschriftung + Kamera-Icon, das eine weitere Seite anhängt). -->
             <LinearLayout
                 android:id="@+id/rowReceipt"

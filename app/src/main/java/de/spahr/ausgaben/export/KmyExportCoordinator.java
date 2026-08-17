@@ -95,6 +95,9 @@ public class KmyExportCoordinator {
 
                 progress(listener, r.getString(de.spahr.ausgaben.R.string.kmy_progress_processing));
                 KmyDocument doc = new KmyDocument(raw, appContext);
+                // Der Export liest die Datei ohnehin – dabei bleibt die Stichwortliste frisch, auch für
+                // Nutzer, die nie zurückimportieren.
+                repository.replaceTags(doc.tagNames());
                 KmyExporter exporter = new KmyExporter(doc, r);
                 KmyExporter.Result res = exporter.build(bookings, edited, loadSplits());
 

@@ -32,6 +32,7 @@ import java.util.Locale;
 import de.spahr.ausgaben.R;
 import de.spahr.ausgaben.db.Booking;
 import de.spahr.ausgaben.db.BookingSplit;
+import de.spahr.ausgaben.db.BookingTags;
 import de.spahr.ausgaben.db.PayeeCorrection;
 import de.spahr.ausgaben.db.Repository;
 import de.spahr.ausgaben.location.LocationTagger;
@@ -139,10 +140,14 @@ public class BookingEditActivity extends LocalizedActivity {
     private LocationTagger locationTagger;
     private ActivityResultLauncher<String> locationPermissionLauncher;
 
-    // ---- GPS-/Beleg-Ausgabezeilen ----
+    // ---- GPS-/Stichwort-/Beleg-Ausgabezeilen ----
     private android.view.View rowGps;
+    private android.view.View rowTags;
     private android.view.View rowReceipt;
     private android.widget.TextView textGps;
+    private android.widget.TextView textTags;
+    private android.widget.ImageButton btnTagsEdit;
+    private android.widget.ImageButton btnTagsClear;
     private android.widget.TextView textReceipt;
     private android.widget.ImageButton btnReceipt;   // btnNoteMap ist ein eigenes Feld
     private android.widget.LinearLayout receiptPagesView;
@@ -150,6 +155,10 @@ public class BookingEditActivity extends LocalizedActivity {
     private boolean receiptEnabled;
     /** Zu speichernde Koordinaten „lat, lon" (aus Standort bzw. bestehender Buchung); null = keine. */
     private String gpsRowCoords;
+    /** Stichwörter dieser Buchung, so wie sie gespeichert werden (siehe {@link BookingTags}). */
+    private String bookingTags = "";
+    /** Die in KMyMoney vorhandenen Stichwörter – nur daraus lässt sich wählen; leer = Zeile aus. */
+    private java.util.List<String> knownTagNames = new ArrayList<>();
     /** True, sobald der Standort auf der Karte manuell gewählt wurde – dann kein Überschreiben per Live-GPS. */
     private boolean gpsEditedByUser;
     /** Karten-Auswahl (OpenStreetMap) für den Standort der Buchung. */
@@ -225,6 +234,8 @@ public class BookingEditActivity extends LocalizedActivity {
     private String payeeAmountKey;
     /** So weit muß der Standort wandern, damit der Vorspann neu gerechnet wird (Meter). */
     private static final int NEARBY_AGAIN_M = 100;
+    /** Bis hierhin nennt die Stichwort-Zeile die Namen; darüber nur noch ihre Anzahl. */
+    private static final int TAGS_LABEL_MAX = 40;
 
     /** Verwaltet die dynamische Kategorie-/Teilbetrag-Liste (Splitbuchung). */
     private SplitRowController splitCtl;
@@ -295,6 +306,11 @@ public class BookingEditActivity extends LocalizedActivity {
         repository.getPayeeNames(names -> {
             payeeNames = names == null ? new ArrayList<>() : names;
             refreshPayeeSuggestions();
+        });
+        repository.getTagNames(names -> {
+            // Kennt die App keine Stichwörter (CSV-Betrieb, noch kein Abgleich), bleibt die Zeile weg.
+            knownTagNames = names == null ? new ArrayList<>() : names;
+            updateNoteTagRows();
         });
         repository.getAccountNames(names -> {
             knownAccountNames.clear();
@@ -414,8 +430,12 @@ public class BookingEditActivity extends LocalizedActivity {
                     }
                 });
         rowGps = findViewById(R.id.rowGps);
+        rowTags = findViewById(R.id.rowTags);
         rowReceipt = findViewById(R.id.rowReceipt);
         textGps = findViewById(R.id.textGps);
+        textTags = findViewById(R.id.textTags);
+        btnTagsEdit = findViewById(R.id.btnTagsEdit);
+        btnTagsClear = findViewById(R.id.btnTagsClear);
         textReceipt = findViewById(R.id.textReceipt);
         btnReceipt = findViewById(R.id.btnReceipt);
         receiptPagesView = findViewById(R.id.receiptPages);
@@ -929,6 +949,9 @@ public class BookingEditActivity extends LocalizedActivity {
         b.account = st.account;
         b.payee = st.payee;
         b.note = "";
+        // Die Stichwörter der Planung wandern mit: in der Vorschau nur zu sehen, in der daraus
+        // angelegten Buchung dann auch zu ändern.
+        b.tags = st.tags == null ? "" : st.tags;
         b.place = "";
         b.placeManaged = false;
         if (b.isTransfer) {
@@ -1071,6 +1094,10 @@ public class BookingEditActivity extends LocalizedActivity {
         final long total = overrideAmountCents != null ? overrideAmountCents : b.amountCents;
         // Nur der freie Text ins Notizfeld – GPS/Beleg stehen in den zwei Ausgabezeilen darunter.
         editNote.setText(stripTags(b.note));
+        // Die Stichwörter stehen an der Buchung, nicht in der Notiz; bei einer Umbuchung tragen beide
+        // Zeilen dieselben.
+        bookingTags = b.tags == null ? "" : b.tags;
+        updateTagsRow();
 
         if (b.isTransfer) {
             toggleType.check(R.id.btnTransfer);
@@ -1459,9 +1486,10 @@ public class BookingEditActivity extends LocalizedActivity {
         maybeAskCorrection(payee, () -> maybeDateConfirm(() -> {
             long ts = composeTimestamp();
             // Der Beleg wird erst hier festgeschrieben – bis zur Bestätigung ist nichts gespeichert.
-            // Beide Seiten bekommen dieselbe Notiz und damit denselben BELEG:-Tag.
+            // Beide Seiten bekommen dieselbe Notiz und damit denselben BELEG:-Tag – und dieselben
+            // Stichwörter, denn in der .kmy-Datei ist die Umbuchung eine einzige Transaktion.
             repository.saveTransferBooking(from, to, cents, payee, withReceiptTag(note, ts, true),
-                ts, fromPlace, toPlace, () -> {
+                bookingTags, ts, fromPlace, toPlace, () -> {
                     Toast.makeText(this, R.string.transfer_saved, Toast.LENGTH_SHORT).show();
                     finishAfterSave();
                 });
@@ -1514,7 +1542,7 @@ public class BookingEditActivity extends LocalizedActivity {
         return m.find() ? m.group(1).replaceAll("\\s+", "") : null;
     }
 
-    /** Aktualisiert die zwei Ausgabezeilen (GPS + Beleg) je nach Ansicht-/Bearbeiten-Modus. */
+    /** Aktualisiert die drei Ausgabezeilen (GPS, Stichwörter, Beleg) je nach Ansicht-/Bearbeiten-Modus. */
     private void updateNoteTagRows() {
         if (rowGps == null) {
             return; // Views noch nicht gebunden
@@ -1542,6 +1570,7 @@ public class BookingEditActivity extends LocalizedActivity {
         } else {
             rowGps.setVisibility(View.GONE);
         }
+        updateTagsRow();
         // Beleg-Kopfzeile + eine Zeile je Seite
         if (readOnly) {
             rowReceipt.setVisibility(receiptPages.isEmpty() ? View.GONE : View.VISIBLE);
@@ -1561,6 +1590,90 @@ public class BookingEditActivity extends LocalizedActivity {
             rowReceipt.setVisibility(View.GONE);
         }
         fillReceiptPages();
+    }
+
+    /**
+     * Die Stichwort-Zeile. Sie erscheint nur, wenn die App überhaupt Stichwörter aus einer
+     * {@code .kmy}-Datei kennt – ohne sie gäbe es nichts zu wählen. In der Ansicht bleibt der Text
+     * stehen, die beiden Symbole verschwinden.
+     */
+    private void updateTagsRow() {
+        if (rowTags == null) {
+            return; // Views noch nicht gebunden
+        }
+        boolean show = !knownTagNames.isEmpty() && (!readOnly || !bookingTags.isEmpty());
+        rowTags.setVisibility(show ? View.VISIBLE : View.GONE);
+        if (!show) {
+            return;
+        }
+        String label = BookingTags.label(bookingTags, TAGS_LABEL_MAX);
+        textTags.setText(getString(R.string.tags_row,
+                label.isEmpty() ? getString(R.string.tags_none) : label));
+        btnTagsEdit.setVisibility(readOnly ? View.GONE : View.VISIBLE);
+        btnTagsClear.setVisibility(readOnly || bookingTags.isEmpty() ? View.GONE : View.VISIBLE);
+        btnTagsEdit.setOnClickListener(v -> showTagsDialog());
+        btnTagsClear.setOnClickListener(v -> {
+            // Ohne Rückfrage – wie das Löschkreuz einer Belegseite; rückgängig durch Verlassen
+            // der Maske, ohne zu speichern.
+            bookingTags = "";
+            updateTagsRow();
+        });
+    }
+
+    /**
+     * Das Pop-Up zu den Stichwörtern: oben die vergebenen, jedes einzeln zu löschen, darunter ein
+     * Feld zum Hinzufügen. Es verhält sich wie das Konto- und das Kategoriefeld – gesucht wird über
+     * Teiltreffer, und was auf keinen Eintrag paßt, wird verworfen: eingebbar ist nur, was es in
+     * KMyMoney gibt.
+     */
+    private void showTagsDialog() {
+        final String[] draft = {bookingTags};
+        View view = getLayoutInflater().inflate(R.layout.dialog_tags, null, false);
+        final android.widget.LinearLayout rows = view.findViewById(R.id.tagRows);
+        final PickerTextView field = view.findViewById(R.id.editTagNew);
+
+        final Runnable[] rebuild = new Runnable[1];
+        rebuild[0] = () -> {
+            rows.removeAllViews();
+            for (String name : BookingTags.parse(draft[0])) {
+                View row = getLayoutInflater().inflate(R.layout.item_tag_row, rows, false);
+                ((android.widget.TextView) row.findViewById(R.id.textTagName)).setText(name);
+                row.findViewById(R.id.btnTagDelete).setOnClickListener(v -> {
+                    draft[0] = BookingTags.remove(draft[0], name);
+                    rebuild[0].run();
+                });
+                rows.addView(row);
+            }
+            // Schon vergebene Stichwörter fallen aus den Vorschlägen.
+            java.util.List<String> free = new ArrayList<>();
+            for (String name : knownTagNames) {
+                if (!BookingTags.contains(draft[0], name)) {
+                    free.add(name);
+                }
+            }
+            PickerAdapters.plainSearchable(field, free);
+        };
+        rebuild[0].run();
+
+        PickerBehaviour.onCommitted(field, value -> {
+            String clean = BookingTags.sanitize(value);
+            if (clean.isEmpty()) {
+                return;
+            }
+            draft[0] = BookingTags.add(draft[0], clean);
+            field.setText("", false);
+            rebuild[0].run();
+        });
+
+        new AppDialog(this)
+                .setTitle(R.string.tags_dialog_title)
+                .setView(view)
+                .setNegativeButton(android.R.string.cancel, null)
+                .setPositiveButton(R.string.tags_done, (d, w) -> {
+                    bookingTags = draft[0];
+                    updateTagsRow();
+                })
+                .show();
     }
 
     /**
@@ -2241,7 +2354,7 @@ public class BookingEditActivity extends LocalizedActivity {
         maybeAskCorrection(payee, () -> {
             long ts = composeTimestamp();
             repository.updateTransferBooking(booking, from, to, cents, payee,
-                withReceiptTag(note, ts, false), ts, fromPlace, toPlace, () -> {
+                withReceiptTag(note, ts, false), bookingTags, ts, fromPlace, toPlace, () -> {
                     Toast.makeText(this, R.string.booking_updated, Toast.LENGTH_SHORT).show();
                     finish();
                 });
@@ -2271,7 +2384,7 @@ public class BookingEditActivity extends LocalizedActivity {
             // Umwandeln heißt löschen und neu anlegen – der Beleg gehört aber weiter zu dieser Buchung
             // (asNew = false), sonst bliebe er nach dem Wechsel der Buchungsart herrenlos liegen.
             repository.saveTransferBooking(from, to, cents, payee,
-                    withReceiptTag(note, ts, false), ts, fromPlace, toPlace, () -> {
+                    withReceiptTag(note, ts, false), bookingTags, ts, fromPlace, toPlace, () -> {
                 Toast.makeText(this, R.string.booking_updated, Toast.LENGTH_SHORT).show();
                 finish();
             });
@@ -2397,6 +2510,7 @@ public class BookingEditActivity extends LocalizedActivity {
         target.payee = payee;
         target.account = account;
         target.note = textOf(editNote).trim();
+        target.tags = bookingTags;
         target.createdAt = composeTimestamp();
         return target;
     }

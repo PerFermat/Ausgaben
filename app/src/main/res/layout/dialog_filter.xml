@@ -50,6 +50,28 @@
                 android:inputType="textCapWords" />
         </com.google.android.material.textfield.TextInputLayout>
 
+        <!-- Bleibt unsichtbar, solange die App keine Stichwörter aus einer .kmy kennt. -->
+        <com.google.android.material.textfield.TextInputLayout
+            android:id="@+id/filterTagLayout"
+            android:layout_width="match_parent"
+            android:layout_height="wrap_content"
+            android:layout_marginTop="8dp"
+            android:hint="@string/tags_filter_hint"
+            android:visibility="gone">
+
+            <de.spahr.ausgaben.ui.PickerTextView
+                android:id="@+id/filterTag"
+                android:layout_width="match_parent"
+                android:layout_height="wrap_content"
+                android:minHeight="64dp"
+                android:paddingVertical="14dp"
+                android:paddingStart="16dp"
+                android:paddingEnd="16dp"
+                android:textSize="18sp"
+                android:completionThreshold="1"
+                android:inputType="text" />
+        </com.google.android.material.textfield.TextInputLayout>
+
         <TextView
             android:layout_width="wrap_content"
             android:layout_height="wrap_content"

@@ -344,6 +344,15 @@
     <string name="receipt_pdfs_count">%1$d Dokument(e)</string>
     <string name="receipt_pdf_no_viewer">Keine App für PDF-Dokumente installiert</string>
     <string name="receipt_pdf_attached">Dokument ✓</string>
+    <string name="tags_row">Stichwörter: %1$s</string>
+    <string name="tags_dialog_title">Stichwörter</string>
+    <string name="tags_edit">Stichwörter bearbeiten</string>
+    <string name="tags_clear">Alle Stichwörter entfernen</string>
+    <string name="tags_remove">Stichwort entfernen</string>
+    <string name="tags_add_hint">Stichwort hinzufügen</string>
+    <string name="tags_filter_hint">Stichwort</string>
+    <string name="tags_none">—</string>
+    <string name="tags_done">Fertig</string>
     <string name="gps_row_label">GPS: %1$s</string>
     <string name="gps_row_none">Standort: zum Setzen die Karte antippen</string>
     <string name="compass_n">N</string>

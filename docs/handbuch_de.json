@@ -563,6 +563,26 @@
     },
     {
       "type": "h2",
+      "id": "b-0080a",
+      "text": "Belege eines Filters ausgeben"
+    },
+    {
+      "type": "p",
+      "id": "b-0080b",
+      "text": "In der App heißen die Belegdateien nach einer Kennung – für die App genug, für einen Menschen unbrauchbar. Wer die Belege eines Quartals an das Steuerbüro gibt, braucht sprechende Namen. Dafür gibt es <b>«Belege exportieren»</b> im Menü (⋮) der Buchungsliste. Der Punkt erscheint <b>nur, wenn ein Filter gesetzt ist</b>, denn er bezieht sich genau auf die gefilterte Auswahl: Zeitraum, Empfänger, Kategorie, Stichwort, Betrag – was immer Sie eingestellt haben."
+    },
+    {
+      "type": "p",
+      "id": "b-0080c",
+      "text": "Die App packt alle Belege dieser Buchungen in eine <b>ZIP-Datei</b> und fragt anschließend, wohin sie gespeichert werden soll. Jede Datei darin heißt <b>«Datum_Empfänger_Betrag_Buchungsnummer_Seite»</b>, also etwa «2026-08-16_Bäckerei-Mayer_8_23_1487_p1.jpg». Das Datum steht vorn, damit der Dateimanager von selbst richtig sortiert; die Buchungsnummer sorgt dafür, dass zwei Einkäufe am selben Tag beim selben Händler über denselben Betrag nicht denselben Namen bekommen. Mehrseitige Belege behalten ihre Seitenzählung, PDF-Belege ihre Endung. Bei einer <b>Umbuchung</b> liegt der gemeinsame Beleg nur einmal in der Datei, benannt nach der abgebenden Seite."
+    },
+    {
+      "type": "p",
+      "id": "b-0080d",
+      "text": "Belege, die nicht auf diesem Gerät liegen, holt die App dabei aus dem Sync-Ordner nach – nach einem Handywechsel ist das der Regelfall. Geht das nicht (kein Netz, Datei dort nicht vorhanden), packt sie die übrigen trotzdem ein und nennt Ihnen am Ende, <b>wie viele</b> gefehlt haben. Hat keine der gefilterten Buchungen einen Beleg, kommt nur ein kurzer Hinweis und es wird gar nicht erst nach einem Speicherort gefragt; ließe sich <b>kein einziger</b> Beleg holen, entsteht auch keine leere Datei."
+    },
+    {
+      "type": "h2",
       "id": "b-0081",
       "text": "Belegfotos zuschneiden und begradigen"
     },
@@ -637,7 +657,7 @@
             "In der Liste wird die Notiz auf maximal zwei Zeilen gekürzt; im Editor umfasst das Notizfeld vier Zeilen.",
             "<b>Herunterziehen</b> (in einer Konto- oder Depot-Ansicht): in der <b>kmy-Variante</b> wird die .kmy-Datei neu eingelesen und genau dieses Konto bzw. Depot aktualisiert. In der <b>CSV-Variante</b> ist das nicht verfügbar – dort aktualisiert man ein Konto über das Kontenmenü (langer Druck auf das Konto in der Schublade).",
             "Markierungen: «Split», → / ← (Umbuchung), «exportiert»; Farben rot/grün.",
-            "<b>Filter</b> (Trichter ▽): mit einem <b>Suchfeld</b>, das <b>Empfänger, Notiz und Kategorie</b> durchsucht (Teilstring, Groß-/Kleinschreibung egal – so finden Sie auch eine Buchung über ihre Notiz); dazu Kategorie (als Baum), <b>Stichwort</b> (nur vorhanden, wenn die App Stichwörter aus der KMyMoney-Datei kennt; «Alle» hebt die Wahl auf), Betrag (Schieberegler) und <b>Datum von–bis</b> (Schieberegler in Monatsschritten; ein taggenaues Datum geben Sie direkt im Feld ein). Beim <b>Betrag</b> zählen Ausgaben negativ und Einnahmen positiv; der Regler läuft von der größten Ausgabe links bis zur größten Einnahme rechts, ein feiner Strich zeigt die Null dazwischen. Er bewegt sich in <b>Anteilen</b>, nicht in Beträgen: der rechte Daumen bei 90 % schneidet das größte Zehntel ab – ein einzelner Ausreißer zieht den Regler also nicht mehr auf. Eine genaue Grenze tippen Sie direkt ins Feld. Ganz unten steht – nur bei eingeschaltetem <b>Standort (GPS)</b> – der Knopf <b>Umkreis</b>: jeder Tipp schaltet weiter über «aus», 100 m, 500 m, 1 km, 10 km und wieder «aus». Auf einer Stufe bleiben nur Buchungen stehen, die in diesem Umkreis um Ihren jetzigen Standort entstanden sind – die Koordinaten stehen in der Buchungsnotiz, und wo sie fehlen, gilt der gelernte Standort des Empfängers aus dem Alias. Ihre Position wird beim Anwenden einmal festgehalten, die Liste wandert also nicht mit, wenn Sie weitergehen; ist noch keine Position bekannt, bleibt die Liste leer und die Titelzeile zeigt «Filter aktiv (0)». «Zurücksetzen» stellt «Umkreis aus» her, danach spielt der Standort keine Rolle mehr. Der Filter wirkt auf Liste und Auswertung (der Umkreis nur auf die Liste). Bei Kategorie-Filter zeigt eine Splitbuchung nur den Teilbetrag der gewählten Kategorie.",
+            "<b>Filter</b> (Trichter ▽): mit einem <b>Suchfeld</b>, das <b>Empfänger, Notiz und Kategorie</b> durchsucht (Teilstring, Groß-/Kleinschreibung egal – so finden Sie auch eine Buchung über ihre Notiz); dazu Kategorie (als Baum), <b>Stichwort</b> (nur vorhanden, wenn die App Stichwörter aus der KMyMoney-Datei kennt; «Alle» hebt die Wahl auf), Betrag (Schieberegler) und <b>Datum von–bis</b> (Schieberegler in Monatsschritten; ein taggenaues Datum geben Sie direkt im Feld ein). Beim <b>Betrag</b> zählen Ausgaben negativ und Einnahmen positiv; der Regler läuft von der größten Ausgabe links bis zur größten Einnahme rechts, ein feiner Strich zeigt die Null dazwischen. Er bewegt sich in <b>Anteilen</b>, nicht in Beträgen: der rechte Daumen bei 90 % schneidet das größte Zehntel ab – ein einzelner Ausreißer zieht den Regler also nicht mehr auf. Eine genaue Grenze tippen Sie direkt ins Feld. Ganz unten steht – nur bei eingeschaltetem <b>Standort (GPS)</b> – der Knopf <b>Umkreis</b>: jeder Tipp schaltet weiter über «aus», 100 m, 500 m, 1 km, 10 km und wieder «aus». Auf einer Stufe bleiben nur Buchungen stehen, die in diesem Umkreis um Ihren jetzigen Standort entstanden sind – die Koordinaten stehen in der Buchungsnotiz, und wo sie fehlen, gilt der gelernte Standort des Empfängers aus dem Alias. Ihre Position wird beim Anwenden einmal festgehalten, die Liste wandert also nicht mit, wenn Sie weitergehen; ist noch keine Position bekannt, bleibt die Liste leer und die Titelzeile zeigt «Filter aktiv (0)». «Zurücksetzen» stellt «Umkreis aus» her, danach spielt der Standort keine Rolle mehr. Bei gesetztem Filter steht im Menü (⋮) zusätzlich <b>«Belege exportieren»</b>, das die Belege genau dieser Auswahl als ZIP-Datei ausgibt. Der Filter wirkt auf Liste und Auswertung (der Umkreis nur auf die Liste). Bei Kategorie-Filter zeigt eine Splitbuchung nur den Teilbetrag der gewählten Kategorie.",
             "<b>Rückgängig</b>: Nach dem Löschen einer Buchung erscheint unten kurz «Rückgängig» – ein Tipp legt sie wieder an. Im Ort-Journal bleiben Löschung und Wiederanlage als Bewegungen sichtbar. Bei Umbuchungen gibt es kein Rückgängig.",
             "<b>Langdruck auf das App-Symbol</b> (Startbildschirm): «Neue Buchung» öffnet den Editor direkt."
           ]

@@ -91,6 +91,14 @@
     <!-- Menu -->
     <string name="action_import">Import</string>
     <string name="action_export">Export</string>
+    <string name="action_export_receipts">Export receipts</string>
+    <string name="receipt_export_none">No receipts in the current filter</string>
+    <string name="receipt_export_running">Packing receipts…</string>
+    <string name="receipt_export_title">Export receipts</string>
+    <string name="receipt_export_done">%1$d receipt(s) packed.</string>
+    <string name="receipt_export_missing">%1$d could not be fetched (not on this device and not reachable on the server).</string>
+    <string name="receipt_export_empty">Not a single receipt could be fetched — %1$d are missing. No file was created.</string>
+    <string name="receipt_export_failed">Export failed: %1$s</string>
     <string name="action_filter">Filter</string>
     <string name="action_analysis">Analysis</string>
     <string name="action_balance">Balances</string>

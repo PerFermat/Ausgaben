@@ -171,6 +171,10 @@ public class MainActivity extends LocalizedActivity {
 
     private ActivityResultLauncher<Uri> exportTreeLauncher;
     private ActivityResultLauncher<String[]> importLauncher;
+    /** Speicherdialog für die ZIP-Datei mit den Belegen der gefilterten Buchungen. */
+    private ActivityResultLauncher<String> receiptZipLauncher;
+    /** Was beim Antippen des Menüpunkts feststand – der Speicherdialog kommt ja erst danach. */
+    private java.util.List<de.spahr.ausgaben.receipt.ReceiptExportJobs.Job> receiptExportJobs;
     private ActivityResultLauncher<Intent> voiceLauncher;
     private ActivityResultLauncher<Intent> editLauncher;
     private ActivityResultLauncher<String> locationPermissionLauncher;
@@ -359,6 +363,12 @@ public class MainActivity extends LocalizedActivity {
                 new ActivityResultContracts.OpenDocument(), uri -> {
                     if (uri != null) {
                         doImportLocal(uri);
+                    }
+                });
+        receiptZipLauncher = registerForActivityResult(
+                new ActivityResultContracts.CreateDocument("application/zip"), uri -> {
+                    if (uri != null) {
+                        writeReceiptZip(uri);
                     }
                 });
         // Buchungs-Editor: liefert nach dem Löschen die Daten für „Rückgängig" zurück.
@@ -1147,6 +1157,90 @@ public class MainActivity extends LocalizedActivity {
                 || filterRadiusM > 0;
     }
 
+    // ---- Belege der gefilterten Buchungen ausgeben ----
+
+    /**
+     * Sammelt die Belege der gerade gefilterten Buchungen und öffnet den Speicherdialog. Hat keine der
+     * Buchungen einen Beleg, bleibt es bei einer kurzen Meldung – ein Dialog, an dessen Ende eine leere
+     * Datei stünde, hilft niemandem.
+     */
+    private void exportReceipts() {
+        java.util.List<Booking> filtered = new ArrayList<>();
+        for (Booking b : allBookings) {
+            if (matchesFilter(b)) {
+                filtered.add(b);
+            }
+        }
+        receiptExportJobs = de.spahr.ausgaben.receipt.ReceiptExportJobs.collect(filtered);
+        if (receiptExportJobs.isEmpty()) {
+            Toast.makeText(this, R.string.receipt_export_none, Toast.LENGTH_LONG).show();
+            return;
+        }
+        receiptZipLauncher.launch("belege-" + new java.text.SimpleDateFormat("yyyyMMdd-HHmmss",
+                java.util.Locale.US).format(new java.util.Date()) + ".zip");
+    }
+
+    /** Packt die vorgemerkten Belege in die gewählte Datei; das Holen vom Server kann dauern. */
+    private void writeReceiptZip(android.net.Uri uri) {
+        final java.util.List<de.spahr.ausgaben.receipt.ReceiptExportJobs.Job> jobs = receiptExportJobs;
+        receiptExportJobs = null;
+        if (jobs == null || jobs.isEmpty()) {
+            return;
+        }
+        final String label = getString(R.string.receipt_export_running);
+        importBanner.start(label);
+        final de.spahr.ausgaben.util.ProgressListener progress = importBanner.phase(label, 0, 100);
+        new Thread(() -> {
+            de.spahr.ausgaben.receipt.ReceiptZip.Result result = null;
+            String error = null;
+            try (java.io.OutputStream out = getContentResolver().openOutputStream(uri)) {
+                if (out == null) {
+                    throw new java.io.IOException("kein Schreibzugriff");
+                }
+                result = de.spahr.ausgaben.receipt.ReceiptZip.write(this, out, jobs, progress);
+            } catch (Exception e) {
+                error = String.valueOf(e.getMessage());
+            }
+            final de.spahr.ausgaben.receipt.ReceiptZip.Result done = result;
+            final String failed = error;
+            runOnUiThread(() -> {
+                importBanner.finish();
+                if (failed != null) {
+                    Toast.makeText(this, getString(R.string.receipt_export_failed, failed),
+                            Toast.LENGTH_LONG).show();
+                    return;
+                }
+                reportReceiptZip(uri, done);
+            });
+        }).start();
+    }
+
+    /** Meldet das Ergebnis; ist nichts hineingekommen, verschwindet die eben angelegte Datei wieder. */
+    private void reportReceiptZip(android.net.Uri uri, de.spahr.ausgaben.receipt.ReceiptZip.Result r) {
+        if (r.written == 0) {
+            try {
+                android.provider.DocumentsContract.deleteDocument(getContentResolver(), uri);
+            } catch (Exception ignored) {
+                // Manche Anbieter lassen das nicht zu – dann bleibt es bei der Meldung.
+            }
+            new AppDialog(this)
+                    .setTitle(R.string.receipt_export_title)
+                    .setMessage(getString(R.string.receipt_export_empty, r.missing))
+                    .setPositiveButton(android.R.string.ok, null)
+                    .show();
+            return;
+        }
+        String text = getString(R.string.receipt_export_done, r.written);
+        if (r.missing > 0) {
+            text += "\n\n" + getString(R.string.receipt_export_missing, r.missing);
+        }
+        new AppDialog(this)
+                .setTitle(R.string.receipt_export_title)
+                .setMessage(text)
+                .setPositiveButton(android.R.string.ok, null)
+                .show();
+    }
+
     // ---- Saldo-Leiste (Durchschalten) ----
 
     private void buildSaldoViews() {
@@ -1548,6 +1642,7 @@ public class MainActivity extends LocalizedActivity {
         getMenuInflater().inflate(R.menu.main_menu, menu);
         // Menü-Titel kommen aus dem String-Pool (umgehen die Übersetzung) → per getString neu setzen.
         setMenuTitle(menu, R.id.action_export, R.string.action_export);
+        setMenuTitle(menu, R.id.action_export_receipts, R.string.action_export_receipts);
         setMenuTitle(menu, R.id.action_filter, R.string.action_filter);
         setMenuTitle(menu, R.id.action_analysis, R.string.action_analysis);
         setMenuTitle(menu, R.id.action_balance, R.string.action_balance);
@@ -1564,6 +1659,11 @@ public class MainActivity extends LocalizedActivity {
         if (scheduled != null) {
             scheduled.setVisible(settings.isKmyMode());
         }
+        // „Belege exportieren" bezieht sich auf die gefilterte Auswahl – ohne Filter ergäbe es nichts.
+        android.view.MenuItem receipts = menu.findItem(R.id.action_export_receipts);
+        if (receipts != null) {
+            receipts.setVisible(isFilterActive());
+        }
         return super.onPrepareOptionsMenu(menu);
     }
 
@@ -1579,6 +1679,9 @@ public class MainActivity extends LocalizedActivity {
         int id = item.getItemId();
         if (id == R.id.action_export) {
             doExport();
+            return true;
+        } else if (id == R.id.action_export_receipts) {
+            exportReceipts();
             return true;
         } else if (id == R.id.action_filter) {
             showFilterDialog();

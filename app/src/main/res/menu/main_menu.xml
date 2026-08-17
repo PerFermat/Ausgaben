@@ -14,6 +14,12 @@
         android:title="@string/action_filter"
         app:showAsAction="ifRoom" />
 
+    <!-- Nur bei gesetztem Filter sichtbar (siehe onPrepareOptionsMenu). -->
+    <item
+        android:id="@+id/action_export_receipts"
+        android:title="@string/action_export_receipts"
+        app:showAsAction="never" />
+
     <item
         android:id="@+id/action_analysis"
         android:icon="@drawable/ic_chart"

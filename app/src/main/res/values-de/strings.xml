@@ -91,6 +91,14 @@
     <!-- Menü -->
     <string name="action_import">Importieren</string>
     <string name="action_export">Exportieren</string>
+    <string name="action_export_receipts">Belege exportieren</string>
+    <string name="receipt_export_none">Keine Belege im aktuellen Filter</string>
+    <string name="receipt_export_running">Belege werden gepackt …</string>
+    <string name="receipt_export_title">Belege exportieren</string>
+    <string name="receipt_export_done">%1$d Beleg(e) gepackt.</string>
+    <string name="receipt_export_missing">%1$d waren nicht zu holen (weder auf diesem Gerät noch auf dem Server erreichbar).</string>
+    <string name="receipt_export_empty">Kein einziger Beleg war zu holen – %1$d fehlen. Es wurde keine Datei angelegt.</string>
+    <string name="receipt_export_failed">Export fehlgeschlagen: %1$s</string>
     <string name="action_filter">Filtern</string>
     <string name="action_analysis">Auswertung</string>
     <string name="action_balance">Bestände</string>

@@ -83,7 +83,8 @@ This list names the main features only. The exact behaviour, every detail and sc
   location and the amount the app suggests the payee and prefills its category. Payees are learnt as
   aliases.
 - **Receipts** — a photo or a PDF document per booking, multi-page, transfers included. Photos can be
-  cropped and straightened; everything is uploaded into the sync folder.
+  cropped and straightened; everything is uploaded into the sync folder. The receipts of a filtered
+  selection can be exported as a ZIP file under speaking names.
 - **List & filter** — search across payee, note and category, plus amount, date-range and radius
   filters; undo after delete.
 - **Organising accounts** — grouped by account kind, plus freely chosen account groups (including ones
@@ -137,7 +138,7 @@ same place) so KMyMoney carries on with the file unchanged; a backup is written 
 
 **Testability.** Everything that computes or decides lives in pure classes **without Android** —
 `PayeeAmounts`, `PayeeCategories`, `AccountScope`, `BudgetMath`, `RadiusFilter`, `EditStatus`,
-`NoteReceipt` and others. They run under JUnit 4 with no emulator and no mocks; **382 unit tests** at
+`NoteReceipt` and others. They run under JUnit 4 with no emulator and no mocks; **397 unit tests** at
 present, among them checks against real `.kmy` files (via Robolectric, which never ships in the APK).
 
 **Receipts.** Photos and PDFs are kept app-private and uploaded in the background into `Belege/<year>/`

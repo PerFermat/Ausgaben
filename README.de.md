@@ -80,7 +80,8 @@ stehen im **[Benutzerhandbuch](docs/Handbuch-Ausgaben-de.pdf)**.
   Standort und Betrag schlägt die App den Empfänger vor und füllt seine Kategorie vor. Empfänger lernt
   sie über Alias-Namen dazu.
 - **Belege** – Foto oder PDF-Dokument je Buchung, mehrseitig, auch an einer Umbuchung. Fotos lassen
-  sich zuschneiden und begradigen; alles wird in den Sync-Ordner hochgeladen.
+  sich zuschneiden und begradigen; alles wird in den Sync-Ordner hochgeladen. Die Belege einer
+  gefilterten Auswahl lassen sich als ZIP-Datei mit sprechenden Namen ausgeben.
 - **Liste & Filter** – Suche über Empfänger, Notiz und Kategorie, dazu Betrags-, Zeitraum- und
   Umkreisfilter; Rückgängig nach dem Löschen.
 - **Konten ordnen** – Gliederung nach Kontenart, dazu frei vergebene Kontengruppen (auch aus der `.kmy`
@@ -137,7 +138,7 @@ weiterverwendet; vor jedem Schreiben legt die App eine Sicherung an.
 **Prüfbarkeit.** Alles, was rechnet oder entscheidet, steckt in reinen Klassen **ohne Android** –
 `PayeeAmounts`, `PayeeCategories`, `AccountScope`, `BudgetMath`, `RadiusFilter`, `EditStatus`,
 `NoteReceipt` und andere. Sie sind mit JUnit 4 ohne Emulator und ohne Mocks prüfbar; derzeit laufen
-**382 Unit-Tests**, darunter Prüfungen gegen echte `.kmy`-Dateien (dafür Robolectric, das im APK nicht
+**397 Unit-Tests**, darunter Prüfungen gegen echte `.kmy`-Dateien (dafür Robolectric, das im APK nicht
 landet).
 
 **Belege.** Fotos und PDFs liegen app-privat und werden im Hintergrund nach `Belege/<Jahr>/` neben der

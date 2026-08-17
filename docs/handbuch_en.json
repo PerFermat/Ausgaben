@@ -563,6 +563,26 @@
     },
     {
       "type": "h2",
+      "id": "b-0080a",
+      "text": "Exporting the receipts of a filter"
+    },
+    {
+      "type": "p",
+      "id": "b-0080b",
+      "text": "Inside the app receipt files are named after an identifier – enough for the app, useless for a human. Anyone handing a quarter's receipts to their accountant needs speaking names. That is what <b>«Export receipts»</b> in the menu (⋮) of the booking list is for. The entry only appears <b>when a filter is set</b>, because it refers to exactly that filtered selection: date range, payee, category, tag, amount – whatever you have chosen."
+    },
+    {
+      "type": "p",
+      "id": "b-0080c",
+      "text": "The app packs all receipts of those bookings into a <b>ZIP file</b> and then asks where to save it. Every file inside is named <b>«date_payee_amount_bookingnumber_page»</b>, for example «2026-08-16_Bäckerei-Mayer_8_23_1487_p1.jpg». The date comes first so that the file manager sorts correctly by itself; the booking number makes sure that two purchases on the same day at the same shop for the same amount do not end up with the same name. Multi-page receipts keep their page count, PDF receipts their extension. For a <b>transfer</b> the shared receipt is packed only once, named after the outgoing side."
+    },
+    {
+      "type": "p",
+      "id": "b-0080d",
+      "text": "Receipts that are not on this device are fetched from the sync folder while packing – after switching phones that is the normal case. If that fails (no network, file not there), the app packs the rest anyway and tells you at the end <b>how many</b> were missing. If none of the filtered bookings has a receipt, you only get a short note and are not even asked for a location; if <b>not a single</b> receipt could be fetched, no empty file is created either."
+    },
+    {
+      "type": "h2",
       "id": "b-0081",
       "text": "Cropping and straightening receipt photos"
     },
@@ -637,7 +657,7 @@
             "In the list the note is truncated to at most two lines; in the editor the note field spans four lines.",
             "<b>Pull down</b> (in an account or portfolio view): in the <b>kmy variant</b> the .kmy file is re-read and that account or portfolio is refreshed. In the <b>CSV variant</b> this is not available – there you refresh an account via the account menu (long-press the account in the drawer).",
             "Markers: «Split», → / ← (transfer), «exported»; colours red/green.",
-            "<b>Filter</b> (funnel ▽): with a <b>search field</b> that searches <b>payee, note and category</b> (substring, case-insensitive – so you can find a booking by its note as well); plus category (as a tree), <b>tag</b> (only present when the app knows tags from the KMyMoney file; «All» clears the choice), amount (slider) and <b>date from–to</b> (slider in whole-month steps; type an exact day into the field). For the <b>amount</b>, expenses count negative and income positive; the slider runs from the largest expense on the left to the largest income on the right, with a thin mark showing the zero in between. It moves in <b>shares</b>, not in amounts: the right thumb at 90 % cuts off the largest tenth – so a single outlier no longer stretches the whole slider. For an exact bound, type it into the field. At the bottom – only with <b>location (GPS)</b> switched on – sits the <b>Radius</b> button: each tap steps through «off», 100 m, 500 m, 1 km, 10 km and back to «off». On a step only those bookings remain that were made within that radius of where you are now – the coordinates sit in the booking note, and where they are missing the learned location of the payee from the alias applies. Your position is captured once when you apply, so the list does not travel with you; if no position is known yet the list stays empty and the title line shows «Filter active (0)». «Reset» restores «Radius off», after which location no longer matters. The filter applies to the list and the analysis (the radius to the list only). With a category filter a split booking shows only the partial amount of the chosen category.",
+            "<b>Filter</b> (funnel ▽): with a <b>search field</b> that searches <b>payee, note and category</b> (substring, case-insensitive – so you can find a booking by its note as well); plus category (as a tree), <b>tag</b> (only present when the app knows tags from the KMyMoney file; «All» clears the choice), amount (slider) and <b>date from–to</b> (slider in whole-month steps; type an exact day into the field). For the <b>amount</b>, expenses count negative and income positive; the slider runs from the largest expense on the left to the largest income on the right, with a thin mark showing the zero in between. It moves in <b>shares</b>, not in amounts: the right thumb at 90 % cuts off the largest tenth – so a single outlier no longer stretches the whole slider. For an exact bound, type it into the field. At the bottom – only with <b>location (GPS)</b> switched on – sits the <b>Radius</b> button: each tap steps through «off», 100 m, 500 m, 1 km, 10 km and back to «off». On a step only those bookings remain that were made within that radius of where you are now – the coordinates sit in the booking note, and where they are missing the learned location of the payee from the alias applies. Your position is captured once when you apply, so the list does not travel with you; if no position is known yet the list stays empty and the title line shows «Filter active (0)». «Reset» restores «Radius off», after which location no longer matters. With a filter set, the menu (⋮) also offers <b>«Export receipts»</b>, which writes the receipts of exactly that selection into a ZIP file. The filter applies to the list and the analysis (the radius to the list only). With a category filter a split booking shows only the partial amount of the chosen category.",
             "<b>Undo</b>: after deleting a booking, «Undo» appears briefly at the bottom – one tap recreates it. In the place journal the deletion and the recreation stay visible as movements. Transfers have no undo.",
             "<b>Long press on the app icon</b> (home screen): «New booking» opens the editor directly."
           ]

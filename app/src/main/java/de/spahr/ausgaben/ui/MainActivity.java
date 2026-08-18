@@ -45,6 +45,7 @@ import de.spahr.ausgaben.net.RemoteStorage;
 import de.spahr.ausgaben.settings.PlacesStore;
 import de.spahr.ausgaben.settings.SettingsStore;
 import de.spahr.ausgaben.voice.VoiceInput;
+import de.spahr.ausgaben.voice.VoiceRecognizer;
 
 public class MainActivity extends LocalizedActivity {
 
@@ -385,7 +386,7 @@ public class MainActivity extends LocalizedActivity {
                         java.util.ArrayList<String> spoken = result.getData()
                                 .getStringArrayListExtra(android.speech.RecognizerIntent.EXTRA_RESULTS);
                         if (spoken != null && !spoken.isEmpty()) {
-                            handleVoiceResult(pickBestSpoken(spoken));
+                            handleVoiceResult(VoiceRecognizer.pickBestSpoken(spoken));
                             return;
                         }
                     }
@@ -583,15 +584,7 @@ public class MainActivity extends LocalizedActivity {
         if (settings.isGpsEnabled() && locationTagger != null && !hasLocationPermission()) {
             locationPermissionLauncher.launch(android.Manifest.permission.ACCESS_FINE_LOCATION);
         }
-        Intent intent = new Intent(android.speech.RecognizerIntent.ACTION_RECOGNIZE_SPEECH);
-        intent.putExtra(android.speech.RecognizerIntent.EXTRA_LANGUAGE_MODEL,
-                android.speech.RecognizerIntent.LANGUAGE_MODEL_FREE_FORM);
-        // Erkennungssprache folgt der gewählten App-Sprache (auch hochgeladene); nicht unterstützte
-        // Codes fallen im System auf die Gerätesprache zurück.
-        intent.putExtra(android.speech.RecognizerIntent.EXTRA_LANGUAGE, settings.getLanguage());
-        intent.putExtra(android.speech.RecognizerIntent.EXTRA_PROMPT, getString(R.string.voice_prompt));
-        // Mehrere Alternativen anfordern (die erste mit lesbarem Betrag wird bevorzugt).
-        intent.putExtra(android.speech.RecognizerIntent.EXTRA_MAX_RESULTS, 5);
+        Intent intent = VoiceRecognizer.freeFormIntent(this);
         try {
             voiceLauncher.launch(intent);
         } catch (android.content.ActivityNotFoundException e) {
@@ -624,16 +617,6 @@ public class MainActivity extends LocalizedActivity {
         repository.resolveVoice(parsed.payee, coords, res -> openVoiceEditor(res, amount, parsed.payee));
     }
 
-    /** Wählt aus den Erkennungs-Alternativen die erste, aus der ein Betrag lesbar ist (sonst die beste),
-     * damit ein Betrag nicht verloren geht, falls das Top-Ergebnis keine Zahl enthält. */
-    private String pickBestSpoken(java.util.List<String> list) {
-        for (String s : list) {
-            if (s != null && VoiceInput.parse(s).amountCents != null) {
-                return s;
-            }
-        }
-        return list.get(0);
-    }
 
     /** Öffnet den Editor vorbelegt aus einer Auflösung (Vorlage/Alias) + Betrag. */
     private void openVoiceEditor(Repository.VoiceResolution res, long amount, String spokenPayee) {

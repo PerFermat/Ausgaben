@@ -18,6 +18,7 @@ import java.util.Locale;
 import de.spahr.ausgaben.R;
 import de.spahr.ausgaben.db.Repository;
 import de.spahr.ausgaben.settings.SettingsStore;
+import de.spahr.ausgaben.voice.VoiceRecognizer;
 
 /**
  * Unsichtbare Aktivität für die Sprach-Schnellerfassung aus dem Typ-Widget: startet sofort die
@@ -48,7 +49,7 @@ public class VoiceCaptureActivity extends LocalizedActivity {
                     if (result.getResultCode() == RESULT_OK && result.getData() != null) {
                         ArrayList<String> res = result.getData()
                                 .getStringArrayListExtra(RecognizerIntent.EXTRA_RESULTS);
-                        createBooking(res == null || res.isEmpty() ? "" : res.get(0));
+                        createBooking(VoiceRecognizer.pickBestSpoken(res));
                     } else {
                         finish();
                     }
@@ -63,15 +64,7 @@ public class VoiceCaptureActivity extends LocalizedActivity {
         // RecognitionService-Dienst und liefert auf manchen Geräten fälschlich „nicht verfügbar", obwohl
         // z. B. die Google-Suchleiste per Mikrofon-Symbol funktioniert (gleiche ACTION_RECOGNIZE_SPEECH-
         // Activity). Der catch-Block unten (ActivityNotFoundException) fängt das echte „kein Erkenner" ab.
-        Intent intent = new Intent(RecognizerIntent.ACTION_RECOGNIZE_SPEECH);
-        intent.putExtra(RecognizerIntent.EXTRA_LANGUAGE_MODEL,
-                RecognizerIntent.LANGUAGE_MODEL_FREE_FORM);
-        // Erkennungssprache folgt der gewählten App-Sprache (auch hochgeladene); nicht unterstützte
-        // Codes fallen im System auf die Gerätesprache zurück.
-        intent.putExtra(RecognizerIntent.EXTRA_LANGUAGE,
-                new SettingsStore(this).getLanguage());
-        intent.putExtra(RecognizerIntent.EXTRA_PROMPT, getString(R.string.voice_prompt));
-        intent.putExtra(RecognizerIntent.EXTRA_MAX_RESULTS, 5);
+        Intent intent = VoiceRecognizer.freeFormIntent(this);
         try {
             speechLauncher.launch(intent);
         } catch (Exception e) {

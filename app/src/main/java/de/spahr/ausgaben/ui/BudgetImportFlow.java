@@ -1,5 +1,6 @@
 package de.spahr.ausgaben.ui;
 
+import de.spahr.ausgaben.net.RemotePath;
 import android.app.Activity;
 import android.widget.ProgressBar;
 import android.widget.Toast;
@@ -51,7 +52,7 @@ final class BudgetImportFlow {
 
         new Thread(() -> {
             try {
-                byte[] raw = RemoteStorage.from(settings).downloadBytes(folderOf(path), fileOf(path));
+                byte[] raw = RemoteStorage.from(settings).downloadBytes(RemotePath.folderOf(path), RemotePath.fileOf(path));
                 KmyImporter importer = new KmyImporter(
                         new KmyDocument(raw, activity.getApplicationContext()),
                         activity.getApplicationContext());
@@ -113,15 +114,4 @@ final class BudgetImportFlow {
         });
     }
 
-    private static String folderOf(String path) {
-        String p = path.trim();
-        int slash = p.lastIndexOf('/');
-        return slash < 0 ? "" : p.substring(0, slash);
-    }
-
-    private static String fileOf(String path) {
-        String p = path.trim();
-        int slash = p.lastIndexOf('/');
-        return slash < 0 ? p : p.substring(slash + 1);
-    }
 }

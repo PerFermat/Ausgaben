@@ -1,5 +1,6 @@
 package de.spahr.ausgaben.ui;
 
+import de.spahr.ausgaben.net.RemotePath;
 import android.content.Intent;
 import android.net.Uri;
 import android.os.Bundle;
@@ -335,11 +336,11 @@ public class OnboardingActivity extends LocalizedActivity implements SmbWizardCo
         String path = kmy ? textOf(editKmyPath) : textOf(editFolder);
         SmbDiagnosticsDialog.run(this, textOf(editUrl), textOf(editUser),
                 pw.isEmpty() ? settings.getPassword() : pw,
-                kmy ? folderOf(path) : path, kmy ? fileOf(path) : "");
+                kmy ? RemotePath.folderOf(path) : path, kmy ? RemotePath.fileOf(path) : "");
     }
 
     private void browseKmy() {
-        browseKmyAt(folderOf(textOf(editKmyPath)));
+        browseKmyAt(RemotePath.folderOf(textOf(editKmyPath)));
     }
 
     private void browseKmyAt(String folder) {
@@ -378,7 +379,7 @@ public class OnboardingActivity extends LocalizedActivity implements SmbWizardCo
         final List<Runnable> actions = new ArrayList<>();
         if (!folder.isEmpty()) {
             labels.add("↑  ..");
-            actions.add(() -> browseKmyAt(parentFolder(folder)));
+            actions.add(() -> browseKmyAt(RemotePath.parentFolder(folder)));
         }
         for (String d : folders) {
             labels.add("📁  " + d);
@@ -434,7 +435,7 @@ public class OnboardingActivity extends LocalizedActivity implements SmbWizardCo
         actions.add(() -> target.setText(folder));
         if (!folder.isEmpty()) {
             labels.add("↑  ..");
-            actions.add(() -> browseFolderAt(parentFolder(folder), target));
+            actions.add(() -> browseFolderAt(RemotePath.parentFolder(folder), target));
         }
         for (String d : folders) {
             labels.add("📁  " + d);
@@ -468,7 +469,7 @@ public class OnboardingActivity extends LocalizedActivity implements SmbWizardCo
         showImportStatus(getString(R.string.progress_download));
         new Thread(() -> {
             try {
-                byte[] raw = RemoteStorage.from(settings).downloadBytes(folderOf(path), fileOf(path));
+                byte[] raw = RemoteStorage.from(settings).downloadBytes(RemotePath.folderOf(path), RemotePath.fileOf(path));
                 KmyImporter importer = new KmyImporter(
                         new KmyDocument(raw, getApplicationContext()), getApplicationContext());
                 runOnUiThread(() -> {
@@ -611,7 +612,7 @@ public class OnboardingActivity extends LocalizedActivity implements SmbWizardCo
         final List<Runnable> actions = new ArrayList<>();
         if (!folder.isEmpty()) {
             labels.add("↑  ..");
-            actions.add(() -> browseCsvAt(parentFolder(folder)));
+            actions.add(() -> browseCsvAt(RemotePath.parentFolder(folder)));
         }
         for (String d : folders) {
             labels.add("📁  " + d);
@@ -700,24 +701,4 @@ public class OnboardingActivity extends LocalizedActivity implements SmbWizardCo
         return field.getText() == null ? "" : field.getText().toString().trim();
     }
 
-    private static String folderOf(String path) {
-        String p = path.trim();
-        int slash = p.lastIndexOf('/');
-        return slash < 0 ? "" : p.substring(0, slash);
-    }
-
-    private static String parentFolder(String folder) {
-        String p = folder == null ? "" : folder.trim();
-        while (p.endsWith("/")) {
-            p = p.substring(0, p.length() - 1);
-        }
-        int slash = p.lastIndexOf('/');
-        return slash < 0 ? "" : p.substring(0, slash);
-    }
-
-    private static String fileOf(String path) {
-        String p = path.trim();
-        int slash = p.lastIndexOf('/');
-        return slash < 0 ? p : p.substring(slash + 1);
-    }
 }

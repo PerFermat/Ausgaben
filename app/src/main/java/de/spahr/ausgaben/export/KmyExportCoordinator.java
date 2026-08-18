@@ -1,5 +1,6 @@
 package de.spahr.ausgaben.export;
 
+import de.spahr.ausgaben.net.RemotePath;
 import android.content.Context;
 import android.text.TextUtils;
 
@@ -60,8 +61,8 @@ public class KmyExportCoordinator {
                 complete(listener, r.getString(de.spahr.ausgaben.R.string.kmy_path_missing), false);
                 return;
             }
-            String folder = folderOf(path);
-            String file = fileOf(path);
+            String folder = RemotePath.folderOf(path);
+            String file = RemotePath.fileOf(path);
 
             List<Booking> bookings = repository.bookingDao().getUnexported();
             // Nach dem Export geänderte Buchungen: ihre Transaktion wird in der Datei geändert, nicht neu
@@ -218,18 +219,6 @@ public class KmyExportCoordinator {
         }
         return r.getString(de.spahr.ausgaben.R.string.kmy_skipped, res.skipped.size(),
                 TextUtils.join("; ", show) + more);
-    }
-
-    private static String folderOf(String path) {
-        String p = path.trim();
-        int slash = p.lastIndexOf('/');
-        return slash < 0 ? "" : p.substring(0, slash);
-    }
-
-    private static String fileOf(String path) {
-        String p = path.trim();
-        int slash = p.lastIndexOf('/');
-        return slash < 0 ? p : p.substring(slash + 1);
     }
 
     private void progress(Listener l, String stage) {

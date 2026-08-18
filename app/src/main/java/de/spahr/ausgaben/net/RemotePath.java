@@ -23,6 +23,16 @@ public final class RemotePath {
         return slash < 0 ? p : p.substring(slash + 1);
     }
 
+    /** Übergeordneter Ordner („a/b/c" → „a/b", „a" → „"); Trailing-Slashes werden ignoriert. */
+    public static String parentFolder(String folder) {
+        String p = folder == null ? "" : folder.trim();
+        while (p.endsWith("/")) {
+            p = p.substring(0, p.length() - 1);
+        }
+        int slash = p.lastIndexOf('/');
+        return slash < 0 ? "" : p.substring(0, slash);
+    }
+
     /** Hängt {@code sub} an {@code base} an; leere Teile fallen weg, doppelte Schrägstriche entstehen nicht. */
     public static String join(String base, String sub) {
         String b = base == null ? "" : base.trim();

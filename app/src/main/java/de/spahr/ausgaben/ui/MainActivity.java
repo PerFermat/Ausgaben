@@ -1,5 +1,6 @@
 package de.spahr.ausgaben.ui;
 
+import de.spahr.ausgaben.net.RemotePath;
 import android.content.Intent;
 import android.net.Uri;
 import android.os.Bundle;
@@ -1816,7 +1817,7 @@ public class MainActivity extends LocalizedActivity {
         showProgress(getString(R.string.progress_download));
         new Thread(() -> {
             try {
-                byte[] raw = RemoteStorage.from(settings).downloadBytes(folderOf(path), fileOf(path));
+                byte[] raw = RemoteStorage.from(settings).downloadBytes(RemotePath.folderOf(path), RemotePath.fileOf(path));
                 KmyImporter importer = new KmyImporter(
                         new KmyDocument(raw, getApplicationContext()), getApplicationContext());
                 runOnUiThread(() -> {
@@ -1984,7 +1985,7 @@ public class MainActivity extends LocalizedActivity {
         importBanner.start(getString(R.string.import_running_banner));
         new Thread(() -> {
             try {
-                byte[] raw = RemoteStorage.from(settings).downloadBytes(folderOf(path), fileOf(path),
+                byte[] raw = RemoteStorage.from(settings).downloadBytes(RemotePath.folderOf(path), RemotePath.fileOf(path),
                         importBanner.phase(getString(R.string.import_stage_download),
                                 de.spahr.ausgaben.export.ImportPhase.DOWNLOAD_FROM,
                                 de.spahr.ausgaben.export.ImportPhase.DOWNLOAD_TO));
@@ -2080,28 +2081,6 @@ public class MainActivity extends LocalizedActivity {
         }
     }
 
-    private static String folderOf(String path) {
-        String p = path.trim();
-        int slash = p.lastIndexOf('/');
-        return slash < 0 ? "" : p.substring(0, slash);
-    }
-
-    /** Übergeordneter Ordner („a/b/c" → „a/b", „a" → „"). */
-    private static String parentFolder(String folder) {
-        String p = folder == null ? "" : folder.trim();
-        while (p.endsWith("/")) {
-            p = p.substring(0, p.length() - 1);
-        }
-        int slash = p.lastIndexOf('/');
-        return slash < 0 ? "" : p.substring(0, slash);
-    }
-
-    private static String fileOf(String path) {
-        String p = path.trim();
-        int slash = p.lastIndexOf('/');
-        return slash < 0 ? p : p.substring(slash + 1);
-    }
-
     // ---- Fortschrittsdialog ----
 
     private androidx.appcompat.app.AlertDialog progressDialog;
@@ -2167,7 +2146,7 @@ public class MainActivity extends LocalizedActivity {
         final List<Runnable> actions = new java.util.ArrayList<>();
         if (!folder.isEmpty()) {
             labels.add("↑  ..");
-            actions.add(() -> browseCsvAt(parentFolder(folder)));
+            actions.add(() -> browseCsvAt(RemotePath.parentFolder(folder)));
         }
         for (String d : folders) {
             labels.add("📁  " + d);

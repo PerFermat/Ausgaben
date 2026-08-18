@@ -1,5 +1,6 @@
 package de.spahr.ausgaben.ui;
 
+import de.spahr.ausgaben.net.RemotePath;
 import android.Manifest;
 import android.content.Intent;
 import android.content.pm.PackageManager;
@@ -431,12 +432,12 @@ public class SettingsActivity extends LocalizedActivity implements SmbWizardCont
         String path = kmy ? textOf(editKmyPath) : textOf(editFolder);
         SmbDiagnosticsDialog.run(this, textOf(editUrl), textOf(editUser),
                 pw.isEmpty() ? settings.getPassword() : pw,
-                kmy ? folderOf(path) : path, kmy ? fileOf(path) : "");
+                kmy ? RemotePath.folderOf(path) : path, kmy ? RemotePath.fileOf(path) : "");
     }
 
     /** Öffnet den .kmy-Datei-Browser im Ordner des aktuellen kmy-Pfads (navigierbar in Unterordner). */
     private void browseKmy() {
-        browseKmyAt(folderOf(textOf(editKmyPath)));
+        browseKmyAt(RemotePath.folderOf(textOf(editKmyPath)));
     }
 
     /**
@@ -480,7 +481,7 @@ public class SettingsActivity extends LocalizedActivity implements SmbWizardCont
         final List<Runnable> actions = new ArrayList<>();
         if (!folder.isEmpty()) {
             labels.add("↑  ..");
-            actions.add(() -> browseKmyAt(parentFolder(folder)));
+            actions.add(() -> browseKmyAt(RemotePath.parentFolder(folder)));
         }
         for (String d : folders) {
             labels.add("📁  " + d);
@@ -536,7 +537,7 @@ public class SettingsActivity extends LocalizedActivity implements SmbWizardCont
         actions.add(() -> target.setText(folder));
         if (!folder.isEmpty()) {
             labels.add("↑  ..");
-            actions.add(() -> browseFolderAt(parentFolder(folder), target));
+            actions.add(() -> browseFolderAt(RemotePath.parentFolder(folder), target));
         }
         for (String d : folders) {
             labels.add("📁  " + d);
@@ -548,29 +549,6 @@ public class SettingsActivity extends LocalizedActivity implements SmbWizardCont
                 .setTitle(title)
                 .setItems(labels.toArray(new String[0]), (d, w) -> actions.get(w).run())
                 .show();
-    }
-
-    private static String folderOf(String path) {
-        String p = path == null ? "" : path.trim();
-        int slash = p.lastIndexOf('/');
-        return slash < 0 ? "" : p.substring(0, slash);
-    }
-
-    /** Dateiname eines Pfads („a/b/x.kmy" → „x.kmy"). */
-    private static String fileOf(String path) {
-        String p = path == null ? "" : path.trim();
-        int slash = p.lastIndexOf('/');
-        return slash < 0 ? p : p.substring(slash + 1);
-    }
-
-    /** Übergeordneter Ordner („a/b/c“ → „a/b“, „a“ → „“). */
-    private static String parentFolder(String folder) {
-        String p = folder == null ? "" : folder.trim();
-        while (p.endsWith("/")) {
-            p = p.substring(0, p.length() - 1);
-        }
-        int slash = p.lastIndexOf('/');
-        return slash < 0 ? "" : p.substring(0, slash);
     }
 
     // ---- Orte (Bargeld-Bestände) ----

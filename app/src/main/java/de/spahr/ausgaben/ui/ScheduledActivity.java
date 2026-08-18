@@ -1,5 +1,6 @@
 package de.spahr.ausgaben.ui;
 
+import de.spahr.ausgaben.net.RemotePath;
 import android.content.Intent;
 import android.graphics.Typeface;
 import android.os.Bundle;
@@ -180,8 +181,8 @@ public class ScheduledActivity extends LocalizedActivity {
         // Der gelbe Banner übernimmt die Fortschrittsanzeige – den Kreis-Spinner der Geste ausblenden.
         swipeRefresh.setRefreshing(false);
         importBanner.start(getString(R.string.import_running_banner));
-        final String folder = folderOf(path);
-        final String file = fileOf(path);
+        final String folder = RemotePath.folderOf(path);
+        final String file = RemotePath.fileOf(path);
         new Thread(() -> {
             try {
                 byte[] raw = RemoteStorage.from(settings).downloadBytes(folder, file,
@@ -214,18 +215,6 @@ public class ScheduledActivity extends LocalizedActivity {
                 });
             }
         }).start();
-    }
-
-    private static String folderOf(String path) {
-        String p = path.trim();
-        int slash = p.lastIndexOf('/');
-        return slash < 0 ? "" : p.substring(0, slash);
-    }
-
-    private static String fileOf(String path) {
-        String p = path.trim();
-        int slash = p.lastIndexOf('/');
-        return slash < 0 ? p : p.substring(slash + 1);
     }
 
     // ---- Fenster / Auffalten / Filter ----

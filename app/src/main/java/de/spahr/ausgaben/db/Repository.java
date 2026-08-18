@@ -484,6 +484,23 @@ public class Repository {
     }
 
     /**
+     * Speichert an einer Buchung <b>nur</b> Notiz und Stichwörter (und damit den Belegverweis). Für
+     * Wertpapier-Buchungen: Betrag, Konten und Datum stammen aus der KMyMoney-Datei und dürfen sich
+     * nicht ändern – die Stückzahl dazu kennt die App gar nicht. Der Status „bearbeitet" wird gesetzt,
+     * damit der Export die Angaben nachträgt; dort wird die Transaktion dann gezielt geändert statt
+     * neu gebaut (siehe {@code KmyExporter}).
+     */
+    public void updateNotesAndTags(final Booking booking, final Runnable onDone) {
+        executor.execute(() -> {
+            applyEditStatus(booking);
+            bookingDao.update(booking);
+            if (onDone != null) {
+                mainHandler.post(onDone);
+            }
+        });
+    }
+
+    /**
      * Aktualisiert eine Buchung und ersetzt ihre Kategorie-Teile (Splitbuchung). {@code parts} leer/null →
      * die Buchung wird zur Einzelkategorie ({@link Booking#category}); vorhandene Teile werden entfernt.
      */
@@ -1038,6 +1055,17 @@ public class Repository {
     /** Die Kategorien dieses Empfängers (höchstens {@code PayeeCategories.LIMIT}) für den Editor. */
     public void getPayeeCategories(String payee, boolean income, Callback<List<String>> callback) {
         aliasResolver.getPayeeCategories(payee, income, callback);
+    }
+
+    /**
+     * Die Namen aller Wertpapiere aus den importierten Depots. Eine Buchung, deren Gegenkonto so heißt,
+     * ist ein Wertpapierkauf oder -verkauf: an ihr darf die App nur Notiz, Stichwörter und Beleg ändern.
+     */
+    public void getSecurityNames(final Callback<List<String>> callback) {
+        executor.execute(() -> {
+            final List<String> result = securityDao.getSecurityNames();
+            mainHandler.post(() -> callback.onResult(result));
+        });
     }
 
     /** Vorspann und Vorbelegung der Stichwörter zu diesem Empfänger (siehe {@link PayeeTags}). */

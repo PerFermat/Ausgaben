@@ -1037,6 +1037,21 @@
       ]
     },
     {
+      "type": "h2",
+      "id": "b-0151a",
+      "text": "Eine Wertpapier-Buchung öffnen"
+    },
+    {
+      "type": "p",
+      "id": "b-0151b",
+      "text": "Ein Wertpapierkauf erscheint auch in der Buchungsliste des Verrechnungskontos – als Umbuchung zwischen diesem Konto und dem Wertpapier. Öffnen Sie sie, sind <b>Betrag, Empfänger, Konten und Datum gesperrt</b>, und «Löschen» gibt es nicht. Der Grund: <b>Stückzahl und Kurs</b> gehören zu dieser Buchung, stehen aber nur in der KMyMoney-Datei. Die App kennt sie nicht – dürfte sie die Buchung wie eine gewöhnliche Umbuchung zurückschreiben, wäre aus dem Wertpapierkauf in Ihrer Datei eine nackte Umbuchung geworden, und das Depot dort zerstört."
+    },
+    {
+      "type": "p",
+      "id": "b-0151c",
+      "text": "Ändern lassen sich dafür genau die drei Dinge, die KMyMoney bei einer solchen Buchung nicht selbst braucht: die <b>Notiz</b>, die <b>Stichwörter</b> und der <b>Beleg</b> – etwa die Abrechnung Ihrer Bank als PDF. Beim nächsten Export trägt die App sie in die vorhandene Transaktion nach, ohne sie neu zu bauen: Stückzahl, Kurs und Art der Bewegung bleiben unangetastet. So finden Sie die Abrechnung auch nach einem erneuten Einlesen des Depots wieder."
+    },
+    {
       "type": "text_with_single_shot",
       "id": "b-0152",
       "content": [

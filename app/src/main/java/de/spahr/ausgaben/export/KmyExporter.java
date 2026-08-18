@@ -86,6 +86,8 @@ public class KmyExporter {
     private static final Pattern SPLIT_TAG = Pattern.compile("<SPLIT\\b[^>]*>");
     private static final Pattern ACCOUNT_ATTR = Pattern.compile("\\baccount=\"([^\"]*)\"");
     private static final Pattern VALUE_ATTR = Pattern.compile("\\bvalue=\"([^\"]*)\"");
+    /** Das {@code memo}-Attribut eines Splits – das einzige, das an einer Wertpapier-Buchung wandert. */
+    private static final Pattern MEMO_ATTR = Pattern.compile("\\bmemo=\"[^\"]*\"");
 
     private final KmyDocument doc;
     private final android.content.Context ctx;
@@ -139,18 +141,25 @@ public class KmyExporter {
                 result.writtenIds.add(b.id);
                 continue;
             }
-            Built built = b.isTransfer
-                    ? buildTransfer(b, result, newPayeeIds, payeeFragments, nextPayee)
-                    : buildNormal(b, result, splitsMap, newPayeeIds, payeeFragments, nextPayee);
-            if (built == null) {
-                continue; // übersprungen (Konto/Kategorie/Währung), in result.skipped vermerkt
-            }
-            String replaced = replaceTransaction(xml, b, built, today, replacedTxIds);
-            if (replaced == null) {
+            // Erst suchen, dann entscheiden: eine Wertpapier-Transaktion darf nicht neu gebaut werden,
+            // denn Stückzahl, Kurs und Aktion stehen in keiner Buchung – sie wären danach fort.
+            Found found = findTransaction(xml, b, replacedTxIds);
+            if (found == null) {
                 result.notFound.add(b.id);
                 continue;
             }
-            xml = replaced;
+            if (hasSecuritySplit(found.block)) {
+                xml = found.replacedBy(patchedSplits(found.block, b));
+            } else {
+                Built built = b.isTransfer
+                        ? buildTransfer(b, result, newPayeeIds, payeeFragments, nextPayee)
+                        : buildNormal(b, result, splitsMap, newPayeeIds, payeeFragments, nextPayee);
+                if (built == null) {
+                    continue; // übersprungen (Konto/Kategorie/Währung), in result.skipped vermerkt
+                }
+                xml = found.replacedBy(transactionElement(found.txId, dateFor(b.createdAt), today,
+                        built.memo, built.commodity, built.splits));
+            }
             result.updated++;
             result.writtenIds.add(b.id);
             if (!group.isEmpty()) {
@@ -297,23 +306,40 @@ public class KmyExporter {
         return result;
     }
 
+    /** Eine im Hauptbuch gefundene Transaktion samt allem, was zum Austauschen nötig ist. */
+    private static final class Found {
+        final String txId;
+        final String block;
+        private final String head;
+        private final String tail;
+        private final int start;
+        private final int end;
+
+        Found(String txId, String block, String head, String tail, int start, int end) {
+            this.txId = txId;
+            this.block = block;
+            this.head = head;
+            this.tail = tail;
+            this.start = start;
+            this.end = end;
+        }
+
+        /** Die XML mit {@code replacement} an der Stelle des Fundes. */
+        String replacedBy(String replacement) {
+            return head.substring(0, start) + replacement + head.substring(end) + tail;
+        }
+    }
+
     /**
-     * Ersetzt die Transaktion einer bearbeiteten Buchung in der XML: gesucht wird über die Signatur der
-     * exportierten Fassung (Konto + Datum + Betrag, siehe {@link de.spahr.ausgaben.db.EditStatus}), ersetzt
-     * wird der ganze {@code <TRANSACTION>}-Block – aber mit <b>derselben id an derselben Stelle</b>. Für
-     * KMyMoney bleibt es damit dieselbe Transaktion, sie rutscht nicht ans Ende der Datei und der Zähler
-     * von {@code <TRANSACTIONS>} bleibt unberührt.
+     * Sucht die Transaktion einer bearbeiteten Buchung über die Signatur der exportierten Fassung
+     * (Konto + Datum + Betrag, siehe {@link de.spahr.ausgaben.db.EditStatus}). Was mit dem Fund
+     * geschieht, entscheidet der Aufrufer – ersetzen oder gezielt ändern.
      *
-     * <p>Der Block wird neu gebaut, nicht Feld für Feld geändert; eigene Zusätze von KMyMoney an dieser
-     * Transaktion (etwa Marken an den Splits) gehen dabei verloren – dafür gilt für bearbeitete Buchungen
-     * genau derselbe Bauplan wie für neue.
-     *
-     * @param replacedTxIds in diesem Lauf schon ersetzte Transaktions-ids; verhindert, daß zwei
+     * @param replacedTxIds in diesem Lauf schon getroffene Transaktions-ids; verhindert, daß zwei
      *                      gleichartige Buchungen (gleicher Tag, gleicher Betrag) denselben Block treffen
-     * @return die neue XML oder {@code null}, wenn keine passende Transaktion (mehr) zu finden war
+     * @return der Fund oder {@code null}, wenn keine passende Transaktion (mehr) zu finden war
      */
-    private String replaceTransaction(String xml, Booking b, Built built, String today,
-                                      Set<String> replacedTxIds) {
+    private Found findTransaction(String xml, Booking b, Set<String> replacedTxIds) {
         String accountId = doc.accountId(de.spahr.ausgaben.db.EditStatus.fileAccount(b));
         if (accountId == null) {
             return null; // Konto der exportierten Fassung gibt es in der Datei nicht (mehr)
@@ -344,11 +370,67 @@ public class KmyExporter {
                 continue;
             }
             replacedTxIds.add(txId);
-            String replacement = transactionElement(txId, dateFor(b.createdAt), today, built.memo,
-                    built.commodity, built.splits);
-            return head.substring(0, m.start()) + replacement + head.substring(m.end()) + tail;
+            return new Found(txId, tx, head, tail, m.start(), m.end());
         }
         return null;
+    }
+
+    /**
+     * Trägt die Transaktion einen Split auf einem <b>Wertpapier</b> (KMyMoney-Kontotyp 15)? Dann darf
+     * sie nicht neu gebaut werden: Stückzahl, Kurs und Aktion stehen in keiner Buchung der App, und der
+     * Bauplan für gewöhnliche Umbuchungen kennt sie nicht – aus dem Wertpapierkauf würde eine nackte
+     * Umbuchung, und das Depot wäre in der Datei zerstört.
+     *
+     * <p>Entschieden wird bewußt am Fund und nicht am Kontonamen der Buchung: maßgeblich ist, was in
+     * der Datei steht.</p>
+     */
+    private boolean hasSecuritySplit(String tx) {
+        Matcher sm = SPLIT_TAG.matcher(tx);
+        while (sm.find()) {
+            Matcher am = ACCOUNT_ATTR.matcher(sm.group());
+            if (am.find() && doc.accountTypeOf(am.group(1)) == 15) {
+                return true;
+            }
+        }
+        return false;
+    }
+
+    /**
+     * Ändert an einer Wertpapier-Transaktion <b>nur</b> Notiz und Stichwörter: in jedem Split wird der
+     * Wert von {@code memo} ersetzt und der Satz der {@code <TAG …/>}-Kindelemente neu gesetzt. Alles
+     * andere – {@code shares}, {@code price}, {@code value}, {@code action}, die ids, das Datum – bleibt
+     * Zeichen für Zeichen stehen.
+     */
+    private String patchedSplits(String tx, Booking b) {
+        String memo = esc(b.note == null ? "" : b.note);
+        String tags = tagChildren(b.tags);
+        StringBuilder out = new StringBuilder();
+        Matcher sm = SPLIT_TAG.matcher(tx);
+        int last = 0;
+        while (sm.find()) {
+            out.append(tx, last, sm.start());
+            String open = sm.group();
+            boolean selfClosing = open.endsWith("/>");
+            // Ende des ganzen Splits: bei Kindelementen bis hinter </SPLIT>, sonst hinter dem Tag.
+            int splitEnd = sm.end();
+            if (!selfClosing) {
+                int close = tx.indexOf("</SPLIT>", sm.end());
+                splitEnd = close < 0 ? sm.end() : close + "</SPLIT>".length();
+            }
+            String opening = selfClosing
+                    ? open.substring(0, open.length() - 2)
+                    : open.substring(0, open.length() - 1);
+            String memoAttr = "memo=\"" + memo + "\"";
+            Matcher mm = MEMO_ATTR.matcher(opening);
+            opening = mm.find()
+                    ? opening.substring(0, mm.start()) + memoAttr + opening.substring(mm.end())
+                    : opening + " " + memoAttr; // Split ohne memo-Attribut: dazuschreiben
+            out.append(opening);
+            out.append(tags.isEmpty() ? "/>" : ">" + tags + "</SPLIT>");
+            last = splitEnd;
+        }
+        out.append(tx.substring(last));
+        return out.toString();
     }
 
     /** Trägt die Transaktion einen Split auf diesem Konto mit genau diesem Betrag? */

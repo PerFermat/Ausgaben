@@ -1037,6 +1037,21 @@
       ]
     },
     {
+      "type": "h2",
+      "id": "b-0151a",
+      "text": "Opening a securities booking"
+    },
+    {
+      "type": "p",
+      "id": "b-0151b",
+      "text": "A securities purchase also appears in the booking list of the settlement account – as a transfer between that account and the security. Open it and <b>amount, payee, accounts and date are locked</b>, and there is no «Delete». The reason: <b>shares and price</b> belong to this booking but exist only in the KMyMoney file. The app does not know them – were it allowed to write the booking back like an ordinary transfer, the securities purchase in your file would have turned into a bare transfer, wrecking the portfolio there."
+    },
+    {
+      "type": "p",
+      "id": "b-0151c",
+      "text": "What you can change are exactly the three things KMyMoney does not need itself on such a booking: the <b>note</b>, the <b>tags</b> and the <b>receipt</b> – your bank's statement as a PDF, for instance. On the next export the app adds them to the existing transaction without rebuilding it: shares, price and the kind of movement stay untouched. That way you find the statement again even after re-reading the portfolio."
+    },
+    {
       "type": "text_with_single_shot",
       "id": "b-0152",
       "content": [

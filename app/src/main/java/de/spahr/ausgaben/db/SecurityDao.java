@@ -26,6 +26,13 @@ public interface SecurityDao {
     @Query("SELECT * FROM security")
     List<Security> getAllSecurities();
 
+    /**
+     * Die Namen aller Wertpapiere. In der KMyMoney-Datei heißt das Unterkonto eines Wertpapiers genauso
+     * wie das Wertpapier selbst – daran erkennt der Buchungs-Editor eine Wertpapier-Buchung.
+     */
+    @Query("SELECT name FROM security")
+    List<String> getSecurityNames();
+
     /** Alle Bewegungen (Depot, Wertpapier, Datum, Stückzahl) über alle Depots, zeitlich sortiert. */
     @Query("SELECT depot, security_kmy_id AS kmyId, date, shares FROM security_tx ORDER BY date ASC")
     List<TxPoint> getAllTxPoints();

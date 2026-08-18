@@ -170,6 +170,76 @@ public class KmyRobustnessTest {
         assertEquals(1, countOf(r.xml, "<TAGS count=\"1\">"));
     }
 
+    // ---- Wertpapier-Buchungen ----
+
+    /** Ein Wertpapierkauf kommt als Umbuchung herein, mit dem Wertpapier als Gegenkonto. */
+    @Test
+    public void securityBookingArrivesAsTransfer() throws Exception {
+        List<Booking> back = new KmyImporter(doc("security-tx.xml"), ctx)
+                .bookingsForAccount("Verrechnungskonto");
+        assertEquals(1, back.size());
+        assertTrue(back.get(0).isTransfer);
+        assertEquals("Musterfonds", back.get(0).transferAccount);
+    }
+
+    /**
+     * Die eigentliche Probe: Notiz und Stichwort einer Wertpapier-Buchung werden zurückgeschrieben,
+     * <b>ohne</b> die Transaktion neu zu bauen. Stückzahl, Kurs und Aktion stehen in keiner Buchung der
+     * App – würden sie neu gebaut, wäre das Depot in der Datei zerstört.
+     */
+    @Test
+    public void editingASecurityBookingKeepsSharesAndPrice() throws Exception {
+        KmyDocument d = doc("security-tx.xml");
+        Booking b = new KmyImporter(d, ctx).bookingsForAccount("Verrechnungskonto").get(0);
+        b.id = 5;
+        b.edited = true;
+        b.origAccount = b.account;
+        b.origSignedCents = -101000;
+        b.origCreatedAt = b.createdAt;
+        b.note = "Sparplanrate";
+        b.tags = "Depot";
+
+        KmyExporter.Result r = new KmyExporter(d, ctx)
+                .build(new ArrayList<>(), Collections.singletonList(b), new HashMap<>());
+
+        assertEquals(Collections.emptyList(), r.skipped);
+        assertEquals(1, r.updated);
+        // Notiz und Stichwort sind angekommen – an jedem Split der Transaktion.
+        assertEquals(3, countOf(r.xml, "memo=\"Sparplanrate\""));
+        assertEquals(3, countOf(r.xml, "<TAG id=\"G000001\"/>"));
+        // Und das Wertpapier ist unversehrt.
+        assertTrue(r.xml.contains("shares=\"20/1\""));
+        assertTrue(r.xml.contains("price=\"50000/1000\""));
+        assertTrue(r.xml.contains("action=\"Buy\""));
+        assertTrue(r.xml.contains("account=\"A000003\""));
+        // Dieselbe Transaktion an derselben Stelle, mit demselben Datum und Betrag.
+        assertTrue(r.xml.contains("id=\"T000000000000000001\""));
+        assertTrue(r.xml.contains("postdate=\"2026-03-10\""));
+        assertTrue(r.xml.contains("value=\"-101000/100\""));
+        assertEquals(1, countOf(r.xml, "<TRANSACTION "));
+    }
+
+    /** Ohne Stichwörter bleiben die Splits selbstschließend – es entsteht kein leeres Elternelement. */
+    @Test
+    public void patchingWithoutTagsLeavesSelfClosingSplits() throws Exception {
+        KmyDocument d = doc("security-tx.xml");
+        Booking b = new KmyImporter(d, ctx).bookingsForAccount("Verrechnungskonto").get(0);
+        b.id = 5;
+        b.edited = true;
+        b.origAccount = b.account;
+        b.origSignedCents = -101000;
+        b.origCreatedAt = b.createdAt;
+        b.note = "ohne Stichwort";
+
+        KmyExporter.Result r = new KmyExporter(d, ctx)
+                .build(new ArrayList<>(), Collections.singletonList(b), new HashMap<>());
+
+        assertEquals(1, r.updated);
+        assertEquals(0, countOf(r.xml, "</SPLIT>"));
+        assertEquals(3, countOf(r.xml, "memo=\"ohne Stichwort\""));
+        assertTrue(r.xml.contains("shares=\"20/1\""));
+    }
+
     // ---- Fremdwährung ----
 
     /** Konto in USD, Transaktion in EUR: maßgeblich ist {@code shares} (USD), nicht {@code value}. */

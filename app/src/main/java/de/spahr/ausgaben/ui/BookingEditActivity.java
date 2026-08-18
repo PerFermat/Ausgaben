@@ -162,6 +162,28 @@ public class BookingEditActivity extends LocalizedActivity {
     /** Zu welchem Empfänger schon vorbelegt wurde – spart die Abfrage bei jedem Tastendruck. */
     private String payeeTagKey;
     /**
+     * Wertpapier-Buchung: nur Notiz, Stichwörter und Beleg sind änderbar, Löschen entfällt.
+     * Siehe {@link #applyNotesOnlyIfNeeded()}.
+     */
+    private boolean notesOnly;
+    /** Die Namen der Wertpapiere aller Depots (klein); {@code null} = noch nicht geladen. */
+    private java.util.Set<String> knownSecurityNames;
+
+    /**
+     * Ist {@code counterAccount} das Gegenkonto einer Wertpapier-Buchung? Zwei Wege führen dahin, und
+     * es genügt einer: Der Name ist ein <b>Wertpapier</b> eines importierten Depots – in der
+     * KMyMoney-Datei heißt das Unterkonto genauso wie das Wertpapier –, oder die App kennt das
+     * Gegenkonto gar nicht als Konto, was beim Import eines Wertpapiers der Regelfall ist.
+     */
+    private boolean isSecurityCounterpart(String counterAccount, boolean isTransfer) {
+        if (!isTransfer || counterAccount == null || counterAccount.trim().isEmpty()) {
+            return false;
+        }
+        String key = counterAccount.trim().toLowerCase(Locale.ROOT);
+        return (knownSecurityNames != null && knownSecurityNames.contains(key))
+                || !knownAccountNames.contains(key);
+    }
+    /**
      * Empfänger (klein), bei dem die Stichwörter von Hand gesetzt wurden. Für ihn schlägt die App
      * nichts mehr vor – sonst käme ein gelöschtes Stichwort beim nächsten Öffnen des Fensters wieder.
      */
@@ -331,6 +353,18 @@ public class BookingEditActivity extends LocalizedActivity {
                 }
             }
             PickerAdapters.accounts(repository, names, editAccount, editAccountTo);
+            // Die Kontenliste entscheidet mit, ob dies eine Wertpapier-Buchung ist – sie kommt aus der
+            // Datenbank und damit womöglich erst nach der Buchung.
+            applyNotesOnlyIfNeeded();
+        });
+        repository.getSecurityNames(names -> {
+            knownSecurityNames = new HashSet<>();
+            for (String name : names) {
+                if (name != null) {
+                    knownSecurityNames.add(name.trim().toLowerCase(Locale.ROOT));
+                }
+            }
+            applyNotesOnlyIfNeeded();
         });
 
         repository.getCategoriesGrouped(g -> {
@@ -843,6 +877,55 @@ public class BookingEditActivity extends LocalizedActivity {
         if (readOnly) {
             applyReadOnly();
         }
+        applyNotesOnlyIfNeeded();
+    }
+
+    /**
+     * Eine <b>Wertpapier-Buchung</b> aus dem Depot erkennt man daran, dass sie eine Umbuchung ist, deren
+     * Gegenkonto die App gar nicht als Konto führt: beim Import wird nur das Buchungskonto angelegt, das
+     * Wertpapier bleibt außen vor. An so einer Buchung lässt sich nur Notiz, Stichwort und Beleg ändern –
+     * Betrag, Kurs und Stückzahl stehen in der KMyMoney-Datei, und die Stückzahl kennt die App nicht
+     * einmal. Würde man sie wie eine gewöhnliche Umbuchung speichern und ausgeben, wäre der
+     * Wertpapierkauf in der Datei danach eine nackte Umbuchung.
+     *
+     * <p>Wird zweimal gerufen – nach dem Laden der Buchung und nach dem Eintreffen der Kontenliste –,
+     * weil erst beides zusammen die Frage beantwortet.</p>
+     */
+    private void applyNotesOnlyIfNeeded() {
+        if (notesOnly || readOnly || booking == null || knownAccountNames.isEmpty()) {
+            return;
+        }
+        // Ohne die Wertpapiernamen ist die Frage noch nicht zu beantworten; der Aufruf kommt wieder,
+        // sobald sie da sind.
+        if (knownSecurityNames == null) {
+            return;
+        }
+        if (!isSecurityCounterpart(booking.transferAccount, booking.isTransfer)) {
+            return;
+        }
+        notesOnly = true;
+        lockField(editAmount);
+        lockField(editPayee);
+        lockField(editAccount);
+        lockField(editAccountTo);
+        lockField(editPlace);
+        lockField(editPlaceTo);
+        lockField(editDate);
+        // Dropdown-Pfeile entfernen, damit sich keine Auswahl mehr öffnen lässt.
+        accountLayout.setEndIconMode(TextInputLayout.END_ICON_NONE);
+        accountToLayout.setEndIconMode(TextInputLayout.END_ICON_NONE);
+        placeLayout.setEndIconMode(TextInputLayout.END_ICON_NONE);
+        placeToLayout.setEndIconMode(TextInputLayout.END_ICON_NONE);
+        toggleType.setVisibility(View.GONE);
+        btnToday.setVisibility(View.GONE);
+        // Löschen ist nicht vorgesehen: die Transaktion gehört zum Depot.
+        btnDelete.setVisibility(View.GONE);
+        // „Als neu speichern" ebensowenig: eine Wertpapier-Buchung kann die App nicht anlegen – ihr
+        // fehlen Stückzahl und Kurs.
+        btnSaveNew.setVisibility(View.GONE);
+        // Der Export-Status ist hier keine Entscheidung des Nutzers – die Buchung stammt aus der Datei.
+        switchExported.setVisibility(View.GONE);
+        updateSaveEnabled();
     }
 
     /**
@@ -1348,7 +1431,13 @@ public class BookingEditActivity extends LocalizedActivity {
 
     private void updateSaveEnabled() {
         boolean enabled;
-        if (isTransferType()) {
+        if (notesOnly || (booking != null
+                && isSecurityCounterpart(booking.transferAccount, booking.isTransfer))) {
+            // Wertpapier-Buchung: es gibt nichts zu prüfen – Notiz, Stichwörter und Beleg sind immer
+            // gültig. Ohne diesen Zweig bliebe der Knopf abgeschaltet, weil das Wertpapier für die App
+            // kein Konto ist; genau daran ist das Ändern bisher gescheitert.
+            enabled = true;
+        } else if (isTransferType()) {
             String from = textOf(editAccount).trim();
             String to = textOf(editAccountTo).trim();
             Long cents = parseAmountToCents(textOf(editAmount));
@@ -2321,6 +2410,10 @@ public class BookingEditActivity extends LocalizedActivity {
         if (booking == null) {
             return;
         }
+        if (notesOnly) {
+            updateNotesOnly();
+            return;
+        }
         boolean nowTransfer = isTransferType();
         if (origIsTransfer && nowTransfer) {
             updateTransferInPlace();
@@ -2331,6 +2424,22 @@ public class BookingEditActivity extends LocalizedActivity {
         } else {
             convertTransferToNormal();
         }
+    }
+
+    /**
+     * Speichert an einer Wertpapier-Buchung <b>nur</b> Notiz, Stichwörter und Beleg. Betrag, Konten,
+     * Datum und Umbuchungsfelder bleiben, wie sie aus der Datei kamen – sie sind in der Maske gesperrt,
+     * und der Exporter ändert an so einer Transaktion später ebenfalls nur diese drei Angaben.
+     *
+     * <p>Zu prüfen gibt es nichts: es gibt kein Feld, in das sich ein ungültiger Wert schreiben ließe.</p>
+     */
+    private void updateNotesOnly() {
+        booking.tags = bookingTags;
+        booking.note = composeNoteForSave(false);
+        attachReceipt(booking, false, () -> repository.updateNotesAndTags(booking, () -> {
+            Toast.makeText(this, R.string.booking_updated, Toast.LENGTH_SHORT).show();
+            finish();
+        }));
     }
 
     private void updateNormalInPlace() {
@@ -2371,6 +2480,14 @@ public class BookingEditActivity extends LocalizedActivity {
     private void updateTransferInPlace() {
         final String from = textOf(editAccount).trim();
         final String to = textOf(editAccountTo).trim();
+        // Unverändert übernommenes Gegenkonto, das die App nicht als Konto führt (ein Wertpapier des
+        // Depots): keine Fehleingabe, sondern eine Buchung, an der nur Notiz, Stichwörter und Beleg zu
+        // ändern sind. Ohne diesen Ausweg täte der Knopf gar nichts – die Prüfung unten schlüge fehl.
+        if (isSecurityCounterpart(booking.transferAccount, booking.isTransfer)
+                && to.equalsIgnoreCase(booking.transferAccount.trim())) {
+            updateNotesOnly();
+            return;
+        }
         final Long cents = parseAmountToCents(textOf(editAmount));
         if (cents == null || cents <= 0) {
             Toast.makeText(this, R.string.error_amount, Toast.LENGTH_SHORT).show();

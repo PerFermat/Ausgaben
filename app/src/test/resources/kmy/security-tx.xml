@@ -1,0 +1,42 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!DOCTYPE KMYMONEY-FILE>
+<!-- Wertpapierkauf: Konto-Split, Wertpapier-Split (Typ 15, mit shares/price/action) und Gebühr. -->
+<KMYMONEY-FILE>
+  <FILEINFO>
+    <CREATION_DATE date="2026-01-01"/>
+    <LAST_MODIFIED_DATE date="2026-01-01"/>
+    <VERSION id="1"/>
+    <FIXVERSION id="11"/>
+  </FILEINFO>
+  <PAYEES count="1">
+    <PAYEE id="P000001" name="Broker" email="" reference="" matchingenabled="0"/>
+  </PAYEES>
+  <TAGS count="1">
+    <TAG id="G000001" name="Depot" tagcolor="#00ff00" closed="0" notes=""/>
+  </TAGS>
+  <ACCOUNTS count="4">
+    <ACCOUNT id="A000001" parentaccount="AStd::Asset" lastreconciled="" lastmodified="2026-01-01" institution="" opened="2026-01-01" number="" type="9" name="Verrechnungskonto" description="" currency="EUR"/>
+    <ACCOUNT id="A000002" parentaccount="AStd::Asset" lastreconciled="" lastmodified="2026-01-01" institution="" opened="2026-01-01" number="" type="7" name="Depot" description="" currency="EUR"/>
+    <ACCOUNT id="A000003" parentaccount="A000002" lastreconciled="" lastmodified="2026-01-01" institution="" opened="2026-01-01" number="" type="15" name="Musterfonds" description="" currency="E000001"/>
+    <ACCOUNT id="A000004" parentaccount="AStd::Expense" lastreconciled="" lastmodified="2026-01-01" institution="" opened="2026-01-01" number="" type="13" name="Bankgebühren" description="" currency="EUR"/>
+  </ACCOUNTS>
+  <TRANSACTIONS count="1">
+    <TRANSACTION id="T000000000000000001" postdate="2026-03-10" memo="" entrydate="2026-03-10" commodity="EUR">
+      <SPLITS>
+        <SPLIT id="S0001" payee="P000001" reconciledate="" action="" reconcileflag="0" value="-101000/100" shares="-101000/100" price="1/1" memo="" account="A000001" number="" bankid=""/>
+        <SPLIT id="S0002" payee="P000001" reconciledate="" action="Buy" reconcileflag="0" value="100000/100" shares="20/1" price="50000/1000" memo="" account="A000003" number="" bankid=""/>
+        <SPLIT id="S0003" payee="P000001" reconciledate="" action="" reconcileflag="0" value="1000/100" shares="1000/100" price="1/1" memo="" account="A000004" number="" bankid=""/>
+      </SPLITS>
+    </TRANSACTION>
+  </TRANSACTIONS>
+  <SCHEDULES/>
+  <SECURITIES count="1">
+    <SECURITY id="E000001" name="Musterfonds" symbol="MUST" type="4" saf="1000" trading-currency="EUR" trading-market=""/>
+  </SECURITIES>
+  <CURRENCIES/>
+  <PRICES/>
+  <BUDGETS/>
+  <KEYVALUEPAIRS>
+    <PAIR key="kmm-baseCurrency" value="EUR"/>
+  </KEYVALUEPAIRS>
+</KMYMONEY-FILE>

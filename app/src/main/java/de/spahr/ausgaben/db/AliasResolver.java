@@ -543,6 +543,20 @@ class AliasResolver {
         });
     }
 
+    /**
+     * Die Stichwörter dieses Empfängers: der Vorspann der Auswahlliste und die Vorbelegung einer
+     * neuen Buchung. Beides in einem Durchgang, damit es bei einer Abfrage bleibt.
+     */
+    void getPayeeTags(final String payee, final Callback<PayeeTagSuggestion> callback) {
+        executor.execute(() -> {
+            List<PayeeCorrection> aliases = correctionDao.findAllByCorrected(payee);
+            final PayeeTagSuggestion result = new PayeeTagSuggestion(
+                    PayeeTags.rank(aliases, bookingDao.getTagsByPayee(payee)),
+                    PayeeTags.preset(aliases));
+            mainHandler.post(() -> callback.onResult(result));
+        });
+    }
+
     void getAlias(final long id, final Callback<PayeeCorrection> callback) {
         executor.execute(() -> {
             final PayeeCorrection result = correctionDao.getById(id);

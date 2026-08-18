@@ -111,6 +111,15 @@ public class PayeeCorrection {
     @ColumnInfo(name = "pct_high", defaultValue = "90")
     public float pctHigh = PayeeAmounts.DEFAULT_HIGH;
 
+    /**
+     * Die Stichwörter dieses Empfängers (siehe {@link BookingTags}) – anders als die Kategorien ohne
+     * Trennung nach Einnahme und Ausgabe, die ein Stichwort nicht kennt. Sie belegen eine neue
+     * Buchung vor und stehen im Vorspann der Auswahlliste (siehe {@link PayeeTags}).
+     */
+    @NonNull
+    @ColumnInfo(name = "tags", defaultValue = "")
+    public String tags = "";
+
     public PayeeCorrection() {
     }
 

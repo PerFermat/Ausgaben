@@ -67,8 +67,19 @@ public class AliasEditActivity extends LocalizedActivity {
     private CategoryFilterAdapter expenseCategoryAdapter;
     private CategoryFilterAdapter incomeCategoryAdapter;
 
+    // ---- Stichwörter (siehe BookingTags) ----
+    private View rowTags;
+    private android.widget.TextView textTags;
+    /** Die Stichwörter dieses Alias; sie belegen eine neue Buchung dieses Empfängers vor. */
+    private String aliasTags = "";
+    /** Die in KMyMoney vorhandenen Stichwörter – nur daraus lässt sich wählen; leer = Zeile aus. */
+    private java.util.List<String> knownTagNames = new ArrayList<>();
+
     /** Beim Bearbeiten geladener Alias (behält id/createdAt); null = neu. */
     private PayeeCorrection loaded;
+
+    /** Bis hierhin nennt die Stichwort-Zeile die Namen; darüber nur noch ihre Anzahl. */
+    private static final int TAGS_LABEL_MAX = 40;
 
     /** Reihenfolge passend zu {@link #typeLabels}. */
     private static final String[] TYPE_VALUES = {
@@ -101,6 +112,22 @@ public class AliasEditActivity extends LocalizedActivity {
         toPlaceLayout = findViewById(R.id.aliasToPlaceLayout);
         placesStore = new PlacesStore(this);
         switchPreferred = findViewById(R.id.switchAliasPreferred);
+        rowTags = findViewById(R.id.rowAliasTags);
+        textTags = findViewById(R.id.textAliasTags);
+        findViewById(R.id.btnAliasTagsEdit).setOnClickListener(v ->
+                TagsDialog.show(this, knownTagNames, null, aliasTags, tags -> {
+                    aliasTags = tags;
+                    updateTagsRow();
+                }));
+        findViewById(R.id.btnAliasTagsClear).setOnClickListener(v -> {
+            aliasTags = "";
+            updateTagsRow();
+        });
+        repository.getTagNames(names -> {
+            // Ohne bekannte Stichwörter (CSV-Betrieb, noch kein Abgleich) bleibt die Zeile weg.
+            knownTagNames = names == null ? new ArrayList<>() : names;
+            updateTagsRow();
+        });
         btnDelete = findViewById(R.id.btnDeleteAlias);
 
         textBand = findViewById(R.id.textAliasBand);
@@ -208,6 +235,8 @@ public class AliasEditActivity extends LocalizedActivity {
         editFromPlace.setText(a.fromPlace, false);
         editToPlace.setText(a.toPlace, false);
         switchPreferred.setChecked(a.preferred);
+        aliasTags = a.tags == null ? "" : a.tags;
+        updateTagsRow();
         sliderBand.setValues(Math.min(a.pctLow, a.pctHigh), Math.max(a.pctLow, a.pctHigh));
         refreshBandAmounts();
         gpsContainer.removeAllViews();
@@ -268,6 +297,17 @@ public class AliasEditActivity extends LocalizedActivity {
                 Math.round(low), Math.round(high)));
     }
 
+    /** Die Stichwort-Zeile: Namen, solange sie passen, sonst deren Anzahl. */
+    private void updateTagsRow() {
+        if (rowTags == null) {
+            return;
+        }
+        rowTags.setVisibility(knownTagNames.isEmpty() ? View.GONE : View.VISIBLE);
+        String label = de.spahr.ausgaben.db.BookingTags.label(aliasTags, TAGS_LABEL_MAX);
+        textTags.setText(getString(R.string.tags_row,
+                label.isEmpty() ? getString(R.string.tags_none) : label));
+    }
+
     private void save() {
         // Erst die Suche in allen Vorschlagsfeldern beenden: der Knopf nimmt dem Feld nicht
         // zwangsläufig den Fokus, und ein Feld mitten in der Suche ist leer.
@@ -297,6 +337,7 @@ public class AliasEditActivity extends LocalizedActivity {
         a.fromPlace = text(editFromPlace);
         a.toPlace = text(editToPlace);
         a.preferred = switchPreferred.isChecked();
+        a.tags = aliasTags;
         a.pctLow = sliderBand.getValues().get(0);
         a.pctHigh = sliderBand.getValues().get(1);
         // Standorte aus den Zeilen übernehmen (nur Zeilen mit gültiger Breite UND Länge).

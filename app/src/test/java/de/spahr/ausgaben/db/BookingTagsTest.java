@@ -8,6 +8,7 @@ import org.junit.Test;
 
 import java.util.Arrays;
 import java.util.Collections;
+import java.util.List;
 
 /**
  * Die Stichwörter einer Buchung ({@link BookingTags}): zusammenfügen, zerlegen, filtern, beschriften.
@@ -53,6 +54,28 @@ public class BookingTagsTest {
         // Kein Stichwort gewählt: der Filter lässt alles durch.
         assertTrue(BookingTags.contains("", ""));
         assertTrue(BookingTags.contains(null, null));
+    }
+
+    @Test
+    public void schonVergebeneFallenAusDerAuswahl() {
+        List<String> alle = Arrays.asList("Urlaub", "Bahn", "Essen");
+        assertEquals(Arrays.asList("Bahn", "Essen"), BookingTags.without(alle, "Urlaub"));
+        // Groß-/Kleinschreibung ist gleichgültig, die Reihenfolge der übrigen bleibt.
+        assertEquals(Collections.singletonList("Bahn"), BookingTags.without(alle, "URLAUB|essen"));
+    }
+
+    @Test
+    public void sindAlleVergebenBleibtNichts() {
+        // Genau der Fall, der den Vorspann bewußt leer läßt: der Alias hat schon alles vorbelegt.
+        assertTrue(BookingTags.without(Arrays.asList("Urlaub", "Bahn"), "Bahn|Urlaub").isEmpty());
+    }
+
+    @Test
+    public void ohneVergebeneBleibtAllesStehen() {
+        List<String> alle = Arrays.asList("Urlaub", "Bahn");
+        assertEquals(alle, BookingTags.without(alle, ""));
+        assertEquals(alle, BookingTags.without(alle, null));
+        assertTrue(BookingTags.without(null, "Urlaub").isEmpty());
     }
 
     @Test

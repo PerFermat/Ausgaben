@@ -15,7 +15,7 @@ import androidx.sqlite.db.SupportSQLiteDatabase;
         AnalysisExtra.class, SecurityTxValueOverride.class, KmyPendingDelete.class, SecurityPrice.class,
         ScheduledAdvance.class, AccountGroup.class, AccountGroupMember.class, AccountKindOrder.class,
         Tag.class},
-        version = 43, exportSchema = false)
+        version = 44, exportSchema = false)
 public abstract class AppDatabase extends RoomDatabase {
 
     /** v1 → v2: Notiz-Spalte ergänzen (bestehende Buchungen bleiben erhalten). */
@@ -559,6 +559,17 @@ public abstract class AppDatabase extends RoomDatabase {
         }
     };
 
+    /**
+     * v43 → v44: Stichwörter auch am Alias. Damit lernt ein Empfänger seine Stichwörter, so wie er
+     * heute schon seine Kategorien lernt.
+     */
+    static final Migration MIGRATION_43_44 = new Migration(43, 44) {
+        @Override
+        public void migrate(@NonNull SupportSQLiteDatabase db) {
+            db.execSQL("ALTER TABLE payee_correction ADD COLUMN tags TEXT NOT NULL DEFAULT ''");
+        }
+    };
+
     public abstract BookingDao bookingDao();
 
     public abstract AccountDao accountDao();
@@ -613,7 +624,7 @@ public abstract class AppDatabase extends RoomDatabase {
                                     MIGRATION_31_32, MIGRATION_32_33, MIGRATION_33_34, MIGRATION_34_35,
                                     MIGRATION_35_36, MIGRATION_36_37, MIGRATION_37_38,
                                     MIGRATION_38_39, MIGRATION_39_40, MIGRATION_40_41,
-                                    MIGRATION_41_42, MIGRATION_42_43)
+                                    MIGRATION_41_42, MIGRATION_42_43, MIGRATION_43_44)
                             .build();
                 }
             }

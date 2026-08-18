@@ -1,0 +1,9 @@
+<?xml version="1.0" encoding="utf-8"?>
+<resources>
+
+    <!-- Höhe einer Zeile in den Vorschlagslisten der Eingabefelder (item_picker_row.xml).
+         Steht hier, weil auch der Code damit rechnet: PickerAdapters deckelt die Liste des
+         Stichwort-Fensters auf eine feste Zahl von Zeilen. -->
+    <dimen name="picker_row_height">48dp</dimen>
+
+</resources>

@@ -194,6 +194,52 @@ public final class PickerAdapters {
         };
     }
 
+    /**
+     * Stichwörter im Stichwort-Fenster: verhält sich wie das Kontofeld, und ganz oben stehen die
+     * Stichwörter, die beim gewählten Empfänger schon vorkamen – dieselbe Machart wie der Vorspann
+     * der Empfängerliste, nur mit dem Stichwort-Zeichen statt des Peilpfeils.
+     */
+    public static void tags(AutoCompleteTextView field, List<String> names, List<String> lead) {
+        ArrayAdapter<String> adapter = new RowAdapter(field.getContext(), names, lead,
+                R.drawable.ic_tag) {
+            @Override
+            int iconFor(String value) {
+                return R.drawable.ic_tag;
+            }
+        };
+        attach(field, adapter);
+        limitRows(field, adapter, TAG_ROWS);
+        PickerBehaviour.searchable(field, PickerBehaviour.Unknown.RESTORE);
+    }
+
+    /**
+     * So viele Zeilen zeigt die Stichwortliste höchstens. Sie hängt in einem Dialogfenster, und sobald
+     * die Bildschirmtastatur hochfährt, bleibt für eine lange Liste kein Platz mehr: sie klappt dann
+     * nach oben auf, und ihre ersten Zeilen wandern über den Bildschirmrand hinaus.
+     */
+    private static final int TAG_ROWS = 6;
+
+    /**
+     * Deckelt die Höhe des Listenfensters auf {@code maxRows} Zeilen; darüber hinaus wird gerollt.
+     * Kürzere Listen bleiben so hoch wie ihr Inhalt – sonst stünde unter zwei Einträgen Leerraum.
+     *
+     * <p>Die Höhe folgt der Trefferzahl, weil der Beobachter an jedem {@code notifyDataSetChanged()}
+     * hängt, das der Suchlauf des Adapters auslöst.</p>
+     */
+    private static void limitRows(AutoCompleteTextView field, ArrayAdapter<?> adapter, int maxRows) {
+        final int rowHeight = field.getResources().getDimensionPixelSize(R.dimen.picker_row_height);
+        final Runnable apply = () -> field.setDropDownHeight(adapter.getCount() > maxRows
+                ? maxRows * rowHeight
+                : android.view.ViewGroup.LayoutParams.WRAP_CONTENT);
+        adapter.registerDataSetObserver(new android.database.DataSetObserver() {
+            @Override
+            public void onChanged() {
+                apply.run();
+            }
+        });
+        apply.run();
+    }
+
     private static ArrayAdapter<String> iconAdapter(Context context, List<String> values,
                                                     @DrawableRes int icon) {
         return new RowAdapter(context, values) {
@@ -219,11 +265,18 @@ public final class PickerAdapters {
         /** Wieviele Zeilen der gerade angezeigten Liste zum Vorspann gehören. */
         private int leadShown;
 
+        /** Zeichen der Vorspann-Zeilen; der Peilpfeil paßt nur zu den nahen Empfängern. */
+        private final int leadIcon;
+
         RowAdapter(Context context, List<String> values) {
             this(context, values, null);
         }
 
         RowAdapter(Context context, List<String> values, List<String> lead) {
+            this(context, values, lead, R.drawable.ic_near_me);
+        }
+
+        RowAdapter(Context context, List<String> values, List<String> lead, @DrawableRes int leadIcon) {
             // Eigene Kopie: die Aufrufer reichen teils feste Listen (Arrays.asList) herein, und ein
             // ArrayAdapter besteht darauf, seinen Bestand ändern zu dürfen. Von Anfang an mit Vorspann –
             // so steht dort auch dann das Richtige, wenn die Liste ohne Suchlauf aufklappt.
@@ -233,6 +286,7 @@ public final class PickerAdapters {
             this.lead = lead == null
                     ? new java.util.ArrayList<>() : new java.util.ArrayList<>(lead);
             this.leadShown = this.lead.size();
+            this.leadIcon = leadIcon;
             this.iconTint = iconTint(context);
         }
 
@@ -310,7 +364,7 @@ public final class PickerAdapters {
             ImageView icon = row.findViewById(R.id.pickerIcon);
             // Der Vorspann trägt sein Symbol nach der Stelle, nicht nach dem Namen: derselbe Empfänger
             // steht ein zweites Mal weiter unten, dort mit dem gewöhnlichen Symbol seiner Liste.
-            int res = position < leadShown ? R.drawable.ic_near_me : iconFor(value);
+            int res = position < leadShown ? leadIcon : iconFor(value);
             if (res == 0) {
                 icon.setImageDrawable(null);
             } else {

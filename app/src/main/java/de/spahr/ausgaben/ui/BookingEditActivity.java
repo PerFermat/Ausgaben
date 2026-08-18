@@ -159,6 +159,13 @@ public class BookingEditActivity extends LocalizedActivity {
     private String bookingTags = "";
     /** Die in KMyMoney vorhandenen Stichwörter – nur daraus lässt sich wählen; leer = Zeile aus. */
     private java.util.List<String> knownTagNames = new ArrayList<>();
+    /** Zu welchem Empfänger schon vorbelegt wurde – spart die Abfrage bei jedem Tastendruck. */
+    private String payeeTagKey;
+    /**
+     * Empfänger (klein), bei dem die Stichwörter von Hand gesetzt wurden. Für ihn schlägt die App
+     * nichts mehr vor – sonst käme ein gelöschtes Stichwort beim nächsten Öffnen des Fensters wieder.
+     */
+    private String tagsEditedForPayee;
     /** True, sobald der Standort auf der Karte manuell gewählt wurde – dann kein Überschreiben per Live-GPS. */
     private boolean gpsEditedByUser;
     /** Karten-Auswahl (OpenStreetMap) für den Standort der Buchung. */
@@ -311,6 +318,10 @@ public class BookingEditActivity extends LocalizedActivity {
             // Kennt die App keine Stichwörter (CSV-Betrieb, noch kein Abgleich), bleibt die Zeile weg.
             knownTagNames = names == null ? new ArrayList<>() : names;
             updateNoteTagRows();
+            // Die Liste kommt aus der Datenbank und damit womöglich später als der vorbelegte
+            // Empfänger – dann ist sein Vorspann noch nirgends angekommen. Also noch einmal fragen.
+            payeeTagKey = null;
+            refreshPayeeTags();
         });
         repository.getAccountNames(names -> {
             knownAccountNames.clear();
@@ -345,7 +356,10 @@ public class BookingEditActivity extends LocalizedActivity {
         });
         // Steht der Empfänger fest, richten sich die Kategorien nach ihm: Vorspann der Auswahlliste und
         // Vorbelegung der ersten Zeile.
-        PickerBehaviour.onCommitted(editPayee, value -> refreshPayeeCategories());
+        PickerBehaviour.onCommitted(editPayee, value -> {
+            refreshPayeeCategories();
+            refreshPayeeTags();
+        });
         // Bei einer Umbuchung folgt der Nach-Ort dem Nach-Konto.
         PickerBehaviour.onCommitted(editAccountTo, value -> {
             if (isTransferType()) {
@@ -1616,6 +1630,7 @@ public class BookingEditActivity extends LocalizedActivity {
             // Ohne Rückfrage – wie das Löschkreuz einer Belegseite; rückgängig durch Verlassen
             // der Maske, ohne zu speichern.
             bookingTags = "";
+            noteTagsEdited();
             updateTagsRow();
         });
     }
@@ -1627,53 +1642,73 @@ public class BookingEditActivity extends LocalizedActivity {
      * KMyMoney gibt.
      */
     private void showTagsDialog() {
-        final String[] draft = {bookingTags};
-        View view = getLayoutInflater().inflate(R.layout.dialog_tags, null, false);
-        final android.widget.LinearLayout rows = view.findViewById(R.id.tagRows);
-        final PickerTextView field = view.findViewById(R.id.editTagNew);
-
-        final Runnable[] rebuild = new Runnable[1];
-        rebuild[0] = () -> {
-            rows.removeAllViews();
-            for (String name : BookingTags.parse(draft[0])) {
-                View row = getLayoutInflater().inflate(R.layout.item_tag_row, rows, false);
-                ((android.widget.TextView) row.findViewById(R.id.textTagName)).setText(name);
-                row.findViewById(R.id.btnTagDelete).setOnClickListener(v -> {
-                    draft[0] = BookingTags.remove(draft[0], name);
-                    rebuild[0].run();
-                });
-                rows.addView(row);
-            }
-            // Schon vergebene Stichwörter fallen aus den Vorschlägen.
-            java.util.List<String> free = new ArrayList<>();
-            for (String name : knownTagNames) {
-                if (!BookingTags.contains(draft[0], name)) {
-                    free.add(name);
-                }
-            }
-            PickerAdapters.plainSearchable(field, free);
-        };
-        rebuild[0].run();
-
-        PickerBehaviour.onCommitted(field, value -> {
-            String clean = BookingTags.sanitize(value);
-            if (clean.isEmpty()) {
-                return;
-            }
-            draft[0] = BookingTags.add(draft[0], clean);
-            field.setText("", false);
-            rebuild[0].run();
+        // Der Stift nimmt dem Empfängerfeld nicht den Fokus, und ein Feld mitten in der Suche ist leer:
+        // ohne dieses settleAll wäre ein nur getippter Empfängername hier noch nicht angekommen.
+        PickerBehaviour.settleAll(getWindow().getDecorView());
+        final String payee = textOf(editPayee).trim();
+        if (payee.isEmpty() || knownTagNames.isEmpty()) {
+            openTagsDialog(new ArrayList<>());
+            return;
+        }
+        // Erst fragen, dann öffnen. Andersherum stünde das Fenster schon da, wenn die Antwort eintrifft –
+        // dann bliebe der Vorspann leer und eine Vorbelegung ginge beim „Fertig" wieder verloren.
+        repository.getPayeeTags(payee, suggestion -> {
+            applyTagPreset(payee, suggestion);
+            openTagsDialog(suggestion.ranked);
         });
+    }
 
-        new AppDialog(this)
-                .setTitle(R.string.tags_dialog_title)
-                .setView(view)
-                .setNegativeButton(android.R.string.cancel, null)
-                .setPositiveButton(R.string.tags_done, (d, w) -> {
-                    bookingTags = draft[0];
-                    updateTagsRow();
-                })
-                .show();
+    private void openTagsDialog(java.util.List<String> lead) {
+        TagsDialog.show(this, knownTagNames, lead, bookingTags, tags -> {
+            bookingTags = tags;
+            noteTagsEdited();
+            updateTagsRow();
+        });
+    }
+
+    /**
+     * Merkt sich, dass die Stichwörter von Hand gesetzt wurden – für <b>diesen</b> Empfänger schlägt
+     * die App dann nichts mehr vor. Was gelöscht wurde, bleibt gelöscht; wählen Sie dagegen einen
+     * anderen Empfänger, gilt dessen Vorbelegung wieder.
+     */
+    private void noteTagsEdited() {
+        tagsEditedForPayee = textOf(editPayee).trim().toLowerCase(Locale.ROOT);
+    }
+
+    /**
+     * Holt die Stichwörter des gewählten Empfängers und belegt eine <b>neue</b> Buchung damit vor.
+     * Gegenstück zu {@link #refreshPayeeCategories()} und am selben Faden aufgehängt – jedem
+     * bestätigten Empfänger folgt beides.
+     */
+    private void refreshPayeeTags() {
+        if (readOnly || knownTagNames.isEmpty()) {
+            return;
+        }
+        final String payee = textOf(editPayee).trim();
+        final String key = payee.toLowerCase(Locale.ROOT);
+        if (key.equals(payeeTagKey)) {
+            return; // derselbe Empfänger – nichts zu tun
+        }
+        payeeTagKey = key;
+        if (payee.isEmpty()) {
+            return;
+        }
+        repository.getPayeeTags(payee, suggestion -> applyTagPreset(payee, suggestion));
+    }
+
+    /**
+     * Übernimmt die Stichwörter des Empfängers in die Buchung – aber nur, wenn dort noch keine stehen:
+     * eine geöffnete Buchung und eine Planung bringen ihre eigenen mit, und die soll ein
+     * Empfängerwechsel nicht wegräumen.
+     */
+    private void applyTagPreset(String payee, de.spahr.ausgaben.db.PayeeTagSuggestion suggestion) {
+        if (payee.toLowerCase(Locale.ROOT).equals(tagsEditedForPayee)) {
+            return; // hier hat der Nutzer selbst entschieden – auch, wenn er alles gelöscht hat
+        }
+        if (bookingTags.isEmpty() && !suggestion.preset.isEmpty()) {
+            bookingTags = suggestion.preset;
+            updateTagsRow();
+        }
     }
 
     /**

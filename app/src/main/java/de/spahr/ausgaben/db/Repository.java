@@ -1040,6 +1040,11 @@ public class Repository {
         aliasResolver.getPayeeCategories(payee, income, callback);
     }
 
+    /** Vorspann und Vorbelegung der Stichwörter zu diesem Empfänger (siehe {@link PayeeTags}). */
+    public void getPayeeTags(String payee, Callback<PayeeTagSuggestion> callback) {
+        aliasResolver.getPayeeTags(payee, callback);
+    }
+
     public void getAlias(long id, Callback<PayeeCorrection> callback) {
         aliasResolver.getAlias(id, callback);
     }

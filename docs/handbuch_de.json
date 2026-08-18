@@ -636,6 +636,16 @@
           "type": "p",
           "id": "b-0090a",
           "text": "Darunter steht <b>«Übliche Beträge»</b>: ein Regler mit zwei Griffen, der festlegt, welche Beträge für diesen Empfänger typisch sind – das <b>Betragssieb</b>, wenn mehrere Empfänger am selben Ort stehen. Der Regler läuft nicht über Beträge, sondern über <b>Ränge</b>: die Vorgabe 10–90 % läßt oben und unten je ein Zehntel der bisherigen Buchungen weg, damit ein einzelner Ausreißer das Band nicht aufreißt. Die zugehörigen Beträge stehen darüber und am Griff. Ziehen Sie enger, gewinnt dieser Empfänger nur noch bei sehr typischen Beträgen; ziehen Sie auf 0–100 %, zählt jeder Betrag, den er je hatte. Unter fünf Buchungen ist der Regler abgeblendet – so wenige sagen noch nichts. Der Regler gehört zur oben gewählten <b>Buchungsart</b>: schalten Sie auf Einnahme oder Umbuchung um, stehen dort die Beträge dieser Art. Bei Umbuchungen zählt dabei nur die Ausgangsseite – sonst stünde jeder Betrag doppelt in der Reihe. Das Band wirkt immer, wenn nur ein Betrag gesprochen wurde; in Zifferneingabe und Buchungseditor erst mit dem Schalter <b>«Betrag in den Vorschlägen berücksichtigen»</b>."
+        },
+        {
+          "type": "p",
+          "id": "b-0090b",
+          "text": "Ein Alias führt auch <b>Stichwörter</b>: die Zeile «Stichwörter» öffnet mit dem Stift dasselbe Fenster wie in der Buchungsmaske, der Papierkorb räumt alle weg. Legen Sie danach eine <b>neue</b> Buchung für diesen Empfänger an, stehen sie sofort in der Zeile – wie die Kategorie. Überschrieben wird nichts: eine geöffnete alte Buchung und eine Planung behalten ihre eigenen Stichwörter. Kennt die App noch keine Stichwörter (CSV-Betrieb oder vor dem ersten Abgleich), erscheint die Zeile gar nicht."
+        },
+        {
+          "type": "p",
+          "id": "b-0090c",
+          "text": "Unabhängig davon merkt sich die App, welche Stichwörter bei einem Empfänger <b>schon vorkamen</b>. Sie stehen im Stichwort-Fenster ganz <b>oben</b>, mit dem Stichwort-Zeichen davor, und noch einmal an ihrem alphabetischen Platz – dieselbe Machart wie der Vorspann «Bei diesem Empfänger» der Kategorie-Auswahl. Die Rangfolge ist auch dieselbe: <b>bevorzugte Aliase (★) → Buchungen (jüngste zuerst) → übrige Aliase</b>, höchstens sechs. Sobald Sie tippen, bleibt allein die Trefferliste stehen."
         }
       ],
       "shot": {"fname": "Aliase.png", "caption": "Verwaltung der Alias-Namen: gesprochener Begriff → echter Empfänger", "width": 6.0}

@@ -186,6 +186,42 @@
                     android:inputType="textCapWords" />
             </com.google.android.material.textfield.TextInputLayout>
 
+            <!-- Stichwörter als Ausgabezeile (Namen bzw. Anzahl + Bearbeiten + Leeren), wie in der
+                 Buchungsmaske. Bleibt unsichtbar, solange die App keine Stichwörter kennt. -->
+            <LinearLayout
+                android:id="@+id/rowAliasTags"
+                android:layout_width="match_parent"
+                android:layout_height="wrap_content"
+                android:layout_marginTop="8dp"
+                android:gravity="center_vertical"
+                android:orientation="horizontal"
+                android:visibility="gone">
+
+                <TextView
+                    android:id="@+id/textAliasTags"
+                    android:layout_width="0dp"
+                    android:layout_height="wrap_content"
+                    android:layout_weight="1"
+                    android:textColor="?android:attr/textColorSecondary"
+                    android:textSize="14sp" />
+
+                <ImageButton
+                    android:id="@+id/btnAliasTagsEdit"
+                    android:layout_width="48dp"
+                    android:layout_height="48dp"
+                    android:background="?attr/selectableItemBackgroundBorderless"
+                    android:contentDescription="@string/tags_edit"
+                    android:src="@android:drawable/ic_menu_edit" />
+
+                <ImageButton
+                    android:id="@+id/btnAliasTagsClear"
+                    android:layout_width="48dp"
+                    android:layout_height="48dp"
+                    android:background="?attr/selectableItemBackgroundBorderless"
+                    android:contentDescription="@string/tags_clear"
+                    android:src="@android:drawable/ic_menu_delete" />
+            </LinearLayout>
+
             <com.google.android.material.textfield.TextInputLayout
                 android:layout_width="match_parent"
                 android:layout_height="wrap_content"

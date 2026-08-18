@@ -636,6 +636,16 @@
           "type": "p",
           "id": "b-0090a",
           "text": "Below that sits <b>«Usual amounts»</b>: a two-handled slider defining which amounts are typical for this payee – the <b>amount filter</b> used when several payees share a location. The slider does not move in amounts but in <b>ranks</b>: the default 10–90 % drops a tenth of the previous bookings at each end, so a single outlier cannot stretch the range. The corresponding amounts are shown above and on the handle. Narrow it, and this payee only wins on very typical amounts; widen it to 0–100 %, and every amount it ever had counts. With fewer than five bookings the slider is greyed out – that few say nothing yet. The slider belongs to the <b>booking type</b> selected above: switch to income or transfer and it shows the amounts of that type. For transfers only the outgoing side counts – otherwise every amount would appear twice. The range always applies when only an amount was spoken; in the number pad and the booking editor it takes the <b>«Use amount for payee suggestions»</b> switch."
+        },
+        {
+          "type": "p",
+          "id": "b-0090b",
+          "text": "An alias also carries <b>tags</b>: the «Tags» row opens the same window as in the booking screen via the pencil, the bin clears them all. Create a <b>new</b> booking for that payee afterwards and they are there right away – just like the category. Nothing is overwritten: an existing booking you open and a scheduled one keep their own tags. If the app does not know any tags yet (CSV mode, or before the first sync), the row does not appear at all."
+        },
+        {
+          "type": "p",
+          "id": "b-0090c",
+          "text": "Independently of that, the app remembers which tags have <b>already been used</b> with a payee. They sit at the <b>top</b> of the tag window, marked with the tag symbol, and again at their alphabetical place – the same make as the «For this payee» block of the category picker. The ranking is the same too: <b>preferred aliases (★) → bookings (most recent first) → remaining aliases</b>, at most six. As soon as you type, only the matches remain."
         }
       ],
       "shot": {"fname": "Aliase.png", "caption": "Managing alias names: spoken term → real payee", "width": 6.0}

@@ -169,6 +169,16 @@ public interface BookingDao {
     List<String> getCategoriesByPayee(String payee, boolean income);
 
     /**
+     * Die Stichwortfelder der Buchungen dieses Empfängers, jüngste zuerst – Quelle des Vorspanns im
+     * Stichwort-Fenster ({@link PayeeTags}). Je Zeile steht dort eine ganze Liste, das Zerlegen
+     * übernimmt {@link BookingTags}. Ohne Trennung nach Einnahme und Ausgabe: die kennt ein
+     * Stichwort nicht. Umbuchungen zählen mit, denn auch sie können Stichwörter tragen.
+     */
+    @Query("SELECT tags FROM booking WHERE payee = :payee COLLATE NOCASE AND tags != '' "
+            + "ORDER BY created_at DESC LIMIT 200")
+    List<String> getTagsByPayee(String payee);
+
+    /**
      * Die Beträge, auf die dieser Empfänger schon gebucht wurde – Grundlage des Betragssiebs
      * ({@link PayeeAmounts}). Bewußt <b>ohne</b> Standort-Bedingung: die Koordinaten entscheiden, wer
      * überhaupt Kandidat ist, die Beträge steuert der volle Bestand bei. Und ohne Teilzeilen, denn

@@ -94,6 +94,24 @@ public final class BookingTags {
         return false;
     }
 
+    /**
+     * Die Namen aus {@code alle}, die in {@code vergeben} noch <b>nicht</b> vorkommen – die noch
+     * wählbaren. Ein bereits vergebenes Stichwort läßt sich nicht ein zweites Mal vergeben; es steht
+     * im Fenster ohnehin als eigene Zeile mit Löschkreuz. Die Reihenfolge bleibt.
+     */
+    public static List<String> without(List<String> alle, String vergeben) {
+        List<String> out = new ArrayList<>();
+        if (alle == null) {
+            return out;
+        }
+        for (String name : alle) {
+            if (!contains(vergeben, name)) {
+                out.add(name);
+            }
+        }
+        return out;
+    }
+
     /** Zahl der Stichwörter. */
     public static int count(String tags) {
         return parse(tags).size();

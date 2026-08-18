@@ -44,7 +44,6 @@ import de.spahr.ausgaben.export.KmyImporter;
 import de.spahr.ausgaben.net.RemoteStorage;
 import de.spahr.ausgaben.settings.PlacesStore;
 import de.spahr.ausgaben.settings.SettingsStore;
-import de.spahr.ausgaben.voice.VoiceInput;
 import de.spahr.ausgaben.voice.VoiceRecognizer;
 
 public class MainActivity extends LocalizedActivity {
@@ -178,6 +177,7 @@ public class MainActivity extends LocalizedActivity {
     /** Was beim Antippen des Menüpunkts feststand – der Speicherdialog kommt ja erst danach. */
     private java.util.List<de.spahr.ausgaben.receipt.ReceiptExportJobs.Job> receiptExportJobs;
     private ActivityResultLauncher<Intent> voiceLauncher;
+    private VoiceEntryController voiceEntry;
     private ActivityResultLauncher<Intent> editLauncher;
     private ActivityResultLauncher<String> locationPermissionLauncher;
 
@@ -335,7 +335,7 @@ public class MainActivity extends LocalizedActivity {
         });
         // Langer Druck → Buchung per Sprache anlegen (z. B. „Frisör 20€").
         fab.setOnLongClickListener(v -> {
-            startVoiceEntry();
+            voiceEntry.startVoiceEntry();
             return true;
         });
 
@@ -386,12 +386,14 @@ public class MainActivity extends LocalizedActivity {
                         java.util.ArrayList<String> spoken = result.getData()
                                 .getStringArrayListExtra(android.speech.RecognizerIntent.EXTRA_RESULTS);
                         if (spoken != null && !spoken.isEmpty()) {
-                            handleVoiceResult(VoiceRecognizer.pickBestSpoken(spoken));
+                            voiceEntry.handleVoiceResult(VoiceRecognizer.pickBestSpoken(spoken));
                             return;
                         }
                     }
                     Toast.makeText(this, R.string.voice_not_understood, Toast.LENGTH_SHORT).show();
                 });
+        voiceEntry = new VoiceEntryController(this, repository, settings, locationTagger, voiceLauncher,
+                locationPermissionLauncher, () -> selectedAccount, this::visibleAccounts);
 
         FloatingActionButton fabScrollTop = findViewById(R.id.fabScrollTop);
         fabScrollTop.setOnClickListener(v -> ScrollToTop.rolle(recycler));
@@ -536,7 +538,7 @@ public class MainActivity extends LocalizedActivity {
     private void handleWidgetAction(String action) {
         switch (action) {
             case WIDGET_ACTION_VOICE:
-                startVoiceEntry();
+                voiceEntry.startVoiceEntry();
                 break;
             case WIDGET_ACTION_DIGITS:
                 showNumberEntry();
@@ -572,87 +574,7 @@ public class MainActivity extends LocalizedActivity {
         }
     }
 
-    // ---- Buchung per Sprache (Lang-Druck auf FAB) ----
-
-    private void startVoiceEntry() {
-        // Kein Vorab-Check über SpeechRecognizer.isRecognitionAvailable(): der prüft einen eigenen
-        // RecognitionService-Dienst und liefert auf manchen Geräten fälschlich „nicht verfügbar",
-        // obwohl z. B. die Google-Suchleiste per Mikrofon-Symbol einwandfrei funktioniert (die nutzt die
-        // gleiche ACTION_RECOGNIZE_SPEECH-Activity). Stattdessen wird direkt versucht zu starten; schlägt
-        // das fehl, fängt der catch-Block unten (ActivityNotFoundException) das echte „kein Erkenner" ab.
-        // Standort für eine mögliche Betrag-only-Auflösung vorwärmen (nur bei aktivem GPS).
-        if (settings.isGpsEnabled() && locationTagger != null && !hasLocationPermission()) {
-            locationPermissionLauncher.launch(android.Manifest.permission.ACCESS_FINE_LOCATION);
-        }
-        Intent intent = VoiceRecognizer.freeFormIntent(this);
-        try {
-            voiceLauncher.launch(intent);
-        } catch (android.content.ActivityNotFoundException e) {
-            Toast.makeText(this, R.string.voice_no_recognizer, Toast.LENGTH_LONG).show();
-        }
-    }
-
-    /**
-     * Zerlegt den gesprochenen Satz und öffnet den vorbefüllten Editor. Mit Empfänger wird über
-     * Aliase/Buchungen aufgelöst; bei <b>reinem Betrag</b> über den aktuellen Standort (100 m).
-     */
-    private void handleVoiceResult(String spoken) {
-        VoiceInput.Result parsed = VoiceInput.parse(spoken);
-        final long amount = parsed.amountCents == null ? -1 : parsed.amountCents;
-        if (parsed.payee.isEmpty()) {
-            // Reiner Betrag ohne Standort ist am Handy nicht auflösbar → bei GPS aus abweisen.
-            if (amount <= 0 || !settings.isGpsEnabled()) {
-                Toast.makeText(this, R.string.voice_not_understood, Toast.LENGTH_SHORT).show();
-                return;
-            }
-            // Nur Betrag → per Standort auflösen (kein Treffer → Editor nur mit Betrag).
-            String coords = locationTagger != null ? locationTagger.currentCoordinates() : null;
-            repository.resolveNearby(coords, amount, Repository.VOICE_TYPE_EXPENSE, visibleAccounts(),
-                    list -> openVoiceEditor(list.isEmpty() ? NO_PAYEE : list.get(0), amount, ""));
-            return;
-        }
-        // Aktuelle Position mitgeben (nur bei GPS an) → bei mehreren gleichnamigen Empfängern der nächste.
-        String coords = settings.isGpsEnabled() && locationTagger != null
-                ? locationTagger.currentCoordinates() : null;
-        repository.resolveVoice(parsed.payee, coords, res -> openVoiceEditor(res, amount, parsed.payee));
-    }
-
-
-    /** Öffnet den Editor vorbelegt aus einer Auflösung (Vorlage/Alias) + Betrag. */
-    private void openVoiceEditor(Repository.VoiceResolution res, long amount, String spokenPayee) {
-        Intent i = new Intent(this, BookingEditActivity.class);
-        // Angezeigtes Konto ist eine Nutzereingabe: steckt es bei einer Umbuchung bereits als Von- oder
-        // Nach-Konto in Alias/Vorlage, bleiben dort beide Konten unverändert; sonst ersetzt es das
-        // Von-Konto (nur bei „Alle Konten" – selectedAccount leer – bleibt Alias/Vorlage maßgeblich).
-        if (!selectedAccount.isEmpty()) {
-            i.putExtra(BookingEditActivity.EXTRA_PRESET_TRANSFER_FROM_ACCOUNT, selectedAccount);
-        }
-        if (res.booking != null) {
-            i.putExtra(BookingEditActivity.EXTRA_TEMPLATE_BOOKING_ID, res.booking.id);
-        } else {
-            if (!res.payee.isEmpty()) {
-                i.putExtra(BookingEditActivity.EXTRA_PREFILL_PAYEE, res.payee);
-            }
-            if (res.alias != null) {
-                i.putExtra(BookingEditActivity.EXTRA_ALIAS_ID, res.alias.id);
-            } else if (!selectedAccount.isEmpty()) {
-                // Kein Alias/keine Vorlage liefert ein Konto → angezeigtes Konto vorbelegen.
-                i.putExtra(BookingEditActivity.EXTRA_PRESET_ACCOUNT, selectedAccount);
-            }
-            if (spokenPayee != null && !spokenPayee.isEmpty()) {
-                // Ursprünglich Gesprochenes: bei Änderung des Empfängers kann ein Alias gelernt werden.
-                i.putExtra(BookingEditActivity.EXTRA_VOICE_SPOKEN_PAYEE, spokenPayee);
-                Toast.makeText(this, getString(R.string.voice_not_found, res.payee),
-                        Toast.LENGTH_SHORT).show();
-            }
-        }
-        i.putExtra(BookingEditActivity.EXTRA_VOICE_AMOUNT_CENTS, amount);
-        startActivity(i);
-    }
-
-    /** „Kein Treffer": der Editor öffnet nur mit dem Betrag, der Empfänger bleibt leer. */
-    private static final Repository.VoiceResolution NO_PAYEE =
-            new Repository.VoiceResolution(null, null, "");
+    // ---- Buchung per Sprache: ausgelagert in VoiceEntryController ----
 
     /** Der eingetippte Betrag in Cent, {@code 0} bei leerem oder unfertigem Feld. */
     private static long amountOf(android.widget.EditText field) {
@@ -811,12 +733,13 @@ public class MainActivity extends LocalizedActivity {
                 // Genau das gilt, was dasteht (auch „ohne Empfänger"). Bei abgeschaltetem
                 // Betragsvorschlag auch ohne Antippen – sonst zöge das erneute Auflösen doch wieder
                 // das Betragssieb der Spracheingabe und buchte einen anderen als den angezeigten.
-                openVoiceEditor(pick[0] >= candidates.size() ? NO_PAYEE : candidates.get(pick[0]),
-                        cents, "");
+                voiceEntry.openVoiceEditor(
+                        pick[0] >= candidates.size() ? VoiceEntryController.NO_PAYEE
+                                : candidates.get(pick[0]), cents, "");
             } else {
                 // Nichts angetippt → mit dem endgültigen Betrag noch einmal auflösen; die Anzeige
                 // hinkt sonst um die Entprellung hinterher, wenn OK gleich nach der letzten Ziffer kommt.
-                handleVoiceResult(amt); // payee leer + Betrag → Betrag-only-Pfad
+                voiceEntry.handleVoiceResult(amt); // payee leer + Betrag → Betrag-only-Pfad
             }
             if (dialogRef[0] != null) {
                 dialogRef[0].dismiss();

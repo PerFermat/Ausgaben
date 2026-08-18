@@ -1726,6 +1726,9 @@ public class MainActivity extends LocalizedActivity {
                 byte[] raw = RemoteStorage.from(settings).downloadBytes(RemotePath.folderOf(path), RemotePath.fileOf(path));
                 KmyImporter importer = new KmyImporter(
                         new KmyDocument(raw, getApplicationContext()), getApplicationContext());
+                // Stichwortliste der Datei übernehmen – nur was dort steht, ist in der App wählbar.
+                // (Wie beim Aktualisieren/Export; sonst fehlten die Stichwörter nach dem Neuimport.)
+                repository.replaceTags(importer.tagNames());
                 runOnUiThread(() -> {
                     dismissProgress();
                     List<String> accounts = importer.accountNames();

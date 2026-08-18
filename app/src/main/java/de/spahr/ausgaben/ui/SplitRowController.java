@@ -57,6 +57,13 @@ class SplitRowController {
     private boolean categoryAuto = true;
     /** Läuft gerade eine Vorbelegung? Dann ist die Änderung kein Handgriff des Nutzers. */
     private boolean prefilling;
+    /**
+     * Die „Rest-Zeile" bei zuerst eingegebenem Gesamtbetrag: ihr Teilbetrag wurde automatisch belegt und
+     * trägt die Differenz zum (vom Nutzer eingegebenen) Gesamtbetrag. Benutzereingaben in anderen Zeilen
+     * haben Vorrang – der Gesamtbetrag bleibt fest, diese Zeile zieht nach. {@code null} = Summen-Modus
+     * (Gesamt = Summe der Teile), z. B. wenn die Kategorien vor dem Gesamtbetrag eingetragen werden.
+     */
+    private View autoAmountRow;
 
     /** Hängt ein Teilbetrag-Feld an die gemeinsame Rechentastatur (von der Activity gesetzt). */
     interface AmountFieldBinder {
@@ -94,6 +101,7 @@ class SplitRowController {
 
     /** Entfernt alle Zeilen (vor dem Vorbelegen). */
     void clear() {
+        autoAmountRow = null;
         container.removeAllViews();
     }
 
@@ -159,9 +167,12 @@ class SplitRowController {
         }
         remove.setOnClickListener(v -> {
             categoryAuto = false;      // von Hand entfernt – hier wird nichts mehr nachgezogen
+            if (row == autoAmountRow) {
+                autoAmountRow = null;  // die Rest-Zeile ist weg → zurück in den Summen-Modus
+            }
             container.removeView(row);
             ensureTrailingRow();
-            recomputeTotalFromParts();
+            applyCoupling();
             onChanged.run();
         });
         container.addView(row);
@@ -173,31 +184,48 @@ class SplitRowController {
         }
         int idx = container.indexOfChild(row);
         String cat = catText(row);
-        // Erste Kategorie → Teilbetrag automatisch mit dem (vorhandenen) Gesamtbetrag vorbelegen.
+        // Erste Kategorie bei bereits eingegebenem Gesamtbetrag → diese Zeile wird zur Rest-Zeile
+        // (ihr Teilbetrag folgt automatisch dem Gesamtbetrag; siehe applyCoupling).
         if (idx == 0 && !cat.isEmpty() && amtText(row).isEmpty() && currentTotalCents() > 0) {
-            setAmtText(row, formatCents(currentTotalCents()));
+            autoAmountRow = row;
         }
         // Kategorie in der letzten Zeile → neue leere Zeile anhängen.
         if (!cat.isEmpty() && idx == container.getChildCount() - 1) {
             addRow(null, null);
         }
-        recomputeTotalFromParts();
+        applyCoupling();
         onChanged.run();
     }
 
-    /** Teilbetrag geändert → Gesamtbetrag = Summe der Teilbeträge. */
+    /**
+     * Teilbetrag geändert. Rest-Modus (Rest-Zeile vorhanden): der Gesamtbetrag bleibt die Nutzereingabe,
+     * die Rest-Zeile trägt die Differenz. Ändert der Nutzer die Rest-Zeile selbst, ist sie fortan fest
+     * (Summen-Modus). Sonst: Gesamt = Summe der Teilbeträge.
+     */
     private void onPartialChanged(View row) {
         if (suppressSplitEvents || syncingAmounts) {
             onChanged.run();
             return;
         }
-        recomputeTotalFromParts();
+        if (row == autoAmountRow) {
+            // Benutzereingabe hat Vorrang: die Rest-Zeile ist jetzt vom Nutzer gesetzt.
+            autoAmountRow = null;
+        }
+        applyCoupling();
         onChanged.run();
     }
 
-    /** Gesamtbetrag geändert → bei genau einer Kategorie deren Teilbetrag gleich dem Gesamtbetrag setzen. */
+    /**
+     * Gesamtbetrag geändert. Mit Rest-Zeile trägt diese die Differenz; sonst wird bei genau einer
+     * Kategorie deren Teilbetrag gleich dem Gesamtbetrag gesetzt.
+     */
     void onTotalChanged() {
         if (suppressSplitEvents || syncingAmounts) {
+            onChanged.run();
+            return;
+        }
+        if (autoAmountRow != null) {
+            applyCoupling();
             onChanged.run();
             return;
         }
@@ -208,6 +236,39 @@ class SplitRowController {
             syncingAmounts = false;
         }
         onChanged.run();
+    }
+
+    /**
+     * Rest-Modus (Rest-Zeile vorhanden und gültig): Gesamtbetrag bleibt fest, die Rest-Zeile bekommt die
+     * Differenz zu den übrigen Teilbeträgen. Sonst Summen-Modus: Gesamt = Summe der Teilbeträge.
+     */
+    private void applyCoupling() {
+        if (autoAmountRow != null && container.indexOfChild(autoAmountRow) >= 0
+                && !catText(autoAmountRow).isEmpty()) {
+            long remainder = currentTotalCents() - sumOfPartsExcept(autoAmountRow);
+            syncingAmounts = true;
+            setAmtText(autoAmountRow, formatCents(remainder));
+            syncingAmounts = false;
+        } else {
+            autoAmountRow = null;
+            recomputeTotalFromParts();
+        }
+    }
+
+    /** Summe der Teilbeträge aller Kategoriezeilen außer {@code exclude}. */
+    private long sumOfPartsExcept(View exclude) {
+        long sum = 0;
+        for (int i = 0; i < container.getChildCount(); i++) {
+            View r = container.getChildAt(i);
+            if (r == exclude || catText(r).isEmpty()) {
+                continue;
+            }
+            Long c = parseCents(amtText(r));
+            if (c != null) {
+                sum += c;
+            }
+        }
+        return sum;
     }
 
     /** Setzt den Gesamtbetrag auf die Summe aller Teilbeträge (Zeilen mit Kategorie). */

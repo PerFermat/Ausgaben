@@ -132,6 +132,58 @@ public final class ReceiptSync {
         return ensureLocal(context, file, -1);
     }
 
+    /** Vom Aufrufer stellbarer Abbruch (z. B. wenn die Belegseite inzwischen recycelt wurde). */
+    public interface Cancelled {
+        boolean get();
+    }
+
+    /** Ergebnis von {@link #ensureLocalWaiting}. */
+    public static final class Loaded {
+        /** Die lokale Datei, sobald vorhanden; sonst {@code null}. */
+        public final File file;
+        /** {@code true} = keine Verbindung → der Aufrufer zeigt eine Fehlermeldung. */
+        public final boolean offline;
+
+        Loaded(File file, boolean offline) {
+            this.file = file;
+            this.offline = offline;
+        }
+    }
+
+    private static final int MAX_ATTEMPTS = 6;
+    private static final long RETRY_DELAY_MS = 3000L;
+
+    /**
+     * Wie {@link #ensureLocal}, aber wartend: bei bestehender Verbindung, aber (noch) nicht vorhandener
+     * Datei wird mehrfach erneut versucht (der Aufrufer lässt derweil den Hinweis „Wird geladen …" stehen).
+     * Ergebnis: Datei gefunden ({@code file != null}), keine Verbindung ({@code offline}) oder online, aber
+     * (noch) nicht da ({@code file == null && !offline}) – dann bleibt es beim Hinweis, keine Fehlermeldung.
+     * <b>Blockierend</b> – vom Aufrufer auf einem Hintergrund-Thread nutzen.
+     */
+    public static Loaded ensureLocalWaiting(Context context, String file, int year, Cancelled cancelled) {
+        for (int attempt = 0; attempt < MAX_ATTEMPTS; attempt++) {
+            if (cancelled != null && cancelled.get()) {
+                return new Loaded(null, false);
+            }
+            File local = ensureLocal(context, file, year);
+            if (local != null && local.exists()) {
+                return new Loaded(local, false);
+            }
+            if (!de.spahr.ausgaben.net.Net.isOnline(context)) {
+                return new Loaded(null, true);
+            }
+            if (attempt + 1 < MAX_ATTEMPTS) {
+                try {
+                    Thread.sleep(RETRY_DELAY_MS);
+                } catch (InterruptedException e) {
+                    Thread.currentThread().interrupt();
+                    return new Loaded(null, false);
+                }
+            }
+        }
+        return new Loaded(null, false); // online, aber nicht auffindbar → Hinweis bleibt stehen
+    }
+
     private static byte[] readAll(File f) throws java.io.IOException {
         try (InputStream in = new FileInputStream(f)) {
             ByteArrayOutputStream out = new ByteArrayOutputStream();

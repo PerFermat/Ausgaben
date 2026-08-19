@@ -322,6 +322,8 @@
     <string name="receipt_remove">Beleg entfernen</string>
     <string name="receipt_view_title">Beleg</string>
     <string name="receipt_opening">Beleg wird geöffnet…</string>
+    <string name="receipt_loading_wait">Wird geladen – bitte warten</string>
+    <string name="receipt_offline">Keine Verbindung – Beleg kann nicht geladen werden</string>
     <string name="receipt_not_found">Beleg nicht gefunden</string>
     <string name="receipt_error">Bild konnte nicht verarbeitet werden</string>
     <string name="receipt_view_page">Seite %1$d von %2$d</string>

@@ -1869,12 +1869,23 @@ public class BookingEditActivity extends LocalizedActivity {
         final java.io.File pending = page.pending;
         final String saved = page.savedName;
         final int year = receiptYear();
-        Toast.makeText(this, R.string.receipt_opening, Toast.LENGTH_SHORT).show();
+        Toast.makeText(this, R.string.receipt_loading_wait, Toast.LENGTH_SHORT).show();
         new Thread(() -> {
-            final java.io.File file = pending != null ? pending : ReceiptSync.ensureLocal(this, saved, year);
+            final java.io.File file;
+            final boolean offline;
+            if (pending != null) {
+                file = pending;
+                offline = false;
+            } else {
+                ReceiptSync.Loaded loaded = ReceiptSync.ensureLocalWaiting(this, saved, year, null);
+                file = loaded.file;
+                offline = loaded.offline;
+            }
             runOnUiThread(() -> {
                 if (file == null || !file.exists()) {
-                    Toast.makeText(this, R.string.receipt_not_found, Toast.LENGTH_SHORT).show();
+                    // Fehlermeldung nur ohne Verbindung; sonst bleibt es beim „Wird geladen …".
+                    Toast.makeText(this, offline ? R.string.receipt_offline
+                            : R.string.receipt_loading_wait, Toast.LENGTH_SHORT).show();
                     return;
                 }
                 try {
@@ -2224,14 +2235,18 @@ public class BookingEditActivity extends LocalizedActivity {
         final String file = page.savedName;
         final String originalName = NoteReceipt.originalName(file);
         final int year = receiptYear();
-        Toast.makeText(this, R.string.receipt_opening, Toast.LENGTH_SHORT).show();
+        Toast.makeText(this, R.string.receipt_loading_wait, Toast.LENGTH_SHORT).show();
         new Thread(() -> {
-            final java.io.File local = ReceiptSync.ensureLocal(this, file, year);
+            final ReceiptSync.Loaded loaded = ReceiptSync.ensureLocalWaiting(this, file, year, null);
+            final java.io.File local = loaded.file;
             // Altbelege haben kein Original auf dem Server – dann dient der Beleg selbst als Vorlage.
-            final java.io.File original = ReceiptSync.ensureLocal(this, originalName, year);
+            final java.io.File original =
+                    local == null ? null : ReceiptSync.ensureLocal(this, originalName, year);
             runOnUiThread(() -> {
                 if (local == null || !local.exists()) {
-                    Toast.makeText(this, R.string.receipt_not_found, Toast.LENGTH_SHORT).show();
+                    // Fehlermeldung nur ohne Verbindung; sonst bleibt es beim „Wird geladen …".
+                    Toast.makeText(this, loaded.offline ? R.string.receipt_offline
+                            : R.string.receipt_loading_wait, Toast.LENGTH_SHORT).show();
                     return;
                 }
                 startReceiptEditor(local,

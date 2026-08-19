@@ -127,10 +127,14 @@ public class ReceiptViewActivity extends LocalizedActivity {
         void bind(String file) {
             wanted = file;
             release();
-            message.setText(R.string.receipt_opening);
+            message.setText(R.string.receipt_loading_wait);
             message.setVisibility(View.VISIBLE);
             io.execute(() -> {
-                File local = ReceiptSync.ensureLocal(ReceiptViewActivity.this, file, year);
+                // Wartet bei bestehender Verbindung, bis der Beleg vorliegt; recycelt (weggewischt) → Abbruch.
+                ReceiptSync.Loaded loaded = ReceiptSync.ensureLocalWaiting(
+                        ReceiptViewActivity.this, file, year, () -> !file.equals(wanted));
+                File local = loaded.file;
+                final boolean offline = loaded.offline;
                 final Bitmap bmp = local == null || !local.exists() ? null : ReceiptEdit.decode(local, MAX_EDGE);
                 image.post(() -> {
                     if (!file.equals(wanted)) {
@@ -140,7 +144,8 @@ public class ReceiptViewActivity extends LocalizedActivity {
                         return;
                     }
                     if (bmp == null) {
-                        message.setText(R.string.receipt_not_found);
+                        // Nur ohne Verbindung eine Fehlermeldung; sonst bleibt es beim „Wird geladen …".
+                        message.setText(offline ? R.string.receipt_offline : R.string.receipt_loading_wait);
                         message.setVisibility(View.VISIBLE);
                         return;
                     }

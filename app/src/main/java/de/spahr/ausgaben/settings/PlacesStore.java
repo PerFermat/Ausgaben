@@ -164,6 +164,11 @@ public class PlacesStore {
         return root().optJSONObject(account.trim());
     }
 
+    /** Auslieferungszustand: alle Orte-Definitionen (je Konto) löschen. */
+    public void clearAll() {
+        prefs.edit().clear().commit();
+    }
+
     private void writePlaces(String account, List<String> places, String defaultPlace) {
         if (account == null || account.trim().isEmpty()) {
             return;

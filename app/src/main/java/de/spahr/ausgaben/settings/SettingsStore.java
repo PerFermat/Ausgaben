@@ -422,6 +422,12 @@ public class SettingsStore {
         prefs.edit().putBoolean(KEY_WEAR_INSTALL_MODEL, enabled).apply();
     }
 
+    /** Auslieferungszustand: alle Einstellungen inkl. gespeichertem Server-Passwort löschen. */
+    public void clearAll() {
+        prefs.edit().clear().commit();
+        secret.edit().clear().commit();
+    }
+
     /** Belegfotos je Buchung aufnehmen und ins Netzlaufwerk synchronisieren (Standard: an). */
     public boolean isReceiptEnabled() {
         return prefs.getBoolean(KEY_RECEIPT_ENABLED, true);

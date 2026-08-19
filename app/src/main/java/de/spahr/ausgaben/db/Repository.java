@@ -1238,15 +1238,15 @@ public class Repository {
     }
 
     /** Löscht alle Buchungen sowie die Konto-/Empfänger-Vorschlagslisten (Einstellungen bleiben). */
-    public void resetBookingData(final Runnable onDone) {
+    /**
+     * Setzt <b>alle</b> Datenbank-Tabellen zurück (Auslieferungszustand): Buchungen, Splits, Konten,
+     * Kontengruppen, Payees, Stichwörter, Alias-Korrekturen, Orte-Journal, Übersetzungen, Depot
+     * (Wertpapiere/Transaktionen), Budget, Kategorietypen, geplante Buchungen und Merker. Einstellungen,
+     * Orte-Konfiguration und Belegdateien liegen außerhalb der DB und werden vom Aufrufer geleert.
+     */
+    public void resetAllData(final Runnable onDone) {
         executor.execute(() -> {
-            bookingDao.deleteAllSplits();
-            bookingDao.deleteAll();
-            analysisExtraDao.deleteAll();
-            accountDao.deleteAll();
-            payeeDao.deleteAll();
-            tagDao.deleteAll();
-            correctionDao.deleteAll();
+            db.clearAllTables();
             if (onDone != null) {
                 mainHandler.post(onDone);
             }

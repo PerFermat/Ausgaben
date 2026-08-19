@@ -35,6 +35,19 @@ public final class Receipts {
         return new File(dir(ctx), file);
     }
 
+    /** Auslieferungszustand: alle lokalen Belegdateien und die Merkliste offener Belege entfernen. */
+    public static synchronized void reset(Context ctx) {
+        File d = dir(ctx);
+        File[] files = d.listFiles();
+        if (files != null) {
+            for (File f : files) {
+                //noinspection ResultOfMethodCallIgnored
+                f.delete();
+            }
+        }
+        prefs(ctx).edit().clear().apply();
+    }
+
     private static SharedPreferences prefs(Context ctx) {
         return ctx.getApplicationContext().getSharedPreferences(PREFS, Context.MODE_PRIVATE);
     }

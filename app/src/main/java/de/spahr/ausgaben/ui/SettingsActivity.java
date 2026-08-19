@@ -1022,9 +1022,31 @@ public class SettingsActivity extends LocalizedActivity implements SmbWizardCont
         AppDialog.destructive(this)
                 .setTitle(R.string.reset_confirm_title)
                 .setMessage(R.string.reset_confirm_message)
-                .setPositiveButton(R.string.reset_db, (d, w) -> repository.resetBookingData(() ->
-                        Toast.makeText(this, R.string.reset_done, Toast.LENGTH_LONG).show()))
+                .setPositiveButton(R.string.reset_db, (d, w) -> repository.resetAllData(this::finishReset))
                 .show();
+    }
+
+    /**
+     * Nach dem Leeren der Datenbank den Rest des Auslieferungszustands herstellen: Einstellungen (inkl.
+     * Server-Passwort), Orte-Definitionen, offene Belege samt Dateien und die Widget-Auswahl löschen, dann
+     * die App neu starten, damit auch alle Zwischenspeicher (Währung, Zahlenformat, gewähltes Konto …)
+     * frisch sind – die App steht danach wie nach der Installation da (Willkommen-Assistent).
+     */
+    private void finishReset() {
+        settings.clearAll();
+        new de.spahr.ausgaben.settings.PlacesStore(this).clearAll();
+        de.spahr.ausgaben.receipt.Receipts.reset(this);
+        getSharedPreferences("widget_selection", MODE_PRIVATE).edit().clear().commit();
+        Toast.makeText(this, R.string.reset_done, Toast.LENGTH_LONG).show();
+        android.content.Intent launch =
+                getPackageManager().getLaunchIntentForPackage(getPackageName());
+        if (launch != null) {
+            launch.addFlags(android.content.Intent.FLAG_ACTIVITY_NEW_TASK
+                    | android.content.Intent.FLAG_ACTIVITY_CLEAR_TASK);
+            startActivity(launch);
+        }
+        finishAffinity();
+        Runtime.getRuntime().exit(0);
     }
 
     private void confirmRestore() {

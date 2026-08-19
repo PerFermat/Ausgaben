@@ -15,6 +15,29 @@
         app:title="@string/edit_title"
         app:titleTextColor="@color/white" />
 
+    <!-- Statuszeile beim Nachladen eines Belegs (unbestimmt, ohne Prozent) -->
+    <FrameLayout
+        android:id="@+id/receiptBanner"
+        android:layout_width="match_parent"
+        android:layout_height="48dp"
+        android:visibility="gone">
+
+        <de.spahr.ausgaben.ui.ShimmerView
+            android:id="@+id/receiptShimmer"
+            android:layout_width="match_parent"
+            android:layout_height="match_parent" />
+
+        <TextView
+            android:id="@+id/receiptStatus"
+            android:layout_width="match_parent"
+            android:layout_height="match_parent"
+            android:gravity="center_vertical"
+            android:paddingHorizontal="16dp"
+            android:textStyle="bold"
+            android:textColor="@color/import_banner_text"
+            android:text="@string/receipt_loading_wait" />
+    </FrameLayout>
+
     <ScrollView
         android:layout_width="match_parent"
         android:layout_height="0dp"

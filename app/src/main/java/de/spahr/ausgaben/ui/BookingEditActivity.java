@@ -135,6 +135,8 @@ public class BookingEditActivity extends LocalizedActivity {
     private MaterialButton btnSkipSchedule;
     private MaterialButton btnUpdate;
     private MaterialButton btnDelete;
+    /** Statuszeile beim Nachladen eines Belegs (Shimmer + Text, unbestimmt). */
+    private ImportBanner receiptBanner;
 
     /** GPS-Anhang an die Notiz – nur im Neu-Modus aktiv (bei bestehenden Buchungen bleibt der Ort unberührt). */
     private LocationTagger locationTagger;
@@ -331,6 +333,12 @@ public class BookingEditActivity extends LocalizedActivity {
         btnSkipSchedule = findViewById(R.id.btnSkipSchedule);
         btnUpdate = findViewById(R.id.btnUpdate);
         btnDelete = findViewById(R.id.btnDelete);
+
+        ShimmerView receiptShimmer = findViewById(R.id.receiptShimmer);
+        receiptShimmer.setColors(getColor(R.color.import_banner_bg), getColor(R.color.import_banner_shimmer));
+        // Unbestimmtes Nachladen eines Belegs – Shimmer + Text, ohne Prozentanzeige.
+        receiptBanner = new ImportBanner(findViewById(R.id.receiptBanner), receiptShimmer,
+                findViewById(R.id.receiptStatus), null);
 
         repository.getPayeeNames(names -> {
             payeeNames = names == null ? new ArrayList<>() : names;
@@ -1869,7 +1877,11 @@ public class BookingEditActivity extends LocalizedActivity {
         final java.io.File pending = page.pending;
         final String saved = page.savedName;
         final int year = receiptYear();
-        Toast.makeText(this, R.string.receipt_loading_wait, Toast.LENGTH_SHORT).show();
+        // Nur ein noch nicht lokaler Beleg wird geholt – dann die Statuszeile zeigen (kann dauern).
+        final boolean willWait = pending == null;
+        if (willWait) {
+            receiptBanner.start(getString(R.string.receipt_loading_wait));
+        }
         new Thread(() -> {
             final java.io.File file;
             final boolean offline;
@@ -1882,6 +1894,9 @@ public class BookingEditActivity extends LocalizedActivity {
                 offline = loaded.offline;
             }
             runOnUiThread(() -> {
+                if (willWait) {
+                    receiptBanner.finishNow();
+                }
                 if (file == null || !file.exists()) {
                     // Ohne Verbindung nur ein Hinweis; online, aber unauffindbar → Entfernen anbieten.
                     if (offline) {
@@ -2259,7 +2274,8 @@ public class BookingEditActivity extends LocalizedActivity {
         final String file = page.savedName;
         final String originalName = NoteReceipt.originalName(file);
         final int year = receiptYear();
-        Toast.makeText(this, R.string.receipt_loading_wait, Toast.LENGTH_SHORT).show();
+        // Gespeicherter Beleg: kann erst vom Server geholt werden – Statuszeile zeigen (kann dauern).
+        receiptBanner.start(getString(R.string.receipt_loading_wait));
         new Thread(() -> {
             final ReceiptSync.Loaded loaded = ReceiptSync.ensureLocalWaiting(this, file, year, null);
             final java.io.File local = loaded.file;
@@ -2267,6 +2283,7 @@ public class BookingEditActivity extends LocalizedActivity {
             final java.io.File original =
                     local == null ? null : ReceiptSync.ensureLocal(this, originalName, year);
             runOnUiThread(() -> {
+                receiptBanner.finishNow();
                 if (local == null || !local.exists()) {
                     // Ohne Verbindung nur ein Hinweis; online, aber unauffindbar → Entfernen anbieten.
                     if (loaded.offline) {

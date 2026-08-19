@@ -143,7 +143,10 @@ present, among them checks against real `.kmy` files (via Robolectric, which nev
 
 **Receipts.** Photos and PDFs are kept app-private and uploaded in the background into `Belege/<year>/`
 next to the KMyMoney file. The reference is a short tag inside the booking note, so it survives export
-and re-import; a PDF is handed to the device's viewer through a `FileProvider`.
+and re-import; a PDF is handed to the device's viewer through a `FileProvider`. Opening a receipt that
+is not on the phone shows *"Loading – please wait"* and fetches it in the background (`Net.isOnline` plus
+a bounded retry in `ReceiptSync.ensureLocalWaiting`); an error appears only when offline. If it stays
+unreachable while online, the app offers to drop the orphaned reference, marking the booking as edited.
 
 **Flavors.** Google Play Services exist solely in the `full` flavor under `app/src/full/`; the `foss`
 flavor contains not a line of it. Phone and watch app need the same `applicationId` **and** the same

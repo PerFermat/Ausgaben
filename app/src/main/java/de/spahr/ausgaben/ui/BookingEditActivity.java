@@ -1883,9 +1883,12 @@ public class BookingEditActivity extends LocalizedActivity {
             }
             runOnUiThread(() -> {
                 if (file == null || !file.exists()) {
-                    // Fehlermeldung nur ohne Verbindung; sonst bleibt es beim „Wird geladen …".
-                    Toast.makeText(this, offline ? R.string.receipt_offline
-                            : R.string.receipt_loading_wait, Toast.LENGTH_SHORT).show();
+                    // Ohne Verbindung nur ein Hinweis; online, aber unauffindbar → Entfernen anbieten.
+                    if (offline) {
+                        Toast.makeText(this, R.string.receipt_offline, Toast.LENGTH_SHORT).show();
+                    } else {
+                        promptRemoveUnavailableReceipt(page);
+                    }
                     return;
                 }
                 try {
@@ -2209,6 +2212,27 @@ public class BookingEditActivity extends LocalizedActivity {
         updateNoteTagRows();
     }
 
+    /**
+     * Beleg vorhanden (Verbindung besteht), aber auf dem Server nicht auffindbar: fragt, ob der
+     * verwaiste Verweis aus der Buchung entfernt werden soll. Diese Ansicht kennt keinen eigenen
+     * Speichern-Schritt, darum wird das Entfernen sofort mit «Entfernen» geschrieben – über den
+     * normalen {@link #update()}-Pfad, der die (exportierte) Buchung dabei auf „bearbeitet" setzt.
+     */
+    private void promptRemoveUnavailableReceipt(Page page) {
+        if (!receiptPages.contains(page)) {
+            return; // schon entfernt
+        }
+        new AppDialog(this)
+                .setTitle(R.string.receipt_missing_title)
+                .setMessage(R.string.receipt_missing_delete)
+                .setPositiveButton(R.string.remove, (d, w) -> {
+                    removeReceiptPage(page);
+                    update();
+                })
+                .setNegativeButton(R.string.cancel, null)
+                .show();
+    }
+
     /** Fragt direkt nach der Aufnahme, ob das Bild noch zugeschnitten/begradigt werden soll. */
     private void askEditReceipt(Page page) {
         new AppDialog(this)
@@ -2244,9 +2268,12 @@ public class BookingEditActivity extends LocalizedActivity {
                     local == null ? null : ReceiptSync.ensureLocal(this, originalName, year);
             runOnUiThread(() -> {
                 if (local == null || !local.exists()) {
-                    // Fehlermeldung nur ohne Verbindung; sonst bleibt es beim „Wird geladen …".
-                    Toast.makeText(this, loaded.offline ? R.string.receipt_offline
-                            : R.string.receipt_loading_wait, Toast.LENGTH_SHORT).show();
+                    // Ohne Verbindung nur ein Hinweis; online, aber unauffindbar → Entfernen anbieten.
+                    if (loaded.offline) {
+                        Toast.makeText(this, R.string.receipt_offline, Toast.LENGTH_SHORT).show();
+                    } else {
+                        promptRemoveUnavailableReceipt(page);
+                    }
                     return;
                 }
                 startReceiptEditor(local,

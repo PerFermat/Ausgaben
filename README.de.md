@@ -144,7 +144,11 @@ landet).
 **Belege.** Fotos und PDFs liegen app-privat und werden im Hintergrund nach `Belege/<Jahr>/` neben der
 KMyMoney-Datei hochgeladen. Der Verweis darauf steht als Kürzel in der Buchungsnotiz und übersteht
 damit Export und Neu-Import; ein PDF reicht die App über einen `FileProvider` an den Betrachter des
-Geräts weiter.
+Geräts weiter. Wird ein Beleg geöffnet, der nicht auf dem Handy liegt, zeigt die App *„Wird geladen –
+bitte warten"* und lädt ihn im Hintergrund nach (`Net.isOnline` plus gedeckelter Wiederholung in
+`ReceiptSync.ensureLocalWaiting`); eine Fehlermeldung kommt nur ohne Verbindung. Bleibt er trotz
+Verbindung unauffindbar, bietet die App an, den verwaisten Verweis zu entfernen, und setzt die Buchung
+dabei auf „bearbeitet".
 
 **Varianten.** Google Play Services stecken ausschließlich im `full`-Flavor unter `app/src/full/`; der
 `foss`-Flavor enthält davon keine einzige Zeile. Handy- und Uhren-App brauchen dieselbe

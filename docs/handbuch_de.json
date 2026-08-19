@@ -555,6 +555,11 @@
         },
         {
           "type": "p",
+          "id": "b-0079b",
+          "text": "Liegt ein Beleg noch nicht auf dem Handy, zeigt die App beim Öffnen <b>«Wird geladen – bitte warten»</b> und holt ihn im Hintergrund nach; das Handy bleibt bedienbar. Nur wenn <b>keine Verbindung</b> besteht, kommt die Meldung «Keine Verbindung – Beleg kann nicht geladen werden»; besteht eine Verbindung, wartet die App geduldig weiter. Läßt sich der Beleg trotz Verbindung nicht finden – etwa weil die Datei auf dem Server fehlt –, fragt die App schließlich, ob der <b>verwaiste Verweis aus der Buchung entfernt</b> werden soll; bestätigen Sie, wird er sofort gelöscht und eine bereits exportierte Buchung dabei auf «bearbeitet» gesetzt."
+        },
+        {
+          "type": "p",
           "id": "b-0080",
           "text": "Löschen Sie eine Buchung, verschwinden ihre Bilder beim <b>nächsten App-Start</b> – nicht sofort, damit das «Rückgängig» direkt nach dem Löschen den Beleg noch mitbringt."
         }

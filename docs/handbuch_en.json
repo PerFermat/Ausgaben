@@ -555,6 +555,11 @@
         },
         {
           "type": "p",
+          "id": "b-0079b",
+          "text": "When a receipt is not yet on the phone, opening it shows <b>«Loading – please wait»</b> while the app fetches it in the background; the phone stays usable. Only when there is <b>no connection</b> does the message «No connection – receipt cannot be loaded» appear; while a connection exists the app keeps waiting patiently. If the receipt cannot be found despite a connection – because the file is missing on the server, say – the app finally asks whether to <b>remove the orphaned reference from the booking</b>; confirm and it is deleted right away, marking an already-exported booking as «edited»."
+        },
+        {
+          "type": "p",
           "id": "b-0080",
           "text": "Delete a booking and its images disappear on the <b>next app start</b> – not right away, so that the «Undo» offered straight after deleting still brings the receipt back."
         }

@@ -324,6 +324,8 @@
     <string name="receipt_opening">Beleg wird geöffnet…</string>
     <string name="receipt_loading_wait">Wird geladen – bitte warten</string>
     <string name="receipt_offline">Keine Verbindung – Beleg kann nicht geladen werden</string>
+    <string name="receipt_missing_title">Beleg nicht verfügbar</string>
+    <string name="receipt_missing_delete">Der Beleg konnte nicht geladen werden. Aus der Buchung entfernen?</string>
     <string name="receipt_not_found">Beleg nicht gefunden</string>
     <string name="receipt_error">Bild konnte nicht verarbeitet werden</string>
     <string name="receipt_view_page">Seite %1$d von %2$d</string>

@@ -83,6 +83,7 @@
     <string name="place_rename_hint">Ort „%1$s“ umbenennen</string>
     <string name="mark_exported">Als exportiert markiert</string>
     <string name="date_hint">Datum</string>
+    <string name="date_pick">Datum wählen</string>
     <string name="save">Speichern</string>
     <string name="today">Heute</string>
     <string name="scroll_top">Nach oben</string>

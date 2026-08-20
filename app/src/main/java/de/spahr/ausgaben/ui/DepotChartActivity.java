@@ -19,6 +19,7 @@ import com.google.android.material.appbar.MaterialToolbar;
 import com.google.android.material.button.MaterialButtonToggleGroup;
 import com.google.android.material.slider.RangeSlider;
 import com.google.android.material.textfield.TextInputEditText;
+import com.google.android.material.textfield.TextInputLayout;
 
 import java.text.SimpleDateFormat;
 import java.util.ArrayList;
@@ -135,6 +136,11 @@ public class DepotChartActivity extends LocalizedActivity {
         });
         dateFrom.setOnClickListener(v -> pickDate(true));
         dateTo.setOnClickListener(v -> pickDate(false));
+        // Das Kalendersymbol liegt über dem Feld und würde den Tipper sonst schlucken.
+        ((TextInputLayout) findViewById(R.id.dateFromLayout))
+                .setEndIconOnClickListener(v -> pickDate(true));
+        ((TextInputLayout) findViewById(R.id.dateToLayout))
+                .setEndIconOnClickListener(v -> pickDate(false));
 
         depot = getIntent().getStringExtra(EXTRA_DEPOT);
         if (depot == null || depot.isEmpty()) {

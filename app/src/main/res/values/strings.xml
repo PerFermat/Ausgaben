@@ -83,6 +83,7 @@
     <string name="place_rename_hint">Rename place “%1$s”</string>
     <string name="mark_exported">Marked as exported</string>
     <string name="date_hint">Date</string>
+    <string name="date_pick">Choose date</string>
     <string name="save">Save</string>
     <string name="today">Today</string>
     <string name="scroll_top">To top</string>

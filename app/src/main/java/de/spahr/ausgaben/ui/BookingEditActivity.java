@@ -118,6 +118,7 @@ public class BookingEditActivity extends LocalizedActivity {
     private TextInputLayout payeeLayout;
     private MaterialAutoCompleteTextView editPayee;
     private TextInputLayout accountLayout;
+    private TextInputLayout dateLayout;
     private MaterialAutoCompleteTextView editAccount;
     private TextInputLayout accountToLayout;
     private MaterialAutoCompleteTextView editAccountTo;
@@ -321,6 +322,9 @@ public class BookingEditActivity extends LocalizedActivity {
         editDate = findViewById(R.id.editDate);
         switchExported = findViewById(R.id.switchExported);
         editDate.setOnClickListener(v -> showDatePicker());
+        // Das Kalendersymbol liegt über dem Feld und würde den Tipper sonst schlucken.
+        dateLayout = findViewById(R.id.dateLayout);
+        dateLayout.setEndIconOnClickListener(v -> showDatePicker());
 
         btnToday = findViewById(R.id.btnToday);
         btnToday.setOnClickListener(v -> {
@@ -925,6 +929,7 @@ public class BookingEditActivity extends LocalizedActivity {
         accountToLayout.setEndIconMode(TextInputLayout.END_ICON_NONE);
         placeLayout.setEndIconMode(TextInputLayout.END_ICON_NONE);
         placeToLayout.setEndIconMode(TextInputLayout.END_ICON_NONE);
+        dateLayout.setEndIconMode(TextInputLayout.END_ICON_NONE);
         toggleType.setVisibility(View.GONE);
         btnToday.setVisibility(View.GONE);
         // Löschen ist nicht vorgesehen: die Transaktion gehört zum Depot.
@@ -1085,6 +1090,7 @@ public class BookingEditActivity extends LocalizedActivity {
         accountToLayout.setEndIconMode(TextInputLayout.END_ICON_NONE);
         placeLayout.setEndIconMode(TextInputLayout.END_ICON_NONE);
         placeToLayout.setEndIconMode(TextInputLayout.END_ICON_NONE);
+        dateLayout.setEndIconMode(TextInputLayout.END_ICON_NONE);
         // Ansicht: „Als exportiert markiert" ausblenden (im Bearbeiten-Modus bleibt der Schalter).
         switchExported.setVisibility(View.GONE);
         btnToday.setVisibility(View.GONE);

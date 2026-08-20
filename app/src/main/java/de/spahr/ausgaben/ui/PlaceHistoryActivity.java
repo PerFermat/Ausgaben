@@ -13,6 +13,7 @@ import com.google.android.material.appbar.MaterialToolbar;
 import com.google.android.material.dialog.MaterialAlertDialogBuilder;
 import com.google.android.material.floatingactionbutton.FloatingActionButton;
 import com.google.android.material.textfield.TextInputEditText;
+import com.google.android.material.textfield.TextInputLayout;
 
 import java.text.SimpleDateFormat;
 import java.util.Calendar;
@@ -150,6 +151,9 @@ public class PlaceHistoryActivity extends LocalizedActivity {
             cal.set(Calendar.DAY_OF_MONTH, d);
             dateField.setText(dateFormat.format(cal.getTime()));
         }, cal.get(Calendar.YEAR), cal.get(Calendar.MONTH), cal.get(Calendar.DAY_OF_MONTH)).show());
+        // Das Kalendersymbol liegt über dem Feld und würde den Tipper sonst schlucken.
+        ((TextInputLayout) view.findViewById(R.id.movementDateLayout))
+                .setEndIconOnClickListener(v -> dateField.performClick());
         // Betrag über die eigene Rechentastatur (vorzeichenbehaftet: Bewegungen dürfen negativ sein).
         CalcKeyboardView.installToggling(amountField, (android.widget.LinearLayout) view, true);
 

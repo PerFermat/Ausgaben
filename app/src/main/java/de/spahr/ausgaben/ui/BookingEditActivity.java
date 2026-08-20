@@ -877,6 +877,7 @@ public class BookingEditActivity extends LocalizedActivity {
         switchExported.setText(b.edited ? R.string.edited_locked : R.string.mark_exported);
         btnUpdate.setVisibility(View.VISIBLE);
         btnDelete.setVisibility(View.VISIBLE);
+        emphasizeUpdate();
         // Bestehende Buchung: GPS/Beleg aus der Notiz in die zwei Zeilen (bleiben beim Aktualisieren erhalten).
         gpsRowCoords = parseGpsCoords(b.note);
         loadReceiptPages(b.note, yearFromMillis(b.createdAt));
@@ -1634,8 +1635,33 @@ public class BookingEditActivity extends LocalizedActivity {
 
     // ---- GPS-/Beleg-Ausgabezeilen ----
 
-    /** Freier Notiztext ohne die technischen {@code GPS:}- und {@code BELEG:}-Tags. */
-    private String stripTags(String note) {
+    /**
+     * Beim Bearbeiten ist „Buchung ändern" die gemeinte Aktion – also bekommt sie die gefüllte Optik, und
+     * „Neue Buchung" (legt eine Kopie an, heißt aber genau wie der FAB der Liste) wird zum Umriss-Knopf.
+     * Beim Neuanlegen bleibt alles, wie es ist; dort ist „Neue Buchung" ja die richtige Hauptaktion.
+     */
+    private void emphasizeUpdate() {
+        int accent = getColor(R.color.button_accent);
+        android.content.res.ColorStateList accentList =
+                android.content.res.ColorStateList.valueOf(accent);
+
+        btnUpdate.setBackgroundTintList(accentList);
+        btnUpdate.setTextColor(getColor(R.color.white));
+        btnUpdate.setStrokeWidth(0);
+
+        btnSaveNew.setBackgroundTintList(android.content.res.ColorStateList.valueOf(
+                android.graphics.Color.TRANSPARENT));
+        btnSaveNew.setTextColor(accent);
+        btnSaveNew.setStrokeColor(accentList);
+        btnSaveNew.setStrokeWidth(Math.round(getResources().getDisplayMetrics().density));
+    }
+
+    /**
+     * Freier Notiztext ohne die technischen {@code GPS:}- und {@code BELEG:}-Tags. Auch die Buchungsliste
+     * zeigt die Notiz damit aufbereitet ({@link BookingAdapter}) – dieselbe Notiz darf nicht an einer
+     * Stelle sauber und an der anderen roh erscheinen.
+     */
+    static String stripTags(String note) {
         if (note == null) {
             return "";
         }

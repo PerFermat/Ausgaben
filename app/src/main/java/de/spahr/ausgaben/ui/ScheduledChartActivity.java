@@ -101,6 +101,9 @@ public class ScheduledChartActivity extends LocalizedActivity {
 
         repository = new Repository(this);
         chart = findViewById(R.id.barChart);
+        // Ohne Daten zeichnet MPAndroidChart sonst sein englisches „No chart data available."
+        chart.setNoDataText(getString(R.string.scheduled_chart_empty));
+        chart.setNoDataTextColor(getColor(R.color.grey_text));
         textTotal = findViewById(R.id.textTotal);
         fabScrollLeft = findViewById(R.id.fabScrollLeft);
         viewSelector = findViewById(R.id.viewSelector);

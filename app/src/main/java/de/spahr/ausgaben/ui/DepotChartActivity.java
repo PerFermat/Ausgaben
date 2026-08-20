@@ -535,7 +535,7 @@ public class DepotChartActivity extends LocalizedActivity {
     /** Mittiger Text der Gewinn/Verlust-Ansicht: „Gewinn/Verlust (x %)\nBetrag" – %-Basis = Einstandspreis. */
     private String gainText(long totalGain, long totalInvested) {
         String pct = totalInvested > 0
-                ? " (" + String.format(Locale.GERMANY, "%.2f", 100.0 * totalGain / totalInvested) + " %)"
+                ? " (" + de.spahr.ausgaben.settings.MoneyFormat.decimal(100.0 * totalGain / totalInvested, 2, 2) + " %)"
                 : "";
         String label = getString(totalGain >= 0 ? R.string.depot_gain : R.string.depot_loss);
         return label + pct + "\n" + money(totalGain);
@@ -563,7 +563,7 @@ public class DepotChartActivity extends LocalizedActivity {
         TextView pct = new TextView(this);
         // Rendite = Gewinn/Verlust im Verhältnis zum Einstandspreis (Käufe), auch bei verkauften Papieren.
         pct.setText(r.investedCents > 0
-                ? String.format(Locale.GERMANY, "%.1f", 100.0 * g / r.investedCents) + " %" : "");
+                ? de.spahr.ausgaben.settings.MoneyFormat.decimal(100.0 * g / r.investedCents, 1, 1) + " %" : "");
         pct.setTextSize(12);
         pct.setTextColor(signColor);
         LinearLayout.LayoutParams pctLp = new LinearLayout.LayoutParams(

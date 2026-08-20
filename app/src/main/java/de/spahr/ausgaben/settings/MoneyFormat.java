@@ -66,7 +66,29 @@ public final class MoneyFormat {
         return decimalSep;
     }
 
-    /** Ob das Währungskennzeichen angehängt wird – für Werte, die nicht über {@link #display} laufen. */
+    /**
+     * Dezimalzahl (Kurs, Stückzahl, Prozent) mit dem <b>eingestellten</b> Dezimalzeichen und ohne Währung.
+     * Nachlaufende Nullen fallen weg, mindestens {@code minDecimals} bleiben stehen. Nötig, weil solche
+     * Zahlen sonst fest mit Komma erschienen, während die Beträge daneben je nach Einstellung einen Punkt
+     * zeigen – auf dem Depot-Bildschirm stünde dann „1234.56 €" neben „(3,45 %)".
+     */
+    public static String decimal(double value, int minDecimals, int maxDecimals) {
+        String s = String.format(Locale.US, "%." + maxDecimals + "f", value);
+        int dot = s.indexOf('.');
+        if (dot >= 0) {
+            int end = s.length();
+            while (end - dot - 1 > minDecimals && s.charAt(end - 1) == '0') {
+                end--;
+            }
+            if (s.charAt(end - 1) == '.') {
+                end--;
+            }
+            s = s.substring(0, end);
+        }
+        return s.replace('.', decimalSep);
+    }
+
+    /** Ob das Währungskennzeichen angehängt wird    /** Ob das Währungskennzeichen angehängt wird – für Werte, die nicht über {@link #display} laufen. */
     public static boolean isCurrencyShown() {
         return showCurrency;
     }

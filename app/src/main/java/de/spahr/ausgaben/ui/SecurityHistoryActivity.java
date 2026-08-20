@@ -376,11 +376,7 @@ public class SecurityHistoryActivity extends LocalizedActivity {
      * mindestens zwei, plus Währungskennzeichen. Das Dezimalzeichen kommt aus den Einstellungen.
      */
     private String unitPrice(double value) {
-        String s = String.format(Locale.US, "%.4f", value);
-        while (s.endsWith("0") && s.length() - s.indexOf('.') > 3) {
-            s = s.substring(0, s.length() - 1);
-        }
-        s = s.replace('.', MoneyFormat.decimalSeparator());
+        String s = MoneyFormat.decimal(value, 2, 4);
         String currency = Currencies.getDefault();
         if (!MoneyFormat.isCurrencyShown() || currency == null || currency.trim().isEmpty()) {
             return s;
@@ -492,22 +488,9 @@ public class SecurityHistoryActivity extends LocalizedActivity {
         return de.spahr.ausgaben.settings.MoneyFormat.display(cents, Currencies.getDefault());
     }
 
+    /** Stückzahl: bis zu vier Nachkommastellen, im eingestellten Zahlenformat. */
     private static String shares(double v) {
-        return trim(String.format(Locale.GERMANY, "%.4f", v));
-    }
-
-    private static String trim(String s) {
-        if (s.indexOf(',') < 0) {
-            return s;
-        }
-        int end = s.length();
-        while (end > 0 && s.charAt(end - 1) == '0') {
-            end--;
-        }
-        if (end > 0 && s.charAt(end - 1) == ',') {
-            end--;
-        }
-        return s.substring(0, end);
+        return MoneyFormat.decimal(v, 0, 4);
     }
 
     private static String orEmpty(String s) {

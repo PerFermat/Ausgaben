@@ -741,25 +741,13 @@ public class DepotActivity extends LocalizedActivity {
         return de.spahr.ausgaben.settings.MoneyFormat.display(cents, Currencies.getDefault());
     }
 
+    /** Stückzahl: bis zu vier Nachkommastellen, im eingestellten Zahlenformat. */
     private static String shares(double v) {
-        return trim(String.format(Locale.GERMANY, "%.4f", v));
+        return de.spahr.ausgaben.settings.MoneyFormat.decimal(v, 0, 4);
     }
 
+    /** Kurs: bis zu vier Nachkommastellen, im eingestellten Zahlenformat. */
     private static String price(double v) {
-        return trim(String.format(Locale.GERMANY, "%.4f", v));
-    }
-
-    private static String trim(String s) {
-        if (s.indexOf(',') < 0) {
-            return s;
-        }
-        int end = s.length();
-        while (end > 0 && s.charAt(end - 1) == '0') {
-            end--;
-        }
-        if (end > 0 && s.charAt(end - 1) == ',') {
-            end--;
-        }
-        return s.substring(0, end);
+        return de.spahr.ausgaben.settings.MoneyFormat.decimal(v, 0, 4);
     }
 }

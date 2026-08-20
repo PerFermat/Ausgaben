@@ -356,27 +356,40 @@ public class AliasEditActivity extends LocalizedActivity {
         finish();
     }
 
+    /**
+     * Prüft, ob die eingetippten Konten/Kategorien wirklich existieren. Die Meldung nennt den beanstandeten
+     * Namen – ein unbekannter Name ist etwas anderes als ein leeres Feld, und ohne den Namen weiß man bei
+     * vier Kategoriefeldern nicht, welches gemeint ist.
+     */
     private boolean validateKnownSelections() {
         if (!text(editAccount).isEmpty() && !isKnownAccount(text(editAccount))) {
-            Toast.makeText(this, R.string.error_account, Toast.LENGTH_SHORT).show();
-            return false;
+            return unknownValue(R.string.alias_unknown_account, text(editAccount));
         }
         if (!text(editFrom).isEmpty() && !isKnownAccount(text(editFrom))) {
-            Toast.makeText(this, R.string.error_transfer_accounts, Toast.LENGTH_SHORT).show();
-            return false;
+            return unknownValue(R.string.alias_unknown_account, text(editFrom));
         }
         if (!text(editTo).isEmpty() && !isKnownAccount(text(editTo))) {
-            Toast.makeText(this, R.string.error_transfer_accounts, Toast.LENGTH_SHORT).show();
-            return false;
+            return unknownValue(R.string.alias_unknown_account, text(editTo));
         }
-        if (!isKnownCategory(editCatExpense1, expenseCategoryAdapter)
-                || !isKnownCategory(editCatExpense2, expenseCategoryAdapter)
-                || !isKnownCategory(editCatIncome1, incomeCategoryAdapter)
-                || !isKnownCategory(editCatIncome2, incomeCategoryAdapter)) {
-            Toast.makeText(this, R.string.category_hint, Toast.LENGTH_SHORT).show();
-            return false;
+        if (!isKnownCategory(editCatExpense1, expenseCategoryAdapter)) {
+            return unknownValue(R.string.alias_unknown_category, text(editCatExpense1));
+        }
+        if (!isKnownCategory(editCatExpense2, expenseCategoryAdapter)) {
+            return unknownValue(R.string.alias_unknown_category, text(editCatExpense2));
+        }
+        if (!isKnownCategory(editCatIncome1, incomeCategoryAdapter)) {
+            return unknownValue(R.string.alias_unknown_category, text(editCatIncome1));
+        }
+        if (!isKnownCategory(editCatIncome2, incomeCategoryAdapter)) {
+            return unknownValue(R.string.alias_unknown_category, text(editCatIncome2));
         }
         return true;
+    }
+
+    /** Meldet einen unbekannten Namen und lehnt das Speichern ab (immer {@code false}). */
+    private boolean unknownValue(int messageRes, String value) {
+        Toast.makeText(this, getString(messageRes, value), Toast.LENGTH_LONG).show();
+        return false;
     }
 
     private boolean isKnownAccount(String account) {
@@ -394,6 +407,7 @@ public class AliasEditActivity extends LocalizedActivity {
         }
         AppDialog.destructive(this)
                 .setTitle(R.string.alias_delete_confirm_title)
+                .setMessage(R.string.alias_delete_confirm_message)
                 .setPositiveButton(R.string.delete, (d, w) -> repository.deleteAlias(loaded.id, () -> {
                     Toast.makeText(this, R.string.alias_deleted, Toast.LENGTH_SHORT).show();
                     finish();

@@ -137,6 +137,9 @@ public class AnalysisActivity extends LocalizedActivity {
                 new de.spahr.ausgaben.settings.SettingsStore(this);
         defaultAccount = settings.getDefaultAccount();
         chart = findViewById(R.id.barChart);
+        // Ohne Daten zeichnet MPAndroidChart sonst sein englisches „No chart data available."
+        chart.setNoDataText(getString(R.string.analysis_empty));
+        chart.setNoDataTextColor(getColor(R.color.grey_text));
         textTotal = findViewById(R.id.textTotal);
         fabScrollRight = findViewById(R.id.fabScrollRight);
         viewSelector = findViewById(R.id.viewSelector);

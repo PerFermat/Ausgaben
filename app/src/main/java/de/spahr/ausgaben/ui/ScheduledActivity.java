@@ -311,7 +311,9 @@ public class ScheduledActivity extends LocalizedActivity {
 
         if (items.isEmpty()) {
             TextView hint = new TextView(this);
-            hint.setText(R.string.scheduled_empty);
+            // Unterscheiden, ob es wirklich nichts gibt oder nur der Filter zu eng steht – sonst liest man
+            // „keine geplanten Buchungen", während vierzig davon existieren.
+            hint.setText(isFilterActive() ? R.string.scheduled_no_match : R.string.scheduled_empty);
             hint.setPadding(0, dp(16), 0, dp(16));
             container.addView(hint);
             return;
@@ -422,6 +424,20 @@ public class ScheduledActivity extends LocalizedActivity {
         row.addView(amount, new LinearLayout.LayoutParams(
                 LinearLayout.LayoutParams.WRAP_CONTENT, LinearLayout.LayoutParams.WRAP_CONTENT));
 
+        // „Jetzt buchen" liegt allein auf dem langen Druck und gilt nur für den nächsten Termin. Ein Haken
+        // an genau dieser Zeile verrät beides: dass es die Aktion gibt und wo sie greift.
+        if (o.next) {
+            TextView bookable = new TextView(this);
+            bookable.setText("\u2713");
+            bookable.setTextColor(GREY);
+            LinearLayout.LayoutParams lp = new LinearLayout.LayoutParams(
+                    LinearLayout.LayoutParams.WRAP_CONTENT, LinearLayout.LayoutParams.WRAP_CONTENT);
+            lp.setMarginStart(dp(8));
+            bookable.setLayoutParams(lp);
+            bookable.setContentDescription(getString(R.string.scheduled_book_hint));
+            row.addView(bookable);
+        }
+
         // Klick → Detail-Maske (1:1 wie eine normale Buchung, schreibgeschützt).
         android.util.TypedValue ripple = new android.util.TypedValue();
         getTheme().resolveAttribute(android.R.attr.selectableItemBackground, ripple, true);
@@ -485,6 +501,15 @@ public class ScheduledActivity extends LocalizedActivity {
     }
 
     // ---- Filter-Dialog ----
+
+    /** Greift gerade ein Filter? Spiegelt genau die Felder, die „Filter zurücksetzen" wieder freigibt. */
+    private boolean isFilterActive() {
+        return !(fIncome && fExpense && fTransfer)
+                || !fAccount.isEmpty()
+                || !fName.isEmpty()
+                || fDateFrom != null
+                || fDateTo != null;
+    }
 
     private void showFilterDialog() {
         repository.getAllAccountNames(this::buildFilterDialog);

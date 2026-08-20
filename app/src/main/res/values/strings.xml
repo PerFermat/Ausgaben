@@ -46,6 +46,8 @@
     <string name="alias_to_account_hint">To account (transfer)</string>
     <string name="alias_to_place_hint">Place (to account)</string>
     <string name="alias_error_required">Spoken name and correct payee are required</string>
+    <string name="alias_unknown_account">“%1$s” is not a known account – please pick one from the list</string>
+    <string name="alias_unknown_category">“%1$s” is not a known category – please pick one from the list</string>
     <string name="alias_saved">Alias saved</string>
     <string name="alias_deleted">Alias deleted</string>
     <string name="alias_gps_section">Location (for amount-only entry)</string>
@@ -61,6 +63,7 @@
     <string name="map_pick_title">Pick location</string>
     <string name="map_pick_confirm">Use this location</string>
     <string name="alias_delete_confirm_title">Delete alias?</string>
+    <string name="alias_delete_confirm_message">The spoken term will no longer be mapped. Existing bookings stay unchanged.</string>
     <string name="split_categories">Categories</string>
     <string name="split_remove">−</string>
     <string name="split_marker">Split</string>
@@ -77,6 +80,7 @@
     <string name="note_hint">Note (optional)</string>
     <string name="category_hint">Category (optional)</string>
     <string name="place_hint">Place (cash only)</string>
+    <string name="place_rename_hint">Rename place “%1$s”</string>
     <string name="mark_exported">Marked as exported</string>
     <string name="date_hint">Date</string>
     <string name="save">Save</string>
@@ -109,10 +113,13 @@
     <!-- Scheduled transactions -->
     <string name="scheduled_title">Scheduled transactions</string>
     <string name="scheduled_empty">No scheduled transactions. They are imported from the KMyMoney file.</string>
+    <string name="scheduled_no_match">No scheduled bookings match the filter</string>
+    <string name="scheduled_chart_empty">No scheduled bookings in this period</string>
     <string name="scheduled_skip_booking">Skip booking</string>
     <string name="scheduled_skip_confirm">Skip %1$s „%2$s"? No transaction is created; the schedule moves on to the next date.</string>
     <string name="scheduled_skipped">Date skipped</string>
     <string name="scheduled_only_next">Only the next date of a schedule can be entered or skipped.</string>
+    <string name="scheduled_book_hint">Long-press to book now</string>
     <string name="sched_saldo_surplus">Surplus</string>
     <string name="sched_saldo_deficit">Deficit</string>
     <string name="sched_saldo_income">Total deposits</string>
@@ -139,10 +146,13 @@
     <string name="budget_ist_soll">%1$s / %2$s</string>
     <string name="budget_empty">No budget yet. Compute it from your history or import it from KMyMoney.</string>
     <string name="budget_compute">Compute from history</string>
+    <string name="budget_compute_confirm_title">Recalculate budget?</string>
+    <string name="budget_compute_confirm_message">The entire budget for %1$d is replaced by values computed from your history. Amounts you entered by hand for that year will be lost.</string>
     <string name="budget_import">Import from KMyMoney</string>
     <string name="budget_import_none">No budget found in the KMyMoney file</string>
     <string name="budget_import_done">Budget imported</string>
     <string name="budget_edit_title">Annual target: %1$s</string>
+    <string name="budget_edit_long_press">Long-press to change the target</string>
     <string name="budget_edit_hint">Annual target</string>
     <string name="budget_invalid_amount">Invalid amount</string>
 
@@ -212,6 +222,8 @@
     <string name="movement_reconcile">Cash count</string>
     <string name="movement_add">Add movement</string>
     <string name="movement_edit">Edit movement</string>
+    <string name="movement_delete_confirm_title">Delete movement?</string>
+    <string name="movement_delete_confirm_message">This place movement is removed permanently; the place balance changes accordingly.</string>
 
     <!-- Filter -->
     <string name="filter_title">Filter bookings</string>

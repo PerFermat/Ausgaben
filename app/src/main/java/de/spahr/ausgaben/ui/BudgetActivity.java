@@ -630,6 +630,18 @@ public class BudgetActivity extends LocalizedActivity {
 
         boolean editable = !Budget.SOURCE_KMY.equals(budgetSource);
         if (editable) {
+            // Der lange Druck ist der einzige Weg zum Soll-Wert. Ohne ein Zeichen dafür findet ihn nur,
+            // wer das Handbuch gelesen hat – deshalb ein Stift in derselben Machart wie der ▸/▾-Caret.
+            TextView pencil = new TextView(this);
+            pencil.setText("\u270E");
+            pencil.setTextColor(0xFF9E9E9E);
+            LinearLayout.LayoutParams pencilLp = new LinearLayout.LayoutParams(
+                    LinearLayout.LayoutParams.WRAP_CONTENT, LinearLayout.LayoutParams.WRAP_CONTENT);
+            pencilLp.setMarginStart(dp(8));
+            pencil.setLayoutParams(pencilLp);
+            pencil.setContentDescription(getString(R.string.budget_edit_long_press));
+            line.addView(pencil, line.indexOfChild(value) + 1);
+
             header.setOnLongClickListener(v -> {
                 showEditDialog(category, income, currency);
                 return true;
@@ -787,14 +799,9 @@ public class BudgetActivity extends LocalizedActivity {
         CalcKeyboardView calc = CalcKeyboardView.installToggling(input, box, false);
         input.requestFocus();
 
-        // Einziges Feld im Dialog: OK auf der Rechentastatur übernimmt direkt (kein separater OK-Knopf
-        // nötig) – überschreibt den installToggling()-Standard (nur Fokus verlassen).
+        // Übernahme – von der Rechentastatur (OK-Taste) und vom OK-Knopf des Dialogs aus derselben Stelle.
         final androidx.appcompat.app.AlertDialog[] dialogRef = new androidx.appcompat.app.AlertDialog[1];
-        calc.setOnOk(valid -> {
-            if (!valid) {
-                Toast.makeText(this, R.string.budget_invalid_amount, Toast.LENGTH_SHORT).show();
-                return;
-            }
+        final Runnable commit = () -> {
             Long cents = parseCents(input.getText() == null ? "" : input.getText().toString());
             if (cents == null || cents < 0) {
                 Toast.makeText(this, R.string.budget_invalid_amount, Toast.LENGTH_SHORT).show();
@@ -804,11 +811,22 @@ public class BudgetActivity extends LocalizedActivity {
             if (dialogRef[0] != null) {
                 dialogRef[0].dismiss();
             }
+        };
+        calc.setOnOk(valid -> {
+            if (!valid) {
+                Toast.makeText(this, R.string.budget_invalid_amount, Toast.LENGTH_SHORT).show();
+                return;
+            }
+            commit.run();
         });
 
+        // Der Dialog braucht einen eigenen OK-Knopf: wer die Rechentastatur wegklappt, hätte sonst keinen
+        // sichtbaren Weg mehr zu speichern.
         androidx.appcompat.app.AlertDialog dialog = new AppDialog(this)
                 .setTitle(getString(R.string.budget_edit_title, category))
                 .setView(box)
+                .setPositiveButton(android.R.string.ok, null)
+                .setNegativeButton(R.string.cancel, null)
                 .create();
         dialogRef[0] = dialog;
         // Das fokussierte Betragsfeld darf nicht die System-Tastatur des Dialogfensters hochziehen –
@@ -818,6 +836,10 @@ public class BudgetActivity extends LocalizedActivity {
                     android.view.WindowManager.LayoutParams.SOFT_INPUT_STATE_ALWAYS_HIDDEN);
         }
         dialog.show();
+        // Eigener Listener statt setPositiveButton(..., listener): bei ungültiger Eingabe soll der Dialog
+        // offen bleiben, statt sich wie sonst nach dem Klick zu schließen.
+        dialog.getButton(androidx.appcompat.app.AlertDialog.BUTTON_POSITIVE)
+                .setOnClickListener(v -> commit.run());
     }
 
     private Long parseCents(String s) {

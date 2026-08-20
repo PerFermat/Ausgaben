@@ -232,8 +232,17 @@ public class SettingsActivity extends LocalizedActivity implements SmbWizardCont
         switchBudgetInternal.setChecked(settings.isBudgetInternal());
         ((MaterialButton) findViewById(R.id.btnBudgetCompute)).setOnClickListener(v -> {
             int y = java.util.Calendar.getInstance().get(java.util.Calendar.YEAR);
-            repository.computeBudgetFromHistory(y, () ->
-                    Toast.makeText(this, R.string.budget_import_done, Toast.LENGTH_LONG).show());
+            // Der Lauf beginnt mit deleteYear(y) – von Hand gepflegte Budgetwerte des Jahres sind danach
+            // weg, ohne Rückgängig. Deshalb erst fragen, und das betroffene Jahr benennen.
+            AppDialog.destructive(this)
+                    .setTitle(R.string.budget_compute_confirm_title)
+                    .setMessage(getString(R.string.budget_compute_confirm_message, y))
+                    .setPositiveButton(R.string.budget_compute, (d, w) ->
+                            repository.computeBudgetFromHistory(y, () ->
+                                    Toast.makeText(this, R.string.budget_import_done,
+                                            Toast.LENGTH_LONG).show()))
+                    .setNegativeButton(R.string.cancel, null)
+                    .show();
         });
         ((MaterialButton) findViewById(R.id.btnBudgetImport)).setOnClickListener(v -> {
             int y = java.util.Calendar.getInstance().get(java.util.Calendar.YEAR);
@@ -605,12 +614,18 @@ public class SettingsActivity extends LocalizedActivity implements SmbWizardCont
             row.setGravity(Gravity.CENTER_VERTICAL);
 
             TextView name = new TextView(this);
-            name.setText(place);
+            // Stift voran, damit erkennbar ist, dass der Name antippbar ist – sonst ist der rote
+            // „Entfernen"-Knopf daneben die einzige sichtbare Aktion der Zeile.
+            name.setText("\u270E  " + place);
             name.setTextSize(16f);
             name.setPadding(0, 24, 0, 24);
             LinearLayout.LayoutParams lp = new LinearLayout.LayoutParams(
                     0, LinearLayout.LayoutParams.WRAP_CONTENT, 1f);
             name.setLayoutParams(lp);
+            android.util.TypedValue ripple = new android.util.TypedValue();
+            getTheme().resolveAttribute(android.R.attr.selectableItemBackground, ripple, true);
+            name.setBackgroundResource(ripple.resourceId);
+            name.setContentDescription(getString(R.string.place_rename_hint, place));
             name.setOnClickListener(v -> renamePlaceDialog(place));
 
             MaterialButton remove = new MaterialButton(this,
@@ -851,10 +866,16 @@ public class SettingsActivity extends LocalizedActivity implements SmbWizardCont
                 }
                 Toast.makeText(this, R.string.language_export_done, Toast.LENGTH_LONG).show();
             } catch (Exception e) {
-                Toast.makeText(this, getString(R.string.language_upload_failed, String.valueOf(e.getMessage())),
+                Toast.makeText(this, getString(R.string.language_upload_failed, reason(e)),
                         Toast.LENGTH_LONG).show();
             }
         });
+    }
+
+    /** Grund einer Ausnahme für eine Meldung – nie das Wort „null", das sonst im Text landen würde. */
+    private static String reason(Exception e) {
+        String m = e == null ? null : e.getMessage();
+        return m == null || m.isEmpty() ? String.valueOf(e) : m;
     }
 
     private void importLanguageFile(Uri uri) {
@@ -868,7 +889,7 @@ public class SettingsActivity extends LocalizedActivity implements SmbWizardCont
                 setupLanguages();
             });
         } catch (Exception e) {
-            Toast.makeText(this, getString(R.string.language_upload_failed, String.valueOf(e.getMessage())),
+            Toast.makeText(this, getString(R.string.language_upload_failed, reason(e)),
                     Toast.LENGTH_LONG).show();
         }
     }

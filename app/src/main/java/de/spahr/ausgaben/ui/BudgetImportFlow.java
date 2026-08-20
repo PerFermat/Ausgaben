@@ -81,9 +81,13 @@ final class BudgetImportFlow {
                     }
                 });
             } catch (Exception e) {
+                // Grund mitgeben: import_failed trägt ein %1$s – ohne getString(...) stünde der
+                // Platzhalter wörtlich in der Meldung.
+                final String msg = e.getMessage() == null ? e.toString() : e.getMessage();
                 activity.runOnUiThread(() -> {
                     progress.dismiss();
-                    Toast.makeText(activity, R.string.import_failed, Toast.LENGTH_LONG).show();
+                    Toast.makeText(activity, activity.getString(R.string.import_failed, msg),
+                            Toast.LENGTH_LONG).show();
                 });
             }
         }).start();

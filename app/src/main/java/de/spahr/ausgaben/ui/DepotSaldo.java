@@ -5,11 +5,11 @@ import android.widget.TextView;
 
 import java.util.ArrayList;
 import java.util.List;
-import java.util.Locale;
 
 import de.spahr.ausgaben.R;
 import de.spahr.ausgaben.db.Repository;
 import de.spahr.ausgaben.settings.Currencies;
+import de.spahr.ausgaben.settings.MoneyFormat;
 
 /**
  * Gemeinsame Logik der durchschaltbaren Depot-Saldenzeile (Depot- wie Einzelwertpapier-Ansicht):
@@ -74,7 +74,7 @@ final class DepotSaldo {
             case GAIN:
                 boolean gain = m.gainCents >= 0;
                 label.setText(c.getString(gain ? R.string.depot_gain : R.string.depot_loss));
-                value.setText("(" + String.format(Locale.GERMANY, "%.2f", m.gainPct) + " %) "
+                value.setText("(" + MoneyFormat.decimal(m.gainPct, 2, 2) + " %) "
                         + money(m.gainCents));
                 value.setTextColor(c.getColor(gain ? R.color.income_green : R.color.expense_red));
                 break;

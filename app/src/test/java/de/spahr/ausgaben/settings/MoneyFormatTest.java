@@ -33,4 +33,24 @@ public class MoneyFormatTest {
         assertEquals("12,34", MoneyFormat.display(1234, ""));
         assertEquals("12,34", MoneyFormat.display(1234, null));
     }
+
+    /**
+     * Stückzahlen und Prozente laufen über {@code decimal} und müssen dasselbe Dezimalzeichen zeigen wie
+     * die Beträge daneben – sonst stünde im Depot „1234.56 €" neben „(3,45 %)".
+     */
+    @Test
+    public void decimal_trimsToMinimumDecimals() {
+        assertEquals("3,45", MoneyFormat.decimal(3.45, 2, 2));
+        assertEquals("12,5", MoneyFormat.decimal(12.5, 0, 4));
+        assertEquals("12", MoneyFormat.decimal(12.0, 0, 4));
+        assertEquals("12,00", MoneyFormat.decimal(12.0, 2, 4));
+        assertEquals("0,0001", MoneyFormat.decimal(0.0001, 0, 4));
+    }
+
+    @Test
+    public void decimal_roundsAndKeepsSign() {
+        assertEquals("2,5", MoneyFormat.decimal(2.4999, 1, 1));
+        assertEquals("-0,5", MoneyFormat.decimal(-0.5, 0, 4));
+        assertEquals("0", MoneyFormat.decimal(0.0, 0, 2));
+    }
 }

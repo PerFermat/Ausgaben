@@ -92,11 +92,14 @@ public class BookingAdapter extends RecyclerView.Adapter<BookingAdapter.VH> {
         h.account.setText(line);
         h.date.setVisibility(View.GONE);
 
-        if (b.note == null || b.note.isEmpty()) {
+        // Ohne die technischen GPS:/BELEG:-Tags – sonst steht bei aktivem GPS in jeder Zeile
+        // „GPS: 50.1109,8.6821", und bei Buchungen ohne freien Text ist das sogar die einzige Notiz.
+        String note = BookingEditActivity.stripTags(b.note);
+        if (note.isEmpty()) {
             h.note.setVisibility(View.GONE);
         } else {
             h.note.setVisibility(View.VISIBLE);
-            h.note.setText(b.note);
+            h.note.setText(note);
         }
 
         long signed = b.isIncome ? b.amountCents : -b.amountCents;

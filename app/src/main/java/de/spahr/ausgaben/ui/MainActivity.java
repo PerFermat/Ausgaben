@@ -1552,6 +1552,7 @@ public class MainActivity extends LocalizedActivity {
         setMenuTitle(menu, R.id.action_export_receipts, R.string.action_export_receipts);
         setMenuTitle(menu, R.id.action_filter, R.string.action_filter);
         setMenuTitle(menu, R.id.action_analysis, R.string.action_analysis);
+        setMenuTitle(menu, R.id.action_categories, R.string.action_categories);
         setMenuTitle(menu, R.id.action_balance, R.string.action_balance);
         setMenuTitle(menu, R.id.action_budget, R.string.action_budget);
         setMenuTitle(menu, R.id.action_scheduled, R.string.action_scheduled);

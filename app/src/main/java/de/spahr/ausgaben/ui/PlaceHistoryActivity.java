@@ -175,8 +175,15 @@ public class PlaceHistoryActivity extends LocalizedActivity {
                 })
                 .setNegativeButton(R.string.cancel, null);
         if (existing != null) {
-            b.setNeutralButton(R.string.delete, (d, w) ->
-                    repository.deletePlaceMovement(existing.id, this::reload));
+            // Der Neutral-Knopf liegt direkt neben „Abbrechen" – ohne Rückfrage kostet ein Fehlgriff die
+            // Bewegung. Überall sonst in der App fragt eine zerstörende Aktion nach (AppDialog.destructive).
+            b.setNeutralButton(R.string.delete, (d, w) -> AppDialog.destructive(this)
+                    .setTitle(R.string.movement_delete_confirm_title)
+                    .setMessage(R.string.movement_delete_confirm_message)
+                    .setPositiveButton(R.string.delete, (d2, w2) ->
+                            repository.deletePlaceMovement(existing.id, this::reload))
+                    .setNegativeButton(R.string.cancel, null)
+                    .show());
         }
         b.show();
     }

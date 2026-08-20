@@ -66,6 +66,11 @@ public final class MoneyFormat {
         return decimalSep;
     }
 
+    /** Ob das Währungskennzeichen angehängt wird – für Werte, die nicht über {@link #display} laufen. */
+    public static boolean isCurrencyShown() {
+        return showCurrency;
+    }
+
     /** Anzeige-String für ein Label: Betrag im gewählten Format + Währung, falls aktiviert und vorhanden. */
     public static String display(long cents, String currency) {
         String num = number(cents, grouping);

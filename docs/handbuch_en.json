@@ -1027,6 +1027,11 @@
         },
         {
           "type": "p",
+          "id": "b-0150a",
+          "text": "A <b>short tap</b> on a transaction shows the figures behind it: for <b>Buy</b> and <b>Sell</b> the number of shares, price per share, amount, fees and the resulting total (charged on a buy, credited on a sell); for <b>Dividends</b> the shares held, the gross dividend per share, the gross amount, taxes and charges, and the net amount; for <b>Add</b> and <b>Remove</b> the number of shares. <b>Fees</b> only become available after a fresh portfolio import – until then the row is omitted."
+        },
+        {
+          "type": "p",
           "id": "b-0150",
           "text": "For <b>Add</b> and <b>Remove</b> transactions, KMyMoney only ever records a share count, never a monetary value. A <b>long press</b> on such a row opens a dialog to set the value manually (using the same calculator keypad as elsewhere) – it then counts like a buy or sell towards the cost basis and gain/loss, and survives a fresh portfolio import."
         }

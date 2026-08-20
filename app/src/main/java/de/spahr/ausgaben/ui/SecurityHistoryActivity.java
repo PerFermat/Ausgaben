@@ -261,6 +261,11 @@ public class SecurityHistoryActivity extends LocalizedActivity {
 
         row.addView(left);
         row.addView(amount);
+        // Kurzer Klick = Details ansehen, langer Klick = Wert bearbeiten (nur Ein-/Ausbuchungen).
+        android.util.TypedValue bg = new android.util.TypedValue();
+        getTheme().resolveAttribute(android.R.attr.selectableItemBackground, bg, true);
+        row.setBackgroundResource(bg.resourceId);
+        row.setOnClickListener(v -> showDetailDialog(tx));
         if (editable) {
             row.setOnLongClickListener(v -> {
                 showValueEditDialog(tx);
@@ -268,6 +273,119 @@ public class SecurityHistoryActivity extends LocalizedActivity {
             });
         }
         return row;
+    }
+
+    /**
+     * Kurzer Klick auf eine Bewegung: die Zahlen hinter der Buchung. Kauf/Verkauf zeigen Stückzahl,
+     * Stückpreis, Betrag, Gebühren und die tatsächliche Belastung/Gutschrift; Dividenden brutto, Steuern
+     * und netto; Ein-/Ausbuchungen nur die Stückzahl (und einen ggf. hinterlegten Wert).
+     */
+    private void showDetailDialog(SecurityTx tx) {
+        LinearLayout box = new LinearLayout(this);
+        box.setOrientation(LinearLayout.VERTICAL);
+        int pad = dp(20);
+        box.setPadding(pad, dp(4), pad, 0);
+
+        detailRow(box, R.string.depot_detail_date, dateFormat.format(new Date(tx.date)), false);
+
+        if ("dividend".equals(tx.action)) {
+            long tax = tx.amountCents - tx.netCents;
+            double held = sharesHeldAt(tx.date);
+            if (held > 0) {
+                detailRow(box, R.string.depot_detail_shares, shares(held), false);
+                detailRow(box, R.string.depot_detail_dividend_per_share,
+                        unitPrice(tx.amountCents / 100.0 / held), false);
+            }
+            detailRow(box, R.string.depot_detail_gross, money(tx.amountCents), false);
+            if (tax != 0) {
+                detailRow(box, R.string.depot_detail_tax, money(tax), false);
+            }
+            detailRow(box, R.string.depot_detail_net, money(tx.netCents), true);
+        } else if ("add".equals(tx.action) || "remove".equals(tx.action)) {
+            detailRow(box, R.string.depot_detail_shares, shares(Math.abs(tx.shares)), false);
+            if (tx.amountCents != 0) {
+                detailRow(box, R.string.depot_detail_value, money(tx.amountCents), true);
+            }
+        } else {
+            double count = Math.abs(tx.shares);
+            if (count > 0) {
+                detailRow(box, R.string.depot_detail_shares, shares(count), false);
+                detailRow(box, R.string.depot_detail_unit_price,
+                        unitPrice(tx.amountCents / 100.0 / count), false);
+            }
+            detailRow(box, R.string.depot_detail_amount, money(tx.amountCents), false);
+            // Gebühren bleiben 0, solange das Depot nicht erneut importiert wurde – dann keine Zeile und
+            // auch keine Summe, die nur den Betrag wiederholen würde.
+            if (tx.feeCents != 0) {
+                boolean sell = "sell".equals(tx.action);
+                detailRow(box, R.string.depot_detail_fees, money(tx.feeCents), false);
+                detailRow(box, sell ? R.string.depot_detail_total_credit : R.string.depot_detail_total_debit,
+                        money(sell ? tx.amountCents - tx.feeCents : tx.amountCents + tx.feeCents), true);
+            }
+        }
+
+        new AppDialog(this)
+                .setTitle(actionLabel(tx.action))
+                .setView(box)
+                .setPositiveButton(android.R.string.ok, null)
+                .show();
+    }
+
+    /** Eine Zeile des Detaildialogs: Label links grau, Wert rechts einspaltig (Summenzeile fett). */
+    private void detailRow(LinearLayout box, int labelRes, String value, boolean total) {
+        LinearLayout row = new LinearLayout(this);
+        row.setOrientation(LinearLayout.HORIZONTAL);
+        row.setPadding(0, dp(6), 0, dp(6));
+
+        TextView label = new TextView(this);
+        label.setText(labelRes);
+        label.setTextSize(14f);
+        label.setTextColor(getColor(R.color.grey_text));
+        label.setLayoutParams(new LinearLayout.LayoutParams(0,
+                LinearLayout.LayoutParams.WRAP_CONTENT, 1f));
+
+        TextView text = new TextView(this);
+        text.setText(value);
+        text.setTextSize(14f);
+        text.setGravity(Gravity.END);
+        text.setTypeface(Typeface.MONOSPACE, total ? Typeface.BOLD : Typeface.NORMAL);
+        text.setTextColor(primaryTextColor());
+
+        row.addView(label);
+        row.addView(text);
+        box.addView(row);
+    }
+
+    /**
+     * Bestand zum Buchungsdatum – für die Bruttodividende je Stück, denn eine Dividendenbuchung selbst
+     * trägt keine Stückzahl. Summiert die vorzeichenbehafteten Stückzahlen aller Bewegungen bis dahin;
+     * gerechnet wird über {@link #allTx} (alle Bewegungen), nicht über die gefilterte Anzeige.
+     */
+    private double sharesHeldAt(long date) {
+        double sum = 0;
+        for (SecurityTx t : allTx) {
+            if (t.date <= date) {
+                sum += t.shares;
+            }
+        }
+        return sum;
+    }
+
+    /**
+     * Stückpreis/Dividende je Stück: bis zu vier Nachkommastellen (Kurse sind selten glatt), aber
+     * mindestens zwei, plus Währungskennzeichen. Das Dezimalzeichen kommt aus den Einstellungen.
+     */
+    private String unitPrice(double value) {
+        String s = String.format(Locale.US, "%.4f", value);
+        while (s.endsWith("0") && s.length() - s.indexOf('.') > 3) {
+            s = s.substring(0, s.length() - 1);
+        }
+        s = s.replace('.', MoneyFormat.decimalSeparator());
+        String currency = Currencies.getDefault();
+        if (!MoneyFormat.isCurrencyShown() || currency == null || currency.trim().isEmpty()) {
+            return s;
+        }
+        return s + " " + currency.trim();
     }
 
     /** Verkauf/Ausbuchung = rot, Kauf/Wiederanlage/Einbuchung = grün, Dividende = Standardfarbe. */

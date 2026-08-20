@@ -219,6 +219,23 @@ public class KmyRobustnessTest {
         assertEquals(1, countOf(r.xml, "<TRANSACTION "));
     }
 
+    /**
+     * Der Depot-Import trennt Wertpapier-Betrag und Gebühr: {@code amountCents} sind Stücke × Kurs
+     * (1000,00 €), die Gebühr aus dem Ausgabe-Kategorie-Split (10,00 €) steht daneben. Sonst könnte die
+     * Detailansicht einer Kaufbuchung die Belastung von 1010,00 € nicht mehr herleiten.
+     */
+    @Test
+    public void securityBuyKeepsFeeApartFromAmount() throws Exception {
+        List<de.spahr.ausgaben.db.SecurityTx> txs =
+                new KmyImporter(doc("security-tx.xml"), ctx).importDepot("Depot").transactions;
+        assertEquals(1, txs.size());
+        de.spahr.ausgaben.db.SecurityTx tx = txs.get(0);
+        assertEquals("buy", tx.action);
+        assertEquals(20d, tx.shares, 0.0001);
+        assertEquals(100000L, tx.amountCents);
+        assertEquals(1000L, tx.feeCents);
+    }
+
     /** Ohne Stichwörter bleiben die Splits selbstschließend – es entsteht kein leeres Elternelement. */
     @Test
     public void patchingWithoutTagsLeavesSelfClosingSplits() throws Exception {

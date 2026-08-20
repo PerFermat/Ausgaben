@@ -15,7 +15,7 @@ import androidx.sqlite.db.SupportSQLiteDatabase;
         AnalysisExtra.class, SecurityTxValueOverride.class, KmyPendingDelete.class, SecurityPrice.class,
         ScheduledAdvance.class, AccountGroup.class, AccountGroupMember.class, AccountKindOrder.class,
         Tag.class},
-        version = 44, exportSchema = false)
+        version = 45, exportSchema = false)
 public abstract class AppDatabase extends RoomDatabase {
 
     /** v1 → v2: Notiz-Spalte ergänzen (bestehende Buchungen bleiben erhalten). */
@@ -570,6 +570,17 @@ public abstract class AppDatabase extends RoomDatabase {
         }
     };
 
+    /**
+     * v44 → v45: Gebühren je Depot-Bewegung (für die Detailansicht einer Kauf-/Verkaufsbuchung). Nicht
+     * rückrechenbar – die Spalte bleibt 0, bis das Depot erneut aus KMyMoney importiert wird.
+     */
+    static final Migration MIGRATION_44_45 = new Migration(44, 45) {
+        @Override
+        public void migrate(@NonNull SupportSQLiteDatabase db) {
+            db.execSQL("ALTER TABLE security_tx ADD COLUMN fee_cents INTEGER NOT NULL DEFAULT 0");
+        }
+    };
+
     public abstract BookingDao bookingDao();
 
     public abstract AccountDao accountDao();
@@ -624,7 +635,8 @@ public abstract class AppDatabase extends RoomDatabase {
                                     MIGRATION_31_32, MIGRATION_32_33, MIGRATION_33_34, MIGRATION_34_35,
                                     MIGRATION_35_36, MIGRATION_36_37, MIGRATION_37_38,
                                     MIGRATION_38_39, MIGRATION_39_40, MIGRATION_40_41,
-                                    MIGRATION_41_42, MIGRATION_42_43, MIGRATION_43_44)
+                                    MIGRATION_41_42, MIGRATION_42_43, MIGRATION_43_44,
+                                    MIGRATION_44_45)
                             .build();
                 }
             }

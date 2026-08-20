@@ -1027,6 +1027,11 @@
         },
         {
           "type": "p",
+          "id": "b-0150a",
+          "text": "Ein <b>kurzer Tipp</b> auf eine Bewegung zeigt die Zahlen dahinter: bei <b>Kauf</b> und <b>Verkauf</b> Anzahl Stücke, Stückpreis, Betrag, Gebühren und den daraus folgenden Gesamtbetrag (Belastung beim Kauf, Gutschrift beim Verkauf); bei <b>Dividenden</b> die Stückzahl im Bestand, die Bruttodividende pro Stück, den Bruttobetrag, Steuern/Abgaben und den Nettobetrag; bei <b>Ein-</b> und <b>Ausbuchungen</b> die Stückzahl. Die <b>Gebühren</b> stehen erst nach einem erneuten Depot-Import zur Verfügung – vorher bleibt die Zeile weg."
+        },
+        {
+          "type": "p",
           "id": "b-0150",
           "text": "Bei <b>Einbuchungen</b> und <b>Ausbuchungen</b> kennt KMyMoney nur die Stückzahl, keinen Geldwert. Ein <b>langer Klick</b> auf eine solche Zeile öffnet einen Dialog, um den Wert manuell einzutragen (über dieselbe Rechentastatur wie sonst im Betragsfeld) – er zählt danach wie ein Kauf bzw. Verkauf zum Einstandspreis und Gewinn/Verlust und übersteht auch einen erneuten Depot-Import."
         }

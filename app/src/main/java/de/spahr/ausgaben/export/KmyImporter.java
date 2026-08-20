@@ -225,14 +225,26 @@ public class KmyImporter {
             return new SecurityTx(depotName, sec[0], sec[1],
                     parseDate(postdate, entrydate), action, shares, gross, net);
         }
-        long amountCents;
-        if ("add".equals(action) || "remove".equals(action)) {
-            amountCents = 0;
-        } else {
-            amountCents = Math.abs(valueToCents(stock[1]));
-        }
+        boolean moved = "add".equals(action) || "remove".equals(action);
+        // Ein-/Ausbuchungen tragen in KMyMoney keinen Geldwert – dort gibt es folglich auch keine Gebühr.
+        long amountCents = moved ? 0 : Math.abs(valueToCents(stock[1]));
+        long feeCents = moved ? 0 : fees(splits);
         return new SecurityTx(depotName, sec[0], sec[1],
-                parseDate(postdate, entrydate), action, shares, amountCents);
+                parseDate(postdate, entrydate), action, shares, amountCents, amountCents, feeCents);
+    }
+
+    /**
+     * Gebühren einer Kauf-/Verkaufsbuchung: die Ausgabe-Kategorie-Splits (Typ 13) neben dem Wertpapier-Split.
+     * Der Wertpapier-Split trägt nur Stücke × Kurs; die Gebühr hängt in KMyMoney als eigene Kategorie daran.
+     */
+    private long fees(List<String[]> splits) {
+        long sum = 0;
+        for (String[] s : splits) {
+            if (doc.accountTypeOf(s[0]) == 13) {
+                sum += Math.abs(valueToCents(s[1]));
+            }
+        }
+        return sum;
     }
 
     /** Brutto-Dividende: aus dem Einnahme-Kategorie-Split (Typ 12), sonst dem positiven Geld-Split. */

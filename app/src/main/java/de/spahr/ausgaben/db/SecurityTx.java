@@ -54,6 +54,14 @@ public class SecurityTx {
     @ColumnInfo(name = "net_cents")
     public long netCents;
 
+    /**
+     * Gebühren in Cent (immer ≥ 0): bei Kauf/Verkauf/Wiederanlage die Kosten, die in KMyMoney als eigener
+     * Ausgabe-Kategorie-Split neben dem Wertpapier-Split hängen. {@link #amountCents} enthält sie nicht.
+     * Bei Dividenden 0 – dort stecken die Abzüge in der Differenz {@link #amountCents} − {@link #netCents}.
+     */
+    @ColumnInfo(name = "fee_cents")
+    public long feeCents;
+
     public SecurityTx() {
     }
 
@@ -66,6 +74,13 @@ public class SecurityTx {
     @Ignore
     public SecurityTx(@NonNull String depot, @NonNull String securityKmyId, @NonNull String securityName,
                       long date, @NonNull String action, double shares, long amountCents, long netCents) {
+        this(depot, securityKmyId, securityName, date, action, shares, amountCents, netCents, 0L);
+    }
+
+    @Ignore
+    public SecurityTx(@NonNull String depot, @NonNull String securityKmyId, @NonNull String securityName,
+                      long date, @NonNull String action, double shares, long amountCents, long netCents,
+                      long feeCents) {
         this.depot = depot;
         this.securityKmyId = securityKmyId;
         this.securityName = securityName;
@@ -74,5 +89,6 @@ public class SecurityTx {
         this.shares = shares;
         this.amountCents = amountCents;
         this.netCents = netCents;
+        this.feeCents = feeCents;
     }
 }

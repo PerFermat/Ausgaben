@@ -100,6 +100,8 @@ public class BookingEditActivity extends LocalizedActivity {
     // Für die Datum-Abfrage: wurde der Editor aus einer bestehenden Buchung geöffnet, und hat der Nutzer
     // das Datum selbst geändert? Abfrage nur beim Kopieren (Vorlage) mit unverändertem Datum.
     private boolean openedFromExistingBooking;
+    /** Vorlagen-Kopie (Sprach-/Betrag-Schnellerfassung): leerer Vorlagen-Ort → Standardort des Kontos. */
+    private boolean templatePlaceFallback;
     private boolean dateChangedByUser;
     // „Jetzt buchen" aus den geplanten Buchungen: Planung + geplanter Termin, die beim Speichern
     // weitergestellt werden (null = normale Buchung).
@@ -1188,6 +1190,7 @@ public class BookingEditActivity extends LocalizedActivity {
         origTransferGroup = "";
         origPlaceManaged = true;
         openedFromExistingBooking = true; // Vorlage aus bestehender Buchung → Datum-Abfrage möglich
+        templatePlaceFallback = true;
         toolbar.setTitle(R.string.new_booking_title);
         selectedDate.setTime(new java.util.Date());
         updateDateField();
@@ -1228,14 +1231,14 @@ public class BookingEditActivity extends LocalizedActivity {
             if (b.transferGroup != null && !b.transferGroup.isEmpty()) {
                 repository.getTransferGroup(b.transferGroup, pair -> {
                     for (Booking side : pair) {
-                        String pl = (side.place == null || side.place.isEmpty())
-                                ? PlacesStore.NO_PLACE : side.place;
                         if (side.isIncome) {
-                            setupPlaceOptions(editPlaceTo, textOf(editAccountTo).trim(), false);
-                            editPlaceTo.setText(pl, false);
+                            String acc = textOf(editAccountTo).trim();
+                            setupPlaceOptions(editPlaceTo, acc, false);
+                            editPlaceTo.setText(templatePlace(side.place, acc), false);
                         } else {
-                            setupPlaceOptions(editPlace, textOf(editAccount).trim(), false);
-                            editPlace.setText(pl, false);
+                            String acc = textOf(editAccount).trim();
+                            setupPlaceOptions(editPlace, acc, false);
+                            editPlace.setText(templatePlace(side.place, acc), false);
                         }
                     }
                     // Die Orte kommen aus der Datenbank und damit erst nach applyTypeVisibility() oben.
@@ -1251,8 +1254,8 @@ public class BookingEditActivity extends LocalizedActivity {
         editPayee.setText(b.payee);
         editAccount.setText(b.account, false);
         setupPlaceDropdown(b.account);
-        // Gespeicherten Ort der Buchung vorbelegen (leer → „ohne Ort").
-        editPlace.setText(b.place == null || b.place.isEmpty() ? PlacesStore.NO_PLACE : b.place, false);
+        // Ort der Vorlage vorbelegen; hat sie keinen, der Standardort des Kontos (Schnellerfassung).
+        editPlace.setText(templatePlace(b.place, b.account), false);
         applyTypeVisibility();
 
         final long templateAmount = b.amountCents;
@@ -1554,6 +1557,24 @@ public class BookingEditActivity extends LocalizedActivity {
         // dort einen Ort vortäuschen, den die Planung gar nicht hat.
         String def = readOnly ? "" : placesStore.getDefaultPlace(account);
         field.setText(!def.isEmpty() && options.contains(def) ? def : PlacesStore.NO_PLACE, false);
+    }
+
+    /**
+     * Ort für die Vorbelegung aus einer Vorlage: deren gespeicherter Ort. Hat die Vorlage keinen (etwa eine
+     * importierte Buchung), greift bei der Schnellerfassung der Standardort des Kontos – sonst „ohne Ort".
+     */
+    private String templatePlace(String place, String account) {
+        if (place != null && !place.trim().isEmpty()) {
+            return place;
+        }
+        if (templatePlaceFallback) {
+            String acc = account == null ? "" : account.trim();
+            String def = placesStore.getDefaultPlace(acc);
+            if (!def.isEmpty() && placesStore.getPlaces(acc).contains(def)) {
+                return def;
+            }
+        }
+        return PlacesStore.NO_PLACE;
     }
 
     /** Ausgewählter Nach-Ort (Umbuchung), normalisiert: „ohne Ort"/leer → {@code ""}. */

@@ -1,18 +1,13 @@
 package de.spahr.ausgaben.export;
 
-import java.math.BigDecimal;
-import java.text.ParseException;
-import java.text.SimpleDateFormat;
 import java.util.ArrayList;
-import java.util.Calendar;
-import java.util.Date;
 import java.util.List;
-import java.util.Locale;
 
 import android.content.Context;
 
 import de.spahr.ausgaben.R;
 import de.spahr.ausgaben.db.Booking;
+import de.spahr.ausgaben.util.TextValues;
 
 /**
  * Importiert ein Ledger-CSV sprachunabhängig. Erkannt werden zwei Layouts:
@@ -32,10 +27,6 @@ import de.spahr.ausgaben.db.Booking;
  * werden als bereits exportiert markiert.
  */
 public class CsvImporter {
-
-    /** Datumsformate in Prüfreihenfolge: ISO (KMyMoney), dt. Punkt (App-Export), Schrägstrich-Varianten. */
-    private static final String[] DATE_PATTERNS = {
-            "yyyy-MM-dd", "dd.MM.yyyy", "yyyy/MM/dd", "MM/dd/yyyy", "dd/MM/yyyy"};
 
     private String parsedAccount = "";
     private final Context ctx;
@@ -173,65 +164,18 @@ public class CsvImporter {
         return commas > semis ? ',' : ';';
     }
 
-    /** Datum → epoch millis zur lokalen Mitternacht; -1 bei Fehler. Toleriert mehrere Formate. */
-    private long parseDate(String s) {
-        if (s == null || s.isEmpty()) {
-            return -1;
-        }
-        for (String pattern : DATE_PATTERNS) {
-            SimpleDateFormat fmt = new SimpleDateFormat(pattern, Locale.US);
-            fmt.setLenient(false);
-            try {
-                Date d = fmt.parse(s);
-                if (d == null) {
-                    continue;
-                }
-                Calendar cal = Calendar.getInstance();
-                cal.setTime(d);
-                cal.set(Calendar.HOUR_OF_DAY, 0);
-                cal.set(Calendar.MINUTE, 0);
-                cal.set(Calendar.SECOND, 0);
-                cal.set(Calendar.MILLISECOND, 0);
-                return cal.getTimeInMillis();
-            } catch (ParseException e) {
-                // nächstes Muster versuchen
-            }
-        }
-        return -1;
-    }
-
     /**
-     * Betrag → vorzeichenbehaftete Cent; null bei Fehler. Toleriert deutsches und englisches Format:
-     * das rechteste von ',' und '.' gilt als Dezimaltrenner, das andere (Tausender) wird entfernt.
+     * Datum und Betrag liest {@link TextValues} — dieselbe Erkennung benutzt die PDF-Auslese der
+     * Depotabrechnungen, damit es davon nicht zwei leicht abweichende Fassungen gibt.
      */
-    private Long parseAmountToCents(String raw) {
-        if (raw == null || raw.isEmpty()) {
-            return null;
-        }
-        String s = raw.replace(" ", "").replace(" ", "");
-        int lastComma = s.lastIndexOf(',');
-        int lastDot = s.lastIndexOf('.');
-        if (lastComma >= 0 && lastDot >= 0) {
-            // Beide vorhanden: das rechteste ist der Dezimaltrenner, das andere Tausendertrennung.
-            if (lastComma > lastDot) {
-                s = s.replace(".", "").replace(',', '.');
-            } else {
-                s = s.replace(",", "");
-            }
-        } else if (lastComma >= 0) {
-            // Nur Komma → Dezimaltrenner (deutsch).
-            s = s.replace(',', '.');
-        }
-        // Nur Punkt (oder keins) → bereits im BigDecimal-Format.
-        try {
-            return new BigDecimal(s).movePointRight(2)
-                    .setScale(0, java.math.RoundingMode.HALF_UP).longValueExact();
-        } catch (ArithmeticException | NumberFormatException e) {
-            return null;
-        }
+    private long parseDate(String s) {
+        return TextValues.toDateMillis(s);
     }
 
-    /** Zerlegt eine CSV-Zeile am {@code sep} unter Beachtung von "…"-Quoting (mit ""-Escaping). */
+    private Long parseAmountToCents(String raw) {
+        return TextValues.toCents(raw);
+    }
+
     private List<String> splitCsv(String line, char sep) {
         List<String> fields = new ArrayList<>();
         StringBuilder cur = new StringBuilder();

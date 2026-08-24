@@ -57,6 +57,14 @@ android {
         targetCompatibility JavaVersion.VERSION_17
     }
 
+    packaging {
+        resources {
+            // Die drei BouncyCastle-Module bringen jeweils dieselbe OSGi-Metadatei mit. Sie hat im APK
+            // nichts zu suchen, und ohne diese Zeile bricht das Zusammenführen an der Dublette ab.
+            excludes += ['META-INF/versions/9/OSGI-INF/MANIFEST.MF']
+        }
+    }
+
     buildFeatures {
         viewBinding false
     }
@@ -94,11 +102,24 @@ dependencies {
     // SMB/Samba-Client (SMB2/3). BouncyCastle liefert die auf Android fehlende AES-CMAC-Signierung;
     // slf4j-nop unterdrückt die Logging-Warnung von smbj (kein Binding auf Android nötig).
     implementation 'com.hierynomus:smbj:0.13.0'
-    implementation 'org.bouncycastle:bcprov-jdk18on:1.78.1'
     implementation 'org.slf4j:slf4j-nop:2.0.9'
+
+    // BouncyCastle für SMB (AES-CMAC) und PDF (verschlüsselte Dokumente). Alle drei Module müssen
+    // dieselbe Fassung haben – gemischte BouncyCastle-Versionen brechen zur Laufzeit.
+    implementation 'org.bouncycastle:bcprov-jdk18on:1.78.1'
+    implementation 'org.bouncycastle:bcpkix-jdk18on:1.78.1'
+    implementation 'org.bouncycastle:bcutil-jdk18on:1.78.1'
 
     // Karten-Auswahl für Alias-Standort (OpenStreetMap, kein API-Key nötig).
     implementation 'org.osmdroid:osmdroid-android:6.1.18'
+
+    // PDF-Textebene lesen (Depotabrechnungen). Apache 2.0, rein lokal – Android selbst kann nur rendern
+    // (PdfRenderer liefert Bilder), nicht an den Text.
+    implementation('com.tom-roush:pdfbox-android:2.0.27.0') {
+        // Zieht BouncyCastle 1.72 in der jdk15to18-Ausgabe nach; die App führt bereits 1.78.1 (jdk18on)
+        // mit denselben Klassennamen – beides zusammen scheitert schon beim Bauen an Dubletten.
+        exclude group: 'org.bouncycastle'
+    }
 
     // Aus dem Quellcode gebaut (Submodul third_party/MPAndroidChart, Tag v3.1.0) statt über
     // JitPack, das F-Droid nicht zulässt (siehe mpandroidchart/build.gradle).

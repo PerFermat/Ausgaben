@@ -181,6 +181,13 @@ public class SecurityTxEditActivity extends LocalizedActivity {
             if (checked) {
                 applyAction();
                 loadCategoryFavorites();
+                // Gegenkonto und Kategorien hängen an der Aktion: eine Dividende wird über eine
+                // Ertragskategorie gebucht, ein Kauf über eine Gebührenkategorie. Der Listener greift
+                // auch bei programmatischem Setzen – damit deckt er die aus dem PDF erkannte Aktion mit
+                // ab. Bei einer geladenen Bewegung bleibt es bei ihren gespeicherten Werten.
+                if (loaded == null) {
+                    loadDefaults(currentAction(), true);
+                }
                 recompute(null);
             }
         });
@@ -214,7 +221,6 @@ public class SecurityTxEditActivity extends LocalizedActivity {
         updateDateField();
         applyAction();
         wireNumberFields();
-        loadDefaults(currentAction());
         applyPrefill();
     }
 
@@ -627,22 +633,34 @@ public class SecurityTxEditActivity extends LocalizedActivity {
         });
     }
 
-    /** Gegenkonto und Kategorien aus der jüngsten Bewegung derselben Art übernehmen. */
-    private void loadDefaults(String action) {
+    /**
+     * Gegenkonto und Kategorien aus der jüngsten Bewegung derselben Art übernehmen — zuerst von diesem
+     * Wertpapier, sonst von einem beliebigen anderen (siehe {@code DepotRepository.getTxDefaults}).
+     *
+     * @param overwrite beim Aktionswechsel {@code true}: die Felder tragen dann noch die Werte der
+     *                  vorherigen Aktion und sind damit überholt — sonst bliebe die Gebührenkategorie
+     *                  eines Kaufs stehen, obwohl daneben „Steuerkategorie" steht
+     */
+    private void loadDefaults(String action, boolean overwrite) {
         repository.getSecurityTxDefaults(depot, kmyId, action, last -> {
-            if (last == null) {
+            // Die Abfrage lief über den Executor. Wer zweimal schnell umschaltet, bekommt die Antwort auf
+            // die alte Frage womöglich nach der neuen – dann ist sie überholt und wird verworfen.
+            if (last == null || !action.equals(currentAction())) {
                 return;
             }
-            if (textOf(editAccount).trim().isEmpty()) {
-                editAccount.setText(last.moneyAccount, false);
-            }
-            if (textOf(editFeeCategory).trim().isEmpty()) {
-                editFeeCategory.setText(last.feeCategory, false);
-            }
-            if (textOf(editIncomeCategory).trim().isEmpty()) {
-                editIncomeCategory.setText(last.incomeCategory, false);
-            }
+            setDefault(editAccount, last.moneyAccount, overwrite);
+            setDefault(editFeeCategory, last.feeCategory, overwrite);
+            setDefault(editIncomeCategory, last.incomeCategory, overwrite);
         });
+    }
+
+    private void setDefault(PickerTextView field, String value, boolean overwrite) {
+        if (value == null || value.isEmpty()) {
+            return;
+        }
+        if (overwrite || textOf(field).trim().isEmpty()) {
+            field.setText(value, false);
+        }
     }
 
     // ---- Speichern ----

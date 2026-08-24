@@ -232,18 +232,33 @@ class DepotRepository {
     void getTxDefaults(final String depot, final String kmyId, final String action,
                        final Callback<SecurityTx> callback) {
         executor.execute(() -> {
-            SecurityTx last = securityDao.getLastByAction(depot, kmyId, action);
-            if (last == null || last.moneyAccount.isEmpty()) {
-                SecurityTx fallback = securityDao.getLastWithAccount(depot);
-                if (last == null) {
-                    last = fallback;
-                } else if (fallback != null) {
-                    last.moneyAccount = fallback.moneyAccount;
-                }
-            }
-            final SecurityTx result = last;
-            mainHandler.post(() -> callback.onResult(result));
+            // Von speziell nach allgemein: dasselbe Wertpapier, dann ein beliebiges desselben Depots,
+            // zuletzt eines aus einem anderen Depot – immer aber dieselbe Art. Jedes Feld wird einzeln
+            // aufgefüllt, denn die speziellere Bewegung kann Konto und Kategorie unterschiedlich gepflegt
+            // haben (etwa eine importierte Dividende ohne Ertragskategorie).
+            SecurityTx result = new SecurityTx();
+            fillFrom(result, securityDao.getLastByAction(depot, kmyId, action));
+            fillFrom(result, securityDao.getLastByActionInDepot(depot, action));
+            fillFrom(result, securityDao.getLastByActionAnywhere(action));
+            final SecurityTx out = result;
+            mainHandler.post(() -> callback.onResult(out));
         });
+    }
+
+    /** Ergänzt nur, was noch leer ist – die speziellere Quelle kommt zuerst und behält damit Vorrang. */
+    private static void fillFrom(SecurityTx target, SecurityTx source) {
+        if (source == null) {
+            return;
+        }
+        if (target.moneyAccount.isEmpty()) {
+            target.moneyAccount = source.moneyAccount;
+        }
+        if (target.feeCategory.isEmpty()) {
+            target.feeCategory = source.feeCategory;
+        }
+        if (target.incomeCategory.isEmpty()) {
+            target.incomeCategory = source.incomeCategory;
+        }
     }
 
     /** Wertpapier zu einer ISIN (aus KMyMoney importiert); {@code null}, wenn keines passt. */

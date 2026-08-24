@@ -169,10 +169,21 @@ public interface SecurityDao {
             + "AND income_category <> '' GROUP BY income_category ORDER BY MAX(date) DESC LIMIT 5")
     List<String> getUsedIncomeCategories(String depot, String kmyId);
 
-    /** Jüngste Bewegung mit hinterlegtem Gegenkonto – Rückfall, wenn es die Art noch nie gab. */
-    @Query("SELECT * FROM security_tx WHERE depot = :depot AND money_account <> '' "
+    /**
+     * Jüngste Bewegung derselben Art an einem <b>beliebigen</b> Wertpapier des Depots — der Rückfall,
+     * wenn es diese Art an diesem Wertpapier noch nie gab. Eine Dividende wird über dieselbe
+     * Ertragskategorie gebucht, gleich welches Papier sie ausgeschüttet hat.
+     */
+    @Query("SELECT * FROM security_tx WHERE depot = :depot AND action = :action "
+            + "AND (money_account <> '' OR fee_category <> '' OR income_category <> '') "
             + "ORDER BY date DESC, id DESC LIMIT 1")
-    SecurityTx getLastWithAccount(String depot);
+    SecurityTx getLastByActionInDepot(String depot, String action);
+
+    /** Wie oben, aber über alle Depots — letzter Rückfall bei einem frisch angelegten Depot. */
+    @Query("SELECT * FROM security_tx WHERE action = :action "
+            + "AND (money_account <> '' OR fee_category <> '' OR income_category <> '') "
+            + "ORDER BY date DESC, id DESC LIMIT 1")
+    SecurityTx getLastByActionAnywhere(String action);
 
     /** Setzt/überschreibt den manuellen Wert einer Ein-/Ausbuchung (übersteht einen Depot-Reimport). */
     @Insert(onConflict = OnConflictStrategy.REPLACE)

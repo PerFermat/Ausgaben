@@ -741,6 +741,9 @@ public class SecurityTxEditActivity extends LocalizedActivity {
             finish();
             return;
         }
+        final StatementTemplates store = new StatementTemplates(this);
+        final StatementTemplate existing = store.match(text);
+
         TemplateLearner.Known known = new TemplateLearner.Known();
         known.action = action;
         // Bei einer Dividende gibt es weder Stückzahl noch Stückpreis: die Anzahl am Ex-Tag steht nicht in
@@ -750,9 +753,19 @@ public class SecurityTxEditActivity extends LocalizedActivity {
         known.feeCents = feeCents;
         known.netCents = netCents;
         known.dateMillis = selectedDate.getTimeInMillis();
+        // Hat der Nutzer das Datum nicht selbst gewählt, bleibt die schon gelernte Beschriftung gültig.
+        // Ohne das würde bei zwei Zeilen mit demselben Datum („Zahltag" und „Valuta") jedes Mal die
+        // unterste neu gelernt – und die Rückfrage käme, obwohl sich nichts geändert hat.
         known.dateAnchor = chosenDateLabel;
+        if (known.dateAnchor == null && existing != null
+                && existing.rule(StatementTemplate.Field.DATE) != null) {
+            known.dateAnchor = existing.rule(StatementTemplate.Field.DATE).anchors.get(0);
+        }
         final StatementTemplate learned = TemplateLearner.learn(text, known);
-        if (learned.isEmpty()) {
+        // Nur fragen, wenn dabei wirklich etwas Neues herauskam. Wer nichts korrigiert hat, bekommt
+        // dieselben Regeln zurück – dann gibt es nichts zu merken, und die Rückfrage wäre nur Lärm.
+        // Dasselbe, wenn der korrigierte Wert im PDF gar nicht vorkommt: dann entsteht keine Regel.
+        if (learned.isEmpty() || learned.sameAs(existing)) {
             finish();
             return;
         }
@@ -760,7 +773,6 @@ public class SecurityTxEditActivity extends LocalizedActivity {
                 .setTitle(R.string.statement_learn_title)
                 .setMessage(R.string.statement_learn_message)
                 .setPositiveButton(R.string.statement_learn_yes, (d, w) -> {
-                    StatementTemplates store = new StatementTemplates(this);
                     store.save(learned);
                     // Auch die Zuordnung merken – dann findet die nächste Abrechnung das Wertpapier
                     // selbst dann, wenn die ISIN in KMyMoney nicht gepflegt ist.

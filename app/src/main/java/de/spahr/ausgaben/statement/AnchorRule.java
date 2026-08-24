@@ -166,6 +166,27 @@ public final class AnchorRule {
         return tokens.isEmpty() ? null : TextValues.toDecimal(tokens.get(tokens.size() - 1));
     }
 
+    /**
+     * Zwei Regeln sind gleich, wenn sie dieselben Beschriftungen in derselben Richtung lesen. Gebraucht,
+     * um zu erkennen, ob ein Lernvorgang überhaupt etwas Neues ergeben hat.
+     */
+    @Override
+    public boolean equals(Object o) {
+        if (this == o) {
+            return true;
+        }
+        if (!(o instanceof AnchorRule)) {
+            return false;
+        }
+        AnchorRule other = (AnchorRule) o;
+        return sum == other.sum && direction == other.direction && anchors.equals(other.anchors);
+    }
+
+    @Override
+    public int hashCode() {
+        return anchors.hashCode() * 31 + direction.hashCode() + (sum ? 1 : 0);
+    }
+
     @Override
     public String toString() {
         return (sum ? "Summe von " : "") + anchors + " (" + direction + ")";

@@ -106,6 +106,66 @@ public class StatementRoundtripTest {
         assertEquals(1, new StatementTemplates(ctx).all().size());
     }
 
+    /**
+     * Wer eine eingelesene Abrechnung nur bestätigt, ohne etwas zu korrigieren, hat der App nichts
+     * beizubringen — dann darf auch nicht gefragt werden. Geprüft wird das über den Vergleich: derselbe
+     * Text mit denselben Werten ergibt dieselbe Vorlage.
+     */
+    @Test
+    public void nochmalsLernenOhneKorrekturErgibtDieselbeVorlage() {
+        StatementTemplate erst = TemplateLearner.learn(StatementFixtures.ingKauf(), kauf());
+        StatementTemplate nochmal = TemplateLearner.learn(StatementFixtures.ingKauf(), kauf());
+        assertTrue("nichts Neues gelernt", nochmal.sameAs(erst));
+    }
+
+    /** Eine Korrektur, deren Wert im Dokument steht, ergibt dagegen eine andere Vorlage. */
+    @Test
+    public void eineEchteKorrekturErgibtEineAndereVorlage() {
+        StatementTemplate erst = TemplateLearner.learn(StatementFixtures.ingKauf(), kauf());
+        TemplateLearner.Known k = kauf();
+        k.netCents = 100000L;
+        k.price = 164.04;
+        k.dateMillis = de.spahr.ausgaben.util.TextValues.toDateMillis("19.08.2026");   // Valuta statt Ausführung
+        assertFalse(TemplateLearner.learn(StatementFixtures.ingKauf(), k).sameAs(erst));
+    }
+
+    /** Eine Korrektur auf einen Wert, der im Dokument nicht vorkommt, lernt nichts Neues. */
+    @Test
+    public void eineKorrekturAufEinenFremdenWertLerntNichts() {
+        StatementTemplate erst = TemplateLearner.learn(StatementFixtures.ingKauf(), kauf());
+        TemplateLearner.Known k = kauf();
+        k.dateMillis = de.spahr.ausgaben.util.TextValues.toDateMillis("01.01.2020");
+        StatementTemplate nachher = TemplateLearner.learn(StatementFixtures.ingKauf(), k);
+        // Die Datumsregel entfällt, alles andere bleibt – die Vorlage ist damit nicht identisch,
+        // aber sie hat auch nichts Neues über das Datum gelernt.
+        assertNull(nachher.rule(StatementTemplate.Field.DATE));
+        assertEquals(erst.rule(StatementTemplate.Field.NET), nachher.rule(StatementTemplate.Field.NET));
+    }
+
+    /**
+     * Zwei Zeilen mit demselben Datum („Zahltag" und „Valuta"): wurde einmal eine davon gelernt, muss sie
+     * beim nächsten Mal erhalten bleiben — sonst käme die Rückfrage bei jedem Einlesen erneut.
+     */
+    @Test
+    public void diegelernteDatumsbeschriftungBleibtStehen() {
+        TemplateLearner.Known k = new TemplateLearner.Known();
+        k.action = StatementScan.DIVIDEND;
+        k.feeCents = 16746L;
+        k.netCents = 73953L;
+        k.dateMillis = de.spahr.ausgaben.util.TextValues.toDateMillis("17.08.2026");
+        k.dateAnchor = "Zahltag";
+        StatementTemplate erst = TemplateLearner.learn(StatementFixtures.ingDividende(), k);
+
+        // Nächster Durchgang: der Nutzer wählt nichts, die Maske reicht den bekannten Anker durch.
+        TemplateLearner.Known wieder = new TemplateLearner.Known();
+        wieder.action = k.action;
+        wieder.feeCents = k.feeCents;
+        wieder.netCents = k.netCents;
+        wieder.dateMillis = k.dateMillis;
+        wieder.dateAnchor = erst.rule(StatementTemplate.Field.DATE).anchors.get(0);
+        assertTrue(TemplateLearner.learn(StatementFixtures.ingDividende(), wieder).sameAs(erst));
+    }
+
     @Test
     public void ohneGelernteVorlagePasstNichts() {
         store();

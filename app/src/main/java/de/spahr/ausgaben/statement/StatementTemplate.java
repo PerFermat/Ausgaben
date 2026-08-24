@@ -92,6 +92,22 @@ public final class StatementTemplate {
         return e;
     }
 
+    /**
+     * Ob diese Vorlage dieselbe Auslese beschreibt wie {@code other} — gleiche Aktion, gleiche Regeln.
+     *
+     * <p>Damit lässt sich sagen, ob ein Lernvorgang überhaupt etwas Neues ergeben hat. Hat der Nutzer
+     * nichts korrigiert, kommt beim Lernen dieselbe Vorlage heraus, und es gibt nichts zu fragen.</p>
+     */
+    public boolean sameAs(StatementTemplate other) {
+        if (other == null) {
+            return false;
+        }
+        if (action == null ? other.action != null : !action.equals(other.action)) {
+            return false;
+        }
+        return rules.equals(other.rules);
+    }
+
     /** Das Ergebnis einer Auslese. Nicht Erkanntes ist {@code null} bzw. -1. */
     public static final class Extraction {
         public String action;

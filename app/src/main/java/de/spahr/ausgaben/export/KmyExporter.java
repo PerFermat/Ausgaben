@@ -17,6 +17,7 @@ import java.util.regex.Pattern;
 import de.spahr.ausgaben.db.Booking;
 import de.spahr.ausgaben.db.BookingSplit;
 import de.spahr.ausgaben.db.KmyPendingDelete;
+import de.spahr.ausgaben.db.SecurityTx;
 import de.spahr.ausgaben.db.ScheduledAdvance;
 
 /**
@@ -61,6 +62,14 @@ public class KmyExporter {
         public final List<Long> resolvedIds = new ArrayList<>();
     }
 
+    /** Ergebnis des Schreibens der in der App erfassten Depot-Bewegungen. */
+    public static class SecurityResult {
+        public String xml;
+        /** Geschriebene Bewegungen ({@link de.spahr.ausgaben.db.SecurityTx#id}). */
+        public final List<Long> writtenIds = new ArrayList<>();
+        public final List<String> skipped = new ArrayList<>();
+    }
+
     /** Ergebnis des Weiterstellens erledigter/übersprungener geplanter Buchungen. */
     public static class ScheduleResult {
         public String xml;
@@ -88,6 +97,8 @@ public class KmyExporter {
     private static final Pattern VALUE_ATTR = Pattern.compile("\\bvalue=\"([^\"]*)\"");
     /** Das {@code memo}-Attribut eines Splits – das einzige, das an einer Wertpapier-Buchung wandert. */
     private static final Pattern MEMO_ATTR = Pattern.compile("\\bmemo=\"[^\"]*\"");
+    /** Nummernteil einer Transaktions-id ({@code T000000000000000042}). */
+    private static final Pattern TX_ID_NUMBER = Pattern.compile("id=\"T(\\d+)\"");
 
     private final KmyDocument doc;
     private final android.content.Context ctx;
@@ -616,6 +627,209 @@ public class KmyExporter {
         splitXmls.add(split("S0001", fromId, payeeId, fraction(-b.amountCents), esc(memo), tags));
         splitXmls.add(split("S0002", toId, payeeId, fraction(b.amountCents), esc(memo), tags));
         return new Built(splitXmls, commodity, memo);
+    }
+
+    /**
+     * Schreibt die in der App erfassten Depot-Bewegungen als neue Transaktionen in die XML.
+     *
+     * <p>Eine Wertpapier-Transaktion ist in KMyMoney <b>eine</b> Transaktion aus mehreren Splits: der
+     * Geld-Split auf dem Verrechnungskonto, der Wertpapier-Split mit Stückzahl, Kurs und Aktion, dazu die
+     * Gebühren- bzw. Steuer-Kategorie und bei einer Dividende die Ertragskategorie. Die Summe aller
+     * {@code value} muss exakt 0 ergeben – daran erkennt KMyMoney eine ausgeglichene Buchung.</p>
+     *
+     * <pre>
+     *   Kauf:      Geld −(Betrag+Gebühr) · Papier +Betrag (Buy,  +Stück) · Gebührenkategorie +Gebühr
+     *   Verkauf:   Geld +(Betrag−Gebühr) · Papier −Betrag (Sell, −Stück) · Gebührenkategorie +Gebühr
+     *   Dividende: Geld +Netto · Papier 0 (Dividend, 0 Stück) · Ertrag −Brutto · Steuer +Steuer
+     * </pre>
+     *
+     * <p>Der Kurs wird nicht gerundet, sondern als exakter Bruch {@code Betrag/Stückzahl} geschrieben –
+     * sonst passte {@code shares × price} nicht mehr zu {@code value}.</p>
+     *
+     * <p>Findet sich ein Konto, ein Wertpapier oder eine Kategorie nicht in der Datei, wird die Bewegung
+     * übersprungen und bleibt vorgemerkt. Lieber beim nächsten Mal, als eine unvollständige Transaktion
+     * zu hinterlassen.</p>
+     */
+    public SecurityResult buildSecurityTransactions(String xml, List<SecurityTx> pending) {
+        SecurityResult result = new SecurityResult();
+        result.xml = xml;
+        if (pending == null || pending.isEmpty()) {
+            return result;
+        }
+        // Die Transaktionsnummern der Buchungen sind eben erst vergeben worden und stehen noch nicht im
+        // Dokument – deshalb im aktuellen XML nachsehen und nicht in doc.maxTransactionNumber().
+        long nextTx = maxTxNumberIn(xml) + 1;
+        StringBuilder fragments = new StringBuilder();
+        int written = 0;
+        String today = dateFormat.format(new Date());
+
+        for (SecurityTx tx : pending) {
+            List<String> splits = securitySplits(tx, result);
+            if (splits == null) {
+                continue;
+            }
+            String txId = String.format(Locale.US, "T%018d", nextTx++);
+            fragments.append(transactionElement(txId, dateFor(tx.date), today, "",
+                    commodityOf(tx.moneyAccount), splits));
+            written++;
+            result.writtenIds.add(tx.id);
+        }
+        if (written == 0) {
+            return result;
+        }
+        String merged = insertIntoBlock(xml, "TRANSACTIONS", fragments.toString());
+        if (merged == null) {
+            // Ohne <TRANSACTIONS>-Block lieber nichts schreiben, als ein count zu behaupten, das nirgends
+            // steht – die Bewegungen bleiben dann vorgemerkt.
+            result.writtenIds.clear();
+            result.skipped.add(ctx.getString(de.spahr.ausgaben.R.string.err_kmy_read));
+            return result;
+        }
+        result.xml = bumpCount(merged, "TRANSACTIONS", written);
+        return result;
+    }
+
+    /** Die Splits einer Depot-Bewegung, oder {@code null}, wenn etwas in der Datei fehlt. */
+    private List<String> securitySplits(SecurityTx tx, SecurityResult result) {
+        String label = tx.securityName + " (" + tx.action + ")";
+        String depotId = doc.depotId(tx.depot);
+        String stockId = depotId == null ? null : stockAccountId(depotId, tx.securityKmyId);
+        if (stockId == null) {
+            result.skipped.add(label + ": " + ctx.getString(
+                    de.spahr.ausgaben.R.string.skip_account_not_found, tx.depot));
+            return null;
+        }
+        String moneyId = doc.accountId(tx.moneyAccount);
+        if (moneyId == null) {
+            result.skipped.add(label + ": " + ctx.getString(
+                    de.spahr.ausgaben.R.string.skip_account_not_found, tx.moneyAccount));
+            return null;
+        }
+        boolean dividend = "dividend".equals(tx.action);
+        boolean sell = "sell".equals(tx.action);
+        long gross = tx.amountCents;
+        long fee = dividend ? gross - tx.netCents : tx.feeCents;
+        long money = dividend ? tx.netCents : (sell ? gross - fee : -(gross + fee));
+
+        String feeCatId = null;
+        if (fee != 0) {
+            feeCatId = tx.feeCategory.trim().isEmpty() ? null : doc.categoryId(tx.feeCategory.trim());
+            if (feeCatId == null) {
+                result.skipped.add(label + ": " + ctx.getString(
+                        de.spahr.ausgaben.R.string.skip_category_not_found, tx.feeCategory));
+                return null;
+            }
+        }
+        String incomeCatId = null;
+        if (dividend) {
+            incomeCatId = tx.incomeCategory.trim().isEmpty()
+                    ? null : doc.categoryId(tx.incomeCategory.trim());
+            if (incomeCatId == null) {
+                result.skipped.add(label + ": " + ctx.getString(
+                        de.spahr.ausgaben.R.string.skip_category_not_found, tx.incomeCategory));
+                return null;
+            }
+        }
+
+        List<String> splits = new ArrayList<>();
+        splits.add(split("S0001", moneyId, "", fraction(money), "", ""));
+        if (dividend) {
+            splits.add(securitySplit("S0002", stockId, "0/100", "0/1", "1/1", "Dividend"));
+            splits.add(split("S0003", incomeCatId, "", fraction(-gross), "", ""));
+            if (fee != 0) {
+                splits.add(split("S0004", feeCatId, "", fraction(fee), "", ""));
+            }
+            return splits;
+        }
+        long stockValue = sell ? -gross : gross;
+        String sharesFraction = decimalFraction(tx.shares, 10000);
+        splits.add(securitySplit("S0002", stockId, fraction(stockValue), sharesFraction,
+                priceFraction(gross, tx.shares), sell ? "Sell" : "Buy"));
+        if (fee != 0) {
+            splits.add(split("S0003", feeCatId, "", fraction(fee), "", ""));
+        }
+        return splits;
+    }
+
+    /** Konto-Id des Wertpapiers (Typ 15) unterhalb des Depots; {@code null}, wenn es dort keines gibt. */
+    private String stockAccountId(String depotId, String securityKmyId) {
+        for (String id : doc.allAccountIds()) {
+            if (doc.accountTypeOf(id) == 15 && depotId.equals(doc.accountParentOf(id))
+                    && securityKmyId.equals(doc.accountCurrencyOf(id))) {
+                return id;
+            }
+        }
+        return null;
+    }
+
+    /**
+     * Ein Wertpapier-Split: anders als {@link #split} trägt er eine eigene Stückzahl, einen eigenen Kurs
+     * und eine Aktion – die drei Angaben, die eine Depot-Bewegung überhaupt erst ausmachen.
+     */
+    private String securitySplit(String id, String accountId, String value, String shares,
+                                 String price, String action) {
+        return "<SPLIT reconcileflag=\"0\" payee=\"\" number=\"\" bankid=\"\" memo=\"\" value=\"" + value
+                + "\" reconciledate=\"\" account=\"" + esc(accountId) + "\" id=\"" + id
+                + "\" price=\"" + price + "\" shares=\"" + shares + "\" action=\"" + action + "\"/>";
+    }
+
+    /**
+     * Der Stückpreis als <b>exakter</b> Bruch {@code Betrag / Stückzahl}, damit {@code shares × price}
+     * genau den {@code value} des Splits ergibt. Ein gerundeter Dezimalkurs täte das nicht.
+     */
+    private static String priceFraction(long grossCents, double shares) {
+        long scaled = Math.round(Math.abs(shares) * 10000.0);
+        if (scaled == 0) {
+            return "1/1";
+        }
+        // Betrag/100 geteilt durch scaled/10000  →  (Betrag · 10000) / (100 · scaled)
+        return reduced(Math.abs(grossCents) * 10000L, 100L * scaled);
+    }
+
+    /** Eine Dezimalzahl als gekürzter Bruch mit {@code scale} als Nenner (Stückzahlen: 4 Nachkommastellen). */
+    private static String decimalFraction(double value, long scale) {
+        return reduced(Math.round(value * scale), scale);
+    }
+
+    /** Gekürzter Bruch; das Vorzeichen steht im Zähler, der Nenner bleibt positiv. */
+    private static String reduced(long num, long den) {
+        if (den == 0) {
+            return num + "/1";
+        }
+        long g = gcd(Math.abs(num), Math.abs(den));
+        if (g == 0) {
+            return "0/1";
+        }
+        long n = num / g;
+        long d = den / g;
+        if (d < 0) {
+            n = -n;
+            d = -d;
+        }
+        return n + "/" + d;
+    }
+
+    private static long gcd(long a, long b) {
+        while (b != 0) {
+            long t = a % b;
+            a = b;
+            b = t;
+        }
+        return a;
+    }
+
+    /** Höchste vergebene Transaktionsnummer im übergebenen XML (auch die eben erst eingefügten). */
+    static long maxTxNumberIn(String xml) {
+        Matcher m = TX_ID_NUMBER.matcher(xml);
+        long max = 0;
+        while (m.find()) {
+            try {
+                max = Math.max(max, Long.parseLong(m.group(1)));
+            } catch (NumberFormatException ignored) {
+                // Eine eigenwillige id bringt die Nummernvergabe nicht durcheinander.
+            }
+        }
+        return max;
     }
 
     // ---- XML-Bausteine ----

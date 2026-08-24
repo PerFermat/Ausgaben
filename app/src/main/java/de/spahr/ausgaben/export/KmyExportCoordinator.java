@@ -73,8 +73,11 @@ public class KmyExportCoordinator {
             // Erledigte/übersprungene geplante Buchungen: die zugehörige KMyMoney-Regel wird weitergestellt.
             List<de.spahr.ausgaben.db.ScheduledAdvance> advances =
                     repository.scheduledAdvanceDao().getAll();
+            // In der App erfasste Depot-Bewegungen: sie werden als eigene Transaktion geschrieben; ihre
+            // Geldbuchung hängt daran und ist deshalb aus getUnexported() ausgenommen.
+            List<de.spahr.ausgaben.db.SecurityTx> securityTx = repository.securityDao().getPendingTx();
             if (bookings.isEmpty() && edited.isEmpty() && pendingDeletes.isEmpty()
-                    && advances.isEmpty()) {
+                    && advances.isEmpty() && securityTx.isEmpty()) {
                 complete(listener, r.getString(de.spahr.ausgaben.R.string.export_none), false);
                 return;
             }
@@ -112,8 +115,14 @@ public class KmyExportCoordinator {
                 KmyExporter.ScheduleResult schedRes = exporter.applyScheduleAdvances(res.xml, advances);
                 res.xml = schedRes.xml;
 
+                // Erfasste Depot-Bewegungen als vollständige Wertpapier-Transaktionen anhängen.
+                KmyExporter.SecurityResult secRes =
+                        exporter.buildSecurityTransactions(res.xml, securityTx);
+                res.xml = secRes.xml;
+                res.skipped.addAll(secRes.skipped);
+
                 if (res.writtenIds.isEmpty() && delRes.resolvedIds.isEmpty()
-                        && schedRes.resolvedIds.isEmpty()) {
+                        && schedRes.resolvedIds.isEmpty() && secRes.writtenIds.isEmpty()) {
                     complete(listener, r.getString(de.spahr.ausgaben.R.string.kmy_none_matched)
                             + "\n" + skippedText(r, res) + notFoundText(r, res), false);
                     return;
@@ -132,6 +141,20 @@ public class KmyExportCoordinator {
                 storage.uploadBytes(folder, file, packed, version);
 
                 repository.bookingDao().markExported(res.writtenIds);
+                if (!secRes.writtenIds.isEmpty()) {
+                    // Bewegung und ihre Geldbuchung stehen jetzt gemeinsam in der Datei: beide sind keine
+                    // Vormerkung mehr. Beim nächsten Depot-Import wird die Bewegung von dort ersetzt.
+                    repository.securityDao().markTxExported(secRes.writtenIds);
+                    List<Long> bookingIds = new java.util.ArrayList<>();
+                    for (de.spahr.ausgaben.db.SecurityTx tx : securityTx) {
+                        if (tx.bookingId > 0 && secRes.writtenIds.contains(tx.id)) {
+                            bookingIds.add(tx.bookingId);
+                        }
+                    }
+                    if (!bookingIds.isEmpty()) {
+                        repository.bookingDao().markExported(bookingIds);
+                    }
+                }
                 if (!delRes.resolvedIds.isEmpty()) {
                     repository.kmyPendingDeleteDao().deleteByIds(delRes.resolvedIds);
                 }

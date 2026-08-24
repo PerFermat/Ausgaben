@@ -4,6 +4,7 @@ import androidx.room.Dao;
 import androidx.room.Insert;
 import androidx.room.OnConflictStrategy;
 import androidx.room.Query;
+import androidx.room.Update;
 
 import java.util.List;
 
@@ -13,8 +14,9 @@ public interface SecurityDao {
     @Insert
     void insertSecurity(Security security);
 
+    /** Legt eine Bewegung an und liefert ihre id (der Import ignoriert sie, die Erfassung braucht sie). */
     @Insert
-    void insertTx(SecurityTx tx);
+    long insertTx(SecurityTx tx);
 
     @Insert
     void insertPrice(SecurityPrice price);
@@ -110,11 +112,60 @@ public interface SecurityDao {
     @Query("DELETE FROM security WHERE depot = :depot")
     void deleteSecurities(String depot);
 
-    @Query("DELETE FROM security_tx WHERE depot = :depot")
+    /**
+     * Verwirft die aus der Datei stammenden Bewegungen eines Depots (der Reimport schreibt sie neu).
+     * In der App erfasste, noch nicht exportierte bleiben stehen – sonst wären sie nach dem nächsten
+     * Reimport spurlos verschwunden.
+     */
+    @Query("DELETE FROM security_tx WHERE depot = :depot AND pending = 0")
     void deleteTx(String depot);
 
     @Query("DELETE FROM security_price WHERE depot = :depot")
     void deletePrices(String depot);
+
+    @Query("SELECT * FROM security_tx WHERE id = :id")
+    SecurityTx getTxById(long id);
+
+    @Update
+    void updateTx(SecurityTx tx);
+
+    @Query("DELETE FROM security_tx WHERE id = :id")
+    void deleteTxById(long id);
+
+    /** In der App erfasste Bewegungen, die noch in die Datei geschrieben werden müssen. */
+    @Query("SELECT * FROM security_tx WHERE pending = 1 ORDER BY date ASC, id ASC")
+    List<SecurityTx> getPendingTx();
+
+    /** Nach dem Export: die geschriebenen Bewegungen sind keine Vormerkung mehr. */
+    @Query("UPDATE security_tx SET pending = 0 WHERE id IN (:ids)")
+    void markTxExported(List<Long> ids);
+
+    /**
+     * Jüngste Bewegung derselben Art – Vorbelegung von Gegenkonto und Kategorien in der Erfassungsmaske.
+     * Nach Art getrennt, weil die Kategorie eines Kaufs (Gebühr) mit der einer Dividende (Ertrag/Steuer)
+     * nichts zu tun hat.
+     */
+    @Query("SELECT * FROM security_tx WHERE depot = :depot AND security_kmy_id = :kmyId "
+            + "AND action = :action ORDER BY date DESC, id DESC LIMIT 1")
+    SecurityTx getLastByAction(String depot, String kmyId, String action);
+
+    /**
+     * Die zuletzt an diesem Wertpapier verwendeten Gebühren-/Steuerkategorien, neueste zuerst – sie
+     * stehen in der Auswahlliste als Vorspann ganz oben, wie die Kategorien eines Empfängers.
+     */
+    @Query("SELECT fee_category FROM security_tx WHERE depot = :depot AND security_kmy_id = :kmyId "
+            + "AND fee_category <> '' GROUP BY fee_category ORDER BY MAX(date) DESC LIMIT 5")
+    List<String> getUsedFeeCategories(String depot, String kmyId);
+
+    /** Wie oben für die Ertragskategorien der Dividenden. */
+    @Query("SELECT income_category FROM security_tx WHERE depot = :depot AND security_kmy_id = :kmyId "
+            + "AND income_category <> '' GROUP BY income_category ORDER BY MAX(date) DESC LIMIT 5")
+    List<String> getUsedIncomeCategories(String depot, String kmyId);
+
+    /** Jüngste Bewegung mit hinterlegtem Gegenkonto – Rückfall, wenn es die Art noch nie gab. */
+    @Query("SELECT * FROM security_tx WHERE depot = :depot AND money_account <> '' "
+            + "ORDER BY date DESC, id DESC LIMIT 1")
+    SecurityTx getLastWithAccount(String depot);
 
     /** Setzt/überschreibt den manuellen Wert einer Ein-/Ausbuchung (übersteht einen Depot-Reimport). */
     @Insert(onConflict = OnConflictStrategy.REPLACE)

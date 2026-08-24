@@ -222,15 +222,40 @@ public class KmyImporter {
             if (net == 0) {
                 net = gross;
             }
-            return new SecurityTx(depotName, sec[0], sec[1],
+            SecurityTx tx = new SecurityTx(depotName, sec[0], sec[1],
                     parseDate(postdate, entrydate), action, shares, gross, net);
+            fillOrigin(tx, splits);
+            return tx;
         }
         boolean moved = "add".equals(action) || "remove".equals(action);
         // Ein-/Ausbuchungen tragen in KMyMoney keinen Geldwert – dort gibt es folglich auch keine Gebühr.
         long amountCents = moved ? 0 : Math.abs(valueToCents(stock[1]));
         long feeCents = moved ? 0 : fees(splits);
-        return new SecurityTx(depotName, sec[0], sec[1],
+        SecurityTx tx = new SecurityTx(depotName, sec[0], sec[1],
                 parseDate(postdate, entrydate), action, shares, amountCents, amountCents, feeCents);
+        fillOrigin(tx, splits);
+        return tx;
+    }
+
+    /**
+     * Trägt Geldkonto und Kategorien der Transaktion an der Bewegung nach. Für die Auswertung spielen sie
+     * keine Rolle – sie belegen die Erfassungsmaske vor, damit schon die erste selbst angelegte Bewegung
+     * dieselbe Kontenwahl und dieselben Kategorien vorschlägt wie die zuletzt importierte.
+     */
+    private void fillOrigin(SecurityTx tx, List<String[]> splits) {
+        for (String[] s : splits) {
+            int type = doc.accountTypeOf(s[0]);
+            if (type == 15 || type == 16) {
+                continue;   // das Wertpapier selbst und Eigenkapital sind kein Gegenkonto
+            }
+            if (type == 12) {
+                tx.incomeCategory = orEmpty(doc.categoryPath(s[0]));
+            } else if (type == 13) {
+                tx.feeCategory = orEmpty(doc.categoryPath(s[0]));
+            } else if (tx.moneyAccount.isEmpty()) {
+                tx.moneyAccount = orEmpty(doc.accountNameById(s[0])).trim();
+            }
+        }
     }
 
     /**

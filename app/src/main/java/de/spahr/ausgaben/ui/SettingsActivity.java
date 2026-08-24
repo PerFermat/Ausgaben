@@ -86,6 +86,7 @@ public class SettingsActivity extends LocalizedActivity implements SmbWizardCont
 
     private MaterialAutoCompleteTextView editLanguage;
     private TextInputEditText editCurrency;
+    private TextInputEditText editDividendTaxRate;
     private MaterialAutoCompleteTextView editNumberFormat;
     private MaterialAutoCompleteTextView editCsvSeparator;
     /** Aktuell gewähltes CSV-Trennzeichen (SettingsStore.CSV_SEP_*). */
@@ -228,6 +229,12 @@ public class SettingsActivity extends LocalizedActivity implements SmbWizardCont
         switchShowCurrency.setChecked(settings.isCurrencyShown());
         switchDividendGross = findViewById(R.id.switchDividendGross);
         switchDividendGross.setChecked(settings.isDividendGross());
+        editDividendTaxRate = findViewById(R.id.editDividendTaxRate);
+        double taxPercent = settings.getDividendTaxPercent();
+        if (taxPercent > 0) {
+            editDividendTaxRate.setText(
+                    de.spahr.ausgaben.settings.MoneyFormat.decimal(taxPercent, 0, 3));
+        }
         switchBudgetInternal = findViewById(R.id.switchBudgetInternal);
         switchBudgetInternal.setChecked(settings.isBudgetInternal());
         ((MaterialButton) findViewById(R.id.btnBudgetCompute)).setOnClickListener(v -> {
@@ -1237,6 +1244,9 @@ public class SettingsActivity extends LocalizedActivity implements SmbWizardCont
         settings.setCsvSeparator(selectedCsvSeparator);
         settings.setCurrencyShown(switchShowCurrency.isChecked());
         settings.setDividendGross(switchDividendGross.isChecked());
+        // Der Steuersatz kommt im eingestellten Zahlenformat herein (Komma oder Punkt); ein unlesbarer
+        // oder unsinniger Wert schaltet die Vorbelegung ab, statt eine falsche Steuer zu erzeugen.
+        settings.setDividendTaxPercent(parsePercent(textOf(editDividendTaxRate)));
         settings.setBudgetInternal(switchBudgetInternal.isChecked());
         de.spahr.ausgaben.settings.Currencies.refresh(this);
         de.spahr.ausgaben.settings.MoneyFormat.refresh(this);
@@ -1311,6 +1321,23 @@ public class SettingsActivity extends LocalizedActivity implements SmbWizardCont
 
     private String timestamp() {
         return new SimpleDateFormat("yyyyMMdd-HHmmss", Locale.GERMANY).format(new Date());
+    }
+
+    /**
+     * Der Steuersatz in Prozent, im eingestellten Zahlenformat eingegeben. Leer, unlesbar oder außerhalb
+     * von 0 bis unter 100 ergibt 0 – dann belegt die Wertpapier-Erfassung die Steuer eben nicht vor.
+     */
+    private static double parsePercent(String raw) {
+        String t = raw == null ? "" : raw.trim().replace(',', '.');
+        if (t.isEmpty()) {
+            return 0;
+        }
+        try {
+            double v = Double.parseDouble(t);
+            return v > 0 && v < 100 ? v : 0;
+        } catch (NumberFormatException e) {
+            return 0;
+        }
     }
 
     private String textOf(TextInputEditText e) {

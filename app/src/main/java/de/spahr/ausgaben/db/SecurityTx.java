@@ -62,6 +62,36 @@ public class SecurityTx {
     @ColumnInfo(name = "fee_cents")
     public long feeCents;
 
+    /**
+     * In der App erfasst und noch nicht in die KMyMoney-Datei geschrieben. Solche Bewegungen überleben
+     * einen Depot-Reimport (siehe {@code SecurityDao.deleteTx}); nach dem Export fällt das Kennzeichen
+     * weg und die Bewegung wird beim nächsten Import wie jede andere aus der Datei ersetzt.
+     */
+    @ColumnInfo(name = "pending")
+    public boolean pending;
+
+    /**
+     * Geldkonto der Gegenbuchung (Belastung beim Kauf, Gutschrift bei Verkauf/Dividende). Wird beim
+     * Import aus dem Geld-Split mitgelesen und dient in der Erfassungsmaske als Vorbelegung.
+     */
+    @NonNull
+    @ColumnInfo(name = "money_account")
+    public String moneyAccount = "";
+
+    /** Kategorie der Gebühren (Kauf/Verkauf) bzw. der Steuer (Dividende). */
+    @NonNull
+    @ColumnInfo(name = "fee_category")
+    public String feeCategory = "";
+
+    /** Ertragskategorie einer Dividende; der Bruttobetrag hängt in KMyMoney daran. */
+    @NonNull
+    @ColumnInfo(name = "income_category")
+    public String incomeCategory = "";
+
+    /** Zugehörige Geldbuchung ({@code Booking.id}); 0 = keine (alle importierten Bewegungen). */
+    @ColumnInfo(name = "booking_id")
+    public long bookingId;
+
     public SecurityTx() {
     }
 

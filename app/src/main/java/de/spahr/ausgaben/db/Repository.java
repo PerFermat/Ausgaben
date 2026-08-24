@@ -1532,6 +1532,40 @@ public class Repository {
         depotRepo.replaceDepotImport(depot, securities, transactions, prices, listener, onDone);
     }
 
+    // ---- In der App erfasste Depot-Bewegungen ----
+
+    /** Legt eine erfasste Bewegung samt Geldbuchung an (vorgemerkt für den nächsten Export). */
+    public void saveManualSecurityTx(SecurityTx tx, Booking booking, Runnable onDone) {
+        depotRepo.saveManualTx(tx, booking, onDone);
+    }
+
+    /** Ändert eine noch nicht exportierte Bewegung samt Geldbuchung. */
+    public void updateManualSecurityTx(SecurityTx tx, Booking booking, Runnable onDone) {
+        depotRepo.updateManualTx(tx, booking, onDone);
+    }
+
+    /** Entfernt eine noch nicht exportierte Bewegung samt Geldbuchung. */
+    public void deleteManualSecurityTx(long txId, Runnable onDone) {
+        depotRepo.deleteManualTx(txId, onDone);
+    }
+
+    /** Eine einzelne Bewegung für die Erfassungsmaske. */
+    public void getSecurityTx(long id, Callback<SecurityTx> callback) {
+        depotRepo.getSecurityTx(id, callback);
+    }
+
+    /** Schon verwendete Kategorien eines Wertpapiers: Liste 0 = Gebühr/Steuer, Liste 1 = Ertrag. */
+    public void getSecurityUsedCategories(String depot, String kmyId,
+                                          Callback<java.util.List<java.util.List<String>>> callback) {
+        depotRepo.getUsedCategories(depot, kmyId, callback);
+    }
+
+    /** Vorbelegung der Erfassungsmaske aus der jüngsten Bewegung derselben Art. */
+    public void getSecurityTxDefaults(String depot, String kmyId, String action,
+                                      Callback<SecurityTx> callback) {
+        depotRepo.getTxDefaults(depot, kmyId, action, callback);
+    }
+
     /**
      * Legt die Trägerzeile eines Depots in der Konto-Tabelle an. Sie trägt nur Name, Sortierplatz und
      * Gruppen; Wertpapiere und Bewertung bleiben in den {@code security}-Tabellen.
@@ -1944,6 +1978,11 @@ public class Repository {
     /** Liefert die Direktreferenz auf den BookingDao – nur für Hintergrund-Aufgaben verwenden. */
     public BookingDao bookingDao() {
         return bookingDao;
+    }
+
+    /** Liefert die Direktreferenz auf den SecurityDao – nur für Hintergrund-Aufgaben verwenden. */
+    public SecurityDao securityDao() {
+        return securityDao;
     }
 
     /** Liefert die Direktreferenz auf den KmyPendingDeleteDao – nur für Hintergrund-Aufgaben verwenden. */

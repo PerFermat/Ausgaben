@@ -15,7 +15,7 @@ import androidx.sqlite.db.SupportSQLiteDatabase;
         AnalysisExtra.class, SecurityTxValueOverride.class, KmyPendingDelete.class, SecurityPrice.class,
         ScheduledAdvance.class, AccountGroup.class, AccountGroupMember.class, AccountKindOrder.class,
         Tag.class},
-        version = 45, exportSchema = false)
+        version = 46, exportSchema = false)
 public abstract class AppDatabase extends RoomDatabase {
 
     /** v1 → v2: Notiz-Spalte ergänzen (bestehende Buchungen bleiben erhalten). */
@@ -581,6 +581,23 @@ public abstract class AppDatabase extends RoomDatabase {
         }
     };
 
+    /**
+     * v45 → v46: in der App erfasste Depot-Bewegungen. {@code pending} kennzeichnet die noch nicht
+     * exportierten (sie überleben einen Reimport), die übrigen Spalten halten Gegenkonto, Kategorien und
+     * die zugehörige Geldbuchung. Alle Bestandszeilen stammen aus der Datei und bleiben mit den
+     * Vorgabewerten korrekt.
+     */
+    static final Migration MIGRATION_45_46 = new Migration(45, 46) {
+        @Override
+        public void migrate(@NonNull SupportSQLiteDatabase db) {
+            db.execSQL("ALTER TABLE security_tx ADD COLUMN pending INTEGER NOT NULL DEFAULT 0");
+            db.execSQL("ALTER TABLE security_tx ADD COLUMN money_account TEXT NOT NULL DEFAULT ''");
+            db.execSQL("ALTER TABLE security_tx ADD COLUMN fee_category TEXT NOT NULL DEFAULT ''");
+            db.execSQL("ALTER TABLE security_tx ADD COLUMN income_category TEXT NOT NULL DEFAULT ''");
+            db.execSQL("ALTER TABLE security_tx ADD COLUMN booking_id INTEGER NOT NULL DEFAULT 0");
+        }
+    };
+
     public abstract BookingDao bookingDao();
 
     public abstract AccountDao accountDao();
@@ -636,7 +653,7 @@ public abstract class AppDatabase extends RoomDatabase {
                                     MIGRATION_35_36, MIGRATION_36_37, MIGRATION_37_38,
                                     MIGRATION_38_39, MIGRATION_39_40, MIGRATION_40_41,
                                     MIGRATION_41_42, MIGRATION_42_43, MIGRATION_43_44,
-                                    MIGRATION_44_45)
+                                    MIGRATION_44_45, MIGRATION_45_46)
                             .build();
                 }
             }

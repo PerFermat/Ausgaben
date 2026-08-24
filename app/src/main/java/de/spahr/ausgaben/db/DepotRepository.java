@@ -153,6 +153,110 @@ class DepotRepository {
         }
     }
 
+    /**
+     * Legt eine in der App erfasste Bewegung samt ihrer Geldbuchung an – beides in <b>einer</b> Transaktion,
+     * damit nie eine Bewegung ohne Buchung (oder umgekehrt) übrig bleibt. Die Bewegung ist vorgemerkt
+     * ({@code pending}) und wird beim nächsten Export in die KMyMoney-Datei geschrieben.
+     *
+     * @param booking die Geldbuchung; ihre id landet in {@code tx.bookingId}. {@code null} = keine
+     *                (dann bleibt der Kontostand unberührt)
+     */
+    void saveManualTx(final SecurityTx tx, final Booking booking, final Runnable onDone) {
+        executor.execute(() -> {
+            db.runInTransaction(() -> {
+                tx.pending = true;
+                if (booking != null) {
+                    db.accountDao().insertIfAbsent(new Account(booking.account));
+                    tx.bookingId = db.bookingDao().insert(booking);
+                }
+                securityDao.insertTx(tx);
+            });
+            if (onDone != null) {
+                mainHandler.post(onDone);
+            }
+        });
+    }
+
+    /**
+     * Ändert eine noch nicht exportierte Bewegung samt Geldbuchung. Exportierte werden hier nicht
+     * angefasst – die stehen bereits in der Datei und gehören dort korrigiert.
+     */
+    void updateManualTx(final SecurityTx tx, final Booking booking, final Runnable onDone) {
+        executor.execute(() -> {
+            db.runInTransaction(() -> {
+                if (booking != null && tx.bookingId > 0) {
+                    booking.id = tx.bookingId;
+                    db.accountDao().insertIfAbsent(new Account(booking.account));
+                    db.bookingDao().update(booking);
+                }
+                securityDao.updateTx(tx);
+            });
+            if (onDone != null) {
+                mainHandler.post(onDone);
+            }
+        });
+    }
+
+    /** Entfernt eine noch nicht exportierte Bewegung und die zugehörige Geldbuchung. */
+    void deleteManualTx(final long txId, final Runnable onDone) {
+        executor.execute(() -> {
+            db.runInTransaction(() -> {
+                SecurityTx tx = securityDao.getTxById(txId);
+                if (tx == null || !tx.pending) {
+                    return;   // aus der Datei importiert: dort wird nicht gelöscht
+                }
+                if (tx.bookingId > 0) {
+                    db.bookingDao().delete(tx.bookingId);
+                }
+                securityDao.deleteTxById(txId);
+            });
+            if (onDone != null) {
+                mainHandler.post(onDone);
+            }
+        });
+    }
+
+    /** Eine einzelne Bewegung (Erfassungsmaske im Ansehen-/Ändern-Modus). */
+    void getSecurityTx(final long id, final Callback<SecurityTx> callback) {
+        executor.execute(() -> {
+            final SecurityTx tx = securityDao.getTxById(id);
+            mainHandler.post(() -> callback.onResult(tx));
+        });
+    }
+
+    /**
+     * Gegenkonto und Kategorien der jüngsten Bewegung derselben Art – Vorbelegung der Erfassungsmaske.
+     * Gibt es die Art an diesem Wertpapier noch nicht, dient die jüngste Bewegung mit Gegenkonto als
+     * Rückfall (dann stimmt wenigstens das Konto).
+     */
+    void getTxDefaults(final String depot, final String kmyId, final String action,
+                       final Callback<SecurityTx> callback) {
+        executor.execute(() -> {
+            SecurityTx last = securityDao.getLastByAction(depot, kmyId, action);
+            if (last == null || last.moneyAccount.isEmpty()) {
+                SecurityTx fallback = securityDao.getLastWithAccount(depot);
+                if (last == null) {
+                    last = fallback;
+                } else if (fallback != null) {
+                    last.moneyAccount = fallback.moneyAccount;
+                }
+            }
+            final SecurityTx result = last;
+            mainHandler.post(() -> callback.onResult(result));
+        });
+    }
+
+    /** Die an diesem Wertpapier schon verwendeten Kategorien: {Gebühr/Steuer, Ertrag}. */
+    void getUsedCategories(final String depot, final String kmyId,
+                           final Callback<List<List<String>>> callback) {
+        executor.execute(() -> {
+            final List<List<String>> result = new ArrayList<>();
+            result.add(securityDao.getUsedFeeCategories(depot, kmyId));
+            result.add(securityDao.getUsedIncomeCategories(depot, kmyId));
+            mainHandler.post(() -> callback.onResult(result));
+        });
+    }
+
     /** Setzt den manuellen Wert einer Ein-/Ausbuchung (übersteht einen Depot-Reimport). */
     void saveSecurityTxValue(final String depot, final String kmyId, final long date, final String action,
                              final double shares, final long amountCents, final Runnable onDone) {

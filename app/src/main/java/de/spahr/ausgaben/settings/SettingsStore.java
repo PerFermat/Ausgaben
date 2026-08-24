@@ -41,6 +41,7 @@ public class SettingsStore {
     private static final String KEY_CSV_SEPARATOR = "csv_separator";
     private static final String KEY_SHOW_CURRENCY = "show_currency";
     private static final String KEY_DIVIDEND_GROSS = "dividend_gross";
+    private static final String KEY_DIVIDEND_TAX_RATE = "dividend_tax_rate";
     private static final String KEY_BUDGET_INTERNAL = "budget_internal";
     private static final String KEY_FONT_SIZE = "font_size";
     private static final String KEY_SMB_KNOWN_HOSTS = "smb_known_hosts";
@@ -520,6 +521,21 @@ public class SettingsStore {
 
     public void setDividendGross(boolean gross) {
         prefs.edit().putBoolean(KEY_DIVIDEND_GROSS, gross).apply();
+    }
+
+    /**
+     * Steuersatz auf Dividenden in Prozent (25 % Kapitalertragsteuer + 5,5 % Soli = 26,375). Belegt in der
+     * Wertpapier-Erfassung die Steuer vor, solange erst eines der drei Geldfelder feststeht; 0 = keine
+     * Vorbelegung. Für die Anzeige bereits gebuchter Dividenden spielt der Wert keine Rolle – dort zählt
+     * allein die gespeicherte Differenz zwischen brutto und netto.
+     */
+    public double getDividendTaxPercent() {
+        return prefs.getFloat(KEY_DIVIDEND_TAX_RATE, 0f);
+    }
+
+    public void setDividendTaxPercent(double percent) {
+        double p = percent < 0 || percent >= 100 ? 0 : percent;
+        prefs.edit().putFloat(KEY_DIVIDEND_TAX_RATE, (float) p).apply();
     }
 
     /** Budget app-intern aus dem Verlauf berechnen (true) statt aus KMyMoney importieren (false, Standard). */

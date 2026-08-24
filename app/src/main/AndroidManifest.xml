@@ -130,6 +130,12 @@
             android:parentActivityName=".ui.DepotActivity" />
 
         <activity
+            android:name=".ui.SecurityTxEditActivity"
+            android:exported="false"
+            android:windowSoftInputMode="adjustResize"
+            android:parentActivityName=".ui.SecurityHistoryActivity" />
+
+        <activity
             android:name=".ui.DepotChartActivity"
             android:exported="false"
             android:parentActivityName=".ui.DepotActivity" />

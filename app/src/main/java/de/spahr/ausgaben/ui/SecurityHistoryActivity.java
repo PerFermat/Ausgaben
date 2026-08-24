@@ -96,7 +96,17 @@ public class SecurityHistoryActivity extends LocalizedActivity {
         });
 
         container = findViewById(R.id.historyContainer);
+        findViewById(R.id.fabAddTx).setOnClickListener(v -> openEditor(null));
         repository = new Repository(this);
+    }
+
+    /**
+     * Neu laden statt nur beim Öffnen: aus der Erfassungsmaske kommt man mit einer angelegten, geänderten
+     * oder gelöschten Bewegung zurück – die Liste und die Saldenzeile müssen das zeigen.
+     */
+    @Override
+    protected void onResume() {
+        super.onResume();
         reload();
     }
 
@@ -265,7 +275,7 @@ public class SecurityHistoryActivity extends LocalizedActivity {
         android.util.TypedValue bg = new android.util.TypedValue();
         getTheme().resolveAttribute(android.R.attr.selectableItemBackground, bg, true);
         row.setBackgroundResource(bg.resourceId);
-        row.setOnClickListener(v -> showDetailDialog(tx));
+        row.setOnClickListener(v -> openEditor(tx));
         if (editable) {
             row.setOnLongClickListener(v -> {
                 showValueEditDialog(tx);
@@ -276,84 +286,21 @@ public class SecurityHistoryActivity extends LocalizedActivity {
     }
 
     /**
-     * Kurzer Klick auf eine Bewegung: die Zahlen hinter der Buchung. Kauf/Verkauf zeigen Stückzahl,
-     * Stückpreis, Betrag, Gebühren und die tatsächliche Belastung/Gutschrift; Dividenden brutto, Steuern
-     * und netto; Ein-/Ausbuchungen nur die Stückzahl (und einen ggf. hinterlegten Wert).
+     * Öffnet die Erfassungsmaske: mit {@code tx} zum Ansehen (bzw. Ändern, solange die Bewegung noch nicht
+     * exportiert ist), ohne sie zum Anlegen einer neuen. Bei einer Dividende bekommt die Maske den Bestand
+     * zum Buchungsdatum mit – die Bewegung selbst trägt keine Stückzahl, „je Stück" braucht ihn aber.
      */
-    private void showDetailDialog(SecurityTx tx) {
-        LinearLayout box = new LinearLayout(this);
-        box.setOrientation(LinearLayout.VERTICAL);
-        int pad = dp(20);
-        box.setPadding(pad, dp(4), pad, 0);
-
-        detailRow(box, R.string.depot_detail_date, dateFormat.format(new Date(tx.date)), false);
-
-        if ("dividend".equals(tx.action)) {
-            long tax = tx.amountCents - tx.netCents;
-            double held = sharesHeldAt(tx.date);
-            if (held > 0) {
-                detailRow(box, R.string.depot_detail_shares, shares(held), false);
-                detailRow(box, R.string.depot_detail_dividend_per_share,
-                        unitPrice(tx.amountCents / 100.0 / held), false);
-            }
-            detailRow(box, R.string.depot_detail_gross, money(tx.amountCents), false);
-            if (tax != 0) {
-                detailRow(box, R.string.depot_detail_tax, money(tax), false);
-            }
-            detailRow(box, R.string.depot_detail_net, money(tx.netCents), true);
-        } else if ("add".equals(tx.action) || "remove".equals(tx.action)) {
-            detailRow(box, R.string.depot_detail_shares, shares(Math.abs(tx.shares)), false);
-            if (tx.amountCents != 0) {
-                detailRow(box, R.string.depot_detail_value, money(tx.amountCents), true);
-            }
-        } else {
-            double count = Math.abs(tx.shares);
-            if (count > 0) {
-                detailRow(box, R.string.depot_detail_shares, shares(count), false);
-                detailRow(box, R.string.depot_detail_unit_price,
-                        unitPrice(tx.amountCents / 100.0 / count), false);
-            }
-            detailRow(box, R.string.depot_detail_amount, money(tx.amountCents), false);
-            // Gebühren bleiben 0, solange das Depot nicht erneut importiert wurde – dann keine Zeile und
-            // auch keine Summe, die nur den Betrag wiederholen würde.
-            if (tx.feeCents != 0) {
-                boolean sell = "sell".equals(tx.action);
-                detailRow(box, R.string.depot_detail_fees, money(tx.feeCents), false);
-                detailRow(box, sell ? R.string.depot_detail_total_credit : R.string.depot_detail_total_debit,
-                        money(sell ? tx.amountCents - tx.feeCents : tx.amountCents + tx.feeCents), true);
-            }
+    private void openEditor(SecurityTx tx) {
+        android.content.Intent i = new android.content.Intent(this, SecurityTxEditActivity.class);
+        i.putExtra(SecurityTxEditActivity.EXTRA_DEPOT, depot);
+        i.putExtra(SecurityTxEditActivity.EXTRA_KMY_ID, kmyId);
+        i.putExtra(SecurityTxEditActivity.EXTRA_NAME, securityName);
+        long at = tx != null ? tx.date : System.currentTimeMillis();
+        i.putExtra(SecurityTxEditActivity.EXTRA_SHARES_HELD, Math.max(0, sharesHeldAt(at)));
+        if (tx != null) {
+            i.putExtra(SecurityTxEditActivity.EXTRA_TX_ID, tx.id);
         }
-
-        new AppDialog(this)
-                .setTitle(actionLabel(tx.action))
-                .setView(box)
-                .setPositiveButton(android.R.string.ok, null)
-                .show();
-    }
-
-    /** Eine Zeile des Detaildialogs: Label links grau, Wert rechts einspaltig (Summenzeile fett). */
-    private void detailRow(LinearLayout box, int labelRes, String value, boolean total) {
-        LinearLayout row = new LinearLayout(this);
-        row.setOrientation(LinearLayout.HORIZONTAL);
-        row.setPadding(0, dp(6), 0, dp(6));
-
-        TextView label = new TextView(this);
-        label.setText(labelRes);
-        label.setTextSize(14f);
-        label.setTextColor(getColor(R.color.grey_text));
-        label.setLayoutParams(new LinearLayout.LayoutParams(0,
-                LinearLayout.LayoutParams.WRAP_CONTENT, 1f));
-
-        TextView text = new TextView(this);
-        text.setText(value);
-        text.setTextSize(14f);
-        text.setGravity(Gravity.END);
-        text.setTypeface(Typeface.MONOSPACE, total ? Typeface.BOLD : Typeface.NORMAL);
-        text.setTextColor(primaryTextColor());
-
-        row.addView(label);
-        row.addView(text);
-        box.addView(row);
+        startActivity(i);
     }
 
     /**

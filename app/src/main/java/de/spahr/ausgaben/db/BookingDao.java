@@ -201,8 +201,14 @@ public interface BookingDao {
     /**
      * Noch nie geschriebene Buchungen – die kommen als neue Transaktion in die Datei. Bearbeitete sind
      * bewußt nicht dabei: die stehen dort schon und werden geändert, siehe {@link #getEdited()}.
+     *
+     * <p>Ausgenommen sind die Geldbuchungen erfasster Depot-Bewegungen: in KMyMoney ist ein Kauf
+     * <b>eine</b> Transaktion aus Wertpapier- und Geld-Split. Sie wird beim Export gemeinsam mit der
+     * Bewegung geschrieben – käme die Buchung zusätzlich hier vorbei, stünde sie doppelt in der Datei.</p>
      */
-    @Query("SELECT * FROM booking WHERE exported = 0 AND edited = 0 ORDER BY created_at ASC, id ASC")
+    @Query("SELECT * FROM booking WHERE exported = 0 AND edited = 0 "
+            + "AND id NOT IN (SELECT booking_id FROM security_tx WHERE booking_id > 0) "
+            + "ORDER BY created_at ASC, id ASC")
     List<Booking> getUnexported();
 
     /** Nach dem Export geänderte Buchungen (Status „bearbeitet", siehe {@link EditStatus}). */

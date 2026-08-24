@@ -717,7 +717,7 @@
     <string name="statement_learn_message">The app noted where the values sit in this statement. Next time it will fill in the form itself.</string>
     <string name="statement_learn_yes">Remember</string>
     <string name="statement_learned">Remembered</string>
-    <string name="statement_pick_security">Which security?</string>
+    <string name="statement_pick_security">Which security belongs to %1$s?</string>
     <string name="statement_show">Show statement</string>
     <string name="statement_date_title">Date from the statement</string>
     <string name="statement_date_other">Choose another date…</string>

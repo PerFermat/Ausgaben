@@ -112,9 +112,10 @@ final class StatementImport {
                 // zu unterscheiden, welches gemeint ist.
                 labels[i] = severalDepots ? s.name + "  ·  " + s.depot : s.name;
             }
+            // Die ISIN steht im Titel, nicht als Nachricht: ein Dialog zeigt entweder eine Nachricht
+            // oder eine Liste – mit setMessage bliebe die Auswahl unsichtbar.
             new AppDialog(activity)
-                    .setTitle(R.string.statement_pick_security)
-                    .setMessage(activity.getString(R.string.statement_no_security, isin))
+                    .setTitle(activity.getString(R.string.statement_pick_security, isin))
                     .setItems(labels, (d, which) -> {
                         Security s = securities.get(which);
                         new StatementTemplates(activity)

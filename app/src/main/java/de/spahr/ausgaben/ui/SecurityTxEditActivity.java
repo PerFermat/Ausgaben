@@ -56,11 +56,6 @@ public class SecurityTxEditActivity extends LocalizedActivity {
     public static final String EXTRA_NAME = "name";
     /** Id der anzusehenden/zu ändernden Bewegung; fehlt sie, wird eine neue angelegt. */
     public static final String EXTRA_TX_ID = "txId";
-    /**
-     * Bestand zum Buchungsdatum. Eine Dividende trägt selbst keine Stückzahl – die Liste kennt sie aus
-     * allen Bewegungen und gibt sie mit, damit „je Stück" hier ohne zweite Abfrage stimmt.
-     */
-    public static final String EXTRA_SHARES_HELD = "sharesHeld";
 
     // ---- Vorbelegung aus einer eingelesenen Bankabrechnung (siehe StatementImport) ----
     public static final String EXTRA_PREFILL_ACTION = "prefillAction";
@@ -72,6 +67,8 @@ public class SecurityTxEditActivity extends LocalizedActivity {
     /** Pfad zum zwischengespeicherten Abrechnungstext; daraus lernt die App beim Speichern die Anker. */
     public static final String EXTRA_STATEMENT_TEXT = "statementText";
     public static final String EXTRA_STATEMENT_ISIN = "statementIsin";
+    /** Pfad der schon in die Belegablage kopierten Abrechnung; wird beim Speichern zum Beleg. */
+    public static final String EXTRA_STATEMENT_FILE = "statementFile";
 
     private static final String BUY = "buy";
     private static final String SELL = "sell";
@@ -84,7 +81,6 @@ public class SecurityTxEditActivity extends LocalizedActivity {
     private String depot;
     private String kmyId;
     private String securityName = "";
-    private double sharesHeld;
     private double taxRate;
 
     /** Die geladene Bewegung; {@code null} im Neu-Modus. */
@@ -101,6 +97,7 @@ public class SecurityTxEditActivity extends LocalizedActivity {
     private TextInputLayout feeLayout;
     private TextInputLayout netLayout;
     private TextInputLayout priceLayout;
+    private View sharesRow;
     private TextInputLayout accountLayout;
     private TextInputLayout feeCategoryLayout;
     private TextInputLayout incomeCategoryLayout;
@@ -111,6 +108,7 @@ public class SecurityTxEditActivity extends LocalizedActivity {
     private CategoryFilterAdapter categoryAdapter;
     private MaterialButton btnSave;
     private MaterialButton btnDelete;
+    private MaterialButton btnShowStatement;
     private LinearLayout detailBox;
     private CalcKeyboardView calcKeyboard;
 
@@ -125,6 +123,12 @@ public class SecurityTxEditActivity extends LocalizedActivity {
     /** Abrechnungstext der Sitzung; gesetzt, wenn die Maske aus einem eingelesenen PDF kam. */
     private String statementTextPath;
     private String statementIsin;
+    /** Die noch nicht endgültig abgelegte Abrechnung; beim Speichern wird sie zum Beleg. */
+    private java.io.File pendingStatement;
+    /** Beleg-Tag einer bereits gespeicherten Abrechnung (aus der Notiz der Gegenbuchung). */
+    private String savedStatementTag;
+    /** Beschriftung des aus der Abrechnung gewählten Datums; sie wird zum Anker. */
+    private String chosenDateLabel;
 
     @Override
     protected void onCreate(Bundle savedInstanceState) {
@@ -134,7 +138,6 @@ public class SecurityTxEditActivity extends LocalizedActivity {
         depot = orEmpty(getIntent().getStringExtra(EXTRA_DEPOT));
         kmyId = orEmpty(getIntent().getStringExtra(EXTRA_KMY_ID));
         securityName = orEmpty(getIntent().getStringExtra(EXTRA_NAME));
-        sharesHeld = getIntent().getDoubleExtra(EXTRA_SHARES_HELD, 0);
         repository = new Repository(this);
         taxRate = new SettingsStore(this).getDividendTaxPercent() / 100.0;
 
@@ -158,6 +161,9 @@ public class SecurityTxEditActivity extends LocalizedActivity {
         editIncomeCategory = findViewById(R.id.editIncomeCategory);
         btnSave = findViewById(R.id.btnSave);
         btnDelete = findViewById(R.id.btnDelete);
+        sharesRow = findViewById(R.id.sharesRow);
+        btnShowStatement = findViewById(R.id.btnShowStatement);
+        btnShowStatement.setOnClickListener(v -> showStatement());
         detailBox = findViewById(R.id.detailBox);
         calcKeyboard = findViewById(R.id.calcKeyboard);
 
@@ -185,6 +191,11 @@ public class SecurityTxEditActivity extends LocalizedActivity {
 
         statementTextPath = getIntent().getStringExtra(EXTRA_STATEMENT_TEXT);
         statementIsin = getIntent().getStringExtra(EXTRA_STATEMENT_ISIN);
+        String staged = getIntent().getStringExtra(EXTRA_STATEMENT_FILE);
+        if (staged != null) {
+            pendingStatement = new java.io.File(staged);
+        }
+        updateStatementButton();
 
         long txId = getIntent().getLongExtra(EXTRA_TX_ID, -1);
         if (txId >= 0) {
@@ -224,10 +235,12 @@ public class SecurityTxEditActivity extends LocalizedActivity {
             selectedDate.setTimeInMillis(date);
             updateDateField();
         }
-        prefillNumber(Field.SHARES, in.hasExtra(EXTRA_PREFILL_SHARES)
-                ? in.getDoubleExtra(EXTRA_PREFILL_SHARES, 0) : null);
-        prefillNumber(Field.PRICE, in.hasExtra(EXTRA_PREFILL_PRICE)
-                ? in.getDoubleExtra(EXTRA_PREFILL_PRICE, 0) : null);
+        if (!DIVIDEND.equals(currentAction())) {
+            prefillNumber(Field.SHARES, in.hasExtra(EXTRA_PREFILL_SHARES)
+                    ? in.getDoubleExtra(EXTRA_PREFILL_SHARES, 0) : null);
+            prefillNumber(Field.PRICE, in.hasExtra(EXTRA_PREFILL_PRICE)
+                    ? in.getDoubleExtra(EXTRA_PREFILL_PRICE, 0) : null);
+        }
         prefillMoney(Field.FEE, in.hasExtra(EXTRA_PREFILL_FEE)
                 ? in.getLongExtra(EXTRA_PREFILL_FEE, 0) : null);
         prefillMoney(Field.NET, in.hasExtra(EXTRA_PREFILL_NET)
@@ -276,7 +289,8 @@ public class SecurityTxEditActivity extends LocalizedActivity {
 
         writingBack = true;
         boolean dividend = DIVIDEND.equals(tx.action);
-        double count = dividend ? sharesHeld : Math.abs(tx.shares);
+        // Bei einer Dividende bleiben Anzahl und je Stück leer: die Stückzahl am Ex-Tag ist nicht bekannt.
+        double count = dividend ? 0 : Math.abs(tx.shares);
         if (count > 0) {
             setNumber(Field.SHARES, count);
             setNumber(Field.PRICE, tx.amountCents / 100.0 / count);
@@ -289,6 +303,7 @@ public class SecurityTxEditActivity extends LocalizedActivity {
         editAccount.setText(tx.moneyAccount, false);
         editFeeCategory.setText(tx.feeCategory, false);
         editIncomeCategory.setText(tx.incomeCategory, false);
+        loadSavedStatement(tx.bookingId);
 
         if (readOnly) {
             applyReadOnly();
@@ -387,8 +402,17 @@ public class SecurityTxEditActivity extends LocalizedActivity {
         // zwischen Anzahl × Stückpreis und der Gesamtsumme und wäre eine dritte Zahl für dieselbe Sache.
         grossLayout.setVisibility(dividend ? View.VISIBLE : View.GONE);
         incomeCategoryLayout.setVisibility(dividend ? View.VISIBLE : View.GONE);
+        // Umgekehrt bei Anzahl und Dividende je Stück: die Stückzahl, auf die eine Ausschüttung entfällt,
+        // ist der Bestand am Ex-Tag – und der steht in der Abrechnung nicht. Beides wäre hier geraten,
+        // deshalb gibt es die Felder bei einer Dividende gar nicht erst.
+        sharesRow.setVisibility(dividend ? View.GONE : View.VISIBLE);
         moveTotalField(dividend);
-        if (!dividend) {
+        if (dividend) {
+            userSet.remove(Field.SHARES);
+            userSet.remove(Field.PRICE);
+            clearField(Field.SHARES);
+            clearField(Field.PRICE);
+        } else {
             userSet.remove(Field.GROSS);
         }
     }
@@ -413,6 +437,12 @@ public class SecurityTxEditActivity extends LocalizedActivity {
         // und ein vorher berechneter Index läge eine Zeile zu tief.
         form.removeView(netLayout);
         form.addView(netLayout, form.indexOfChild(predecessor) + 1);
+    }
+
+    private void clearField(Field field) {
+        writingBack = true;
+        numberFields.get(field).setText("");
+        writingBack = false;
     }
 
     private String currentAction() {
@@ -612,11 +642,6 @@ public class SecurityTxEditActivity extends LocalizedActivity {
             if (textOf(editIncomeCategory).trim().isEmpty()) {
                 editIncomeCategory.setText(last.incomeCategory, false);
             }
-            if (DIVIDEND.equals(action) && sharesHeld > 0 && !userSet.contains(Field.SHARES)) {
-                writingBack = true;
-                setNumber(Field.SHARES, sharesHeld);
-                writingBack = false;
-            }
         });
     }
 
@@ -650,8 +675,8 @@ public class SecurityTxEditActivity extends LocalizedActivity {
         tx.securityName = securityName;
         tx.date = selectedDate.getTimeInMillis();
         tx.action = action;
-        // Eine Dividende bewegt keine Stücke – stünde die eingegebene Anzahl hier, verfälschte sie den
-        // Bestand. Sie diente nur dazu, aus „je Stück" den Bruttobetrag zu rechnen.
+        // Eine Dividende bewegt keine Stücke; die Maske fragt dort auch keine Anzahl mehr ab, weil der
+        // Bestand am Ex-Tag nicht in der Abrechnung steht.
         tx.shares = dividend ? 0 : (SELL.equals(action) ? -Math.abs(count) : Math.abs(count));
         tx.amountCents = gross;
         tx.netCents = dividend ? net : gross;
@@ -661,6 +686,13 @@ public class SecurityTxEditActivity extends LocalizedActivity {
         tx.incomeCategory = dividend ? textOf(editIncomeCategory).trim() : "";
 
         Booking booking = buildBooking(action, account, net);
+        // Die Abrechnung wird zum Beleg der Gegenbuchung – dauerhaft und über denselben Weg wie die
+        // Belege der übrigen Buchungen (Ablage, Jahresordner, Abgleich, Export).
+        if (pendingStatement != null) {
+            booking.note = de.spahr.ausgaben.receipt.SingleReceipt.attach(
+                    this, pendingStatement, booking.note, booking.createdAt);
+            pendingStatement = null;
+        }
         final Long feeForLearning = fee;
         Runnable done = () -> {
             Toast.makeText(this, R.string.security_tx_saved, Toast.LENGTH_SHORT).show();
@@ -693,11 +725,14 @@ public class SecurityTxEditActivity extends LocalizedActivity {
         }
         TemplateLearner.Known known = new TemplateLearner.Known();
         known.action = action;
-        known.shares = shares;
-        known.price = DIVIDEND.equals(action) ? null : price;   // bei Dividenden steht er in Fremdwährung
+        // Bei einer Dividende gibt es weder Stückzahl noch Stückpreis: die Anzahl am Ex-Tag steht nicht in
+        // der Abrechnung, und die Ausschüttung je Stück ist dort in Fremdwährung ausgewiesen.
+        known.shares = DIVIDEND.equals(action) ? null : shares;
+        known.price = DIVIDEND.equals(action) ? null : price;
         known.feeCents = feeCents;
         known.netCents = netCents;
         known.dateMillis = selectedDate.getTimeInMillis();
+        known.dateAnchor = chosenDateLabel;
         final StatementTemplate learned = TemplateLearner.learn(text, known);
         if (learned.isEmpty()) {
             finish();
@@ -730,6 +765,74 @@ public class SecurityTxEditActivity extends LocalizedActivity {
         } catch (Exception e) {
             return null;
         }
+    }
+
+    // ---- Die Abrechnung als Beleg ----
+
+    /**
+     * Öffnet die zugehörige Abrechnung in einem PDF-Betrachter — beim Eintippen der Werte hat man sie
+     * damit nebenher offen, und später ist sie der Beleg zur Buchung.
+     */
+    private void showStatement() {
+        java.io.File file = pendingStatement;
+        if (file == null && savedStatementTag != null) {
+            file = statementFile();
+        }
+        if (file == null || !file.exists()) {
+            Toast.makeText(this, R.string.receipt_error, Toast.LENGTH_SHORT).show();
+            return;
+        }
+        try {
+            android.net.Uri uri = androidx.core.content.FileProvider.getUriForFile(
+                    this, getPackageName() + ".fileprovider", file);
+            startActivity(new android.content.Intent(android.content.Intent.ACTION_VIEW)
+                    .setDataAndType(uri, "application/pdf")
+                    .addFlags(android.content.Intent.FLAG_GRANT_READ_URI_PERMISSION));
+        } catch (android.content.ActivityNotFoundException e) {
+            Toast.makeText(this, R.string.receipt_pdf_no_viewer, Toast.LENGTH_LONG).show();
+        } catch (Exception e) {
+            Toast.makeText(this, R.string.receipt_error, Toast.LENGTH_SHORT).show();
+        }
+    }
+
+    /** Die gespeicherte Belegdatei zum Tag aus der Notiz; {@code null}, wenn sie nicht (mehr) lokal liegt. */
+    private java.io.File statementFile() {
+        java.util.List<String> pages = de.spahr.ausgaben.receipt.ReceiptPages.find(
+                this, savedStatementTag, yearOf(selectedDate.getTimeInMillis()),
+                de.spahr.ausgaben.receipt.NoteReceipt.PDF);
+        if (pages.isEmpty()) {
+            return null;
+        }
+        return de.spahr.ausgaben.receipt.Receipts.localFile(this, pages.get(0));
+    }
+
+    private static int yearOf(long millis) {
+        Calendar c = Calendar.getInstance();
+        c.setTimeInMillis(millis);
+        return c.get(Calendar.YEAR);
+    }
+
+    /** Den Knopf nur zeigen, wenn es wirklich eine Abrechnung zu sehen gibt. */
+    private void updateStatementButton() {
+        boolean available = pendingStatement != null || savedStatementTag != null;
+        btnShowStatement.setVisibility(available ? View.VISIBLE : View.GONE);
+    }
+
+    /**
+     * Sucht die angehängte Abrechnung einer gespeicherten Bewegung. Sie hängt an der Gegenbuchung — die
+     * Bewegung selbst führt keine Notiz, die Buchung schon, und damit greift die vorhandene Belegablage
+     * samt Abgleich und Export.
+     */
+    private void loadSavedStatement(long bookingId) {
+        if (bookingId <= 0) {
+            return;
+        }
+        repository.getBookingById(bookingId, b -> {
+            if (b != null) {
+                savedStatementTag = de.spahr.ausgaben.receipt.NoteReceipt.pdfName(b.note);
+                updateStatementButton();
+            }
+        });
     }
 
     /**
@@ -768,7 +871,56 @@ public class SecurityTxEditActivity extends LocalizedActivity {
 
     // ---- Kleinkram ----
 
+    /**
+     * Tipp aufs Datumsfeld. Kam die Maske aus einer Abrechnung, in der die App das gebuchte Datum noch
+     * nicht kennt, legt sie erst die im Dokument gefundenen zur Auswahl vor — eine Abrechnung trägt
+     * mehrere (Briefdatum, Ex-Tag, Zahltag, Valuta), und welches gemeint ist, wäre geraten. Die Wahl
+     * bringt der Vorlage beim Speichern den Anker bei, ab dann kommt das Datum von selbst.
+     */
     private void showDatePicker() {
+        java.util.List<de.spahr.ausgaben.statement.StatementScan.DateCandidate> found = statementDates();
+        if (found.isEmpty()) {
+            showCalendar();
+            return;
+        }
+        CharSequence[] labels = new CharSequence[found.size() + 1];
+        for (int i = 0; i < found.size(); i++) {
+            // Manche Beschriftungen tragen den Doppelpunkt schon („Datum:"), dann keinen zweiten.
+            String label = found.get(i).label.trim();
+            if (label.endsWith(":")) {
+                label = label.substring(0, label.length() - 1).trim();
+            }
+            labels[i] = label + ":  " + dateFormat.format(new Date(found.get(i).millis));
+        }
+        labels[found.size()] = getString(R.string.statement_date_other);
+        new AppDialog(this)
+                .setTitle(R.string.statement_date_title)
+                .setItems(labels, (d, which) -> {
+                    if (which >= found.size()) {
+                        showCalendar();
+                        return;
+                    }
+                    selectedDate.setTimeInMillis(found.get(which).millis);
+                    chosenDateLabel = found.get(which).label;
+                    updateDateField();
+                })
+                .show();
+    }
+
+    /**
+     * Die Datumsangaben der eingelesenen Abrechnung — leer, wenn die Maske nicht aus einer stammt oder
+     * die Vorlage das Datum bereits kennt (dann steht es schon im Feld).
+     */
+    private java.util.List<de.spahr.ausgaben.statement.StatementScan.DateCandidate> statementDates() {
+        if (statementTextPath == null || readOnly) {
+            return java.util.Collections.emptyList();
+        }
+        de.spahr.ausgaben.pdf.PdfText text = readStatementText();
+        return text == null ? java.util.Collections.emptyList()
+                : de.spahr.ausgaben.statement.StatementScan.dates(text);
+    }
+
+    private void showCalendar() {
         new DatePickerDialog(this, (view, year, month, day) -> {
             selectedDate.set(Calendar.YEAR, year);
             selectedDate.set(Calendar.MONTH, month);

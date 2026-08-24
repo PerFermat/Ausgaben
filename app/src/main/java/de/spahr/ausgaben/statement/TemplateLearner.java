@@ -38,6 +38,12 @@ public final class TemplateLearner {
         public Long feeCents;
         public Long netCents;
         public long dateMillis = -1;
+        /**
+         * Die Beschriftung, die der Nutzer für das Datum ausgewählt hat — sie hat Vorrang. Nötig, weil
+         * mehrere Zeilen dasselbe Datum tragen können („Zahltag" und „Valuta" fallen oft zusammen); ohne
+         * seine Wahl würde die unterste gelernt, und in der nächsten Abrechnung wäre es die falsche.
+         */
+        public String dateAnchor;
     }
 
     /**
@@ -59,7 +65,8 @@ public final class TemplateLearner {
         put(rules, StatementTemplate.Field.FEE, forValue(text, cents(known.feeCents), used), used);
         put(rules, StatementTemplate.Field.PRICE, forValue(text, known.price, used), used);
         put(rules, StatementTemplate.Field.SHARES, forValue(text, known.shares, used), used);
-        put(rules, StatementTemplate.Field.DATE, forDate(text, known.dateMillis, used), used);
+        put(rules, StatementTemplate.Field.DATE,
+                forDate(text, known.dateMillis, known.dateAnchor, used), used);
         return new StatementTemplate(known.action, rules);
     }
 
@@ -171,7 +178,7 @@ public final class TemplateLearner {
     }
 
     /** Das gebuchte Datum: die Zeile suchen, in der genau dieses Datum steht. */
-    private static AnchorRule forDate(PdfText text, long dateMillis, List<String> used) {
+    private static AnchorRule forDate(PdfText text, long dateMillis, String chosen, List<String> used) {
         if (dateMillis <= 0) {
             return null;
         }
@@ -181,9 +188,13 @@ public final class TemplateLearner {
                 continue;
             }
             String label = labelOf(line.text());
-            if (isUsable(label, used)) {
-                anchor = label;
+            if (!isUsable(label, used)) {
+                continue;
             }
+            if (chosen != null && chosen.equalsIgnoreCase(label)) {
+                return AnchorRule.single(label, AnchorRule.Direction.SAME_LINE);   // seine Wahl gewinnt
+            }
+            anchor = label;
         }
         return anchor == null ? null : AnchorRule.single(anchor, AnchorRule.Direction.SAME_LINE);
     }

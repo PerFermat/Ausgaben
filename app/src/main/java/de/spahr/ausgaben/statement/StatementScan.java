@@ -54,6 +54,52 @@ public final class StatementScan {
         return containsAny(all, BUY_WORDS) ? BUY : null;
     }
 
+    /** Ein im Dokument gefundenes Datum samt der Beschriftung seiner Zeile. */
+    public static final class DateCandidate {
+        public final String label;
+        public final long millis;
+
+        DateCandidate(String label, long millis) {
+            this.label = label;
+            this.millis = millis;
+        }
+    }
+
+    /**
+     * Alle Datumsangaben des Dokuments mit ihrer Beschriftung, ohne Wiederholungen.
+     *
+     * <p>Eine Abrechnung trägt mehrere — Briefdatum, Ausführungstag, Ex-Tag, Zahltag, Valuta. Welches
+     * gebucht gehört, kann die App nicht wissen, solange sie es für diese Bank nicht gelernt hat. Statt
+     * zu raten, legt sie dem Nutzer die gefundenen vor; seine Wahl wird dann zum Anker.</p>
+     */
+    public static java.util.List<DateCandidate> dates(PdfText text) {
+        java.util.List<DateCandidate> out = new java.util.ArrayList<>();
+        if (text == null) {
+            return out;
+        }
+        for (PdfText.Line line : text.lines()) {
+            long millis = AnchorRule.firstDate(line.text());
+            if (millis <= 0) {
+                continue;
+            }
+            String label = TemplateLearner.labelOf(line.text());
+            if (label.trim().length() < 3) {
+                continue;   // ohne Beschriftung wäre die Auswahl nicht zu unterscheiden
+            }
+            boolean known = false;
+            for (DateCandidate c : out) {
+                if (c.millis == millis && c.label.equalsIgnoreCase(label)) {
+                    known = true;
+                    break;
+                }
+            }
+            if (!known) {
+                out.add(new DateCandidate(label, millis));
+            }
+        }
+        return out;
+    }
+
     /** Die ISIN der Abrechnung, oder {@code null} (siehe {@link Isin#single}). */
     public static String isin(PdfText text) {
         return Isin.single(text);

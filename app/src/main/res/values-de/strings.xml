@@ -717,4 +717,7 @@
     <string name="statement_learn_yes">Merken</string>
     <string name="statement_learned">Gemerkt</string>
     <string name="statement_pick_security">Welches Wertpapier?</string>
+    <string name="statement_show">Abrechnung anzeigen</string>
+    <string name="statement_date_title">Datum aus der Abrechnung</string>
+    <string name="statement_date_other">Anderes Datum wählen…</string>
 </resources>

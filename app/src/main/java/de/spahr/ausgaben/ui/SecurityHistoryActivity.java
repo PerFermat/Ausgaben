@@ -287,35 +287,17 @@ public class SecurityHistoryActivity extends LocalizedActivity {
 
     /**
      * Öffnet die Erfassungsmaske: mit {@code tx} zum Ansehen (bzw. Ändern, solange die Bewegung noch nicht
-     * exportiert ist), ohne sie zum Anlegen einer neuen. Bei einer Dividende bekommt die Maske den Bestand
-     * zum Buchungsdatum mit – die Bewegung selbst trägt keine Stückzahl, „je Stück" braucht ihn aber.
+     * exportiert ist), ohne sie zum Anlegen einer neuen.
      */
     private void openEditor(SecurityTx tx) {
         android.content.Intent i = new android.content.Intent(this, SecurityTxEditActivity.class);
         i.putExtra(SecurityTxEditActivity.EXTRA_DEPOT, depot);
         i.putExtra(SecurityTxEditActivity.EXTRA_KMY_ID, kmyId);
         i.putExtra(SecurityTxEditActivity.EXTRA_NAME, securityName);
-        long at = tx != null ? tx.date : System.currentTimeMillis();
-        i.putExtra(SecurityTxEditActivity.EXTRA_SHARES_HELD, Math.max(0, sharesHeldAt(at)));
         if (tx != null) {
             i.putExtra(SecurityTxEditActivity.EXTRA_TX_ID, tx.id);
         }
         startActivity(i);
-    }
-
-    /**
-     * Bestand zum Buchungsdatum – für die Bruttodividende je Stück, denn eine Dividendenbuchung selbst
-     * trägt keine Stückzahl. Summiert die vorzeichenbehafteten Stückzahlen aller Bewegungen bis dahin;
-     * gerechnet wird über {@link #allTx} (alle Bewegungen), nicht über die gefilterte Anzeige.
-     */
-    private double sharesHeldAt(long date) {
-        double sum = 0;
-        for (SecurityTx t : allTx) {
-            if (t.date <= date) {
-                sum += t.shares;
-            }
-        }
-        return sum;
     }
 
     /**

@@ -114,6 +114,30 @@ public class TemplateLearnerTest {
         }
     }
 
+    /**
+     * „Zahltag" und „Valuta" tragen in der Ertragsgutschrift dasselbe Datum. Ohne die ausdrückliche Wahl
+     * des Nutzers gewänne die unterste Zeile — in der nächsten Abrechnung, wo die beiden auseinanderfallen,
+     * wäre das die falsche.
+     */
+    @Test
+    public void dieGewählteDatumsbeschriftungGewinnt() {
+        TemplateLearner.Known k = dividende();
+        k.dateAnchor = "Zahltag";
+        AnchorRule date = TemplateLearner.learn(StatementFixtures.ingDividende(), k)
+                .rule(StatementTemplate.Field.DATE);
+        assertNotNull(date);
+        assertEquals("Zahltag", date.anchors.get(0));
+    }
+
+    @Test
+    public void ohneWahlGewinntWeiterhinDieUntersteZeile() {
+        TemplateLearner.Known k = dividende();
+        AnchorRule date = TemplateLearner.learn(StatementFixtures.ingDividende(), k)
+                .rule(StatementTemplate.Field.DATE);
+        assertNotNull(date);
+        assertEquals("Valuta", date.anchors.get(0));
+    }
+
     // ---- Anwenden ----
 
     @Test

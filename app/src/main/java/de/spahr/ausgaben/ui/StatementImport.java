@@ -60,12 +60,13 @@ final class StatementImport {
                         Toast.makeText(activity, R.string.statement_no_text, Toast.LENGTH_LONG).show());
                 return;
             }
-            activity.runOnUiThread(() -> resolve(activity, repository, text));
+            activity.runOnUiThread(() -> resolve(activity, repository, text, uri));
         });
     }
 
     /** Wertpapier über die ISIN suchen — erst in den importierten Stammdaten, dann im Gelernten. */
-    private static void resolve(AppCompatActivity activity, Repository repository, PdfText text) {
+    private static void resolve(AppCompatActivity activity, Repository repository,
+                                PdfText text, Uri source) {
         final String isin = StatementScan.isin(text);
         if (isin == null) {
             Toast.makeText(activity, R.string.statement_no_isin, Toast.LENGTH_LONG).show();
@@ -73,12 +74,12 @@ final class StatementImport {
         }
         repository.getSecurityByIsin(isin, security -> {
             if (security != null) {
-                start(activity, text, isin, security.depot, security.kmyId, security.name);
+                start(activity, text, source, isin, security.depot, security.kmyId, security.name);
                 return;
             }
             String[] learned = new StatementTemplates(activity).security(isin);
             if (learned != null) {
-                start(activity, text, isin, learned[0], learned[1], learned[2]);
+                start(activity, text, source, isin, learned[0], learned[1], learned[2]);
                 return;
             }
             // Die ISIN ist unbekannt. Ohne Wertpapier lässt sich keine Bewegung anlegen; den Nutzer hier
@@ -89,7 +90,7 @@ final class StatementImport {
     }
 
     /** Vorlage anwenden (falls gelernt) und die Maske mit dem Ergebnis öffnen. */
-    private static void start(AppCompatActivity activity, PdfText text, String isin,
+    private static void start(AppCompatActivity activity, PdfText text, Uri source, String isin,
                               String depot, String kmyId, String name) {
         StatementTemplates store = new StatementTemplates(activity);
         StatementTemplate template = store.match(text);
@@ -117,6 +118,12 @@ final class StatementImport {
         }
         if (e.netCents != null) {
             i.putExtra(SecurityTxEditActivity.EXTRA_PREFILL_NET, e.netCents);
+        }
+        // Die Abrechnung wandert schon jetzt in die Belegablage – beim Speichern wird sie dort zum Beleg
+        // der Gegenbuchung, und bis dahin lässt sie sich in der Maske ansehen.
+        java.io.File staged = de.spahr.ausgaben.receipt.SingleReceipt.stage(activity, source);
+        if (staged != null) {
+            i.putExtra(SecurityTxEditActivity.EXTRA_STATEMENT_FILE, staged.getAbsolutePath());
         }
         // Der Text bleibt für die Sitzung liegen: beim Speichern leitet die Maske daraus die Anker ab.
         String cached = cache(activity, text);

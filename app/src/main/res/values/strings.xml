@@ -718,4 +718,7 @@
     <string name="statement_learn_yes">Remember</string>
     <string name="statement_learned">Remembered</string>
     <string name="statement_pick_security">Which security?</string>
+    <string name="statement_show">Show statement</string>
+    <string name="statement_date_title">Date from the statement</string>
+    <string name="statement_date_other">Choose another date…</string>
 </resources>

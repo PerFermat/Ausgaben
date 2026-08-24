@@ -21,8 +21,17 @@ import de.spahr.ausgaben.util.TextValues;
  */
 public final class TemplateLearner {
 
-    /** Zahlen gelten als gleich, wenn sie sich um weniger als das unterscheiden (Rundung im PDF). */
-    private static final double EPSILON = 0.0000005;
+    /** Stückzahlen müssen genau stimmen – 0,005 Stück wären bei einem Sparplan ein echter Unterschied. */
+    private static final double SHARE_EPSILON = 0.0000005;
+
+    /**
+     * Geldbeträge und Kurse dürfen um einen halben Cent abweichen.
+     *
+     * <p>Nötig, weil die Maske einen fehlenden Wert zurückrechnet und dabei in der letzten Stelle von der
+     * Bank abweicht: 1.000,00 ÷ 6,09607 ergibt 164,0401, im Dokument steht 164,04. Ohne die Toleranz
+     * fände der Lerner die Zeile nicht und käme nie zu einer Kursregel — der Wert der Abrechnung gilt.</p>
+     */
+    private static final double MONEY_EPSILON = 0.005;
 
     /** Höchstens so viele Zeilen werden zu einer Summe zusammengesucht (Steuer + Soli + Kirchensteuer). */
     private static final int MAX_SUMMANDS = 3;
@@ -61,10 +70,14 @@ public final class TemplateLearner {
 
         // Reihenfolge nach Unterscheidungskraft: die Gesamtsumme ist die kennzeichnendste Zahl, die
         // Stückzahl die unscheinbarste – eine glatte 10 findet sich in einer Abrechnung schnell mehrfach.
-        put(rules, StatementTemplate.Field.NET, forValue(text, cents(known.netCents), used), used);
-        put(rules, StatementTemplate.Field.FEE, forValue(text, cents(known.feeCents), used), used);
-        put(rules, StatementTemplate.Field.PRICE, forValue(text, known.price, used), used);
-        put(rules, StatementTemplate.Field.SHARES, forValue(text, known.shares, used), used);
+        put(rules, StatementTemplate.Field.NET,
+                forValue(text, cents(known.netCents), MONEY_EPSILON, used), used);
+        put(rules, StatementTemplate.Field.FEE,
+                forValue(text, cents(known.feeCents), MONEY_EPSILON, used), used);
+        put(rules, StatementTemplate.Field.PRICE,
+                forValue(text, known.price, MONEY_EPSILON, used), used);
+        put(rules, StatementTemplate.Field.SHARES,
+                forValue(text, known.shares, SHARE_EPSILON, used), used);
         put(rules, StatementTemplate.Field.DATE,
                 forDate(text, known.dateMillis, known.dateAnchor, used), used);
         return new StatementTemplate(known.action, rules);
@@ -87,25 +100,26 @@ public final class TemplateLearner {
      * nicht, wird er als <b>Summe</b> mehrerer Zeilen gesucht — so steht die Steuer bei der ING, auf
      * Kapitalertragsteuer und Solidaritätszuschlag verteilt.
      */
-    private static AnchorRule forValue(PdfText text, Double value, List<String> used) {
+    private static AnchorRule forValue(PdfText text, Double value, double epsilon, List<String> used) {
         if (value == null) {
             return null;
         }
-        AnchorRule single = singleLine(text, value, used);
+        AnchorRule single = singleLine(text, value, epsilon, used);
         if (single != null) {
             return single;
         }
-        return summedLines(text, value, used);
+        return summedLines(text, value, epsilon, used);
     }
 
     /** Der Wert steht als letzte Zahl einer Zeile — der Regelfall. */
-    private static AnchorRule singleLine(PdfText text, double value, List<String> used) {
+    private static AnchorRule singleLine(PdfText text, double value, double epsilon,
+                                         List<String> used) {
         String anchor = null;
         AnchorRule.Direction direction = AnchorRule.Direction.SAME_LINE;
         List<PdfText.Line> lines = text.lines();
         for (int i = 0; i < lines.size(); i++) {
             Double last = AnchorRule.lastNumber(lines.get(i).text());
-            if (last == null || Math.abs(last - value) > EPSILON) {
+            if (last == null || Math.abs(last - value) > epsilon) {
                 continue;
             }
             // Beschriftung in derselben Zeile; hat die Zeile keine, steht sie eine Zeile darüber.
@@ -127,7 +141,8 @@ public final class TemplateLearner {
     }
 
     /** Der Wert ist die Summe der letzten Zahlen mehrerer Zeilen (aufgeteilte Steuer). */
-    private static AnchorRule summedLines(PdfText text, double value, List<String> used) {
+    private static AnchorRule summedLines(PdfText text, double value, double epsilon,
+                                          List<String> used) {
         List<String> labels = new ArrayList<>();
         List<Double> values = new ArrayList<>();
         for (PdfText.Line line : text.lines()) {
@@ -138,7 +153,7 @@ public final class TemplateLearner {
                 values.add(last);
             }
         }
-        List<Integer> pick = subsetSummingTo(values, value, MAX_SUMMANDS);
+        List<Integer> pick = subsetSummingTo(values, value, epsilon, MAX_SUMMANDS);
         if (pick == null) {
             return null;
         }
@@ -150,10 +165,11 @@ public final class TemplateLearner {
     }
 
     /** Sucht bis zu {@code max} Zeilen, deren Werte zusammen {@code target} ergeben; null wenn keine. */
-    private static List<Integer> subsetSummingTo(List<Double> values, double target, int max) {
+    private static List<Integer> subsetSummingTo(List<Double> values, double target, double epsilon,
+                                                 int max) {
         int n = values.size();
         for (int size = 2; size <= max; size++) {
-            List<Integer> found = search(values, target, size, 0, new ArrayList<Integer>(), n);
+            List<Integer> found = search(values, target, epsilon, size, 0, new ArrayList<Integer>(), n);
             if (found != null) {
                 return found;
             }
@@ -161,14 +177,15 @@ public final class TemplateLearner {
         return null;
     }
 
-    private static List<Integer> search(List<Double> values, double remaining, int left, int from,
-                                        List<Integer> chosen, int n) {
+    private static List<Integer> search(List<Double> values, double remaining, double epsilon, int left,
+                                        int from, List<Integer> chosen, int n) {
         if (left == 0) {
-            return Math.abs(remaining) <= EPSILON ? new ArrayList<>(chosen) : null;
+            return Math.abs(remaining) <= epsilon ? new ArrayList<>(chosen) : null;
         }
         for (int i = from; i <= n - left; i++) {
             chosen.add(i);
-            List<Integer> found = search(values, remaining - values.get(i), left - 1, i + 1, chosen, n);
+            List<Integer> found = search(values, remaining - values.get(i), epsilon, left - 1, i + 1,
+                    chosen, n);
             if (found != null) {
                 return found;
             }

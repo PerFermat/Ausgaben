@@ -138,6 +138,41 @@ public class TemplateLearnerTest {
         assertEquals("Valuta", date.anchors.get(0));
     }
 
+    /**
+     * Der zurückgerechnete Kurs weicht in der letzten Stelle ab: 1.000,00 ÷ 6,09607 ergibt 164,0401,
+     * im Dokument steht 164,04. Ein halber Cent Toleranz lässt die Zeile trotzdem finden — sonst käme
+     * die Vorlage nie zu einer Kursregel, und bei jedem Einlesen käme die Rückfrage erneut.
+     */
+    @Test
+    public void einZurückgerechneterKursFindetSeineZeileTrotzdem() {
+        TemplateLearner.Known k = kauf();
+        k.price = 1000.00 / 6.09607;   // 164,0401…
+        AnchorRule price = TemplateLearner.learn(StatementFixtures.ingKauf(), k)
+                .rule(StatementTemplate.Field.PRICE);
+        assertNotNull("sollte die Kurszeile finden", price);
+        assertEquals("Kurs", price.anchors.get(0));
+        // Gelesen wird danach der Wert der Abrechnung, nicht der gerechnete.
+        assertEquals(Double.valueOf(164.04), price.read(StatementFixtures.ingKauf()));
+    }
+
+    /** Ein Kurs, der um mehr als einen halben Cent abweicht, ist ein anderer Wert. */
+    @Test
+    public void einDeutlichAbweichenderKursFindetNichts() {
+        TemplateLearner.Known k = kauf();
+        k.price = 164.05;
+        assertNull(TemplateLearner.learn(StatementFixtures.ingKauf(), k)
+                .rule(StatementTemplate.Field.PRICE));
+    }
+
+    /** Bei Stückzahlen bleibt es eng: 0,005 Stück wären bei einem Sparplan ein echter Unterschied. */
+    @Test
+    public void beiStückzahlenGiltKeineToleranz() {
+        TemplateLearner.Known k = kauf();
+        k.shares = 6.09;
+        assertNull(TemplateLearner.learn(StatementFixtures.ingKauf(), k)
+                .rule(StatementTemplate.Field.SHARES));
+    }
+
     // ---- Anwenden ----
 
     @Test

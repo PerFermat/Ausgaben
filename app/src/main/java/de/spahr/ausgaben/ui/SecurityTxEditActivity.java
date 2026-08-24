@@ -119,6 +119,8 @@ public class SecurityTxEditActivity extends LocalizedActivity {
     private Field justEdited;
     /** Schützt vor Rückkopplung, während die Rechnung Felder beschreibt. */
     private boolean writingBack;
+    /** Läuft gerade die Vorbelegung aus einer Abrechnung? Dann verdrängt kein Wert den anderen. */
+    private boolean prefilling;
     private boolean conflict;
     /** Abrechnungstext der Sitzung; gesetzt, wenn die Maske aus einem eingelesenen PDF kam. */
     private String statementTextPath;
@@ -251,20 +253,34 @@ public class SecurityTxEditActivity extends LocalizedActivity {
                 ? in.getLongExtra(EXTRA_PREFILL_FEE, 0) : null);
         prefillMoney(Field.NET, in.hasExtra(EXTRA_PREFILL_NET)
                 ? in.getLongExtra(EXTRA_PREFILL_NET, 0) : null);
+        // Die Werte stammen aus dem Dokument und stehen fest – der Stückpreis der Bank ist genauer als
+        // einer, den die Maske aus Summe und Stückzahl zurückrechnet.
+        prefilling = true;
         recompute(null);
+        prefilling = false;
     }
 
+    /**
+     * Setzt ein Feld aus der Abrechnung. Der Beobachter bleibt dabei stumm: liefe er mit, rechnete die
+     * Maske nach jedem einzelnen Feld neu, und beim letzten wäre die Stück-Gruppe überbestimmt — dann
+     * gäbe der Stückpreis nach und würde durch einen zurückgerechneten ersetzt (164,0401 statt der 164,04
+     * aus dem Dokument). Gerechnet wird deshalb erst am Ende, in einem Durchgang.
+     */
     private void prefillNumber(Field field, Double value) {
         if (value != null) {
+            writingBack = true;
             numberFields.get(field).setText(field == Field.SHARES
                     ? MoneyFormat.shares(value) : MoneyFormat.decimal(value, 0, 4));
+            writingBack = false;
             userSet.add(field);
         }
     }
 
     private void prefillMoney(Field field, Long cents) {
         if (cents != null) {
+            writingBack = true;
             numberFields.get(field).setText(MoneyFormat.plain(cents));
+            writingBack = false;
             userSet.add(field);
         }
     }
@@ -526,6 +542,7 @@ public class SecurityTxEditActivity extends LocalizedActivity {
         in.taxRate = taxRate;
         in.lastComputed = lastComputed;
         in.justEdited = justEdited;
+        in.keepGiven = prefilling;
         in.shares = userSet.contains(Field.SHARES) ? number(Field.SHARES) : null;
         in.price = userSet.contains(Field.PRICE) ? number(Field.PRICE) : null;
         in.grossCents = userSet.contains(Field.GROSS) ? money(Field.GROSS) : null;
@@ -711,10 +728,13 @@ public class SecurityTxEditActivity extends LocalizedActivity {
                     this, pendingStatement, booking.note, booking.createdAt);
             pendingStatement = null;
         }
-        final Long feeForLearning = fee;
+        final Double sharesGiven = number(Field.SHARES);
+        final Double priceGiven = number(Field.PRICE);
+        final Long feeGiven = money(Field.FEE);
+        final Long netGiven = money(Field.NET);
         Runnable done = () -> {
             Toast.makeText(this, R.string.security_tx_saved, Toast.LENGTH_SHORT).show();
-            offerToLearn(action, count, number(Field.PRICE), feeForLearning, net);
+            offerToLearn(action, sharesGiven, priceGiven, feeGiven, netGiven);
         };
         if (loaded != null) {
             repository.updateManualSecurityTx(tx, booking, done);

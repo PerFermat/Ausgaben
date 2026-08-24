@@ -120,6 +120,49 @@ public class SecurityAmountsTest {
         assertNull(r.netCents);
     }
 
+    /**
+     * Vorbelegung aus einer Abrechnung: Anzahl, Stückpreis und Summe stehen alle drei im Dokument. Ohne
+     * {@code keepGiven} gäbe der Stückpreis nach und würde zurückgerechnet — aus 164,04 würden
+     * 1.000,00 ÷ 6,09607 = 164,0401. Diese Zahl steht in der Abrechnung nirgends, und die Auslese könnte
+     * daraus später keine Regel mehr lernen.
+     */
+    @Test
+    public void ausDerAbrechnungÜbernommeneWerteVerdrängenEinanderNicht() {
+        SecurityAmounts.Input i = in("buy");
+        i.shares = 6.09607;
+        i.price = 164.04;
+        i.netCents = 100000L;
+        i.keepGiven = true;
+        SecurityAmounts.Result r = SecurityAmounts.solve(i);
+        assertEquals(164.04, r.price, 1e-9);
+        assertEquals(6.09607, r.shares, 1e-9);
+        assertEquals(100000L, (long) r.netCents);
+    }
+
+    /** Ohne das Kennzeichen bleibt es beim bisherigen Verhalten: der Stückpreis gibt nach. */
+    @Test
+    public void ohneDasKennzeichenGibtDerStückpreisWeiterhinNach() {
+        SecurityAmounts.Input i = in("buy");
+        i.shares = 6.09607;
+        i.price = 164.04;
+        i.netCents = 100000L;
+        SecurityAmounts.Result r = SecurityAmounts.solve(i);
+        assertEquals(SecurityAmounts.Field.PRICE, r.computed);
+        assertEquals(164.0401, r.price, 1e-4);
+    }
+
+    /** Auch bei fester Vorbelegung wird ergänzt, was fehlt. */
+    @Test
+    public void beiFesterVorbelegungWirdFehlendesTrotzdemErgänzt() {
+        SecurityAmounts.Input i = in("buy");
+        i.shares = 6.09607;
+        i.price = 164.04;
+        i.keepGiven = true;
+        SecurityAmounts.Result r = SecurityAmounts.solve(i);
+        assertEquals(Math.round(6.09607 * 164.04 * 100.0), (long) r.grossCents);
+        assertEquals((long) r.grossCents, (long) r.netCents);
+    }
+
     // ---- Dividende ----
 
     @Test

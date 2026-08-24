@@ -61,6 +61,13 @@ public final class SecurityAmounts {
         public Field lastComputed;
         /** Das Feld, das der Nutzer gerade geändert hat; es bleibt in jedem Fall stehen. */
         public Field justEdited;
+        /**
+         * Alle übergebenen Werte stehen fest und dürfen einander nicht verdrängen — für die Vorbelegung
+         * aus einer eingelesenen Abrechnung. Dort ist jede Zahl abgelesen, nicht gerechnet: der
+         * Stückpreis der Bank ist genauer als alles, was sich aus Summe geteilt durch Stückzahl ergäbe
+         * (1.000,00 ÷ 6,09607 = 164,0401, im Dokument steht 164,04). Ergänzt wird dann nur, was fehlt.
+         */
+        public boolean keepGiven;
     }
 
     /** Das Ergebnis: dieselben fünf Größen, ergänzt um alles Ableitbare. */
@@ -112,8 +119,9 @@ public final class SecurityAmounts {
         }
 
         // Überbestimmte Stück-Gruppe: eines der drei Felder wird wieder zum berechneten. Der Betrag
-        // scheidet aus, wenn ihn die eingegebene Gesamtsumme festnagelt.
-        if (r.shares != null && r.price != null && r.grossCents != null) {
+        // scheidet aus, wenn ihn die eingegebene Gesamtsumme festnagelt. Stammen die Werte aus einer
+        // Abrechnung, gibt keiner nach – sie stehen alle so im Dokument.
+        if (!in.keepGiven && r.shares != null && r.price != null && r.grossCents != null) {
             Field give = yieldingField(in, grossPinned);
             r.computed = give;
             switch (give) {

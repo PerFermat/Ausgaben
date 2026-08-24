@@ -1554,6 +1554,11 @@ public class Repository {
         depotRepo.getSecurityTx(id, callback);
     }
 
+    /** Alle Wertpapiere aller Depots, nach Namen sortiert. */
+    public void getAllSecurities(Callback<List<Security>> callback) {
+        depotRepo.getAllSecurities(callback);
+    }
+
     /** Wertpapier zu einer ISIN – Zuordnung einer eingelesenen Bankabrechnung. */
     public void getSecurityByIsin(String isin, Callback<Security> callback) {
         depotRepo.getSecurityByIsin(isin, callback);

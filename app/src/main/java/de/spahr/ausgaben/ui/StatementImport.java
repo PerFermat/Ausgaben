@@ -14,6 +14,7 @@ import java.nio.charset.StandardCharsets;
 
 import de.spahr.ausgaben.R;
 import de.spahr.ausgaben.db.Repository;
+import de.spahr.ausgaben.db.Security;
 import de.spahr.ausgaben.pdf.PdfText;
 import de.spahr.ausgaben.pdf.PdfTextExtractor;
 import de.spahr.ausgaben.settings.StatementTemplates;
@@ -82,11 +83,57 @@ final class StatementImport {
                 start(activity, text, source, isin, learned[0], learned[1], learned[2]);
                 return;
             }
-            // Die ISIN ist unbekannt. Ohne Wertpapier lässt sich keine Bewegung anlegen; den Nutzer hier
-            // raten zu lassen wäre schlimmer als die klare Auskunft, dass die Zuordnung fehlt.
-            Toast.makeText(activity, activity.getString(R.string.statement_no_security, isin),
-                    Toast.LENGTH_LONG).show();
+            // Die ISIN ist unbekannt – in KMyMoney ist bei diesem Papier das Feld „Identifikation" nicht
+            // gepflegt. Die App weiß hier nichts, was der Nutzer nicht in zwei Sekunden beantworten
+            // könnte, also fragt sie einmal und merkt sich die Antwort.
+            askForSecurity(activity, repository, text, source, isin);
         });
+    }
+
+    /**
+     * Fragt einmalig, zu welchem Wertpapier die Abrechnung gehört, und merkt sich die Zuordnung zur ISIN.
+     * Ab dann wird sie nicht mehr gefragt — auch dann nicht, wenn die Identifikation in KMyMoney weiterhin
+     * fehlt.
+     */
+    private static void askForSecurity(AppCompatActivity activity, Repository repository,
+                                       PdfText text, Uri source, String isin) {
+        repository.getAllSecurities(securities -> {
+            if (securities.isEmpty()) {
+                // Ohne ein einziges Wertpapier gibt es nichts zu wählen; dann bleibt nur die Auskunft.
+                Toast.makeText(activity, activity.getString(R.string.statement_no_security, isin),
+                        Toast.LENGTH_LONG).show();
+                return;
+            }
+            boolean severalDepots = severalDepots(securities);
+            CharSequence[] labels = new CharSequence[securities.size()];
+            for (int i = 0; i < securities.size(); i++) {
+                Security s = securities.get(i);
+                // Bei mehreren Depots gehört das Depot dazu – sonst wäre bei gleichnamigen Papieren nicht
+                // zu unterscheiden, welches gemeint ist.
+                labels[i] = severalDepots ? s.name + "  ·  " + s.depot : s.name;
+            }
+            new AppDialog(activity)
+                    .setTitle(R.string.statement_pick_security)
+                    .setMessage(activity.getString(R.string.statement_no_security, isin))
+                    .setItems(labels, (d, which) -> {
+                        Security s = securities.get(which);
+                        new StatementTemplates(activity)
+                                .rememberSecurity(isin, s.depot, s.kmyId, s.name);
+                        start(activity, text, source, isin, s.depot, s.kmyId, s.name);
+                    })
+                    .setNegativeButton(R.string.cancel, null)
+                    .show();
+        });
+    }
+
+    private static boolean severalDepots(java.util.List<Security> securities) {
+        String first = securities.get(0).depot;
+        for (Security s : securities) {
+            if (!s.depot.equals(first)) {
+                return true;
+            }
+        }
+        return false;
     }
 
     /** Vorlage anwenden (falls gelernt) und die Maske mit dem Ergebnis öffnen. */

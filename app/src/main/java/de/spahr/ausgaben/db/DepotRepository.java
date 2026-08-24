@@ -261,6 +261,19 @@ class DepotRepository {
         }
     }
 
+    /**
+     * Alle Wertpapiere aller Depots, nach Namen sortiert — für die Auswahl, wenn eine eingelesene
+     * Abrechnung eine ISIN trägt, die noch keinem Wertpapier zugeordnet ist.
+     */
+    void getAllSecurities(final Callback<List<Security>> callback) {
+        executor.execute(() -> {
+            final List<Security> all = new ArrayList<>(securityDao.getAllSecurities());
+            java.util.Collections.sort(all, (a, b) ->
+                    a.name.compareToIgnoreCase(b.name));
+            mainHandler.post(() -> callback.onResult(all));
+        });
+    }
+
     /** Wertpapier zu einer ISIN (aus KMyMoney importiert); {@code null}, wenn keines passt. */
     void getSecurityByIsin(final String isin, final Callback<Security> callback) {
         executor.execute(() -> {

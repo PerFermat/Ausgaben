@@ -38,8 +38,21 @@ public final class AnchorRule {
      * dritte dazu.
      */
     public final boolean sum;
+    /**
+     * Das Währungskennzeichen der Zeile, in der der Wert steht — leer, wenn die Zeile keines trägt
+     * (Stückzahlen etwa haben keines).
+     *
+     * <p>Nötig, weil dieselbe Abrechnung Beträge in mehreren Währungen führt: die Ertragsgutschrift nennt
+     * „Brutto USD 1.053,47" und rechnet zwei Zeilen tiefer auf „EUR 906,99" um. Ohne diese Prüfung läse
+     * eine Regel den Dollarbetrag als Euro — still, und um ein Sechstel daneben.</p>
+     */
+    public final String currency;
 
     public AnchorRule(List<String> anchors, Direction direction, boolean sum) {
+        this(anchors, direction, sum, "");
+    }
+
+    public AnchorRule(List<String> anchors, Direction direction, boolean sum, String currency) {
         List<String> copy = new ArrayList<>();
         for (String a : anchors) {
             if (a != null && !a.trim().isEmpty()) {
@@ -49,14 +62,19 @@ public final class AnchorRule {
         this.anchors = copy;
         this.direction = direction;
         this.sum = sum;
+        this.currency = currency == null ? "" : currency.trim();
     }
 
     public static AnchorRule single(String anchor, Direction direction) {
-        return new AnchorRule(java.util.Collections.singletonList(anchor), direction, false);
+        return single(anchor, direction, "");
     }
 
-    public static AnchorRule summed(List<String> anchors, Direction direction) {
-        return new AnchorRule(anchors, direction, true);
+    public static AnchorRule single(String anchor, Direction direction, String currency) {
+        return new AnchorRule(java.util.Collections.singletonList(anchor), direction, false, currency);
+    }
+
+    public static AnchorRule summed(List<String> anchors, Direction direction, String currency) {
+        return new AnchorRule(anchors, direction, true, currency);
     }
 
     /**
@@ -81,7 +99,11 @@ public final class AnchorRule {
             if (valueLine >= lines.size()) {
                 continue;
             }
-            Double value = lastNumber(lines.get(valueLine).text());
+            String valueText = lines.get(valueLine).text();
+            if (!currencyFits(valueText)) {
+                continue;   // andere Währung als gelernt – dann ist es nicht der gesuchte Betrag
+            }
+            Double value = lastNumber(valueText);
             if (value == null) {
                 continue;
             }
@@ -160,6 +182,30 @@ public final class AnchorRule {
         return false;
     }
 
+    /** Ob die Zeile das gelernte Währungskennzeichen trägt (ohne gelerntes: immer). */
+    private boolean currencyFits(String line) {
+        return currency.isEmpty() || currency.equals(currencyOf(line));
+    }
+
+    /**
+     * Das Währungskennzeichen einer Zeile: ein alleinstehendes Wort aus drei Großbuchstaben oder ein
+     * Währungssymbol. {@code ""}, wenn keines darin steht.
+     */
+    static String currencyOf(String line) {
+        if (line == null) {
+            return "";
+        }
+        for (String token : line.split("\\s+")) {
+            if (token.equals("€") || token.equals("$")) {
+                return token;
+            }
+            if (token.length() == 3 && token.matches("[A-Z]{3}")) {
+                return token;
+            }
+        }
+        return "";
+    }
+
     /** Die letzte Zahl einer Zeile; {@code null}, wenn keine darin steht. */
     static Double lastNumber(String line) {
         List<String> tokens = TextValues.numberTokens(line);
@@ -179,16 +225,19 @@ public final class AnchorRule {
             return false;
         }
         AnchorRule other = (AnchorRule) o;
-        return sum == other.sum && direction == other.direction && anchors.equals(other.anchors);
+        return sum == other.sum && direction == other.direction && anchors.equals(other.anchors)
+                && currency.equals(other.currency);
     }
 
     @Override
     public int hashCode() {
-        return anchors.hashCode() * 31 + direction.hashCode() + (sum ? 1 : 0);
+        return (anchors.hashCode() * 31 + direction.hashCode()) * 31 + currency.hashCode()
+                + (sum ? 1 : 0);
     }
 
     @Override
     public String toString() {
-        return (sum ? "Summe von " : "") + anchors + " (" + direction + ")";
+        return (sum ? "Summe von " : "") + anchors + " (" + direction
+                + (currency.isEmpty() ? "" : ", " + currency) + ")";
     }
 }

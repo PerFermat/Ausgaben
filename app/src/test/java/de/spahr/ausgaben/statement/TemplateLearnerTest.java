@@ -173,6 +173,87 @@ public class TemplateLearnerTest {
                 .rule(StatementTemplate.Field.SHARES));
     }
 
+    // ---- Währung ----
+
+    @Test
+    public void nurDieBuchungsbetraegeBindenSichAnEineWährung() {
+        StatementTemplate t = TemplateLearner.learn(StatementFixtures.ingKauf(), kauf());
+        // Gesamtsumme geht als Buchung aufs Konto – immer Kontowährung.
+        assertEquals("EUR", t.rule(StatementTemplate.Field.NET).currency);
+        // Der Stückpreis ist die Notierung des Papiers: bei einem Dollar-Papier steht dort USD. Wäre er
+        // an EUR gebunden, ginge nach dem Lernen an einem Euro-Papier kein Dollar-Papier mehr.
+        assertEquals("", t.rule(StatementTemplate.Field.PRICE).currency);
+        assertEquals("", t.rule(StatementTemplate.Field.SHARES).currency);
+    }
+
+    /**
+     * Der Fall, um den es geht: dieselbe Bank, einmal ein Dollar-Papier mit Umrechnungszeile, einmal ein
+     * Euro-Papier ohne. Eine an einem Euro-Papier gelernte Vorlage muss beide lesen können.
+     */
+    @Test
+    public void dieselbeVorlageLiestDollarUndEuroPapiere() {
+        TemplateLearner.Known k = kauf();
+        StatementTemplate t = TemplateLearner.learn(StatementFixtures.ingKauf(), k);
+
+        PdfText dollarPapier = StatementFixtures.of(
+                "Wertpapierabrechnung        Kauf",
+                "ISIN (WKN)                  IE00B3RBWM25 (A1JX52)",
+                "Nominale                    Stück            10,00000",
+                "Kurs                        USD                85,00",
+                "Ausführungstag / -zeit      17.08.2026 um 09:04:58 Uhr",
+                "Kurswert                    USD               850,00",
+                "Umg. z. Dev.-Kurs (1,1615)  EUR               731,81",
+                "Endbetrag zu Ihren Lasten   EUR               731,81");
+        assertTrue("Vorlage sollte passen", t.matches(dollarPapier));
+        StatementTemplate.Extraction e = t.apply(dollarPapier);
+        // Die Gesamtsumme ist der Eurobetrag – nicht die 850,00 USD.
+        assertEquals(Long.valueOf(73181L), e.netCents);
+        assertEquals(10.0, e.shares, 1e-9);
+        // Der Kurs ist die Notierung in Dollar; er wird gelesen, statt an EUR zu scheitern.
+        assertEquals(85.0, e.price, 1e-9);
+    }
+
+    /**
+     * Der eigentliche Zweck: dieselbe Abrechnung führt Beträge in mehreren Währungen. Eine auf EUR
+     * gelernte Regel darf den Dollarbetrag nicht lesen, auch wenn die Beschriftung passt.
+     */
+    @Test
+    public void eineEuroRegelLiestKeinenDollarbetrag() {
+        PdfText t = StatementFixtures.of(
+                "Brutto                        USD           1.053,47",
+                "Zwischensumme                 USD           1.053,47",
+                "Umg. z. Dev.-Kurs (1,161497)  EUR             906,99");
+        AnchorRule euro = AnchorRule.single("Zwischensumme", AnchorRule.Direction.SAME_LINE, "EUR");
+        assertNull("USD-Zeile darf nicht gelesen werden", euro.read(t));
+
+        AnchorRule dollar = AnchorRule.single("Zwischensumme", AnchorRule.Direction.SAME_LINE, "USD");
+        assertEquals(Double.valueOf(1053.47), dollar.read(t));
+    }
+
+    @Test
+    public void ohneGelernteWährungBleibtEsWieBisher() {
+        PdfText t = StatementFixtures.of("Zwischensumme   USD   1.053,47");
+        assertEquals(Double.valueOf(1053.47),
+                AnchorRule.single("Zwischensumme", AnchorRule.Direction.SAME_LINE).read(t));
+    }
+
+    @Test
+    public void dieSteuerSummeBindetSichEbenfallsAnDieKontowährung() {
+        AnchorRule fee = TemplateLearner.learn(StatementFixtures.ingDividende(), dividende())
+                .rule(StatementTemplate.Field.FEE);
+        assertEquals("EUR", fee.currency);
+        assertEquals(Long.valueOf(16746L), fee.readCents(StatementFixtures.ingDividende()));
+    }
+
+    /** Währungskennzeichen erkennen: dreistellige Großbuchstaben und die gängigen Symbole. */
+    @Test
+    public void währungWirdInDerZeileErkannt() {
+        assertEquals("EUR", AnchorRule.currencyOf("Kurs EUR 164,04"));
+        assertEquals("USD", AnchorRule.currencyOf("Brutto USD 1.053,47"));
+        assertEquals("€", AnchorRule.currencyOf("Betrag 12,50 €"));
+        assertEquals("", AnchorRule.currencyOf("Nominale Stück 6,09607"));
+    }
+
     // ---- Anwenden ----
 
     @Test

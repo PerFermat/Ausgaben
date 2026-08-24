@@ -70,14 +70,19 @@ public final class TemplateLearner {
 
         // Reihenfolge nach Unterscheidungskraft: die Gesamtsumme ist die kennzeichnendste Zahl, die
         // Stückzahl die unscheinbarste – eine glatte 10 findet sich in einer Abrechnung schnell mehrfach.
+        // Die Währung wird nur dort festgehalten, wo sie feststeht: Gesamtsumme und Steuer gehen als
+        // Buchung aufs Konto und sind deshalb immer in Kontowährung. Der Stückpreis dagegen ist die
+        // Notierung des Wertpapiers – bei einem Dollar-Papier steht dort USD, bei einem Euro-Papier EUR.
+        // Bände man ihn an die einmal gelernte Währung, ginge nach dem Lernen an einem Dollar-Papier
+        // kein Euro-Papier mehr, und umgekehrt.
         put(rules, StatementTemplate.Field.NET,
-                forValue(text, cents(known.netCents), MONEY_EPSILON, used), used);
+                forValue(text, cents(known.netCents), MONEY_EPSILON, true, used), used);
         put(rules, StatementTemplate.Field.FEE,
-                forValue(text, cents(known.feeCents), MONEY_EPSILON, used), used);
+                forValue(text, cents(known.feeCents), MONEY_EPSILON, true, used), used);
         put(rules, StatementTemplate.Field.PRICE,
-                forValue(text, known.price, MONEY_EPSILON, used), used);
+                forValue(text, known.price, MONEY_EPSILON, false, used), used);
         put(rules, StatementTemplate.Field.SHARES,
-                forValue(text, known.shares, SHARE_EPSILON, used), used);
+                forValue(text, known.shares, SHARE_EPSILON, false, used), used);
         put(rules, StatementTemplate.Field.DATE,
                 forDate(text, known.dateMillis, known.dateAnchor, used), used);
         return new StatementTemplate(known.action, rules);
@@ -100,21 +105,23 @@ public final class TemplateLearner {
      * nicht, wird er als <b>Summe</b> mehrerer Zeilen gesucht — so steht die Steuer bei der ING, auf
      * Kapitalertragsteuer und Solidaritätszuschlag verteilt.
      */
-    private static AnchorRule forValue(PdfText text, Double value, double epsilon, List<String> used) {
+    private static AnchorRule forValue(PdfText text, Double value, double epsilon,
+                                       boolean bindCurrency, List<String> used) {
         if (value == null) {
             return null;
         }
-        AnchorRule single = singleLine(text, value, epsilon, used);
+        AnchorRule single = singleLine(text, value, epsilon, bindCurrency, used);
         if (single != null) {
             return single;
         }
-        return summedLines(text, value, epsilon, used);
+        return summedLines(text, value, epsilon, bindCurrency, used);
     }
 
     /** Der Wert steht als letzte Zahl einer Zeile — der Regelfall. */
     private static AnchorRule singleLine(PdfText text, double value, double epsilon,
-                                         List<String> used) {
+                                         boolean bindCurrency, List<String> used) {
         String anchor = null;
+        String currency = "";
         AnchorRule.Direction direction = AnchorRule.Direction.SAME_LINE;
         List<PdfText.Line> lines = text.lines();
         for (int i = 0; i < lines.size(); i++) {
@@ -122,35 +129,41 @@ public final class TemplateLearner {
             if (last == null || Math.abs(last - value) > epsilon) {
                 continue;
             }
+            // Die Währung der Wertzeile – nur festgehalten, wo sie feststeht (siehe learn()).
+            String lineCurrency = bindCurrency ? AnchorRule.currencyOf(lines.get(i).text()) : "";
             // Beschriftung in derselben Zeile; hat die Zeile keine, steht sie eine Zeile darüber.
             String own = labelOf(lines.get(i).text());
             if (isUsable(own, used)) {
                 anchor = own;
                 direction = AnchorRule.Direction.SAME_LINE;
+                currency = lineCurrency;
             } else if (i > 0) {
                 String above = labelOf(lines.get(i - 1).text());
                 if (isUsable(above, used)) {
                     anchor = above;
                     direction = AnchorRule.Direction.LINE_BELOW;
+                    currency = lineCurrency;
                 }
             }
         }
         // Mehrere Fundstellen: die unterste gewinnt (die Schleife überschreibt) – in einer Abrechnung
         // steht die Endsumme unten, und sie ist die Zahl, die auch mit Gebühren noch stimmt.
-        return anchor == null ? null : AnchorRule.single(anchor, direction);
+        return anchor == null ? null : AnchorRule.single(anchor, direction, currency);
     }
 
     /** Der Wert ist die Summe der letzten Zahlen mehrerer Zeilen (aufgeteilte Steuer). */
     private static AnchorRule summedLines(PdfText text, double value, double epsilon,
-                                          List<String> used) {
+                                          boolean bindCurrency, List<String> used) {
         List<String> labels = new ArrayList<>();
         List<Double> values = new ArrayList<>();
+        List<String> currencies = new ArrayList<>();
         for (PdfText.Line line : text.lines()) {
             Double last = AnchorRule.lastNumber(line.text());
             String label = labelOf(line.text());
             if (last != null && last != 0 && isUsable(label, used) && !labels.contains(label)) {
                 labels.add(label);
                 values.add(last);
+                currencies.add(bindCurrency ? AnchorRule.currencyOf(line.text()) : "");
             }
         }
         List<Integer> pick = subsetSummingTo(values, value, epsilon, MAX_SUMMANDS);
@@ -158,10 +171,19 @@ public final class TemplateLearner {
             return null;
         }
         List<String> anchors = new ArrayList<>();
+        String currency = null;
         for (int idx : pick) {
             anchors.add(labels.get(idx));
+            // Nur eine einheitliche Währung wird gelernt; stehen die Summanden in verschiedenen, wäre
+            // die Summe ohnehin fragwürdig, und ohne Kennzeichen bleibt es beim bisherigen Verhalten.
+            if (currency == null) {
+                currency = currencies.get(idx);
+            } else if (!currency.equals(currencies.get(idx))) {
+                currency = "";
+            }
         }
-        return AnchorRule.summed(anchors, AnchorRule.Direction.SAME_LINE);
+        return AnchorRule.summed(anchors, AnchorRule.Direction.SAME_LINE,
+                currency == null ? "" : currency);
     }
 
     /** Sucht bis zu {@code max} Zeilen, deren Werte zusammen {@code target} ergeben; null wenn keine. */

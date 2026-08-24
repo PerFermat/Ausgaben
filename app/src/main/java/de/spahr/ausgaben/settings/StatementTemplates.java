@@ -24,7 +24,7 @@ import de.spahr.ausgaben.statement.StatementTemplate;
  * Sicherung der Einstellungen.</p>
  *
  * <p>Speicherformat unter {@code templates}: eine Liste von
- * {@code {"a":"buy","r":{"NET":{"t":["Endbetrag zu Ihren Lasten"],"d":"SAME_LINE","s":false}, …}}}.
+ * {@code {"a":"buy","r":{"NET":{"t":["Endbetrag zu Ihren Lasten"],"d":"SAME_LINE","s":false,"c":"EUR"}, …}}}.
  * Unter {@code isins} steht je ISIN Depot, Wertpapier-ID und Name.</p>
  */
 public class StatementTemplates {
@@ -167,6 +167,7 @@ public class StatementTemplates {
                 ro.put("t", new JSONArray(r.anchors));
                 ro.put("d", r.direction.name());
                 ro.put("s", r.sum);
+                ro.put("c", r.currency);
                 rules.put(e.getKey().name(), ro);
             }
             o.put("r", rules);
@@ -205,7 +206,8 @@ public class StatementTemplates {
                 } catch (IllegalArgumentException e) {
                     dir = AnchorRule.Direction.SAME_LINE;
                 }
-                rules.put(field, new AnchorRule(anchors, dir, ro.optBoolean("s", false)));
+                rules.put(field, new AnchorRule(anchors, dir, ro.optBoolean("s", false),
+                        ro.optString("c", "")));
             }
         }
         return new StatementTemplate(o.optString("a", ""), rules);

@@ -40,6 +40,15 @@ public class Security {
     @ColumnInfo(name = "currency")
     public String currency = "";
 
+    /**
+     * ISIN aus KMyMoney (Feld „Identifikation", dort als {@code kmm-security-id} abgelegt); leer, wenn
+     * sie nicht gepflegt ist. Über sie ordnet die PDF-Auslese eine Bankabrechnung dem Wertpapier zu —
+     * eindeutig und ohne Namensvergleich.
+     */
+    @NonNull
+    @ColumnInfo(name = "isin")
+    public String isin = "";
+
     /** Letzter bekannter Kurs (in der Depot-Währung). */
     @ColumnInfo(name = "price")
     public double price;

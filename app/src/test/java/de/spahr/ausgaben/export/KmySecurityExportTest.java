@@ -117,6 +117,26 @@ public class KmySecurityExportTest {
         return null;
     }
 
+    /**
+     * KMyMoney führt die ISIN am Wertpapier als {@code kmm-security-id}. Sie wird mitimportiert, damit
+     * eine eingelesene Bankabrechnung von Anfang an dem richtigen Wertpapier zugeordnet werden kann.
+     */
+    @Test
+    public void dieIsinKommtAusDerKmyDateiMit() throws IOException {
+        KmyDocument d = doc();
+        assertEquals("IE00B3RBWM25", d.securityIsin("E000001"));
+        de.spahr.ausgaben.db.Security s =
+                new KmyImporter(d, ctx).importDepot("Depot").securities.get(0);
+        assertEquals("IE00B3RBWM25", s.isin);
+        assertEquals("Musterfonds", s.name);
+    }
+
+    /** Ein Wertpapier ohne gepflegte Identifikation bekommt eine leere ISIN, keinen Fehler. */
+    @Test
+    public void fehlendeIsinBleibtLeer() throws IOException {
+        assertEquals("", doc().securityIsin("E999999"));
+    }
+
     @Test
     public void kaufKommtMitStückzahlBetragUndGebührZurück() throws IOException {
         // 10 Stück zu 25,00 € plus 5,00 € Gebühr → 255,00 € verlassen das Konto.

@@ -32,7 +32,11 @@
   </TRANSACTIONS>
   <SCHEDULES/>
   <SECURITIES count="1">
-    <SECURITY id="E000001" name="Musterfonds" symbol="MUST" type="4" saf="1000" trading-currency="EUR" trading-market=""/>
+    <SECURITY id="E000001" name="Musterfonds" symbol="MUST" type="4" saf="1000" trading-currency="EUR" trading-market="">
+      <KEYVALUEPAIRS>
+        <PAIR key="kmm-security-id" value="IE00B3RBWM25"/>
+      </KEYVALUEPAIRS>
+    </SECURITY>
   </SECURITIES>
   <CURRENCIES/>
   <PRICES/>

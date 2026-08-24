@@ -246,6 +246,15 @@ class DepotRepository {
         });
     }
 
+    /** Wertpapier zu einer ISIN (aus KMyMoney importiert); {@code null}, wenn keines passt. */
+    void getSecurityByIsin(final String isin, final Callback<Security> callback) {
+        executor.execute(() -> {
+            final Security s = isin == null || isin.trim().isEmpty()
+                    ? null : securityDao.getByIsin(isin.trim());
+            mainHandler.post(() -> callback.onResult(s));
+        });
+    }
+
     /** Die an diesem Wertpapier schon verwendeten Kategorien: {Gebühr/Steuer, Ertrag}. */
     void getUsedCategories(final String depot, final String kmyId,
                            final Callback<List<List<String>>> callback) {

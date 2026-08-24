@@ -32,6 +32,9 @@ import de.spahr.ausgaben.db.SecurityTx;
 import de.spahr.ausgaben.settings.AmountExpression;
 import de.spahr.ausgaben.settings.MoneyFormat;
 import de.spahr.ausgaben.settings.SettingsStore;
+import de.spahr.ausgaben.settings.StatementTemplates;
+import de.spahr.ausgaben.statement.StatementTemplate;
+import de.spahr.ausgaben.statement.TemplateLearner;
 import de.spahr.ausgaben.util.SecurityAmounts;
 import de.spahr.ausgaben.util.SecurityAmounts.Field;
 
@@ -58,6 +61,17 @@ public class SecurityTxEditActivity extends LocalizedActivity {
      * allen Bewegungen und gibt sie mit, damit „je Stück" hier ohne zweite Abfrage stimmt.
      */
     public static final String EXTRA_SHARES_HELD = "sharesHeld";
+
+    // ---- Vorbelegung aus einer eingelesenen Bankabrechnung (siehe StatementImport) ----
+    public static final String EXTRA_PREFILL_ACTION = "prefillAction";
+    public static final String EXTRA_PREFILL_DATE = "prefillDate";
+    public static final String EXTRA_PREFILL_SHARES = "prefillShares";
+    public static final String EXTRA_PREFILL_PRICE = "prefillPrice";
+    public static final String EXTRA_PREFILL_FEE = "prefillFee";
+    public static final String EXTRA_PREFILL_NET = "prefillNet";
+    /** Pfad zum zwischengespeicherten Abrechnungstext; daraus lernt die App beim Speichern die Anker. */
+    public static final String EXTRA_STATEMENT_TEXT = "statementText";
+    public static final String EXTRA_STATEMENT_ISIN = "statementIsin";
 
     private static final String BUY = "buy";
     private static final String SELL = "sell";
@@ -108,6 +122,9 @@ public class SecurityTxEditActivity extends LocalizedActivity {
     /** Schützt vor Rückkopplung, während die Rechnung Felder beschreibt. */
     private boolean writingBack;
     private boolean conflict;
+    /** Abrechnungstext der Sitzung; gesetzt, wenn die Maske aus einem eingelesenen PDF kam. */
+    private String statementTextPath;
+    private String statementIsin;
 
     @Override
     protected void onCreate(Bundle savedInstanceState) {
@@ -166,6 +183,9 @@ public class SecurityTxEditActivity extends LocalizedActivity {
 
         loadPickers();
 
+        statementTextPath = getIntent().getStringExtra(EXTRA_STATEMENT_TEXT);
+        statementIsin = getIntent().getStringExtra(EXTRA_STATEMENT_ISIN);
+
         long txId = getIntent().getLongExtra(EXTRA_TX_ID, -1);
         if (txId >= 0) {
             repository.getSecurityTx(txId, this::bind);
@@ -183,7 +203,51 @@ public class SecurityTxEditActivity extends LocalizedActivity {
         updateDateField();
         applyAction();
         wireNumberFields();
-        loadDefaults(BUY);
+        loadDefaults(currentAction());
+        applyPrefill();
+    }
+
+    /**
+     * Übernimmt, was aus einer eingelesenen Abrechnung erkannt wurde. Die Werte gelten wie selbst
+     * eingetippt — die Rechnung darf sie nicht überschreiben, sie stehen ja so im Dokument. Was nicht
+     * erkannt wurde, bleibt leer; <b>geraten wird nichts</b>.
+     */
+    private void applyPrefill() {
+        android.content.Intent in = getIntent();
+        String action = in.getStringExtra(EXTRA_PREFILL_ACTION);
+        Integer button = action == null ? null : buttonFor(action);
+        if (button != null) {
+            toggleAction.check(button);
+        }
+        long date = in.getLongExtra(EXTRA_PREFILL_DATE, -1);
+        if (date > 0) {
+            selectedDate.setTimeInMillis(date);
+            updateDateField();
+        }
+        prefillNumber(Field.SHARES, in.hasExtra(EXTRA_PREFILL_SHARES)
+                ? in.getDoubleExtra(EXTRA_PREFILL_SHARES, 0) : null);
+        prefillNumber(Field.PRICE, in.hasExtra(EXTRA_PREFILL_PRICE)
+                ? in.getDoubleExtra(EXTRA_PREFILL_PRICE, 0) : null);
+        prefillMoney(Field.FEE, in.hasExtra(EXTRA_PREFILL_FEE)
+                ? in.getLongExtra(EXTRA_PREFILL_FEE, 0) : null);
+        prefillMoney(Field.NET, in.hasExtra(EXTRA_PREFILL_NET)
+                ? in.getLongExtra(EXTRA_PREFILL_NET, 0) : null);
+        recompute(null);
+    }
+
+    private void prefillNumber(Field field, Double value) {
+        if (value != null) {
+            numberFields.get(field).setText(field == Field.SHARES
+                    ? MoneyFormat.shares(value) : MoneyFormat.decimal(value, 0, 4));
+            userSet.add(field);
+        }
+    }
+
+    private void prefillMoney(Field field, Long cents) {
+        if (cents != null) {
+            numberFields.get(field).setText(MoneyFormat.plain(cents));
+            userSet.add(field);
+        }
     }
 
     private void bind(SecurityTx tx) {
@@ -597,14 +661,74 @@ public class SecurityTxEditActivity extends LocalizedActivity {
         tx.incomeCategory = dividend ? textOf(editIncomeCategory).trim() : "";
 
         Booking booking = buildBooking(action, account, net);
+        final Long feeForLearning = fee;
         Runnable done = () -> {
             Toast.makeText(this, R.string.security_tx_saved, Toast.LENGTH_SHORT).show();
-            finish();
+            offerToLearn(action, count, number(Field.PRICE), feeForLearning, net);
         };
         if (loaded != null) {
             repository.updateManualSecurityTx(tx, booking, done);
         } else {
             repository.saveManualSecurityTx(tx, booking, done);
+        }
+    }
+
+    /**
+     * Kam die Maske aus einer eingelesenen Abrechnung, leitet die App jetzt ab, wo die Werte darin
+     * standen — und fragt einmal, ob sie sich das für diese Bank merken soll.
+     *
+     * <p>Das ist der Kern des Verfahrens: die erste Abrechnung einer Bank tippt man ohnehin ab, und
+     * genau daraus lernt die App die Beschriftungen. Eine Markier-Oberfläche, in der man auf dem Handy
+     * kleine Zahlen antippt, wird damit überflüssig.</p>
+     */
+    private void offerToLearn(String action, Double shares, Double price, Long feeCents, Long netCents) {
+        if (statementTextPath == null) {
+            finish();
+            return;
+        }
+        final de.spahr.ausgaben.pdf.PdfText text = readStatementText();
+        if (text == null) {
+            finish();
+            return;
+        }
+        TemplateLearner.Known known = new TemplateLearner.Known();
+        known.action = action;
+        known.shares = shares;
+        known.price = DIVIDEND.equals(action) ? null : price;   // bei Dividenden steht er in Fremdwährung
+        known.feeCents = feeCents;
+        known.netCents = netCents;
+        known.dateMillis = selectedDate.getTimeInMillis();
+        final StatementTemplate learned = TemplateLearner.learn(text, known);
+        if (learned.isEmpty()) {
+            finish();
+            return;
+        }
+        new AppDialog(this)
+                .setTitle(R.string.statement_learn_title)
+                .setMessage(R.string.statement_learn_message)
+                .setPositiveButton(R.string.statement_learn_yes, (d, w) -> {
+                    StatementTemplates store = new StatementTemplates(this);
+                    store.save(learned);
+                    // Auch die Zuordnung merken – dann findet die nächste Abrechnung das Wertpapier
+                    // selbst dann, wenn die ISIN in KMyMoney nicht gepflegt ist.
+                    store.rememberSecurity(statementIsin, depot, kmyId, securityName);
+                    Toast.makeText(this, R.string.statement_learned, Toast.LENGTH_SHORT).show();
+                    finish();
+                })
+                .setNegativeButton(R.string.cancel, (d, w) -> finish())
+                .setOnCancelListener(d -> finish())
+                .show();
+    }
+
+    /** Den zwischengespeicherten Abrechnungstext einlesen; {@code null}, wenn er nicht mehr da ist. */
+    private de.spahr.ausgaben.pdf.PdfText readStatementText() {
+        try {
+            byte[] raw = java.nio.file.Files.readAllBytes(
+                    new java.io.File(statementTextPath).toPath());
+            return de.spahr.ausgaben.pdf.PdfText.fromLines(
+                    new String(raw, java.nio.charset.StandardCharsets.UTF_8));
+        } catch (Exception e) {
+            return null;
         }
     }
 

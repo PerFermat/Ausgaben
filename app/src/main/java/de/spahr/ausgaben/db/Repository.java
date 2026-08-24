@@ -1554,6 +1554,11 @@ public class Repository {
         depotRepo.getSecurityTx(id, callback);
     }
 
+    /** Wertpapier zu einer ISIN – Zuordnung einer eingelesenen Bankabrechnung. */
+    public void getSecurityByIsin(String isin, Callback<Security> callback) {
+        depotRepo.getSecurityByIsin(isin, callback);
+    }
+
     /** Schon verwendete Kategorien eines Wertpapiers: Liste 0 = Gebühr/Steuer, Liste 1 = Ertrag. */
     public void getSecurityUsedCategories(String depot, String kmyId,
                                           Callback<java.util.List<java.util.List<String>>> callback) {

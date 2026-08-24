@@ -66,6 +66,8 @@ public class KmyDocument {
 
     /** Wertpapier-ID (E00000x) → Anzeigedaten aus dem SECURITY-Block. */
     private final Map<String, String[]> securityInfo = new LinkedHashMap<>(); // {name, symbol, currency}
+    /** Wertpapier-ID → ISIN aus {@code <PAIR key="kmm-security-id">}; leer, wenn nicht gepflegt. */
+    private final Map<String, String> securityIsin = new LinkedHashMap<>();
     /** Wertpapier-ID → letzter Kurs {price, dateMillis}. */
     private final Map<String, double[]> securityPrice = new LinkedHashMap<>();
     /** Wertpapier-ID → vollständige Kurshistorie (je Eintrag {price, dateMillis}), zeitlich aufsteigend. */
@@ -332,6 +334,12 @@ public class KmyDocument {
         return securityInfo.get(kmyId);
     }
 
+    /** ISIN eines Wertpapiers, oder leer, wenn sie in KMyMoney nicht gepflegt ist. */
+    public String securityIsin(String kmyId) {
+        String isin = securityIsin.get(kmyId);
+        return isin == null ? "" : isin;
+    }
+
     /** Letzter Kurs {price, dateMillis} zur Wertpapier-ID, oder {@code null}. */
     public double[] securityPrice(String kmyId) {
         return securityPrice.get(kmyId);
@@ -438,6 +446,7 @@ public class KmyDocument {
             int event = parser.getEventType();
             String curFrom = null;
             String curTo = null;
+            String openSecurity = null;   // Wertpapier, dessen KEYVALUEPAIRS gerade gelesen werden
             while (event != XmlPullParser.END_DOCUMENT) {
                 if (event == XmlPullParser.START_TAG) {
                     String tag = parser.getName();
@@ -449,6 +458,14 @@ public class KmyDocument {
                                     orEmpty(parser.getAttributeValue(null, "symbol")).trim(),
                                     orEmpty(parser.getAttributeValue(null, "trading-currency")).trim()});
                         }
+                        openSecurity = id;
+                    } else if ("PAIR".equals(tag) && openSecurity != null
+                            && "kmm-security-id".equals(parser.getAttributeValue(null, "key"))) {
+                        // KMyMoney legt die ISIN als Schlüssel-Wert-Paar am Wertpapier ab (Feld
+                        // „Identifikation"). Sie ist der Anker, an dem die PDF-Auslese eine Abrechnung
+                        // dem richtigen Wertpapier zuordnet – ohne Namensvergleich.
+                        securityIsin.put(openSecurity,
+                                orEmpty(parser.getAttributeValue(null, "value")).trim());
                     } else if ("PAIR".equals(tag) && baseCurrency.isEmpty()
                             && "kmm-baseCurrency".equals(parser.getAttributeValue(null, "key"))) {
                         // Steht im Datei-KEYVALUEPAIRS ganz am Ende; die Konto-Blöcke davor tragen
@@ -477,6 +494,8 @@ public class KmyDocument {
                 } else if (event == XmlPullParser.END_TAG && "PRICEPAIR".equals(parser.getName())) {
                     curFrom = null;
                     curTo = null;
+                } else if (event == XmlPullParser.END_TAG && "SECURITY".equals(parser.getName())) {
+                    openSecurity = null;
                 }
                 event = parser.next();
             }

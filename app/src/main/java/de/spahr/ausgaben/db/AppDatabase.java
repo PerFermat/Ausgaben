@@ -15,7 +15,7 @@ import androidx.sqlite.db.SupportSQLiteDatabase;
         AnalysisExtra.class, SecurityTxValueOverride.class, KmyPendingDelete.class, SecurityPrice.class,
         ScheduledAdvance.class, AccountGroup.class, AccountGroupMember.class, AccountKindOrder.class,
         Tag.class},
-        version = 46, exportSchema = false)
+        version = 47, exportSchema = false)
 public abstract class AppDatabase extends RoomDatabase {
 
     /** v1 → v2: Notiz-Spalte ergänzen (bestehende Buchungen bleiben erhalten). */
@@ -598,6 +598,18 @@ public abstract class AppDatabase extends RoomDatabase {
         }
     };
 
+    /**
+     * v46 → v47: ISIN am Wertpapier. KMyMoney führt sie am Wertpapier als {@code kmm-security-id}; die
+     * Spalte bleibt leer, bis das Depot erneut importiert wurde — und leer auch dann, wenn das Feld
+     * „Identifikation" in KMyMoney nicht gepflegt ist.
+     */
+    static final Migration MIGRATION_46_47 = new Migration(46, 47) {
+        @Override
+        public void migrate(@NonNull SupportSQLiteDatabase db) {
+            db.execSQL("ALTER TABLE security ADD COLUMN isin TEXT NOT NULL DEFAULT ''");
+        }
+    };
+
     public abstract BookingDao bookingDao();
 
     public abstract AccountDao accountDao();
@@ -653,7 +665,7 @@ public abstract class AppDatabase extends RoomDatabase {
                                     MIGRATION_35_36, MIGRATION_36_37, MIGRATION_37_38,
                                     MIGRATION_38_39, MIGRATION_39_40, MIGRATION_40_41,
                                     MIGRATION_41_42, MIGRATION_42_43, MIGRATION_43_44,
-                                    MIGRATION_44_45, MIGRATION_45_46)
+                                    MIGRATION_44_45, MIGRATION_45_46, MIGRATION_46_47)
                             .build();
                 }
             }

@@ -24,6 +24,13 @@ public interface SecurityDao {
     @Query("SELECT * FROM security WHERE depot = :depot ORDER BY name COLLATE NOCASE ASC")
     List<Security> getSecurities(String depot);
 
+    /**
+     * Wertpapier zu einer ISIN. Die PDF-Auslese ordnet darüber eine Bankabrechnung zu — eindeutig, ohne
+     * Namensvergleich. Leer bleibt es, solange die ISIN in KMyMoney nicht gepflegt ist.
+     */
+    @Query("SELECT * FROM security WHERE isin = :isin AND isin <> '' LIMIT 1")
+    Security getByIsin(String isin);
+
     /** Alle Wertpapiere aller Depots – Grundlage für die depotübergreifende Zeitreihen-Bewertung. */
     @Query("SELECT * FROM security")
     List<Security> getAllSecurities();

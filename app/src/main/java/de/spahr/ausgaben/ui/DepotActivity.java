@@ -63,6 +63,8 @@ public class DepotActivity extends LocalizedActivity {
     private androidx.swiperefreshlayout.widget.SwipeRefreshLayout swipeRefresh;
 
     private ActivityResultLauncher<Uri> exportTreeLauncher;
+    /** Dateiauswahl für eine PDF-Abrechnung der Bank (siehe {@link StatementImport}). */
+    private ActivityResultLauncher<String[]> statementLauncher;
     private AlertDialog progressDialog;
     private TextView progressTextView;
 
@@ -103,6 +105,15 @@ public class DepotActivity extends LocalizedActivity {
                         runExport();
                     }
                 });
+
+        statementLauncher = registerForActivityResult(
+                new ActivityResultContracts.OpenDocument(), uri -> {
+                    if (uri != null) {
+                        StatementImport.open(this, repository, uri);
+                    }
+                });
+        findViewById(R.id.fabReadStatement).setOnClickListener(
+                v -> statementLauncher.launch(new String[]{"application/pdf"}));
 
         toolbar = findViewById(R.id.toolbar);
         setSupportActionBar(toolbar);

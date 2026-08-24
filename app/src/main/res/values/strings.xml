@@ -707,4 +707,15 @@
     <string name="security_tx_need_account">Please choose a counter account</string>
     <string name="security_tx_pending">not exported yet</string>
     <string name="category_group_security">For this security</string>
+    <string name="statement_read">Read statement</string>
+    <string name="statement_no_text">This file contains no text, only an image. Scanned statements cannot be read.</string>
+    <string name="statement_unreadable">The file could not be read</string>
+    <string name="statement_no_security">No security matches this statement. ISIN: %1$s</string>
+    <string name="statement_no_isin">The statement contains no unambiguous ISIN</string>
+    <string name="statement_reading">Reading statement…</string>
+    <string name="statement_learn_title">Remember for this bank?</string>
+    <string name="statement_learn_message">The app noted where the values sit in this statement. Next time it will fill in the form itself.</string>
+    <string name="statement_learn_yes">Remember</string>
+    <string name="statement_learned">Remembered</string>
+    <string name="statement_pick_security">Which security?</string>
 </resources>

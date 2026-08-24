@@ -117,6 +117,42 @@ public final class PdfText {
         return sb.toString();
     }
 
+    /**
+     * Baut den Text aus fertigen Zeilen wieder auf — für den Zwischenspeicher, aus dem die Maske beim
+     * Speichern die Anker ableitet.
+     *
+     * <p>Die Wortpositionen gehen dabei verloren. Das ist unschädlich: Anker arbeiten über die
+     * Beschriftung am Zeilenanfang und die letzte Zahl der Zeile, nicht über x-Koordinaten. Behalten
+     * werden die Positionen trotzdem beim Auslesen — für eine Spaltenregel, falls einmal eine Bank ihre
+     * Werte ohne Zeilenbeschriftung setzt.</p>
+     */
+    public static PdfText fromLines(String text) {
+        Builder b = new Builder();
+        if (text == null) {
+            return b.build();
+        }
+        String[] rows = text.split("\n", -1);
+        for (int i = 0; i < rows.length; i++) {
+            String row = rows[i];
+            // Zeile wieder in Wörter zerlegen, statt sie als ein Wort aufzunehmen: sonst zählte jede
+            // Zeile als ein einziges Wort, und hasText() hielte ein kurzes Dokument für einen Scan.
+            int col = 0;
+            while (col < row.length()) {
+                if (row.charAt(col) == ' ') {
+                    col++;
+                    continue;
+                }
+                int end = col;
+                while (end < row.length() && row.charAt(end) != ' ') {
+                    end++;
+                }
+                b.add(0, row.substring(col, end), col, end, (i + 1) * 10f);
+                col = end;
+            }
+        }
+        return b.build();
+    }
+
     /** Sammelt Wörter und bündelt sie beim {@link #build()} zu Zeilen. */
     public static final class Builder {
 

@@ -87,6 +87,27 @@ public final class TextValues {
         }
     }
 
+    /**
+     * Die Wörter einer Zeile, die sich als Zahl lesen lassen — in Reihenfolge und unverändert.
+     *
+     * <p>Für die Auslese von Abrechnungen: dort steht der gesuchte Wert als <b>letzte</b> Zahl der Zeile.
+     * „Kapitalertragsteuer 25,00% EUR 158,73" liefert nur {@code 158,73}: der Steuersatz trägt ein
+     * Prozentzeichen, das Währungskürzel ist keine Zahl, und ein Datum wie {@code 19.08.2026} lässt sich
+     * ebenfalls nicht als Zahl lesen — genau das trennt die Beschriftung vom Wert.</p>
+     */
+    public static java.util.List<String> numberTokens(String line) {
+        java.util.List<String> out = new java.util.ArrayList<>();
+        if (line == null) {
+            return out;
+        }
+        for (String token : line.split("\\s+")) {
+            if (!token.isEmpty() && toBigDecimal(token) != null) {
+                out.add(token);
+            }
+        }
+        return out;
+    }
+
     /** Datum → epoch millis zur lokalen Mitternacht; -1 bei Fehler. Toleriert mehrere Formate. */
     public static long toDateMillis(String s) {
         if (s == null || s.isEmpty()) {

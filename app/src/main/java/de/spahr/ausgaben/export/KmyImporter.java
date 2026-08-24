@@ -104,8 +104,10 @@ public class KmyImporter {
             String name = info != null && !info[0].isEmpty() ? info[0] : secName;
             String symbol = info != null ? info[1] : "";
             String currency = info != null && !info[2].isEmpty() ? info[2] : "EUR";
-            data.securities.add(new Security(depotName, secId, name, symbol, currency,
-                    price != null ? price[0] : 0, price != null ? (long) price[1] : 0));
+            Security security = new Security(depotName, secId, name, symbol, currency,
+                    price != null ? price[0] : 0, price != null ? (long) price[1] : 0);
+            security.isin = doc.securityIsin(secId);
+            data.securities.add(security);
             // Vollständige Kurshistorie (für die zeitliche Depotbewertung in der Vermögensgrafik).
             for (double[] ph : doc.securityPriceHistory(secId)) {
                 data.prices.add(new SecurityPrice(depotName, secId, (long) ph[1], ph[0]));

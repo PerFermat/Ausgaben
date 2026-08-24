@@ -323,9 +323,32 @@ public class SecurityTxEditActivity extends LocalizedActivity {
         // zwischen Anzahl × Stückpreis und der Gesamtsumme und wäre eine dritte Zahl für dieselbe Sache.
         grossLayout.setVisibility(dividend ? View.VISIBLE : View.GONE);
         incomeCategoryLayout.setVisibility(dividend ? View.VISIBLE : View.GONE);
+        moveTotalField(dividend);
         if (!dividend) {
             userSet.remove(Field.GROSS);
         }
+    }
+
+    /**
+     * Rückt die Gesamtsumme an den Platz, der zur Aktion passt.
+     *
+     * <p>Bei Kauf und Verkauf ist sie die Zahl, die man vom Beleg abliest – sie steht deshalb gleich
+     * unter dem Datum, Anzahl und Stückpreis folgen darunter. Bei einer Dividende ist das Netto dagegen
+     * das Ende einer Kette (Brutto minus Steuer) und bleibt an deren Ende stehen.</p>
+     */
+    private void moveTotalField(boolean dividend) {
+        android.view.ViewGroup form = (android.view.ViewGroup) netLayout.getParent();
+        if (form == null) {
+            return;
+        }
+        View predecessor = dividend ? feeLayout : dateLayout;
+        if (form.indexOfChild(netLayout) == form.indexOfChild(predecessor) + 1) {
+            return;   // steht schon dort
+        }
+        // Erst aushängen, dann den Platz bestimmen: alles hinter dem alten Platz rückt sonst um eins vor,
+        // und ein vorher berechneter Index läge eine Zeile zu tief.
+        form.removeView(netLayout);
+        form.addView(netLayout, form.indexOfChild(predecessor) + 1);
     }
 
     private String currentAction() {

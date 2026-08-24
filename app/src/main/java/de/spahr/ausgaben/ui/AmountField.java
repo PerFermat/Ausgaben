@@ -39,4 +39,9 @@ public final class AmountField {
         field.setKeyListener(DigitsKeyListener.getInstance(
                 DIGITS + MoneyFormat.decimalSeparator() + "-"));
     }
+
+    /** Prozentfeld: Ziffern und das Dezimalzeichen, sonst nichts – ein Vorzeichen ergäbe hier keinen Sinn. */
+    public static void preparePercent(EditText field) {
+        field.setKeyListener(DigitsKeyListener.getInstance(DIGITS + MoneyFormat.decimalSeparator()));
+    }
 }

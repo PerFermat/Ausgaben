@@ -230,10 +230,13 @@ public class SettingsActivity extends LocalizedActivity implements SmbWizardCont
         switchDividendGross = findViewById(R.id.switchDividendGross);
         switchDividendGross.setChecked(settings.isDividendGross());
         editDividendTaxRate = findViewById(R.id.editDividendTaxRate);
+        // Ziffern und das oben eingestellte Dezimalzeichen – android:inputType="numberDecimal" kennt
+        // nur den Punkt und verschluckte ein Komma (siehe AmountField).
+        AmountField.preparePercent(editDividendTaxRate);
         double taxPercent = settings.getDividendTaxPercent();
         if (taxPercent > 0) {
             editDividendTaxRate.setText(
-                    de.spahr.ausgaben.settings.MoneyFormat.decimal(taxPercent, 0, 3));
+                    de.spahr.ausgaben.settings.MoneyFormat.decimal(taxPercent, 0, 5));
         }
         switchBudgetInternal = findViewById(R.id.switchBudgetInternal);
         switchBudgetInternal.setChecked(settings.isBudgetInternal());
@@ -1324,8 +1327,10 @@ public class SettingsActivity extends LocalizedActivity implements SmbWizardCont
     }
 
     /**
-     * Der Steuersatz in Prozent, im eingestellten Zahlenformat eingegeben. Leer, unlesbar oder außerhalb
-     * von 0 bis unter 100 ergibt 0 – dann belegt die Wertpapier-Erfassung die Steuer eben nicht vor.
+     * Der Steuersatz in Prozent, im eingestellten Zahlenformat eingegeben. Komma wie Punkt werden
+     * angenommen – welches Zeichen das Feld zulässt, steht in den Einstellungen, aber ein von früher
+     * stehengebliebener Wert soll nicht am Trennzeichen scheitern. Leer, unlesbar oder außerhalb von
+     * 0 bis unter 100 ergibt 0 – dann belegt die Wertpapier-Erfassung die Steuer eben nicht vor.
      */
     private static double parsePercent(String raw) {
         String t = raw == null ? "" : raw.trim().replace(',', '.');

@@ -528,14 +528,23 @@ public class SettingsStore {
      * Wertpapier-Erfassung die Steuer vor, solange erst eines der drei Geldfelder feststeht; 0 = keine
      * Vorbelegung. Für die Anzeige bereits gebuchter Dividenden spielt der Wert keine Rolle – dort zählt
      * allein die gespeicherte Differenz zwischen brutto und netto.
+     *
+     * <p>Abgelegt wird in Hunderttausendsteln, damit fünf Nachkommastellen exakt bleiben: als
+     * {@code float} reichte die Genauigkeit bei Sätzen nahe 100 % nicht mehr für die fünfte Stelle.</p>
      */
     public double getDividendTaxPercent() {
-        return prefs.getFloat(KEY_DIVIDEND_TAX_RATE, 0f);
+        try {
+            return prefs.getLong(KEY_DIVIDEND_TAX_RATE, 0L) / 100000.0;
+        } catch (ClassCastException e) {
+            // Frühere Fassung: als float gespeichert. Einmal gelesen, schreibt das Speichern den Wert
+            // im neuen Format zurück.
+            return prefs.getFloat(KEY_DIVIDEND_TAX_RATE, 0f);
+        }
     }
 
     public void setDividendTaxPercent(double percent) {
         double p = percent < 0 || percent >= 100 ? 0 : percent;
-        prefs.edit().putFloat(KEY_DIVIDEND_TAX_RATE, (float) p).apply();
+        prefs.edit().putLong(KEY_DIVIDEND_TAX_RATE, Math.round(p * 100000.0)).apply();
     }
 
     /** Budget app-intern aus dem Verlauf berechnen (true) statt aus KMyMoney importieren (false, Standard). */

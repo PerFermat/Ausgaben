@@ -741,9 +741,9 @@ public class DepotActivity extends LocalizedActivity {
         return de.spahr.ausgaben.settings.MoneyFormat.display(cents, Currencies.getDefault());
     }
 
-    /** Stückzahl: bis zu vier Nachkommastellen, im eingestellten Zahlenformat. */
+    /** Stückzahl im eingestellten Zahlenformat (siehe {@code MoneyFormat.SHARE_DECIMALS}). */
     private static String shares(double v) {
-        return de.spahr.ausgaben.settings.MoneyFormat.decimal(v, 0, 4);
+        return de.spahr.ausgaben.settings.MoneyFormat.shares(v);
     }
 
     /** Kurs: bis zu vier Nachkommastellen, im eingestellten Zahlenformat. */

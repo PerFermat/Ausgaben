@@ -742,7 +742,7 @@ public class KmyExporter {
             return splits;
         }
         long stockValue = sell ? -gross : gross;
-        String sharesFraction = decimalFraction(tx.shares, 10000);
+        String sharesFraction = decimalFraction(tx.shares, SHARE_SCALE);
         splits.add(securitySplit("S0002", stockId, fraction(stockValue), sharesFraction,
                 priceFraction(gross, tx.shares), sell ? "Sell" : "Buy"));
         if (fee != 0) {
@@ -774,19 +774,29 @@ public class KmyExporter {
     }
 
     /**
+     * Nenner der Stückzahl-Brüche: sechs Nachkommastellen. Banken rechnen Sparplan-Anteile fein ab – die
+     * ING weist {@code 6,09607} aus. Mit einem gröberen Nenner stünde eine gerundete Stückzahl in der
+     * KMyMoney-Datei, und der Bestand liefe über die Jahre auseinander.
+     */
+    private static final long SHARE_SCALE = 1000000L;
+
+    /**
      * Der Stückpreis als <b>exakter</b> Bruch {@code Betrag / Stückzahl}, damit {@code shares × price}
      * genau den {@code value} des Splits ergibt. Ein gerundeter Dezimalkurs täte das nicht.
+     *
+     * <p>Gerundet wird hier mit demselben Nenner wie die Stückzahl selbst – sonst passte der Kurs nicht
+     * mehr zu der Stückzahl, die daneben im Split steht.</p>
      */
     private static String priceFraction(long grossCents, double shares) {
-        long scaled = Math.round(Math.abs(shares) * 10000.0);
+        long scaled = Math.round(Math.abs(shares) * (double) SHARE_SCALE);
         if (scaled == 0) {
             return "1/1";
         }
-        // Betrag/100 geteilt durch scaled/10000  →  (Betrag · 10000) / (100 · scaled)
-        return reduced(Math.abs(grossCents) * 10000L, 100L * scaled);
+        // Betrag/100 geteilt durch scaled/SHARE_SCALE  →  (Betrag · SHARE_SCALE) / (100 · scaled)
+        return reduced(Math.abs(grossCents) * SHARE_SCALE, 100L * scaled);
     }
 
-    /** Eine Dezimalzahl als gekürzter Bruch mit {@code scale} als Nenner (Stückzahlen: 4 Nachkommastellen). */
+    /** Eine Dezimalzahl als gekürzter Bruch mit {@code scale} als Nenner. */
     private static String decimalFraction(double value, long scale) {
         return reduced(Math.round(value * scale), scale);
     }

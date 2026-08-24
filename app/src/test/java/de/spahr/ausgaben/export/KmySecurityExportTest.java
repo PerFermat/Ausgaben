@@ -176,6 +176,52 @@ public class KmySecurityExportTest {
         assertEquals(12345L, tx.amountCents);
     }
 
+    /**
+     * Sparplan-Ausführung mit den Zahlen einer echten ING-Abrechnung: 6,09607 Stück für 1.000,00 €.
+     * Fünf Nachkommastellen – mit einem gröberen Bruch verschwände die letzte still, und der Bestand
+     * liefe über die Jahre auseinander.
+     */
+    @Test
+    public void sparplanAnteileBehaltenFuenfNachkommastellen() throws IOException {
+        SecurityTx tx = findWritten(roundtrip(pending("buy", 6.09607, 100000L, 100000L, 0L)));
+        assertNotNull(tx);
+        assertEquals(6.09607, tx.shares, 1e-9);
+        assertEquals(100000L, tx.amountCents);
+    }
+
+    /** Im Wertpapier-Split muss {@code shares × price} genau den {@code value} ergeben. */
+    @Test
+    public void stueckzahlMalKursErgibtDenSplitbetrag() throws IOException {
+        KmyDocument original = doc();
+        KmyExporter.SecurityResult res = new KmyExporter(original, ctx).buildSecurityTransactions(
+                original.xml(), Collections.singletonList(pending("buy", 6.09607, 100000L, 100000L, 0L)));
+        assertEquals(1, res.writtenIds.size());
+
+        // Die Testdatei bringt selbst einen Kauf mit; der neue wird hinten angehängt, also den letzten nehmen.
+        Matcher m = Pattern.compile("<SPLIT\\b[^>]*action=\"Buy\"[^>]*/>").matcher(res.xml);
+        String split = null;
+        while (m.find()) {
+            split = m.group();
+        }
+        assertNotNull("kein Buy-Split gefunden", split);
+        double shares = fractionOf(split, "shares");
+        double price = fractionOf(split, "price");
+        double value = fractionOf(split, "value");
+        assertEquals(6.09607, shares, 1e-9);
+        assertEquals(value, shares * price, 1e-6);
+    }
+
+    private static double fractionOf(String splitXml, String attribute) {
+        Matcher m = Pattern.compile("\\b" + attribute + "=\"([^\"]*)\"").matcher(splitXml);
+        assertTrue(attribute + " fehlt", m.find());
+        String f = m.group(1);
+        int slash = f.indexOf('/');
+        if (slash < 0) {
+            return Double.parseDouble(f);
+        }
+        return Double.parseDouble(f.substring(0, slash)) / Double.parseDouble(f.substring(slash + 1));
+    }
+
     @Test
     public void unbekanntesGeldkontoWirdÜbersprungenStattHalbGeschrieben() throws IOException {
         SecurityTx tx = pending("buy", 1.0, 1000L, 1000L, 0L);

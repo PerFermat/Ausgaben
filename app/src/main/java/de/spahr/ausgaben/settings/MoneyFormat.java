@@ -88,7 +88,19 @@ public final class MoneyFormat {
         return s.replace('.', decimalSep);
     }
 
-    /** Ob das Währungskennzeichen angehängt wird    /** Ob das Währungskennzeichen angehängt wird – für Werte, die nicht über {@link #display} laufen. */
+    /**
+     * Nachkommastellen einer Stückzahl. Sechs, weil Banken Sparplan-Anteile fein abrechnen: die ING weist
+     * {@code 6,09607} und {@code 1.839,80185} aus, also fünf Stellen – mit vier verschwände die letzte
+     * still, und beim Export stünde eine falsche Stückzahl in der KMyMoney-Datei.
+     */
+    public static final int SHARE_DECIMALS = 6;
+
+    /** Eine Stückzahl im eingestellten Zahlenformat; nachlaufende Nullen fallen weg. */
+    public static String shares(double value) {
+        return decimal(value, 0, SHARE_DECIMALS);
+    }
+
+    /** Ob das Währungskennzeichen angehängt wird – für Werte, die nicht über {@link #display} laufen. */
     public static boolean isCurrencyShown() {
         return showCurrency;
     }

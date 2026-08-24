@@ -444,7 +444,7 @@ public class SecurityTxEditActivity extends LocalizedActivity {
             userSet.remove(r.computed);
         }
         writingBack = true;
-        writeUnset(Field.SHARES, r.shares == null ? null : MoneyFormat.decimal(r.shares, 0, 4));
+        writeUnset(Field.SHARES, r.shares == null ? null : MoneyFormat.shares(r.shares));
         writeUnset(Field.PRICE, r.price == null ? null : MoneyFormat.decimal(r.price, 0, 4));
         writeUnset(Field.GROSS, r.grossCents == null ? null : MoneyFormat.plain(r.grossCents));
         // Die stillschweigende 0 bei Kauf/Verkauf bleibt ungeschrieben: stünde „0,00" im Feld, verdeckte
@@ -471,7 +471,9 @@ public class SecurityTxEditActivity extends LocalizedActivity {
     }
 
     private void setNumber(Field field, double value) {
-        numberFields.get(field).setText(MoneyFormat.decimal(value, 0, 4));
+        // Stückzahlen feiner als Kurse: Sparplan-Anteile haben fünf Nachkommastellen.
+        numberFields.get(field).setText(field == Field.SHARES
+                ? MoneyFormat.shares(value) : MoneyFormat.decimal(value, 0, 4));
     }
 
     private void setMoney(Field field, long cents) {

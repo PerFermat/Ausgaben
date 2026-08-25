@@ -210,6 +210,21 @@ public class SettingsActivity extends LocalizedActivity implements SmbWizardCont
             switchWearModel.setVisibility(android.view.View.GONE);
         }
 
+        // Abrechnungen einlesen. Der Hinweis kommt nur beim Einschalten und hält nichts auf – er sagt,
+        // woran die Erkennung gemessen wurde, damit niemand die erkannten Zahlen ungeprüft übernimmt.
+        MaterialSwitch switchStatement = findViewById(R.id.switchStatement);
+        switchStatement.setChecked(settings.isStatementEnabled());
+        switchStatement.setOnCheckedChangeListener((b, checked) -> {
+            settings.setStatementEnabled(checked);
+            if (checked) {
+                new AppDialog(this)
+                        .setTitle(R.string.statement_switch)
+                        .setMessage(R.string.statement_switch_notice)
+                        .setPositiveButton(android.R.string.ok, null)
+                        .show();
+            }
+        });
+
         MaterialSwitch switchReceipt = findViewById(R.id.switchReceipt);
         switchReceipt.setChecked(settings.isReceiptEnabled());
         switchReceipt.setOnCheckedChangeListener((b, checked) -> settings.setReceiptEnabled(checked));

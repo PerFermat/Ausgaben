@@ -117,6 +117,7 @@ public class DepotActivity extends LocalizedActivity {
                 });
         findViewById(R.id.fabReadStatement).setOnClickListener(
                 v -> statementLauncher.launch(new String[]{"application/pdf"}));
+        applyStatementSetting();
 
         toolbar = findViewById(R.id.toolbar);
         setSupportActionBar(toolbar);
@@ -268,7 +269,22 @@ public class DepotActivity extends LocalizedActivity {
     protected void onResume() {
         super.onResume();
         loadDrawerAccounts(); // Sortierung und Gruppen können in der Verwaltung geändert worden sein
+        applyStatementSetting();
         render();
+    }
+
+    /**
+     * Beide Wege zur Abrechnungs-Erkennung hängen an der Einstellung: der Knopf und das Regelsymbol.
+     * Nachgezogen wird bei jedem Erscheinen, damit ein Wechsel in den Einstellungen sofort greift und
+     * nicht erst beim nächsten Öffnen des Depots.
+     *
+     * <p>Ausblenden ist kein Löschen: die gelernten Vorlagen bleiben liegen und stehen wieder bereit,
+     * sobald jemand die Erkennung erneut einschaltet.</p>
+     */
+    private void applyStatementSetting() {
+        findViewById(R.id.fabReadStatement).setVisibility(
+                settings.isStatementEnabled() ? View.VISIBLE : View.GONE);
+        invalidateOptionsMenu();
     }
 
     @Override
@@ -366,6 +382,10 @@ public class DepotActivity extends LocalizedActivity {
         setMenuTitle(menu, R.id.action_filter, R.string.action_filter);
         setMenuTitle(menu, R.id.action_analysis, R.string.action_analysis);
         setMenuTitle(menu, R.id.action_statement_rules, R.string.statement_rules);
+        MenuItem rules = menu.findItem(R.id.action_statement_rules);
+        if (rules != null) {
+            rules.setVisible(settings.isStatementEnabled());
+        }
         setMenuTitle(menu, R.id.action_categories, R.string.action_categories);
         setMenuTitle(menu, R.id.action_balance, R.string.action_balance);
         setMenuTitle(menu, R.id.action_budget, R.string.action_budget);

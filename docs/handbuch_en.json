@@ -1099,6 +1099,11 @@
       "text": "<b>Dividends gross/net:</b> the settings let you choose whether dividends are shown gross (declared dividend) or net (cash received after tax) and used in the balance line (dividends, net invested, gain/loss)."
     },
     {
+      "type": "p",
+      "id": "b-0157a",
+      "text": "<b>Reading a statement:</b> the portfolio can read a securities statement from a PDF and prepare a booking from it. The feature ships <b>switched off</b> and can be enabled in the settings, where the app also states how many banks the recognition was measured against. It does not work with every bank – <b>check the recognised values before you book</b>."
+    },
+    {
       "type": "h1",
       "id": "b-0158",
       "text": "14. Synchronizing: performing export and import"
@@ -1270,6 +1275,7 @@
         "<b>Currency</b>: default currency symbol for accounts without their own currency (taken per account from the file on .kmy import).",
         "<b>Number format</b>: «1.234,56», «1,234.56» or «1234,56»/«1234.56» without grouping; plus the <b>«Show currency symbol»</b> toggle. Applies to all amounts in the app and on the watch; the export keeps a stable format.",
         "<b>Dividends gross/net</b>: whether portfolio dividends are settled gross (declared) or net.",
+        "<b>Read statements</b>: allows reading the bank's PDF statements in the portfolio (default: off). When switched on the app states how many banks the recognition was measured against (see Chapter 13).",
         "<b>Budget in-app</b>: compute the budget actuals from history instead of importing from KMyMoney (see Chapter 11).",
         "<b>Install offline speech package on the watch</b> (GitHub build with the Wear bridge only): lets the watch download the offline speech model of the chosen language so voice recording works offline too (see Chapter 15). Off → the number-pad fallback applies offline."
       ]

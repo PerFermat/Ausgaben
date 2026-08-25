@@ -296,10 +296,75 @@ public class StatementCorpusTest {
                 + "Abrechnungen: " + juengste.size()
                 + String.format("   gelesen: %d  (%.1f %%)%n", ok, 100.0 * ok / juengste.size())
                 + "Banken vollstaendig: " + voll + "   gar nicht: " + gar
-                + "   von " + proBank.size() + "\n\n";
+                + "   von " + proBank.size() + "\n\n"
+                + nachSprache(juengste, jeBank) + "\n";
         schreibeBericht(kopf + bericht + "\n--- Fehlschlaege ---\n" + gruende,
                 "statement-aktuell.txt");
         assertTrue(ok > 0);
+    }
+
+    /**
+     * Dieselbe Auszählung, aber getrennt nach der <b>Sprache des Belegs</b> — die Zahl, die im Hinweis
+     * beim Einschalten der Erkennung steht.
+     *
+     * <p>Eine deutschsprachige Abrechnung ist anders gebaut als eine englische, und das schlägt bis in
+     * die Ankerlogik durch. Wer die App auf Deutsch führt, hat deutschsprachige Belege — ihm eine über
+     * beide Sprachräume gemittelte Zahl zu nennen, wäre die falsche Auskunft.</p>
+     *
+     * <p>Die Sprache wird am Text erkannt, nicht an einer von Hand gepflegten Länderliste: eine Bank
+     * gilt als deutschsprachig, wenn die Mehrheit ihrer Belege deutsche Fachwörter führt. Das ist
+     * wiederholbar und altert nicht mit dem Bestand.</p>
+     */
+    private static String nachSprache(List<PpCorpus.Case> juengste, Map<String, String> jeBank)
+            throws IOException {
+        Map<String, int[]> proBank = new TreeMap<>();
+        Map<String, int[]> spracheProBank = new TreeMap<>();
+        for (PpCorpus.Case c : juengste) {
+            int[] z = proBank.computeIfAbsent(c.bank, k -> new int[2]);
+            z[0]++;
+            if (jeBank.get(c.bank + '/' + c.file) == null) {
+                z[1]++;
+            }
+            int[] sprache = spracheProBank.computeIfAbsent(c.bank, k -> new int[2]);
+            sprache[deutsch(PpCorpus.text(c).text()) ? 0 : 1]++;
+        }
+        int[] deutscheBanken = new int[3];
+        int[] andereBanken = new int[3];
+        StringBuilder liste = new StringBuilder();
+        for (Map.Entry<String, int[]> e : proBank.entrySet()) {
+            int[] sprache = spracheProBank.get(e.getKey());
+            boolean de = sprache[0] > sprache[1];
+            int[] summe = de ? deutscheBanken : andereBanken;
+            int[] z = e.getValue();
+            summe[0]++;
+            if (z[0] == z[1]) {
+                summe[1]++;
+            }
+            if (z[1] == 0) {
+                summe[2]++;
+            }
+            liste.append(String.format("%-38s %s  %d von %d%n", e.getKey(), de ? "de" : "  ",
+                    z[1], z[0]));
+        }
+        return "--- nach Sprache des Belegs ---\n"
+                + String.format("deutschsprachig: %d Banken, davon vollstaendig %d, gar nicht %d%n",
+                        deutscheBanken[0], deutscheBanken[1], deutscheBanken[2])
+                + String.format("uebrige:         %d Banken, davon vollstaendig %d, gar nicht %d%n%n",
+                        andereBanken[0], andereBanken[1], andereBanken[2])
+                + liste;
+    }
+
+    /** Fachwörter, die in einer deutschsprachigen Wertpapierabrechnung kaum fehlen. */
+    private static boolean deutsch(String text) {
+        String klein = text.toLowerCase(java.util.Locale.ROOT);
+        int treffer = 0;
+        for (String wort : new String[]{"wertpapier", "abrechnung", "stück", "stueck", "betrag",
+                "kurswert", "wertpapierkennnummer", "verwahrart", "ausführung", "gutschrift"}) {
+            if (klein.contains(wort)) {
+                treffer++;
+            }
+        }
+        return treffer >= 2;
     }
 
     /** Je Bank und Art die {@code n} jüngsten Abrechnungen. */

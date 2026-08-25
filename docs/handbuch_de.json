@@ -1099,6 +1099,11 @@
       "text": "<b>Dividenden brutto/netto:</b> In den Einstellungen wählbar, ob Dividenden brutto (deklarierte Dividende) oder netto (gutgeschriebenes Geld nach Steuer) angezeigt und in der Saldenzeile (Dividenden, Nettoeinsatz, Gewinn/Verlust) verrechnet werden."
     },
     {
+      "type": "p",
+      "id": "b-0157a",
+      "text": "<b>Abrechnung einlesen:</b> Das Depot kann eine Wertpapierabrechnung als PDF einlesen und daraus eine Buchung vorbereiten. Die Funktion ist ab Werk <b>ausgeschaltet</b> und lässt sich in den Einstellungen einschalten; dort nennt die App auch, an wie vielen Banken die Erkennung gemessen wurde. Sie trägt nicht bei jeder Bank – <b>prüfen Sie die erkannten Werte, bevor Sie buchen</b>."
+    },
+    {
       "type": "h1",
       "id": "b-0158",
       "text": "14. Synchronisieren: Export und Import durchführen"
@@ -1270,6 +1275,7 @@
         "<b>Währung</b>: Standard-Währungskennzeichen für Konten ohne eigene Währung (beim .kmy-Import je Konto aus der Datei übernommen).",
         "<b>Zahlenformat</b>: «1.234,56», «1,234.56» oder «1234,56»/«1234.56» ohne Tausendertrennung; dazu der Schalter <b>«Währungskennzeichen anzeigen»</b>. Gilt für alle Beträge in App und Uhr; der Export bleibt formatstabil.",
         "<b>Dividenden brutto/netto</b>: ob Depot-Dividenden brutto (deklariert) oder netto verrechnet werden.",
+        "<b>Abrechnungen einlesen</b>: erlaubt im Depot das Einlesen von PDF-Abrechnungen der Bank (Standard: aus). Beim Einschalten nennt die App, an wie vielen Banken die Erkennung gemessen wurde (siehe Kapitel 13).",
         "<b>Budget app-intern</b>: das Budget-Ist aus dem Verlauf berechnen statt aus KMyMoney importieren (siehe Kapitel 11).",
         "<b>Offline-Sprachpaket auf der Uhr installieren</b> (nur GitHub-Variante mit Wear-Anbindung): erlaubt der Uhr, das Offline-Sprachmodell der gewählten Sprache zu laden, damit die Sprachaufnahme auch offline funktioniert (siehe Kapitel 15). Aus → offline greift der Zahlenblock-Fallback."
       ]

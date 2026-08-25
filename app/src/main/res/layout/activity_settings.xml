@@ -131,6 +131,15 @@
                 android:maxLength="9" />
         </com.google.android.material.textfield.TextInputLayout>
 
+        <!-- Abrechnungen einlesen: ausgeliefert wird die Funktion abgeschaltet, und beim Einschalten
+             sagt die App, an wie vielen Banken sie gemessen wurde. -->
+        <com.google.android.material.materialswitch.MaterialSwitch
+            android:id="@+id/switchStatement"
+            android:layout_width="match_parent"
+            android:layout_height="wrap_content"
+            android:layout_marginTop="8dp"
+            android:text="@string/statement_switch" />
+
         <com.google.android.material.materialswitch.MaterialSwitch
             android:id="@+id/switchBudgetInternal"
             android:layout_width="match_parent"

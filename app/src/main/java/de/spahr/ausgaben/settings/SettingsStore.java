@@ -43,6 +43,7 @@ public class SettingsStore {
     private static final String KEY_DIVIDEND_GROSS = "dividend_gross";
     private static final String KEY_DIVIDEND_TAX_RATE = "dividend_tax_rate";
     private static final String KEY_BUDGET_INTERNAL = "budget_internal";
+    private static final String KEY_STATEMENT_ENABLED = "statement_enabled";
     private static final String KEY_FONT_SIZE = "font_size";
     private static final String KEY_SMB_KNOWN_HOSTS = "smb_known_hosts";
     private static final String KEY_RECONCILE_PAYEE = "reconcile_payee";
@@ -545,6 +546,22 @@ public class SettingsStore {
     public void setDividendTaxPercent(double percent) {
         double p = percent < 0 || percent >= 100 ? 0 : percent;
         prefs.edit().putLong(KEY_DIVIDEND_TAX_RATE, Math.round(p * 100000.0)).apply();
+    }
+
+    /**
+     * Bankabrechnungen als PDF einlesen — <b>Standard: aus</b>.
+     *
+     * <p>Die Erkennung trägt nicht bei jeder Bank, und wer ihr blind vertraut, verbucht im ungünstigen
+     * Fall falsche Zahlen. Deshalb muss man sie ausdrücklich einschalten; dabei sagt die App, woran sie
+     * gemessen wurde. Ausgeschaltet verschwinden im Depot nur die Wege dorthin — die gelernten Vorlagen
+     * bleiben erhalten und stehen nach dem Einschalten wieder bereit.</p>
+     */
+    public boolean isStatementEnabled() {
+        return prefs.getBoolean(KEY_STATEMENT_ENABLED, false);
+    }
+
+    public void setStatementEnabled(boolean enabled) {
+        prefs.edit().putBoolean(KEY_STATEMENT_ENABLED, enabled).apply();
     }
 
     /** Budget app-intern aus dem Verlauf berechnen (true) statt aus KMyMoney importieren (false, Standard). */

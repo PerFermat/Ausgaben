@@ -741,6 +741,13 @@
     <string name="statement_problem_amounts">Amounts missing</string>
     <string name="statement_problem_shares">Quantity missing</string>
     <string name="statement_problem_account">Counter account missing</string>
+    <!-- ACHTUNG: statement_switch_notice ist KEINE reine Uebersetzung. Die deutsche Fassung nennt die
+         Zahlen der deutschsprachigen Banken, diese die der englischsprachigen - beide Nutzergruppen
+         haben verschiedene Belege, und eine gemittelte Zahl waere fuer beide die falsche Auskunft.
+         Messstand August 2026: 100 Banken, je die drei juengsten Abrechnungen (626 Belege).
+         Neu messen mit StatementCorpusTest#nurDieJuengstenAbrechnungen. -->
+    <string name="statement_switch">Read bank statements</string>
+    <string name="statement_switch_notice">Statement recognition works with some banks, not all. Measured against 40 banks with English-language statements: 2 are read completely, another 12 in part, and 26 not at all.\n\nAlways check the recognised values before you book. Whatever is missing can be corrected by hand, and the recognition rules in the portfolio let you teach it where the value sits.</string>
     <string name="statement_dup_booked">This booking already exists</string>
     <string name="statement_dup_selected">The same statement is selected more than once</string>
     <!-- Aus einer Abrechnung eingelesen, aber nicht gefunden: dann steht das Feld leer. -->

@@ -740,6 +740,9 @@
     <string name="statement_problem_amounts">Beträge fehlen</string>
     <string name="statement_problem_shares">Anzahl fehlt</string>
     <string name="statement_problem_account">Gegenkonto fehlt</string>
+    <!-- ACHTUNG: statement_switch_notice ist KEINE reine Uebersetzung - siehe values/strings.xml. -->
+    <string name="statement_switch">Bankabrechnungen einlesen</string>
+    <string name="statement_switch_notice">Die Erkennung von Abrechnungen gelingt bei manchen Banken, nicht bei allen. Gemessen an 60 Banken mit deutschsprachigen Abrechnungen: 6 werden vollständig gelesen, weitere 48 teilweise, 6 gar nicht.\n\nPrüfen Sie die erkannten Werte, bevor Sie buchen. Was fehlt, lässt sich von Hand nachtragen, und über die Erkennungsregeln im Depot bringen Sie der App bei, wo der Wert steht.</string>
     <string name="statement_dup_booked">Diese Buchung gibt es schon</string>
     <string name="statement_dup_selected">Dieselbe Abrechnung ist mehrfach ausgewählt</string>
     <!-- Aus einer Abrechnung eingelesen, aber nicht gefunden: dann steht das Feld leer. -->

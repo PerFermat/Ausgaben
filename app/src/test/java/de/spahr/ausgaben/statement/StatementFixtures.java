@@ -69,7 +69,77 @@ final class StatementFixtures {
 
     /** Dividende in Fremdwährung: Brutto in USD, Steuer auf zwei Zeilen, Netto in Euro. */
     static PdfText ingDividende() {
+        return of(dividendeZeilen());
+    }
+
+    /**
+     * Dieselbe Abrechnung, wie die Bank sie <b>ohne</b> Valuta-Zeile druckt: fällt die Valuta mit dem
+     * Zahltag zusammen, lässt sie die Zeile weg. Für eine Vorlage, die das Datum an „Valuta" festgemacht
+     * hat, ist damit gar kein Datum mehr zu finden.
+     */
+    static PdfText ingDividendeOhneValuta() {
+        java.util.List<String> ohne = new java.util.ArrayList<>();
+        for (String line : dividendeZeilen()) {
+            if (!line.startsWith("Valuta")) {
+                ohne.add(line);
+            }
+        }
+        return of(ohne.toArray(new String[0]));
+    }
+
+    /**
+     * Eine Ertragsgutschrift, von der <b>nichts</b> abgezogen wird: der Ertrag liegt innerhalb des
+     * Freibetrags. Die zweite Seite rechnet den Freibetrag durch (Teilfreistellung, Verrechnungstopf,
+     * Sparer-Pauschbetrag) — dort fließt kein Geld, und keine dieser Zeilen trägt eine Steuer.
+     *
+     * <p>Nachgebaut aus einer echten Abrechnung; sie ist der Prüfstein dafür, dass eine Steuerregel ohne
+     * Treffer 0 bedeutet und nicht „unbekannt".</p>
+     */
+    static PdfText ingDividendeOhneSteuer() {
         return of(
+                "ING-DiBa AG · 60628 Frankfurt am Main",
+                "Depotinhaber: Max Muster",
+                "Datum: 06.03.2026",
+                "Seite: 1 von 2",
+                "Ertragsgutschrift",
+                "ISIN (WKN)                             LU1242369327 (DBX0P1)",
+                "Wertpapierbezeichnung                  Xtrackers MSCI Europe",
+                "                                       Inhaber-Anteile 1D o.N.",
+                "Nominale                               215,44908 Stück",
+                "Ertragsausschüttung per Stück          0,3403 USD",
+                "Ausschüttung mit Teilfreist. per Stück 0,23821 USD",
+                "Ex-Tag                                 18.02.2026",
+                "Zahltag                                05.03.2026",
+                "Brutto                                 USD               73,32",
+                "Zwischensumme                          USD               73,32",
+                "Umg. z. Dev.-Kurs (1,160795)           EUR               63,16",
+                "Gesamtbetrag zu Ihren Gunsten          EUR               63,16",
+                "Valuta                                 05.03.2026",
+                "Seite: 2 von 2",
+                "Ausschüttung gem §2 Abs. 11 InvStG                       63,16 EUR",
+                "abzgl. Teilfreistellungsbetrag 30,00 %                   18,95 EUR",
+                "Ertragsausschüttung nach Teilfreistellung                44,21 EUR",
+                "KapSt-pflichtiger Kapitalertrag                          44,21 EUR",
+                "Mit Verrechnungstopf Allgemein verrechnet               -44,21 EUR",
+                "Sparer-Pauschbetrag vor Ertrag                        1.000,00 EUR",
+                "Sparer-Pauschbetrag nach Ertrag                       1.000,00 EUR");
+    }
+
+    /** Ein Kauf mit Gebührenzeile — Gegenstück zu {@link #ingKauf()}, der keine hat. */
+    static PdfText ingKaufMitProvision() {
+        return of(
+                "Wertpapierabrechnung        Kauf",
+                "ISIN (WKN)                  IE00B3RBWM25 (A1JX52)",
+                "Nominale                    Stück            3,12345",
+                "Kurs                        EUR               170,50",
+                "Ausführungstag / -zeit      19.09.2026 um 10:11:12 Uhr",
+                "Kurswert                    EUR               532,63",
+                "Provision                   EUR                 4,90",
+                "Endbetrag zu Ihren Lasten   EUR               537,53");
+    }
+
+    private static String[] dividendeZeilen() {
+        return new String[]{
                 "ING-DiBa AG · 60628 Frankfurt am Main",
                 "Depotinhaber: Max Muster",
                 "Datum: 19.08.2026",
@@ -87,6 +157,6 @@ final class StatementFixtures {
                 "Kapitalertragsteuer 25,00%        EUR             158,73",
                 "Solidaritätszuschlag 5,50%        EUR               8,73",
                 "Gesamtbetrag zu Ihren Gunsten     EUR             739,53",
-                "Valuta                            17.08.2026");
+                "Valuta                            17.08.2026"};
     }
 }

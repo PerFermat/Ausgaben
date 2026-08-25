@@ -130,6 +130,17 @@
             android:parentActivityName=".ui.DepotActivity" />
 
         <activity
+            android:name=".ui.StatementRulesActivity"
+            android:exported="false"
+            android:windowSoftInputMode="adjustResize"
+            android:parentActivityName=".ui.DepotActivity" />
+
+        <activity
+            android:name=".ui.StatementBatchActivity"
+            android:exported="false"
+            android:parentActivityName=".ui.DepotActivity" />
+
+        <activity
             android:name=".ui.SecurityTxEditActivity"
             android:exported="false"
             android:windowSoftInputMode="adjustResize"

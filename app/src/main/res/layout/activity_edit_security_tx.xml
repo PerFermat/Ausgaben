@@ -58,6 +58,18 @@
                     android:text="@string/action_dividend" />
             </com.google.android.material.button.MaterialButtonToggleGroup>
 
+            <!-- Kam die Maske aus einer Abrechnung, in der die Art nicht zu erkennen war: dann ist kein
+                 Knopf vorgewählt, und hier steht, warum. -->
+            <TextView
+                android:id="@+id/actionHint"
+                android:layout_width="match_parent"
+                android:layout_height="wrap_content"
+                android:layout_marginTop="4dp"
+                android:text="@string/statement_action_missing"
+                android:textColor="@color/expense_red"
+                android:textSize="12sp"
+                android:visibility="gone" />
+
             <!-- Nur in der reinen Ansicht: farbige Überschrift statt der Umschaltknöpfe. -->
             <TextView
                 android:id="@+id/actionHeading"

@@ -20,8 +20,8 @@ import de.spahr.ausgaben.statement.StatementTemplate;
  * Zuordnung ISIN → Wertpapier, soweit sie nicht schon aus KMyMoney kommt.
  *
  * <p>Liegt wie die Orte ({@link PlacesStore}) bewusst außerhalb der Room-Datenbank: das Gelernte soll
- * „Datenbank zurücksetzen" und einen Import überstehen, und es wandert damit von selbst in die vorhandene
- * Sicherung der Einstellungen.</p>
+ * „Datenbank zurücksetzen" und einen Import überstehen. In die Sicherung kommt es nicht von selbst —
+ * die Datei steht dafür namentlich in {@code BackupStore.PREFS_FILES}.</p>
  *
  * <p>Speicherformat unter {@code templates}: eine Liste von
  * {@code {"a":"buy","r":{"NET":{"t":["Endbetrag zu Ihren Lasten"],"d":"SAME_LINE","s":false,"c":"EUR"}, …}}}.
@@ -48,14 +48,18 @@ public class StatementTemplates {
     // ---- Vorlagen ----
 
     /**
-     * Die Vorlage, die zu diesem Dokument passt, oder {@code null}. Passen mehrere, gewinnt die zuletzt
-     * gelernte — sie ist die genauere, denn beim Lernen wird eine gleichartige Vorlage ersetzt.
+     * Die Vorlage, die zu diesem Dokument passt, oder {@code null}. Passen mehrere, gewinnt die mit den
+     * meisten Treffern (siehe {@link StatementTemplate#score}); bei Gleichstand die zuletzt gelernte —
+     * sie ist die genauere, denn beim Lernen wird eine gleichartige Vorlage ersetzt.
      */
     public StatementTemplate match(PdfText text) {
         StatementTemplate best = null;
+        int bestScore = 0;
         for (StatementTemplate t : all()) {
-            if (t.matches(text)) {
+            int score = t.score(text);
+            if (score > 0 && score >= bestScore) {
                 best = t;
+                bestScore = score;
             }
         }
         return best;
@@ -95,6 +99,27 @@ public class StatementTemplates {
         kept.add(template);
         JSONArray arr = new JSONArray();
         for (StatementTemplate t : kept) {
+            JSONObject o = toJson(t);
+            if (o != null) {
+                arr.put(o);
+            }
+        }
+        prefs.edit().putString(KEY_TEMPLATES, arr.toString()).apply();
+    }
+
+    /**
+     * Schreibt die ganze Liste — für die Regelseite, auf der von Hand bearbeitet wird.
+     *
+     * <p>Nicht {@link #save} nehmen: das verdrängt eine gleichartige Vorlage über Aktion und
+     * NET-Beschriftung. Wird ausgerechnet die bearbeitet, fände es die bisherige nicht wieder und legte
+     * eine Dublette an.</p>
+     */
+    public void saveAll(List<StatementTemplate> templates) {
+        JSONArray arr = new JSONArray();
+        for (StatementTemplate t : templates) {
+            if (t == null || t.isEmpty()) {
+                continue;
+            }
             JSONObject o = toJson(t);
             if (o != null) {
                 arr.put(o);

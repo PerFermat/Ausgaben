@@ -1539,6 +1539,12 @@ public class Repository {
         depotRepo.saveManualTx(tx, booking, onDone);
     }
 
+    /** Legt einen ganzen Stapel erfasster Bewegungen an — alle oder keine (Erkennungsliste). */
+    public void saveManualSecurityTxBatch(List<SecurityTx> txs, List<Booking> bookings,
+                                          Runnable onDone) {
+        depotRepo.saveManualTxBatch(txs, bookings, onDone);
+    }
+
     /** Ändert eine noch nicht exportierte Bewegung samt Geldbuchung. */
     public void updateManualSecurityTx(SecurityTx tx, Booking booking, Runnable onDone) {
         depotRepo.updateManualTx(tx, booking, onDone);
@@ -1574,6 +1580,14 @@ public class Repository {
     public void getSecurityTxDefaults(String depot, String kmyId, String action,
                                       Callback<SecurityTx> callback) {
         depotRepo.getTxDefaults(depot, kmyId, action, callback);
+    }
+
+    /**
+     * Dieselbe Vorbelegung für mehrere Einträge auf einmal; je Eintrag {@code {Depot, Wertpapier-Id,
+     * Aktion}}, {@code null} für einen Eintrag, der keine braucht.
+     */
+    public void getSecurityTxDefaultsBatch(List<String[]> keys, Callback<List<SecurityTx>> callback) {
+        depotRepo.getTxDefaultsBatch(keys, callback);
     }
 
     /**

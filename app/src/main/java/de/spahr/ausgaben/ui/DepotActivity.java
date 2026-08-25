@@ -63,7 +63,10 @@ public class DepotActivity extends LocalizedActivity {
     private androidx.swiperefreshlayout.widget.SwipeRefreshLayout swipeRefresh;
 
     private ActivityResultLauncher<Uri> exportTreeLauncher;
-    /** Dateiauswahl für eine PDF-Abrechnung der Bank (siehe {@link StatementImport}). */
+    /**
+     * Dateiauswahl für PDF-Abrechnungen der Bank (siehe {@link StatementImport}). Mehrfachauswahl: eine
+     * einzelne Datei geht direkt in die Erfassungsmaske, ein Stapel erst in die Erkennungsliste.
+     */
     private ActivityResultLauncher<String[]> statementLauncher;
     private AlertDialog progressDialog;
     private TextView progressTextView;
@@ -107,9 +110,9 @@ public class DepotActivity extends LocalizedActivity {
                 });
 
         statementLauncher = registerForActivityResult(
-                new ActivityResultContracts.OpenDocument(), uri -> {
-                    if (uri != null) {
-                        StatementImport.open(this, repository, uri);
+                new ActivityResultContracts.OpenMultipleDocuments(), uris -> {
+                    if (uris != null && !uris.isEmpty()) {
+                        StatementImport.openAll(this, repository, uris);
                     }
                 });
         findViewById(R.id.fabReadStatement).setOnClickListener(
@@ -362,6 +365,7 @@ public class DepotActivity extends LocalizedActivity {
         setMenuTitle(menu, R.id.action_export, R.string.action_export);
         setMenuTitle(menu, R.id.action_filter, R.string.action_filter);
         setMenuTitle(menu, R.id.action_analysis, R.string.action_analysis);
+        setMenuTitle(menu, R.id.action_statement_rules, R.string.statement_rules);
         setMenuTitle(menu, R.id.action_categories, R.string.action_categories);
         setMenuTitle(menu, R.id.action_balance, R.string.action_balance);
         setMenuTitle(menu, R.id.action_budget, R.string.action_budget);
@@ -393,6 +397,9 @@ public class DepotActivity extends LocalizedActivity {
             return true;
         } else if (id == R.id.action_filter) {
             showFilterDialog();
+            return true;
+        } else if (id == R.id.action_statement_rules) {
+            startActivity(new Intent(this, StatementRulesActivity.class));
             return true;
         } else if (id == R.id.action_categories) {
             startActivity(new Intent(this, CategoryChartActivity.class));

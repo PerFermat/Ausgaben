@@ -29,7 +29,18 @@ public final class AnchorRule {
         LINE_BELOW
     }
 
-    /** Beschriftungen, an denen die Regel anschlägt; eine genügt (mehrere nur beim Summieren). */
+    /**
+     * Die Beschriftungen, an denen die Regel anschlägt — <b>der Reihe nach</b>: es gilt die erste, die im
+     * Dokument eine Zeile mit Wert anführt.
+     *
+     * <p>Damit lassen sich Rückfälle angeben, und die braucht es: eine Bank druckt die Valuta-Zeile nicht,
+     * wenn sie mit dem Zahltag zusammenfällt — {@code [Valuta, Zahltag, Ex-Tag]} liest dann beide Formen
+     * derselben Abrechnung. Ebenso beim Brutto, das bei einem dollarnotierten Papier in der
+     * Umrechnungszeile steht und bei einem euronotierten in der Bruttozeile.</p>
+     *
+     * <p>Beim Summieren ({@link #sum}) gilt das nicht: dort tragen <b>alle</b> Beschriftungen zusammen
+     * das Ergebnis, weil Banken die Steuer auf mehrere Zeilen verteilen.</p>
+     */
     public final List<String> anchors;
     public final Direction direction;
     /**
@@ -88,11 +99,35 @@ public final class AnchorRule {
         if (text == null || anchors.isEmpty()) {
             return null;
         }
+        if (sum) {
+            // Alle Beschriftungen zusammen: Kapitalertragsteuer und Solidaritätszuschlag ergeben die
+            // Steuer erst gemeinsam. Fehlt eine der Zeilen, zählt eben nur die vorhandene.
+            double total = 0;
+            boolean found = false;
+            for (String anchor : anchors) {
+                Double part = valueOf(text, anchor);
+                if (part != null) {
+                    total += part;
+                    found = true;
+                }
+            }
+            return found ? total : null;
+        }
+        for (String anchor : anchors) {
+            Double value = valueOf(text, anchor);
+            if (value != null) {
+                return value;   // die erste Beschriftung, die trägt
+            }
+        }
+        return null;
+    }
+
+    /** Der Wert zu <b>einer</b> Beschriftung; passt sie auf mehrere Zeilen, gilt die unterste. */
+    private Double valueOf(PdfText text, String anchor) {
         List<PdfText.Line> lines = text.lines();
-        double total = 0;
-        boolean found = false;
+        Double result = null;
         for (int i = 0; i < lines.size(); i++) {
-            if (!matches(lines.get(i).text())) {
+            if (!startsWithAnchor(lines.get(i).text(), anchor)) {
                 continue;
             }
             int valueLine = direction == Direction.LINE_BELOW ? i + 1 : i;
@@ -104,17 +139,36 @@ public final class AnchorRule {
                 continue;   // andere Währung als gelernt – dann ist es nicht der gesuchte Betrag
             }
             Double value = lastNumber(valueText);
-            if (value == null) {
+            if (value != null) {
+                result = value;   // weiter suchen: die unterste Fundstelle gewinnt
+            }
+        }
+        return result;
+    }
+
+    /**
+     * Welche Beschriftung den Wert getragen hat; {@code null}, wenn keine trägt. Für die Probe auf der
+     * Regelseite — beim Eintippen einer Kette will man sehen, welches Glied gegriffen hat. Beim Summieren
+     * sind es alle, die etwas beigetragen haben.
+     */
+    public String matchedAnchor(PdfText text) {
+        if (text == null) {
+            return null;
+        }
+        StringBuilder summed = new StringBuilder();
+        for (String anchor : anchors) {
+            if (valueOf(text, anchor) == null && dateOf(text, anchor) <= 0) {
                 continue;
             }
-            if (sum) {
-                total += value;
-            } else {
-                total = value;   // weiter suchen: die unterste Fundstelle gewinnt
+            if (!sum) {
+                return anchor;
             }
-            found = true;
+            if (summed.length() > 0) {
+                summed.append(" + ");
+            }
+            summed.append(anchor);
         }
-        return found ? total : null;
+        return summed.length() == 0 ? null : summed.toString();
     }
 
     /** Der Wert in Cent — für die Geldfelder. */
@@ -134,10 +188,21 @@ public final class AnchorRule {
         if (text == null || anchors.isEmpty()) {
             return -1;
         }
+        for (String anchor : anchors) {
+            long millis = dateOf(text, anchor);
+            if (millis > 0) {
+                return millis;   // die erste Beschriftung, die trägt
+            }
+        }
+        return -1;
+    }
+
+    /** Das Datum zu <b>einer</b> Beschriftung; passt sie auf mehrere Zeilen, gilt die unterste. */
+    private long dateOf(PdfText text, String anchor) {
         List<PdfText.Line> lines = text.lines();
         long result = -1;
         for (int i = 0; i < lines.size(); i++) {
-            if (!matches(lines.get(i).text())) {
+            if (!startsWithAnchor(lines.get(i).text(), anchor)) {
                 continue;
             }
             int valueLine = direction == Direction.LINE_BELOW ? i + 1 : i;
@@ -166,20 +231,39 @@ public final class AnchorRule {
         return -1;
     }
 
-    /** Ob die Zeile mit einer der Beschriftungen beginnt (am Wortende, nicht mitten im Wort). */
-    private boolean matches(String line) {
+    /** Ob die Zeile mit genau dieser Beschriftung beginnt. */
+    private static boolean startsWithAnchor(String line, String anchor) {
         String l = line.toLowerCase(Locale.ROOT);
-        for (String a : anchors) {
-            String needle = a.toLowerCase(Locale.ROOT);
-            if (!l.startsWith(needle)) {
-                continue;
-            }
-            // „Kurs" darf nicht auf „Kurswert" anschlagen – sonst läse ein Kauf den Kurswert als Kurs.
-            if (l.length() == needle.length() || l.charAt(needle.length()) == ' ') {
-                return true;
+        String needle = anchor.toLowerCase(Locale.ROOT);
+        if (!l.startsWith(needle)) {
+            return false;
+        }
+        // „Kurs" darf nicht auf „Kurswert" anschlagen – sonst läse ein Kauf den Kurswert als Kurs.
+        return l.length() == needle.length() || l.charAt(needle.length()) == ' ';
+    }
+
+    /**
+     * Wie viele der Beschriftungen dieser Regel im Dokument tatsächlich eine Zeile anführen.
+     *
+     * <p>Damit lässt sich messen, wie gut eine Vorlage zu einem Dokument passt, <b>ohne</b> Vollständigkeit
+     * zu verlangen: eine Abrechnung, in der eine Zeile fehlt, ist immer noch dieselbe Abrechnung. Gezählt
+     * wird nach demselben Kriterium, nach dem später gelesen wird — sonst könnte eine Vorlage „passen",
+     * ohne dass eine einzige Regel etwas fände.</p>
+     */
+    public int hits(PdfText text) {
+        if (text == null) {
+            return 0;
+        }
+        int found = 0;
+        for (String anchor : anchors) {
+            for (PdfText.Line line : text.lines()) {
+                if (startsWithAnchor(line.text(), anchor)) {
+                    found++;
+                    break;
+                }
             }
         }
-        return false;
+        return found;
     }
 
     /** Ob die Zeile das gelernte Währungskennzeichen trägt (ohne gelerntes: immer). */

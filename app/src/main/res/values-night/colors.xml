@@ -22,4 +22,6 @@
     <color name="import_banner_text">#FFFFFF</color>
     <!-- Wandernder Verlauf im Import-Banner (etwas helleres Amber) -->
     <color name="import_banner_shimmer">#FFB300</color>
+    <!-- Erkennungsliste: dasselbe Signal, aber dunkel genug für weiße Schrift. -->
+    <color name="statement_error_bg">#5D2C2C</color>
 </resources>

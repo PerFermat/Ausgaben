@@ -721,4 +721,55 @@
     <string name="statement_show">Show statement</string>
     <string name="statement_date_title">Date from the statement</string>
     <string name="statement_date_other">Choose another date…</string>
+    <!-- Mehrere Abrechnungen auf einmal: die Erkennungsliste vor dem Buchen. -->
+    <string name="statement_batch_title">Statements read</string>
+    <string name="statement_batch_reading">Reading %1$d statements…</string>
+    <string name="statement_batch_none">None of the files could be read</string>
+    <string name="statement_batch_apply">Back to the list</string>
+    <string name="statement_batch_save">Save all</string>
+    <string name="statement_batch_saved">%1$d movements saved</string>
+    <string name="statement_batch_incomplete">Please correct the entries marked red first</string>
+    <string name="statement_batch_discard_title">Discard?</string>
+    <string name="statement_batch_discard_message">None of the statements read will be booked.</string>
+    <string name="statement_batch_discard">Discard</string>
+    <string name="statement_batch_edit">Edit entry</string>
+    <string name="statement_batch_remove">Remove entry</string>
+    <string name="statement_problem_isin">No unambiguous ISIN in the file</string>
+    <string name="statement_problem_security">Choose the security for %1$s</string>
+    <string name="statement_problem_action">Buy, sell or dividend? Not recognised</string>
+    <string name="statement_problem_date">Date missing</string>
+    <string name="statement_problem_amounts">Amounts missing</string>
+    <string name="statement_problem_shares">Quantity missing</string>
+    <string name="statement_problem_account">Counter account missing</string>
+    <!-- Aus einer Abrechnung eingelesen, aber nicht gefunden: dann steht das Feld leer. -->
+    <string name="statement_date_missing">Not in the statement – please choose</string>
+    <string name="statement_action_missing">Not in the statement – please choose</string>
+    <string name="security_tx_need_date">Please choose the date</string>
+    <string name="security_tx_need_action">Please choose buy, sell or dividend</string>
+    <!-- Regelseite: die gelernten Erkennungsregeln von Hand nachbessern. -->
+    <string name="statement_rules">Recognition rules</string>
+    <string name="statement_rules_none">Nothing learned yet. Rules appear once you have entered a statement.</string>
+    <string name="statement_rules_template">Template</string>
+    <string name="statement_rules_anchor">Label in the statement</string>
+    <string name="statement_rules_add_anchor">Add fallback label</string>
+    <string name="statement_rules_up">Move up</string>
+    <string name="statement_rules_down">Move down</string>
+    <string name="statement_rules_remove">Remove label</string>
+    <string name="statement_rules_direction">Value stands</string>
+    <string name="statement_rules_same_line">on the same line</string>
+    <string name="statement_rules_line_below">on the line below</string>
+    <string name="statement_rules_sum">Add up several lines</string>
+    <string name="statement_rules_currency">Currency (empty = any)</string>
+    <string name="statement_rules_order_hint">Searched in this order – the first label that carries a value wins.</string>
+    <string name="statement_rules_saved">Rules saved</string>
+    <string name="statement_rules_delete">Delete template</string>
+    <string name="statement_rules_delete_title">Delete template?</string>
+    <string name="statement_rules_delete_message">Statements of this bank will no longer be filled in.</string>
+    <string name="statement_rules_try">Try with a statement…</string>
+    <string name="statement_rules_try_title">What the rules read</string>
+    <string name="statement_rules_try_nomatch">The template does not apply to this statement.</string>
+    <string name="statement_rules_nothing">—</string>
+    <string name="statement_learn_conflict">A label already stored would be replaced. Add the new one as a further fallback, or replace the old one?</string>
+    <string name="statement_learn_append">Add</string>
+    <string name="statement_learn_replace">Replace</string>
 </resources>

@@ -1,0 +1,51 @@
+<?xml version="1.0" encoding="utf-8"?>
+<!--
+  Eine Beschriftung einer Regel. Die Reihenfolge ist die Rangfolge, deshalb liegen Pfeil hoch und runter
+  direkt an der Zeile; gezogen wird hier nicht, weil das Textfeld den Finger für den Schreibzeiger braucht.
+-->
+<LinearLayout xmlns:android="http://schemas.android.com/apk/res/android"
+    android:layout_width="match_parent"
+    android:layout_height="wrap_content"
+    android:gravity="center_vertical"
+    android:orientation="horizontal">
+
+    <com.google.android.material.textfield.TextInputLayout
+        android:layout_width="0dp"
+        android:layout_height="wrap_content"
+        android:layout_weight="1"
+        android:hint="@string/statement_rules_anchor">
+
+        <com.google.android.material.textfield.TextInputEditText
+            android:id="@+id/editAnchor"
+            android:layout_width="match_parent"
+            android:layout_height="wrap_content"
+            android:inputType="text"
+            android:maxLines="1" />
+    </com.google.android.material.textfield.TextInputLayout>
+
+    <ImageButton
+        android:id="@+id/btnAnchorUp"
+        android:layout_width="40dp"
+        android:layout_height="40dp"
+        android:background="?attr/selectableItemBackgroundBorderless"
+        android:contentDescription="@string/statement_rules_up"
+        android:src="@drawable/ic_arrow_up" />
+
+    <ImageButton
+        android:id="@+id/btnAnchorDown"
+        android:layout_width="40dp"
+        android:layout_height="40dp"
+        android:background="?attr/selectableItemBackgroundBorderless"
+        android:contentDescription="@string/statement_rules_down"
+        android:rotation="180"
+        android:src="@drawable/ic_arrow_up" />
+
+    <ImageButton
+        android:id="@+id/btnAnchorRemove"
+        android:layout_width="40dp"
+        android:layout_height="40dp"
+        android:background="?attr/selectableItemBackgroundBorderless"
+        android:contentDescription="@string/statement_rules_remove"
+        android:src="@drawable/ic_close" />
+
+</LinearLayout>

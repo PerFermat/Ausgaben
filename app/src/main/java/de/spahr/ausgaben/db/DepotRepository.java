@@ -178,6 +178,33 @@ class DepotRepository {
     }
 
     /**
+     * Legt mehrere erfasste Bewegungen samt Geldbuchungen in <b>einem</b> Vorgang an — für die
+     * Erkennungsliste, in der ein Stapel Abrechnungen auf einmal gebucht wird. Entweder alle oder keine:
+     * ein halb gebuchter Stapel wäre schlimmer als ein gescheiterter, denn welche Hälfte fehlt, sieht man
+     * dem Depot nicht an.
+     */
+    void saveManualTxBatch(final List<SecurityTx> txs, final List<Booking> bookings,
+                           final Runnable onDone) {
+        executor.execute(() -> {
+            db.runInTransaction(() -> {
+                for (int i = 0; i < txs.size(); i++) {
+                    SecurityTx tx = txs.get(i);
+                    Booking booking = bookings.get(i);
+                    tx.pending = true;
+                    if (booking != null) {
+                        db.accountDao().insertIfAbsent(new Account(booking.account));
+                        tx.bookingId = db.bookingDao().insert(booking);
+                    }
+                    securityDao.insertTx(tx);
+                }
+            });
+            if (onDone != null) {
+                mainHandler.post(onDone);
+            }
+        });
+    }
+
+    /**
      * Ändert eine noch nicht exportierte Bewegung samt Geldbuchung. Exportierte werden hier nicht
      * angefasst – die stehen bereits in der Datei und gehören dort korrigiert.
      */
@@ -232,17 +259,40 @@ class DepotRepository {
     void getTxDefaults(final String depot, final String kmyId, final String action,
                        final Callback<SecurityTx> callback) {
         executor.execute(() -> {
-            // Von speziell nach allgemein: dasselbe Wertpapier, dann ein beliebiges desselben Depots,
-            // zuletzt eines aus einem anderen Depot – immer aber dieselbe Art. Jedes Feld wird einzeln
-            // aufgefüllt, denn die speziellere Bewegung kann Konto und Kategorie unterschiedlich gepflegt
-            // haben (etwa eine importierte Dividende ohne Ertragskategorie).
-            SecurityTx result = new SecurityTx();
-            fillFrom(result, securityDao.getLastByAction(depot, kmyId, action));
-            fillFrom(result, securityDao.getLastByActionInDepot(depot, action));
-            fillFrom(result, securityDao.getLastByActionAnywhere(action));
-            final SecurityTx out = result;
+            final SecurityTx out = txDefaults(depot, kmyId, action);
             mainHandler.post(() -> callback.onResult(out));
         });
+    }
+
+    /**
+     * Dieselbe Vorbelegung für mehrere Wertpapiere auf einmal — für die Erkennungsliste, die eine ganze
+     * Reihe eingelesener Abrechnungen vorbelegt. Ein Durchgang statt einer Abfrage je Eintrag; die
+     * Antwort steht an derselben Stelle wie die Frage.
+     *
+     * @param keys je Eintrag {@code {Depot, Wertpapier-Id, Aktion}}
+     */
+    void getTxDefaultsBatch(final List<String[]> keys, final Callback<List<SecurityTx>> callback) {
+        executor.execute(() -> {
+            final List<SecurityTx> out = new ArrayList<>();
+            for (String[] key : keys) {
+                out.add(key == null ? null : txDefaults(key[0], key[1], key[2]));
+            }
+            mainHandler.post(() -> callback.onResult(out));
+        });
+    }
+
+    /**
+     * Von speziell nach allgemein: dasselbe Wertpapier, dann ein beliebiges desselben Depots, zuletzt
+     * eines aus einem anderen Depot – immer aber dieselbe Art. Jedes Feld wird einzeln aufgefüllt, denn
+     * die speziellere Bewegung kann Konto und Kategorie unterschiedlich gepflegt haben (etwa eine
+     * importierte Dividende ohne Ertragskategorie).
+     */
+    private SecurityTx txDefaults(String depot, String kmyId, String action) {
+        SecurityTx result = new SecurityTx();
+        fillFrom(result, securityDao.getLastByAction(depot, kmyId, action));
+        fillFrom(result, securityDao.getLastByActionInDepot(depot, action));
+        fillFrom(result, securityDao.getLastByActionAnywhere(action));
+        return result;
     }
 
     /** Ergänzt nur, was noch leer ist – die speziellere Quelle kommt zuerst und behält damit Vorrang. */

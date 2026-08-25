@@ -97,9 +97,19 @@ final class StatementImport {
      */
     private static void askForSecurity(AppCompatActivity activity, Repository repository,
                                        PdfText text, Uri source, String isin) {
+        pickSecurity(activity, repository, isin,
+                s -> start(activity, text, source, isin, s.depot, s.kmyId, s.name));
+    }
+
+    /**
+     * Legt alle Wertpapiere zur Wahl und merkt sich die Antwort zur ISIN. Ab dann wird nicht mehr
+     * gefragt — auch dann nicht, wenn die Identifikation in KMyMoney weiterhin fehlt. Gibt es überhaupt
+     * kein Wertpapier, bleibt nur die Auskunft; zu wählen wäre dann nichts.
+     */
+    static void pickSecurity(AppCompatActivity activity, Repository repository, String isin,
+                             Repository.Callback<Security> onPicked) {
         repository.getAllSecurities(securities -> {
             if (securities.isEmpty()) {
-                // Ohne ein einziges Wertpapier gibt es nichts zu wählen; dann bleibt nur die Auskunft.
                 Toast.makeText(activity, activity.getString(R.string.statement_no_security, isin),
                         Toast.LENGTH_LONG).show();
                 return;
@@ -120,7 +130,7 @@ final class StatementImport {
                         Security s = securities.get(which);
                         new StatementTemplates(activity)
                                 .rememberSecurity(isin, s.depot, s.kmyId, s.name);
-                        start(activity, text, source, isin, s.depot, s.kmyId, s.name);
+                        onPicked.onResult(s);
                     })
                     .setNegativeButton(R.string.cancel, null)
                     .show();
@@ -167,6 +177,10 @@ final class StatementImport {
         if (e.netCents != null) {
             i.putExtra(SecurityTxEditActivity.EXTRA_PREFILL_NET, e.netCents);
         }
+        // Nur vorhanden, wenn auf der Regelseite eine Brutto-Regel angelegt wurde (Dollar-Papiere).
+        if (e.grossCents != null) {
+            i.putExtra(SecurityTxEditActivity.EXTRA_PREFILL_GROSS, e.grossCents);
+        }
         // Die Abrechnung wandert schon jetzt in die Belegablage – beim Speichern wird sie dort zum Beleg
         // der Gegenbuchung, und bis dahin lässt sie sich in der Maske ansehen.
         java.io.File staged = de.spahr.ausgaben.receipt.SingleReceipt.stage(activity, source);
@@ -182,6 +196,149 @@ final class StatementImport {
         activity.startActivity(i);
     }
 
+    // ---- Mehrere Abrechnungen auf einmal ----
+
+    /**
+     * Liest einen ganzen Stapel Abrechnungen und legt das Ergebnis zur Durchsicht vor
+     * ({@link StatementBatchActivity}).
+     *
+     * <p>Eine einzelne Datei geht weiter den kurzen Weg direkt in die Maske. Das ist kein Sonderfall aus
+     * Bequemlichkeit: dort lernt die App beim Speichern, wo die Werte in den Abrechnungen dieser Bank
+     * stehen, und genau dafür ist die erste Abrechnung da. Bei einem Stapel käme diese Rückfrage je Datei
+     * — dort zählt der Überblick, nicht das Lernen.</p>
+     */
+    static void openAll(final AppCompatActivity activity, final Repository repository,
+                        final java.util.List<Uri> uris) {
+        if (uris.isEmpty()) {
+            return;
+        }
+        if (uris.size() == 1) {
+            open(activity, repository, uris.get(0));
+            return;
+        }
+        Toast.makeText(activity, activity.getString(R.string.statement_batch_reading, uris.size()),
+                Toast.LENGTH_SHORT).show();
+        // Die Wertpapiere einmal holen statt je Datei: zugeordnet wird danach im Speicher.
+        repository.getAllSecurities(securities -> repository.executor().execute(() -> {
+            StatementTemplates store = new StatementTemplates(activity);
+            java.util.ArrayList<StatementDraft> drafts = new java.util.ArrayList<>();
+            for (int i = 0; i < uris.size(); i++) {
+                drafts.add(read(activity, store, securities, uris.get(i), i));
+            }
+            activity.runOnUiThread(() -> fillDefaults(activity, repository, drafts));
+        }));
+    }
+
+    /**
+     * Eine Datei zum Entwurf. Was sich nicht lesen lässt, wird nicht übergangen, sondern als Eintrag mit
+     * Grund vermerkt — sonst suchte der Nutzer später eine Buchung, die es nie gab.
+     */
+    private static StatementDraft read(AppCompatActivity activity, StatementTemplates store,
+                                       java.util.List<Security> securities, Uri uri, int index) {
+        StatementDraft d = new StatementDraft();
+        d.fileName = displayName(activity, uri);
+        final PdfText text;
+        try {
+            text = PdfTextExtractor.read(activity, uri);
+        } catch (Exception e) {
+            d.failure = R.string.statement_unreadable;
+            return d;
+        }
+        if (!text.hasText()) {
+            d.failure = R.string.statement_no_text;
+            return d;
+        }
+        d.isin = StatementScan.isin(text);
+        assign(d, store, securities);
+
+        StatementTemplate template = store.match(text);
+        StatementTemplate.Extraction e = template != null ? template.apply(text) : templateFree(text);
+        d.action = e.action;
+        d.dateMillis = e.dateMillis;
+        d.shares = e.shares;
+        d.price = e.price;
+        d.feeCents = e.feeCents;
+        d.netCents = e.netCents;
+        d.grossCents = e.grossCents;
+
+        File staged = de.spahr.ausgaben.receipt.SingleReceipt.stage(activity, uri);
+        if (staged != null) {
+            d.stagedPath = staged.getAbsolutePath();
+        }
+        // Je Eintrag ein eigener Zwischenspeicher: die Maske greift beim Berichtigen darauf zu, und ein
+        // gemeinsamer Name zeigte dort auf die zuletzt gelesene Datei statt auf die bearbeitete.
+        d.textPath = cache(activity, text, "statement_" + index + ".txt");
+        return d;
+    }
+
+    /** Wertpapier über die ISIN — erst in den importierten Stammdaten, dann im Gelernten. */
+    private static void assign(StatementDraft d, StatementTemplates store,
+                               java.util.List<Security> securities) {
+        if (d.isin == null) {
+            return;
+        }
+        for (Security s : securities) {
+            if (d.isin.equalsIgnoreCase(s.isin)) {
+                d.depot = s.depot;
+                d.kmyId = s.kmyId;
+                d.securityName = s.name;
+                return;
+            }
+        }
+        String[] learned = store.security(d.isin);
+        if (learned != null) {
+            d.depot = learned[0];
+            d.kmyId = learned[1];
+            d.securityName = learned[2];
+        }
+    }
+
+    /**
+     * Gegenkonto und Kategorien für alle Entwürfe auf einmal nachschlagen, die Zahlen ergänzen und die
+     * Liste öffnen.
+     */
+    private static void fillDefaults(AppCompatActivity activity, Repository repository,
+                                     java.util.ArrayList<StatementDraft> drafts) {
+        java.util.List<String[]> keys = new java.util.ArrayList<>();
+        for (StatementDraft d : drafts) {
+            keys.add(d.kmyId.isEmpty() || d.action == null
+                    ? null : new String[]{d.depot, d.kmyId, d.action});
+        }
+        repository.getSecurityTxDefaultsBatch(keys, defaults -> {
+            for (int i = 0; i < drafts.size(); i++) {
+                StatementDraft d = drafts.get(i);
+                de.spahr.ausgaben.db.SecurityTx last = defaults.get(i);
+                if (last != null) {
+                    d.moneyAccount = last.moneyAccount;
+                    d.feeCategory = last.feeCategory;
+                    d.incomeCategory = last.incomeCategory;
+                }
+                d.resolve();
+            }
+            Intent i = new Intent(activity, StatementBatchActivity.class);
+            i.putParcelableArrayListExtra(StatementBatchActivity.EXTRA_DRAFTS, drafts);
+            activity.startActivity(i);
+        });
+    }
+
+    /** Der Name, unter dem der Nutzer die Datei ausgewählt hat — die einzige Kennung einer Datei,
+     * die sich nicht lesen ließ. */
+    private static String displayName(AppCompatActivity activity, Uri uri) {
+        try (android.database.Cursor c = activity.getContentResolver().query(uri,
+                new String[]{android.provider.OpenableColumns.DISPLAY_NAME}, null, null, null)) {
+            if (c != null && c.moveToFirst()) {
+                String name = c.getString(0);
+                if (name != null && !name.isEmpty()) {
+                    return name;
+                }
+            }
+        } catch (Exception ignored) {
+            // Nicht jeder Anbieter liefert einen Namen; dann tut der Pfad es auch.
+        }
+        String last = uri.getLastPathSegment();
+        return last == null ? "" : last;
+    }
+
     /** Ohne gelernte Vorlage bleibt der Aktions-Vorschlag und die ISIN — mehr wird nicht geraten. */
     private static StatementTemplate.Extraction templateFree(PdfText text) {
         StatementTemplate.Extraction e = new StatementTemplate.Extraction();
@@ -192,8 +349,12 @@ final class StatementImport {
 
     /** Legt den Text im Zwischenspeicher ab; {@code null}, wenn das nicht geht (dann wird nicht gelernt). */
     private static String cache(AppCompatActivity activity, PdfText text) {
+        return cache(activity, text, CACHE_NAME);
+    }
+
+    private static String cache(AppCompatActivity activity, PdfText text, String name) {
         try {
-            File file = new File(activity.getCacheDir(), CACHE_NAME);
+            File file = new File(activity.getCacheDir(), name);
             try (OutputStreamWriter w = new OutputStreamWriter(
                     new FileOutputStream(file), StandardCharsets.UTF_8)) {
                 w.write(text.text());

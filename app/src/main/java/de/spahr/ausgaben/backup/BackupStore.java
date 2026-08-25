@@ -30,12 +30,18 @@ public final class BackupStore {
 
     /**
      * Alle SharedPreferences-Dateien der App. {@code ausgaben_settings} enthält auch die Kategoriefarben,
-     * {@code ausgaben_places} die Orte je Konto, {@code receipts} offene Belege und
-     * {@code widget_selection} die Auswahl des Startbildschirm-Widgets. Das Server-Passwort liegt getrennt
-     * (verschlüsselt) und wird nur auf Wunsch mitgesichert.
+     * {@code ausgaben_places} die Orte je Konto, {@code receipts} offene Belege,
+     * {@code widget_selection} die Auswahl des Startbildschirm-Widgets und {@code ausgaben_statements}
+     * die gelernten Erkennungsregeln der Bankabrechnungen samt der Zuordnung ISIN → Wertpapier. Das
+     * Server-Passwort liegt getrennt (verschlüsselt) und wird nur auf Wunsch mitgesichert.
+     *
+     * <p>Wer hier eine Datei ergänzt, muss beim Einspielen nichts nachziehen: {@code restoreSettings}
+     * läuft über das, was im Archiv liegt. Ältere Sicherungen bleiben damit lesbar und lassen die
+     * neu hinzugekommene Datei unangetastet.</p>
      */
     private static final String[] PREFS_FILES = {
-            "ausgaben_settings", "ausgaben_places", "receipts", "widget_selection"};
+            "ausgaben_settings", "ausgaben_places", "receipts", "widget_selection",
+            "ausgaben_statements"};
 
     private BackupStore() {
     }
@@ -48,6 +54,17 @@ public final class BackupStore {
     public static byte[] create(Context context, boolean includeServerPassword, String password)
             throws IOException, JSONException, java.security.GeneralSecurityException {
         Context app = context.getApplicationContext();
+        LinkedHashMap<String, String> prefs = prefsSnapshot(app, includeServerPassword);
+        byte[] zip = BackupArchive.write(readDatabase(app), prefs, versionCode(app));
+        return password == null || password.isEmpty() ? zip : BackupCrypto.encrypt(zip, password);
+    }
+
+    /**
+     * Die zu sichernden Einstellungen als {@code {Dateiname → JSON}}. Eigene Methode, damit sich prüfen
+     * lässt, was tatsächlich mitgeht — ohne dafür eine Datenbank zu brauchen.
+     */
+    static LinkedHashMap<String, String> prefsSnapshot(Context app, boolean includeServerPassword)
+            throws JSONException {
         LinkedHashMap<String, String> prefs = new LinkedHashMap<>();
         for (String name : PREFS_FILES) {
             prefs.put(name, PrefsCodec.toJson(app.getSharedPreferences(name, Context.MODE_PRIVATE).getAll()));
@@ -60,8 +77,7 @@ public final class BackupStore {
                                 serverPassword)));
             }
         }
-        byte[] zip = BackupArchive.write(readDatabase(app), prefs, versionCode(app));
-        return password == null || password.isEmpty() ? zip : BackupCrypto.encrypt(zip, password);
+        return prefs;
     }
 
     /** versionCode der laufenden App – steht nur zur Information im Manifest der Sicherung. */

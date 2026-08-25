@@ -64,6 +64,17 @@ public class SecurityTxEditActivity extends LocalizedActivity {
     public static final String EXTRA_PREFILL_PRICE = "prefillPrice";
     public static final String EXTRA_PREFILL_FEE = "prefillFee";
     public static final String EXTRA_PREFILL_NET = "prefillNet";
+    public static final String EXTRA_PREFILL_GROSS = "prefillGross";
+    public static final String EXTRA_PREFILL_ACCOUNT = "prefillAccount";
+    public static final String EXTRA_PREFILL_FEE_CATEGORY = "prefillFeeCategory";
+    public static final String EXTRA_PREFILL_INCOME_CATEGORY = "prefillIncomeCategory";
+    /**
+     * Die Maske gehört zu einem Eintrag der Erkennungsliste ({@link StatementBatchActivity}): dort wird
+     * nicht gespeichert, sondern berichtigt. Gebucht wird der ganze Stapel erst am Ende.
+     */
+    public static final String EXTRA_BATCH = "batch";
+    /** Zurück an die Liste: Brutto, Steuer und Netto gehen nicht auf. */
+    public static final String EXTRA_CONFLICT = "conflict";
     /** Pfad zum zwischengespeicherten Abrechnungstext; daraus lernt die App beim Speichern die Anker. */
     public static final String EXTRA_STATEMENT_TEXT = "statementText";
     public static final String EXTRA_STATEMENT_ISIN = "statementIsin";
@@ -86,10 +97,24 @@ public class SecurityTxEditActivity extends LocalizedActivity {
     /** Die geladene Bewegung; {@code null} im Neu-Modus. */
     private SecurityTx loaded;
     private boolean readOnly;
+    /** Berichtigen für die Erkennungsliste statt Speichern (siehe {@link #EXTRA_BATCH}). */
+    private boolean batchMode;
+    /** Die Maske kam aus einer eingelesenen Abrechnung — dann gilt: nicht gefunden heißt leer. */
+    private boolean fromStatement;
+    /**
+     * Steht das Datum fest? {@code selectedDate} allein sagt das nicht: es trägt immer einen Wert, damit
+     * der Kalender irgendwo aufschlägt. Ohne diese Unterscheidung würde ein nicht erkanntes Datum als das
+     * heutige gebucht, ohne dass es jemand merkt.
+     */
+    private boolean dateKnown;
+    /** Dasselbe für Kauf/Verkauf/Dividende: ohne erkannte Art ist kein Knopf vorgewählt. */
+    private boolean actionKnown;
 
     private MaterialToolbar toolbar;
     private MaterialButtonToggleGroup toggleAction;
     private TextView actionHeading;
+    /** Hinweis unter den Umschaltknöpfen, wenn die Abrechnung die Art nicht hergab. */
+    private TextView actionHint;
     private TextView textSecurity;
     private TextInputLayout dateLayout;
     private TextInputEditText editDate;
@@ -142,11 +167,13 @@ public class SecurityTxEditActivity extends LocalizedActivity {
         securityName = orEmpty(getIntent().getStringExtra(EXTRA_NAME));
         repository = new Repository(this);
         taxRate = new SettingsStore(this).getDividendTaxPercent() / 100.0;
+        batchMode = getIntent().getBooleanExtra(EXTRA_BATCH, false);
 
         toolbar = findViewById(R.id.toolbar);
         toolbar.setNavigationOnClickListener(v -> finish());
         toggleAction = findViewById(R.id.toggleAction);
         actionHeading = findViewById(R.id.actionHeading);
+        actionHint = findViewById(R.id.actionHint);
         textSecurity = findViewById(R.id.textSecurity);
         textSecurity.setText(securityName);
         dateLayout = findViewById(R.id.dateLayout);
@@ -175,19 +202,26 @@ public class SecurityTxEditActivity extends LocalizedActivity {
         numberFields.put(Field.FEE, findViewById(R.id.editFee));
         numberFields.put(Field.NET, findViewById(R.id.editNet));
 
+        // Der Hinweis am Datumsfeld soll das Kalendersymbol nicht verdrängen – sonst verschwände mit
+        // ihm der Weg, den Mangel zu beheben.
+        dateLayout.setErrorIconDrawable(null);
         editDate.setOnClickListener(v -> showDatePicker());
         // Das Kalendersymbol liegt über dem Feld und würde den Tipper sonst schlucken.
         dateLayout.setEndIconOnClickListener(v -> showDatePicker());
 
         toggleAction.addOnButtonCheckedListener((group, id, checked) -> {
             if (checked) {
+                actionKnown = true;
+                actionHint.setVisibility(View.GONE);
                 applyAction();
                 loadCategoryFavorites();
                 // Gegenkonto und Kategorien hängen an der Aktion: eine Dividende wird über eine
                 // Ertragskategorie gebucht, ein Kauf über eine Gebührenkategorie. Der Listener greift
                 // auch bei programmatischem Setzen – damit deckt er die aus dem PDF erkannte Aktion mit
                 // ab. Bei einer geladenen Bewegung bleibt es bei ihren gespeicherten Werten.
-                if (loaded == null) {
+                // In der Erkennungsliste bringt der Eintrag Konto und Kategorien schon mit – dort
+                // stünde die Nachfrage gegen das, was der Nutzer eben erst berichtigt hat.
+                if (loaded == null && !batchMode) {
                     loadDefaults(currentAction(), true);
                 }
                 recompute(null);
@@ -204,6 +238,7 @@ public class SecurityTxEditActivity extends LocalizedActivity {
         if (staged != null) {
             pendingStatement = new java.io.File(staged);
         }
+        fromStatement = statementTextPath != null || pendingStatement != null;
         updateStatementButton();
 
         long txId = getIntent().getLongExtra(EXTRA_TX_ID, -1);
@@ -217,10 +252,22 @@ public class SecurityTxEditActivity extends LocalizedActivity {
     // ---- Modi ----
 
     private void setupNewMode() {
-        toolbar.setTitle(R.string.security_tx_new_title);
-        toggleAction.check(R.id.btnBuy);
+        toolbar.setTitle(batchMode ? R.string.security_tx_edit_title : R.string.security_tx_new_title);
+        if (batchMode) {
+            // Hier wird nichts gebucht: der Eintrag geht berichtigt an die Liste zurück, und erst dort
+            // entscheidet „Alle speichern" über den ganzen Stapel.
+            btnSave.setText(R.string.statement_batch_apply);
+        }
+        // Ohne Abrechnung ist der Kauf die richtige Annahme, und heute das richtige Datum – dort gibt es
+        // keine Quelle, der man widersprechen könnte. Kam die Maske dagegen aus einem Dokument, wird
+        // nichts vorgewählt, was nicht darin stand; ergänzt wird gleich darauf aus der Auslese.
         selectedDate.setTime(new Date());
-        updateDateField();
+        if (fromStatement) {
+            clearDateField();
+        } else {
+            toggleAction.check(R.id.btnBuy);
+            updateDateField();
+        }
         applyAction();
         wireNumberFields();
         applyPrefill();
@@ -249,10 +296,19 @@ public class SecurityTxEditActivity extends LocalizedActivity {
             prefillNumber(Field.PRICE, in.hasExtra(EXTRA_PREFILL_PRICE)
                     ? in.getDoubleExtra(EXTRA_PREFILL_PRICE, 0) : null);
         }
+        // Auch bei Kauf und Verkauf, wo das Feld verborgen ist: es rechnet dort mit, und eine von Hand
+        // angelegte Brutto-Regel liest gerade dort den umgerechneten Betrag eines Dollar-Papiers.
+        prefillMoney(Field.GROSS, in.hasExtra(EXTRA_PREFILL_GROSS)
+                ? in.getLongExtra(EXTRA_PREFILL_GROSS, 0) : null);
         prefillMoney(Field.FEE, in.hasExtra(EXTRA_PREFILL_FEE)
                 ? in.getLongExtra(EXTRA_PREFILL_FEE, 0) : null);
         prefillMoney(Field.NET, in.hasExtra(EXTRA_PREFILL_NET)
                 ? in.getLongExtra(EXTRA_PREFILL_NET, 0) : null);
+        // Nichts vorgewählt und nichts erkannt: dann fehlt die Art, und das gehört gesagt.
+        actionHint.setVisibility(actionKnown ? View.GONE : View.VISIBLE);
+        prefillPicker(editAccount, in.getStringExtra(EXTRA_PREFILL_ACCOUNT));
+        prefillPicker(editFeeCategory, in.getStringExtra(EXTRA_PREFILL_FEE_CATEGORY));
+        prefillPicker(editIncomeCategory, in.getStringExtra(EXTRA_PREFILL_INCOME_CATEGORY));
         // Die Werte stammen aus dem Dokument und stehen fest – der Stückpreis der Bank ist genauer als
         // einer, den die Maske aus Summe und Stückzahl zurückrechnet.
         prefilling = true;
@@ -273,6 +329,13 @@ public class SecurityTxEditActivity extends LocalizedActivity {
                     ? MoneyFormat.shares(value) : MoneyFormat.decimal(value, 0, 4));
             writingBack = false;
             userSet.add(field);
+        }
+    }
+
+    /** Konto oder Kategorie aus dem Eintrag der Erkennungsliste; leer bleibt leer. */
+    private void prefillPicker(PickerTextView field, String value) {
+        if (value != null && !value.trim().isEmpty()) {
+            field.setText(value, false);
         }
     }
 
@@ -539,7 +602,10 @@ public class SecurityTxEditActivity extends LocalizedActivity {
         justEdited = edited;
         SecurityAmounts.Input in = new SecurityAmounts.Input();
         in.action = currentAction();
-        in.taxRate = taxRate;
+        // Der Steuersatz ist eine Hilfe beim Eintippen von Hand. Für eine eingelesene Abrechnung ist er
+        // die falsche Quelle: dort hat die Regel gesucht, und was sie nicht fand, wurde nicht abgezogen.
+        // Sonst zeigt eine Dividende innerhalb des Freibetrags eine gerechnete Steuer, die nirgends steht.
+        in.taxRate = fromStatement ? 0 : taxRate;
         in.lastComputed = lastComputed;
         in.justEdited = justEdited;
         in.keepGiven = prefilling;
@@ -683,8 +749,20 @@ public class SecurityTxEditActivity extends LocalizedActivity {
     // ---- Speichern ----
 
     private void save() {
+        if (batchMode) {
+            returnToList();
+            return;
+        }
         if (conflict) {
             Toast.makeText(this, R.string.security_tx_conflict, Toast.LENGTH_LONG).show();
+            return;
+        }
+        if (!actionKnown) {
+            Toast.makeText(this, R.string.security_tx_need_action, Toast.LENGTH_LONG).show();
+            return;
+        }
+        if (!dateKnown) {
+            Toast.makeText(this, R.string.security_tx_need_date, Toast.LENGTH_LONG).show();
             return;
         }
         String action = currentAction();
@@ -744,6 +822,48 @@ public class SecurityTxEditActivity extends LocalizedActivity {
     }
 
     /**
+     * Der Weg zurück in die Erkennungsliste. Übergeben wird der Stand der Maske, wie er dasteht — auch
+     * ein unfertiger: geprüft wird in der Liste, und dort bleibt die Zeile dann eben rot. Wer beim
+     * Berichtigen zwischendurch aufhört, soll das Erreichte nicht verlieren.
+     */
+    private void returnToList() {
+        String action = currentAction();
+        android.content.Intent out = new android.content.Intent();
+        // Was hier nicht feststeht, wird auch nicht übergeben: der Eintrag bleibt in der Liste rot,
+        // statt über den Umweg durch die Maske stillschweigend das heutige Datum zu erben.
+        if (actionKnown) {
+            out.putExtra(EXTRA_PREFILL_ACTION, action);
+        }
+        if (dateKnown) {
+            out.putExtra(EXTRA_PREFILL_DATE, selectedDate.getTimeInMillis());
+        }
+        putNumber(out, EXTRA_PREFILL_SHARES, number(Field.SHARES));
+        putNumber(out, EXTRA_PREFILL_PRICE, number(Field.PRICE));
+        putMoney(out, EXTRA_PREFILL_GROSS, money(Field.GROSS));
+        putMoney(out, EXTRA_PREFILL_FEE, money(Field.FEE));
+        putMoney(out, EXTRA_PREFILL_NET, money(Field.NET));
+        out.putExtra(EXTRA_PREFILL_ACCOUNT, textOf(editAccount).trim());
+        out.putExtra(EXTRA_PREFILL_FEE_CATEGORY, textOf(editFeeCategory).trim());
+        out.putExtra(EXTRA_PREFILL_INCOME_CATEGORY,
+                DIVIDEND.equals(action) ? textOf(editIncomeCategory).trim() : "");
+        out.putExtra(EXTRA_CONFLICT, conflict);
+        setResult(RESULT_OK, out);
+        finish();
+    }
+
+    private static void putNumber(android.content.Intent out, String key, Double value) {
+        if (value != null) {
+            out.putExtra(key, (double) value);
+        }
+    }
+
+    private static void putMoney(android.content.Intent out, String key, Long value) {
+        if (value != null) {
+            out.putExtra(key, (long) value);
+        }
+    }
+
+    /**
      * Kam die Maske aus einer eingelesenen Abrechnung, leitet die App jetzt ab, wo die Werte darin
      * standen — und fragt einmal, ob sie sich das für diese Bank merken soll.
      *
@@ -781,28 +901,47 @@ public class SecurityTxEditActivity extends LocalizedActivity {
                 && existing.rule(StatementTemplate.Field.DATE) != null) {
             known.dateAnchor = existing.rule(StatementTemplate.Field.DATE).anchors.get(0);
         }
-        final StatementTemplate learned = TemplateLearner.learn(text, known);
+        final StatementTemplate raw = TemplateLearner.learn(text, known);
+        // Zwei Lesarten dessen, was dabei herauskam:
+        // „Ersetzen" – die neue Regel gilt, das bisher Gelernte bleibt nur, wo diese Abrechnung nichts
+        //   hergab (eine fehlende Zeile). Sonst verlernte die App an einer unvollständigen Abrechnung.
+        // „Hinzufügen" – die bisherige Reihenfolge behält Vorrang, die neue Beschriftung kommt als
+        //   weiterer Rückfall dahinter. Das schützt, was auf der Regelseite von Hand geordnet wurde.
+        final StatementTemplate replaced = raw.mergedOver(existing);
+        final StatementTemplate appended = raw.appendedTo(existing);
         // Nur fragen, wenn dabei wirklich etwas Neues herauskam. Wer nichts korrigiert hat, bekommt
         // dieselben Regeln zurück – dann gibt es nichts zu merken, und die Rückfrage wäre nur Lärm.
         // Dasselbe, wenn der korrigierte Wert im PDF gar nicht vorkommt: dann entsteht keine Regel.
-        if (learned.isEmpty() || learned.sameAs(existing)) {
+        if (replaced.isEmpty() || replaced.sameAs(existing)) {
             finish();
             return;
         }
-        new AppDialog(this)
-                .setTitle(R.string.statement_learn_title)
-                .setMessage(R.string.statement_learn_message)
-                .setPositiveButton(R.string.statement_learn_yes, (d, w) -> {
-                    store.save(learned);
-                    // Auch die Zuordnung merken – dann findet die nächste Abrechnung das Wertpapier
-                    // selbst dann, wenn die ISIN in KMyMoney nicht gepflegt ist.
-                    store.rememberSecurity(statementIsin, depot, kmyId, securityName);
-                    Toast.makeText(this, R.string.statement_learned, Toast.LENGTH_SHORT).show();
-                    finish();
-                })
-                .setNegativeButton(R.string.cancel, (d, w) -> finish())
-                .setOnCancelListener(d -> finish())
-                .show();
+        AppDialog dialog = new AppDialog(this);
+        dialog.setTitle(R.string.statement_learn_title);
+        if (appended.sameAs(replaced)) {
+            dialog.setMessage(R.string.statement_learn_message);
+            dialog.setPositiveButton(R.string.statement_learn_yes, (d, w) -> keep(store, replaced));
+        } else {
+            // Es gibt einen echten Widerspruch: die neue Beschriftung tritt an die Stelle einer
+            // vorhandenen. Das ist nicht zu entscheiden, ohne zu wissen, ob die alte weiter gebraucht
+            // wird – also wird gefragt, statt zu raten.
+            dialog.setMessage(R.string.statement_learn_conflict);
+            dialog.setPositiveButton(R.string.statement_learn_append, (d, w) -> keep(store, appended));
+            dialog.setNeutralButton(R.string.statement_learn_replace, (d, w) -> keep(store, replaced));
+        }
+        dialog.setNegativeButton(R.string.cancel, (d, w) -> finish());
+        dialog.setOnCancelListener(d -> finish());
+        dialog.show();
+    }
+
+    /** Die gewählte Fassung merken und die Maske schließen. */
+    private void keep(StatementTemplates store, StatementTemplate template) {
+        store.save(template);
+        // Auch die Zuordnung merken – dann findet die nächste Abrechnung das Wertpapier selbst dann,
+        // wenn die ISIN in KMyMoney nicht gepflegt ist.
+        store.rememberSecurity(statementIsin, depot, kmyId, securityName);
+        Toast.makeText(this, R.string.statement_learned, Toast.LENGTH_SHORT).show();
+        finish();
     }
 
     /** Den zwischengespeicherten Abrechnungstext einlesen; {@code null}, wenn er nicht mehr da ist. */
@@ -980,8 +1119,21 @@ public class SecurityTxEditActivity extends LocalizedActivity {
                 selectedDate.get(Calendar.DAY_OF_MONTH)).show();
     }
 
+    /** Schreibt das gewählte Datum ins Feld – damit steht es fest. */
     private void updateDateField() {
+        dateKnown = true;
         editDate.setText(dateFormat.format(selectedDate.getTime()));
+        dateLayout.setError(null);
+    }
+
+    /**
+     * In der Abrechnung stand kein Datum, das die Vorlage kennt. Das Feld bleibt leer und sagt, warum –
+     * ein Tipp legt die im Dokument gefundenen Angaben vor.
+     */
+    private void clearDateField() {
+        dateKnown = false;
+        editDate.setText("");
+        dateLayout.setError(getString(R.string.statement_date_missing));
     }
 
     private String actionLabel(String action) {

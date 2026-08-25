@@ -772,4 +772,7 @@
     <string name="statement_learn_conflict">A label already stored would be replaced. Add the new one as a further fallback, or replace the old one?</string>
     <string name="statement_learn_append">Add</string>
     <string name="statement_learn_replace">Replace</string>
+    <string name="statement_rules_position">Which number on the line</string>
+    <string name="statement_rules_last_number">the last one</string>
+    <string name="statement_rules_first_number">the first one (column)</string>
 </resources>

@@ -57,7 +57,18 @@ public final class TextValues {
         return d == null ? null : d.doubleValue();
     }
 
-    /** Gemeinsame Trennzeichen-Erkennung: das rechteste Zeichen entscheidet. */
+    /**
+     * Gemeinsame Trennzeichen-Erkennung: das rechteste Zeichen entscheidet.
+     *
+     * <p>Davor wird abgeschält, was Banken um die Zahl herum schreiben. Das ist keine Bequemlichkeit:
+     * {@code AnchorRule} liest die <b>letzte</b> Zahl einer Zeile — ist die unlesbar, gewinnt
+     * stillschweigend eine frühere, und aus „Kapitalertragsteuer 24,45 % auf 131,25 EUR 32,09- EUR"
+     * wird die Bemessungsgrundlage statt der Steuer.</p>
+     *
+     * <p>Der Parse am Ende bleibt <b>streng</b>. Nur dadurch bleiben Auftrags-, Depot- und
+     * Referenznummern draußen, die einer Zahl zum Verwechseln ähnlich sehen: {@code 495752/48.00},
+     * {@code 0993.01010100.0000346ER02}, {@code 1.234.567.890}, {@code 11.6.2022-01:30:01}.</p>
+     */
     private static BigDecimal toBigDecimal(String raw) {
         if (raw == null || raw.isEmpty()) {
             return null;
@@ -66,6 +77,44 @@ public final class TextValues {
         // Währung. Als Unicode-Fluchtfolge geschrieben, weil es sonst unsichtbar im Quelltext steht
         // und beim nächsten Verschieben still zu einem normalen Leerzeichen wird.
         String s = raw.replace(" ", "").replace("\u00A0", "");
+        boolean negative = false;
+
+        // (1.234,56) — angelsächsische Schreibweise für negativ.
+        if (s.length() > 2 && s.charAt(0) == '(' && s.charAt(s.length() - 1) == ')') {
+            negative = true;
+            s = s.substring(1, s.length() - 1);
+        }
+        // €2.083,94 · £638.52 · $1,029.92
+        while (!s.isEmpty() && isCurrencySymbol(s.charAt(0))) {
+            s = s.substring(1);
+        }
+        if (!s.isEmpty() && (s.charAt(0) == '-' || s.charAt(0) == '+')) {
+            negative ^= s.charAt(0) == '-';
+            s = s.substring(1);
+        }
+        // 926,40-EUR — Kürzel am Wort, danach erst das nachgestellte Vorzeichen.
+        if (s.length() > 3 && isCurrencyCode(s.substring(s.length() - 3))) {
+            s = s.substring(0, s.length() - 3);
+        }
+        while (!s.isEmpty() && isCurrencySymbol(s.charAt(s.length() - 1))) {
+            s = s.substring(0, s.length() - 1);
+        }
+        // 1.242,-- — österreichisch für „und keine Cent". Vor dem Vorzeichen behandelt, sonst nähme der
+        // nächste Schritt den letzten Strich für ein Minus und ließe „1.242,-" übrig.
+        if (s.endsWith(",--") || s.endsWith(".--")) {
+            s = s.substring(0, s.length() - 2) + "00";
+        }
+        // 32,09- · 144,52+ — in Deutschland und Österreich steht das Vorzeichen hinter der Zahl.
+        if (!s.isEmpty()) {
+            char last = s.charAt(s.length() - 1);
+            if (last == '-' || last == '+') {
+                negative ^= last == '-';
+                s = s.substring(0, s.length() - 1);
+            }
+        }
+        // 4'420.00 — Schweizer Tausendertrennung, gerader wie krummer Apostroph.
+        s = s.replace("'", "").replace("\u2019", "");
+
         int lastComma = s.lastIndexOf(',');
         int lastDot = s.lastIndexOf('.');
         if (lastComma >= 0 && lastDot >= 0) {
@@ -81,10 +130,26 @@ public final class TextValues {
         }
         // Nur Punkt (oder keins) → bereits im BigDecimal-Format.
         try {
-            return new BigDecimal(s);
+            BigDecimal value = new BigDecimal(s);
+            return negative ? value.negate() : value;
         } catch (NumberFormatException e) {
             return null;
         }
+    }
+
+    /** Währungszeichen, die unmittelbar an der Zahl kleben können. */
+    private static boolean isCurrencySymbol(char c) {
+        return c == '€' || c == '$' || c == '£' || c == '¥' || c == '₣';
+    }
+
+    /** Drei Großbuchstaben am Wortende — ein Währungskürzel wie EUR, CHF, USD. */
+    private static boolean isCurrencyCode(String s) {
+        for (int i = 0; i < s.length(); i++) {
+            if (s.charAt(i) < 'A' || s.charAt(i) > 'Z') {
+                return false;
+            }
+        }
+        return true;
     }
 
     /**

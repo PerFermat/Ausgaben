@@ -771,4 +771,7 @@
     <string name="statement_learn_conflict">Eine bereits gemerkte Beschriftung würde ersetzt. Die neue als weiteren Rückfall hinzufügen oder die alte ersetzen?</string>
     <string name="statement_learn_append">Hinzufügen</string>
     <string name="statement_learn_replace">Ersetzen</string>
+    <string name="statement_rules_position">Welche Zahl der Zeile</string>
+    <string name="statement_rules_last_number">die letzte</string>
+    <string name="statement_rules_first_number">die erste (Tabellenspalte)</string>
 </resources>

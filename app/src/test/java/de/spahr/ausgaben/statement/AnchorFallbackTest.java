@@ -134,6 +134,82 @@ public class AnchorFallbackTest {
         assertEquals(Long.valueOf(15873L), steuer.readCents(dollarPapier()));
     }
 
+    // ---- Welche Zahl der Zeile ----
+
+    /**
+     * Eine Tabelle mit Spaltenüberschrift: der Wert führt die Zeile an, rechts stehen Kurs und
+     * Kennnummer. Nachgebaut aus einer Anleihe-Abrechnung; an einem Bestand fremder Belege kommt die
+     * Stückzahl in 876 von 2354 Fällen <b>nur</b> so vor.
+     */
+    private static PdfText tabelle() {
+        return StatementFixtures.of(
+                "Wertpapier Abrechnung Kauf",
+                "Nominale Wertpapierbezeichnung ISIN (WKN)",
+                "EUR 2.000,00 8,75 % METALCORP GROUP B.V. DE000A1HLTD2 (A1HLTD)",
+                "Kurswert 1.950,00- EUR",
+                "Ausmachender Betrag 2.030,66- EUR");
+    }
+
+    @Test
+    public void unterEinerSpaltenueberschriftGiltDieErsteZahl() {
+        AnchorRule nominale = new AnchorRule(Arrays.asList("Nominale"),
+                AnchorRule.Direction.LINE_BELOW, false, "", AnchorRule.Position.FIRST);
+        assertEquals(2000.0, nominale.read(tabelle()), 1e-9);
+
+        // Dieselbe Regel mit der letzten Zahl läse den Kurs von 8,75 statt der Nominale.
+        AnchorRule letzte = new AnchorRule(Arrays.asList("Nominale"),
+                AnchorRule.Direction.LINE_BELOW, false, "", AnchorRule.Position.LAST);
+        assertEquals(8.75, letzte.read(tabelle()), 1e-9);
+    }
+
+    /** Der Lerner findet die Stelle selbst — er probiert erst die letzte Zahl, dann die erste. */
+    @Test
+    public void derLernerFindetDieSpalteVonSelbst() {
+        TemplateLearner.Known k = new TemplateLearner.Known();
+        k.action = StatementScan.BUY;
+        k.shares = 2000.0;
+        k.netCents = 203066L;
+        StatementTemplate t = TemplateLearner.learn(tabelle(), k);
+
+        assertEquals(2000.0, t.apply(tabelle()).shares, 1e-9);
+        assertEquals(Long.valueOf(203066L), t.apply(tabelle()).netCents);
+        // Und die Beschriftung ist die Überschrift, nicht das Währungskürzel, mit dem die Wertzeile
+        // beginnt — „EUR" wäre als Anker wertlos, es steht in jeder zweiten Zeile.
+        assertEquals("Nominale Wertpapierbezeichnung ISIN (WKN)",
+                t.rule(StatementTemplate.Field.SHARES).anchors.get(0));
+    }
+
+    /**
+     * Zwei Felder in einer Zeile: „St. 1.437 EUR 37,22" nennt vorn die Stückzahl und hinten den Kurs.
+     * Beide müssen dieselbe Beschriftung benutzen dürfen — sie meinen verschiedene Zahlen.
+     */
+    @Test
+    public void eineZeileKannZweiFelderTragen() {
+        PdfText beleg = StatementFixtures.of(
+                "Wertpapierkauf",
+                "St.  250                  EUR  37,22",
+                "Kurswert                    : EUR            9.305,00",
+                "Zu Ihren Lasten                          : EUR     9.305,00");
+        TemplateLearner.Known k = new TemplateLearner.Known();
+        k.action = StatementScan.BUY;
+        k.shares = 250.0;
+        k.price = 37.22;
+        k.netCents = 930500L;
+        StatementTemplate t = TemplateLearner.learn(beleg, k);
+
+        StatementTemplate.Extraction e = t.apply(beleg);
+        assertEquals(250.0, e.shares, 1e-9);
+        assertEquals(37.22, e.price, 1e-9);
+        assertEquals(Long.valueOf(930500L), e.netCents);
+    }
+
+    /** Beträge werden ohne Vorzeichen gelesen — das Minus gehört zur Buchhaltung, nicht zum Feld. */
+    @Test
+    public void dasVorzeichenDerBankGehoertNichtZumWert() {
+        AnchorRule kurswert = kette("Kurswert");
+        assertEquals(1950.0, kurswert.read(tabelle()), 1e-9);
+    }
+
     // ---- Vorlage: Treffer zählen und Ketten ergänzen ----
 
     private static StatementTemplate template(Map<StatementTemplate.Field, AnchorRule> rules) {

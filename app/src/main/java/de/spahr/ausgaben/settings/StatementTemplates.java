@@ -13,6 +13,7 @@ import java.util.Map;
 
 import de.spahr.ausgaben.pdf.PdfText;
 import de.spahr.ausgaben.statement.AnchorRule;
+import de.spahr.ausgaben.statement.StatementScan;
 import de.spahr.ausgaben.statement.StatementTemplate;
 
 /**
@@ -47,19 +48,59 @@ public class StatementTemplates {
 
     // ---- Vorlagen ----
 
-    /**
-     * Die Vorlage, die zu diesem Dokument passt, oder {@code null}. Passen mehrere, gewinnt die mit den
-     * meisten Treffern (siehe {@link StatementTemplate#score}); bei Gleichstand die zuletzt gelernte —
-     * sie ist die genauere, denn beim Lernen wird eine gleichartige Vorlage ersetzt.
-     */
+    /** Die Vorlage, die zu diesem Dokument passt, oder {@code null} (siehe {@link #best}). */
     public StatementTemplate match(PdfText text) {
+        return best(all(), text);
+    }
+
+    /**
+     * Die Vorlage, die am besten zu diesem Dokument passt, oder {@code null}.
+     *
+     * <p>Nennt das Dokument seine <b>Art</b> eindeutig ({@link StatementScan#certainAction}), kommen nur
+     * Vorlagen dieser Art in Frage. Das muss über der Trefferzahl stehen: viele Banken rechnen Kauf und
+     * Verkauf mit derselben Endzeile ab („Ausmachender Betrag"), und dann gewinnt sonst zufällig die
+     * Vorlage, die eine Regel mehr mitbringt — mit umgekehrter Buchungsrichtung. Eine Regel weniger zu
+     * lesen ist der kleinere Schaden.</p>
+     *
+     * <p>Ist die Art nicht eindeutig, entscheidet die Zahl der getroffenen Felder; bei Gleichstand der
+     * bloße Vorschlag aus den Wortlisten, zuletzt die jüngere Vorlage — sie ist die genauere, denn beim
+     * Lernen wird eine gleichartige ersetzt.</p>
+     */
+    public static StatementTemplate best(List<StatementTemplate> templates, PdfText text) {
+        String certain = StatementScan.certainAction(text);
+        if (certain != null) {
+            List<StatementTemplate> ofKind = new ArrayList<>();
+            for (StatementTemplate t : templates) {
+                if (certain.equals(t.action)) {
+                    ofKind.add(t);
+                }
+            }
+            StatementTemplate best = byScore(ofKind, text, null);
+            if (best != null) {
+                return best;
+            }
+            // Für diese Art ist noch nichts gelernt – dann lieber die andere als gar keine.
+        }
+        return byScore(templates, text, StatementScan.guessAction(text));
+    }
+
+    private static StatementTemplate byScore(List<StatementTemplate> templates, PdfText text,
+                                             String guess) {
         StatementTemplate best = null;
         int bestScore = 0;
-        for (StatementTemplate t : all()) {
+        boolean bestFitsAction = false;
+        for (StatementTemplate t : templates) {
             int score = t.score(text);
-            if (score > 0 && score >= bestScore) {
+            if (score <= 0) {
+                continue;
+            }
+            boolean fitsAction = guess != null && guess.equals(t.action);
+            boolean better = best == null || score > bestScore
+                    || (score == bestScore && (fitsAction || !bestFitsAction));
+            if (better) {
                 best = t;
                 bestScore = score;
+                bestFitsAction = fitsAction;
             }
         }
         return best;
@@ -193,6 +234,11 @@ public class StatementTemplates {
                 ro.put("d", r.direction.name());
                 ro.put("s", r.sum);
                 ro.put("c", r.currency);
+                if (r.position == AnchorRule.Position.FIRST) {
+                    // Nur schreiben, wenn es vom Regelfall abweicht – Bestandsvorlagen bleiben so, wie
+                    // sie sind, und beim Lesen gilt ohne Angabe die letzte Zahl.
+                    ro.put("p", "FIRST");
+                }
                 rules.put(e.getKey().name(), ro);
             }
             o.put("r", rules);
@@ -231,8 +277,10 @@ public class StatementTemplates {
                 } catch (IllegalArgumentException e) {
                     dir = AnchorRule.Direction.SAME_LINE;
                 }
+                AnchorRule.Position pos = "FIRST".equals(ro.optString("p", ""))
+                        ? AnchorRule.Position.FIRST : AnchorRule.Position.LAST;
                 rules.put(field, new AnchorRule(anchors, dir, ro.optBoolean("s", false),
-                        ro.optString("c", "")));
+                        ro.optString("c", ""), pos));
             }
         }
         return new StatementTemplate(o.optString("a", ""), rules);

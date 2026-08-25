@@ -96,8 +96,21 @@ public final class TemplateLearner {
                             StatementTemplate.Field field, AnchorRule rule, List<String> used) {
         if (rule != null) {
             rules.put(field, rule);
-            used.addAll(rule.anchors);
+            for (String anchor : rule.anchors) {
+                used.add(taken(anchor, rule.position));
+            }
         }
+    }
+
+    /**
+     * Der Merkposten für eine schon vergebene Beschriftung — samt der Zahl, die sie meint.
+     *
+     * <p>Die Stelle gehört dazu, weil eine Zeile zwei Felder tragen kann: „St. 1.437 EUR 37,22" nennt
+     * vorn die Stückzahl und hinten den Kurs. Ohne die Unterscheidung nähme sich der Kurs die
+     * Beschriftung „St.", und für die Stückzahl bliebe keine übrig.</p>
+     */
+    private static String taken(String anchor, AnchorRule.Position position) {
+        return anchor + '\u001F' + position;
     }
 
     /**
@@ -123,32 +136,42 @@ public final class TemplateLearner {
         String anchor = null;
         String currency = "";
         AnchorRule.Direction direction = AnchorRule.Direction.SAME_LINE;
+        AnchorRule.Position position = AnchorRule.Position.LAST;
         List<PdfText.Line> lines = text.lines();
         for (int i = 0; i < lines.size(); i++) {
-            Double last = AnchorRule.lastNumber(lines.get(i).text());
-            if (last == null || Math.abs(last - value) > epsilon) {
+            // Zuerst die letzte Zahl – der Regelfall. Trifft sie nicht, die erste: unter einer
+            // Spaltenüberschrift führt der Wert die Zeile an („EUR 2.000,00 8,75 % METALCORP …").
+            AnchorRule.Position where = AnchorRule.Position.LAST;
+            Double found = AnchorRule.lastNumber(lines.get(i).text());
+            if (found == null || Math.abs(found - value) > epsilon) {
+                where = AnchorRule.Position.FIRST;
+                found = AnchorRule.firstNumber(lines.get(i).text());
+            }
+            if (found == null || Math.abs(found - value) > epsilon) {
                 continue;
             }
             // Die Währung der Wertzeile – nur festgehalten, wo sie feststeht (siehe learn()).
             String lineCurrency = bindCurrency ? AnchorRule.currencyOf(lines.get(i).text()) : "";
             // Beschriftung in derselben Zeile; hat die Zeile keine, steht sie eine Zeile darüber.
             String own = labelOf(lines.get(i).text());
-            if (isUsable(own, used)) {
+            if (isUsable(own, used, where)) {
                 anchor = own;
                 direction = AnchorRule.Direction.SAME_LINE;
                 currency = lineCurrency;
+                position = where;
             } else if (i > 0) {
                 String above = labelOf(lines.get(i - 1).text());
-                if (isUsable(above, used)) {
+                if (isUsable(above, used, where)) {
                     anchor = above;
                     direction = AnchorRule.Direction.LINE_BELOW;
                     currency = lineCurrency;
+                    position = where;
                 }
             }
         }
         // Mehrere Fundstellen: die unterste gewinnt (die Schleife überschreibt) – in einer Abrechnung
         // steht die Endsumme unten, und sie ist die Zahl, die auch mit Gebühren noch stimmt.
-        return anchor == null ? null : AnchorRule.single(anchor, direction, currency);
+        return anchor == null ? null : AnchorRule.single(anchor, direction, currency, position);
     }
 
     /** Der Wert ist die Summe der letzten Zahlen mehrerer Zeilen (aufgeteilte Steuer). */
@@ -160,7 +183,8 @@ public final class TemplateLearner {
         for (PdfText.Line line : text.lines()) {
             Double last = AnchorRule.lastNumber(line.text());
             String label = labelOf(line.text());
-            if (last != null && last != 0 && isUsable(label, used) && !labels.contains(label)) {
+            if (last != null && last != 0 && isUsable(label, used, AnchorRule.Position.LAST)
+                    && !labels.contains(label)) {
                 labels.add(label);
                 values.add(last);
                 currencies.add(bindCurrency ? AnchorRule.currencyOf(line.text()) : "");
@@ -227,7 +251,7 @@ public final class TemplateLearner {
                 continue;
             }
             String label = labelOf(line.text());
-            if (!isUsable(label, used)) {
+            if (!isUsable(label, used, AnchorRule.Position.LAST)) {
                 continue;
             }
             if (chosen != null && chosen.equalsIgnoreCase(label)) {
@@ -291,7 +315,12 @@ public final class TemplateLearner {
      * Ob eine Beschriftung als Anker taugt: nicht leer, nicht zu kurz (ein einzelner Buchstabe träfe zu
      * viel) und noch nicht für ein anderes Feld vergeben — sonst läsen zwei Felder dieselbe Zahl.
      */
-    private static boolean isUsable(String label, List<String> used) {
-        return label != null && label.trim().length() >= 3 && !used.contains(label);
+    private static boolean isUsable(String label, List<String> used, AnchorRule.Position position) {
+        if (label == null || label.trim().length() < 3 || used.contains(taken(label, position))) {
+            return false;
+        }
+        // Ein bloßes Währungskürzel taugt nicht: „EUR 2.000,00 8,75 % METALCORP …" führt die Zeile mit
+        // „EUR" an, und darauf schlüge die Regel bei jeder anderen Zeile derselben Abrechnung auch an.
+        return !isCurrencyCode(label.trim());
     }
 }

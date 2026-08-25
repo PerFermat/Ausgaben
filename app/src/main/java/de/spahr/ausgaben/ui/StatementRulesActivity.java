@@ -175,6 +175,7 @@ public class StatementRulesActivity extends LocalizedActivity {
         private final View view;
         private final LinearLayout container;
         private final PickerTextView direction;
+        private final PickerTextView position;
         private final TextInputEditText currency;
         private final MaterialSwitch sum;
         private final List<String> anchors = new ArrayList<>();
@@ -186,12 +187,16 @@ public class StatementRulesActivity extends LocalizedActivity {
             ((TextView) view.findViewById(R.id.textFieldName)).setText(nameOf(field, template.action));
             container = view.findViewById(R.id.anchorContainer);
             direction = view.findViewById(R.id.editDirection);
+            position = view.findViewById(R.id.editPosition);
             currency = view.findViewById(R.id.editCurrency);
             sum = view.findViewById(R.id.switchSum);
 
             PickerAdapters.plain(direction, Arrays.asList(
                     getString(R.string.statement_rules_same_line),
                     getString(R.string.statement_rules_line_below)));
+            PickerAdapters.plain(position, Arrays.asList(
+                    getString(R.string.statement_rules_last_number),
+                    getString(R.string.statement_rules_first_number)));
 
             AnchorRule rule = template.rule(field);
             if (rule != null) {
@@ -201,8 +206,12 @@ public class StatementRulesActivity extends LocalizedActivity {
                         : R.string.statement_rules_same_line), false);
                 currency.setText(rule.currency);
                 sum.setChecked(rule.sum);
+                position.setText(getString(rule.position == AnchorRule.Position.FIRST
+                        ? R.string.statement_rules_first_number
+                        : R.string.statement_rules_last_number), false);
             } else {
                 direction.setText(getString(R.string.statement_rules_same_line), false);
+                position.setText(getString(R.string.statement_rules_last_number), false);
             }
             view.findViewById(R.id.btnAddAnchor).setOnClickListener(v -> {
                 readBack();
@@ -275,9 +284,12 @@ public class StatementRulesActivity extends LocalizedActivity {
             boolean below = getString(R.string.statement_rules_line_below)
                     .contentEquals(direction.getText() == null ? "" : direction.getText());
             String code = currency.getText() == null ? "" : currency.getText().toString().trim();
+            boolean first = getString(R.string.statement_rules_first_number)
+                    .contentEquals(position.getText() == null ? "" : position.getText());
             return new AnchorRule(kept,
                     below ? AnchorRule.Direction.LINE_BELOW : AnchorRule.Direction.SAME_LINE,
-                    sum.isChecked(), code);
+                    sum.isChecked(), code,
+                    first ? AnchorRule.Position.FIRST : AnchorRule.Position.LAST);
         }
 
         Field field() {

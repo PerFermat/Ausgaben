@@ -21,6 +21,22 @@ import de.spahr.ausgaben.util.TextValues;
  */
 public final class AnchorRule {
 
+    /**
+     * Welche Zahl der Zeile gemeint ist.
+     *
+     * <p>Der Regelfall ist die letzte: in einer Abrechnung steht rechts der Betrag. Bei Tabellen mit
+     * Spaltenüberschrift ist es die erste — „Nominale Wertpapierbezeichnung ISIN (WKN)" und darunter
+     * „EUR 2.000,00 8,75 % METALCORP GROUP B.V. DE000A1HLTD2"; dort führt die Stückzahl die Zeile an und
+     * rechts stehen Kurs und Kennnummer. An 2354 fremden Abrechnungen gemessen kommt die Stückzahl in
+     * 876 Fällen <b>nur</b> so vor.</p>
+     */
+    public enum Position {
+        /** Die letzte Zahl der Zeile — der Regelfall. */
+        LAST,
+        /** Die erste Zahl der Zeile — Tabellenspalte unter einer Überschrift. */
+        FIRST
+    }
+
     /** Wo der Wert relativ zur Beschriftung steht. Welche Richtung gilt, ermittelt der Lerner. */
     public enum Direction {
         /** In derselben Zeile wie die Beschriftung — der Regelfall. */
@@ -58,12 +74,19 @@ public final class AnchorRule {
      * eine Regel den Dollarbetrag als Euro — still, und um ein Sechstel daneben.</p>
      */
     public final String currency;
+    /** Welche Zahl der Zeile gilt; der Lerner ermittelt es (siehe {@link Position}). */
+    public final Position position;
 
     public AnchorRule(List<String> anchors, Direction direction, boolean sum) {
         this(anchors, direction, sum, "");
     }
 
     public AnchorRule(List<String> anchors, Direction direction, boolean sum, String currency) {
+        this(anchors, direction, sum, currency, Position.LAST);
+    }
+
+    public AnchorRule(List<String> anchors, Direction direction, boolean sum, String currency,
+                      Position position) {
         List<String> copy = new ArrayList<>();
         for (String a : anchors) {
             if (a != null && !a.trim().isEmpty()) {
@@ -74,6 +97,7 @@ public final class AnchorRule {
         this.direction = direction;
         this.sum = sum;
         this.currency = currency == null ? "" : currency.trim();
+        this.position = position == null ? Position.LAST : position;
     }
 
     public static AnchorRule single(String anchor, Direction direction) {
@@ -81,7 +105,13 @@ public final class AnchorRule {
     }
 
     public static AnchorRule single(String anchor, Direction direction, String currency) {
-        return new AnchorRule(java.util.Collections.singletonList(anchor), direction, false, currency);
+        return single(anchor, direction, currency, Position.LAST);
+    }
+
+    public static AnchorRule single(String anchor, Direction direction, String currency,
+                                    Position position) {
+        return new AnchorRule(java.util.Collections.singletonList(anchor), direction, false, currency,
+                position);
     }
 
     public static AnchorRule summed(List<String> anchors, Direction direction, String currency) {
@@ -138,7 +168,7 @@ public final class AnchorRule {
             if (!currencyFits(valueText)) {
                 continue;   // andere Währung als gelernt – dann ist es nicht der gesuchte Betrag
             }
-            Double value = lastNumber(valueText);
+            Double value = numberAt(valueText, position);
             if (value != null) {
                 result = value;   // weiter suchen: die unterste Fundstelle gewinnt
             }
@@ -290,10 +320,39 @@ public final class AnchorRule {
         return "";
     }
 
-    /** Die letzte Zahl einer Zeile; {@code null}, wenn keine darin steht. */
+    /** Die erste oder die letzte Zahl einer Zeile, je nach Regel. */
+    static Double numberAt(String line, Position position) {
+        return position == Position.FIRST ? firstNumber(line) : lastNumber(line);
+    }
+
+    /** Die erste Zahl einer Zeile, ohne Vorzeichen; {@code null}, wenn keine darin steht. */
+    static Double firstNumber(String line) {
+        List<String> tokens = TextValues.numberTokens(line);
+        if (tokens.isEmpty()) {
+            return null;
+        }
+        Double value = TextValues.toDecimal(tokens.get(0));
+        return value == null ? null : Math.abs(value);
+    }
+
+    /**
+     * Die letzte Zahl einer Zeile, <b>ohne Vorzeichen</b>; {@code null}, wenn keine darin steht.
+     *
+     * <p>Das Vorzeichen fällt weg, weil es zur Buchhaltung der Bank gehört und nicht zum Feld: „Kurswert:
+     * -1.100,-- EUR" nennt denselben Kurswert wie „Kurswert 1.100,00 EUR", das Minus sagt nur, dass es
+     * eine Belastung ist. Was ein Wert bedeutet, sagt hier seine Beschriftung.</p>
+     *
+     * <p>Ohne das ginge auch die Rechnung schief: bei einer Dividende ist {@code Netto = Brutto − Steuer},
+     * und mit einer negativ gelesenen Steuer käme aus 144,52 und 36,73 nicht 181,25 heraus, sondern
+     * 107,79. Ebenso beim Lernen — der Nutzer tippt 1.100 ein und muss die Zeile wiederfinden.</p>
+     */
     static Double lastNumber(String line) {
         List<String> tokens = TextValues.numberTokens(line);
-        return tokens.isEmpty() ? null : TextValues.toDecimal(tokens.get(tokens.size() - 1));
+        if (tokens.isEmpty()) {
+            return null;
+        }
+        Double value = TextValues.toDecimal(tokens.get(tokens.size() - 1));
+        return value == null ? null : Math.abs(value);
     }
 
     /**
@@ -310,18 +369,19 @@ public final class AnchorRule {
         }
         AnchorRule other = (AnchorRule) o;
         return sum == other.sum && direction == other.direction && anchors.equals(other.anchors)
-                && currency.equals(other.currency);
+                && currency.equals(other.currency) && position == other.position;
     }
 
     @Override
     public int hashCode() {
-        return (anchors.hashCode() * 31 + direction.hashCode()) * 31 + currency.hashCode()
-                + (sum ? 1 : 0);
+        return ((anchors.hashCode() * 31 + direction.hashCode()) * 31 + currency.hashCode()) * 31
+                + position.hashCode() + (sum ? 1 : 0);
     }
 
     @Override
     public String toString() {
         return (sum ? "Summe von " : "") + anchors + " (" + direction
+                + (position == Position.FIRST ? ", erste Zahl" : "")
                 + (currency.isEmpty() ? "" : ", " + currency) + ")";
     }
 }

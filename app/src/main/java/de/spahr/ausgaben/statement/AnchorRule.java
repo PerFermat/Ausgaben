@@ -157,15 +157,8 @@ public final class AnchorRule {
         List<PdfText.Line> lines = text.lines();
         Double result = null;
         for (int i = 0; i < lines.size(); i++) {
-            if (!startsWithAnchor(lines.get(i).text(), anchor)) {
-                continue;
-            }
-            int valueLine = direction == Direction.LINE_BELOW ? i + 1 : i;
-            if (valueLine >= lines.size()) {
-                continue;
-            }
-            String valueText = lines.get(valueLine).text();
-            if (!currencyFits(valueText)) {
+            String valueText = valueText(lines, i, anchor);
+            if (valueText == null || !currencyFits(valueText)) {
                 continue;   // andere Währung als gelernt – dann ist es nicht der gesuchte Betrag
             }
             Double value = numberAt(valueText, position);
@@ -174,6 +167,27 @@ public final class AnchorRule {
             }
         }
         return result;
+    }
+
+    /**
+     * Der Teil der Zeile, in dem der Wert zu suchen ist — {@code null}, wenn die Beschriftung hier nicht
+     * anschlägt.
+     *
+     * <p>Steht die Beschriftung <b>mitten</b> in der Zeile, gilt nur, was dahinter kommt. Nötig, weil
+     * nicht jede Bank die Beschriftung an den Anfang setzt: Trade Republic schreibt
+     * „Beispielstraße 1 DATUM 13.05.2019", und ohne diese Einschränkung läse eine Regel für „DATUM" die
+     * Hausnummer mit. Führt die Beschriftung die Zeile an — der Regelfall —, ist es wie bisher der
+     * ganze Rest.</p>
+     */
+    private String valueText(List<PdfText.Line> lines, int i, String anchor) {
+        int after = afterAnchor(lines.get(i).text(), anchor);
+        if (after < 0) {
+            return null;
+        }
+        if (direction == Direction.LINE_BELOW) {
+            return i + 1 < lines.size() ? lines.get(i + 1).text() : null;
+        }
+        return lines.get(i).text().substring(after);
     }
 
     /**
@@ -232,14 +246,11 @@ public final class AnchorRule {
         List<PdfText.Line> lines = text.lines();
         long result = -1;
         for (int i = 0; i < lines.size(); i++) {
-            if (!startsWithAnchor(lines.get(i).text(), anchor)) {
+            String valueText = valueText(lines, i, anchor);
+            if (valueText == null) {
                 continue;
             }
-            int valueLine = direction == Direction.LINE_BELOW ? i + 1 : i;
-            if (valueLine >= lines.size()) {
-                continue;
-            }
-            long millis = firstDate(lines.get(valueLine).text());
+            long millis = firstDate(valueText);
             if (millis > 0) {
                 result = millis;   // unterste Fundstelle gewinnt, wie bei den Zahlen
             }
@@ -263,13 +274,30 @@ public final class AnchorRule {
 
     /** Ob die Zeile mit genau dieser Beschriftung beginnt. */
     private static boolean startsWithAnchor(String line, String anchor) {
+        return afterAnchor(line, anchor) >= 0;
+    }
+
+    /**
+     * Die Stelle unmittelbar hinter der Beschriftung, oder -1. Gesucht wird an <b>Wortgrenzen</b>:
+     * „Kurs" darf nicht auf „Kurswert" anschlagen, sonst läse ein Kauf den Kurswert als Kurs.
+     */
+    private static int afterAnchor(String line, String anchor) {
         String l = line.toLowerCase(Locale.ROOT);
         String needle = anchor.toLowerCase(Locale.ROOT);
-        if (!l.startsWith(needle)) {
-            return false;
+        if (needle.isEmpty()) {
+            return -1;
         }
-        // „Kurs" darf nicht auf „Kurswert" anschlagen – sonst läse ein Kauf den Kurswert als Kurs.
-        return l.length() == needle.length() || l.charAt(needle.length()) == ' ';
+        int at = l.indexOf(needle);
+        while (at >= 0) {
+            boolean linksFrei = at == 0 || l.charAt(at - 1) == ' ';
+            int end = at + needle.length();
+            boolean rechtsFrei = end == l.length() || l.charAt(end) == ' ';
+            if (linksFrei && rechtsFrei) {
+                return end;
+            }
+            at = l.indexOf(needle, at + 1);
+        }
+        return -1;
     }
 
     /**

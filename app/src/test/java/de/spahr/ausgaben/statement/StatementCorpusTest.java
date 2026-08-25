@@ -60,7 +60,7 @@ public class StatementCorpusTest {
      * <p>Keine Zahl aus dem Lehrbuch, sondern der gemessene Stand: sie hält fest, was erreicht ist, und
      * schlägt an, wenn eine Änderung es verschlechtert. Wer sie hebt, hat etwas verbessert.</p>
      */
-    private static final double MIN_QUOTE = 0.29;
+    private static final double MIN_QUOTE = 0.30;
 
     private final Context ctx = ApplicationProvider.getApplicationContext();
 

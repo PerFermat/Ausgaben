@@ -152,9 +152,13 @@ public final class TemplateLearner {
             }
             // Die Währung der Wertzeile – nur festgehalten, wo sie feststeht (siehe learn()).
             String lineCurrency = bindCurrency ? AnchorRule.currencyOf(lines.get(i).text()) : "";
-            // Beschriftung in derselben Zeile; hat die Zeile keine, steht sie eine Zeile darüber.
-            String own = labelOf(lines.get(i).text());
-            if (isUsable(own, used, where)) {
+            // Beschriftung in derselben Zeile — erst die unmittelbar vor dem Wert, dann die am
+            // Zeilenanfang. Beides wird gebraucht: „Beispielstraße 1 DATUM 13.05.2019" gibt nur die erste
+            // her, „Stückzinsen für 153 Tage per 26.11.2015 73,16-" nur die zweite. Hat die Zeile keine
+            // brauchbare, steht sie eine Zeile darüber.
+            String own = firstUsable(used, where,
+                    labelBefore(lines.get(i).text(), where), labelOf(lines.get(i).text()));
+            if (own != null) {
                 anchor = own;
                 direction = AnchorRule.Direction.SAME_LINE;
                 currency = lineCurrency;
@@ -247,11 +251,15 @@ public final class TemplateLearner {
         }
         String anchor = null;
         for (PdfText.Line line : text.lines()) {
-            if (AnchorRule.firstDate(line.text()) != dateMillis) {
+            // Irgendwo in der Zeile, nicht nur als erste Angabe: eine Zeile trägt oft mehrere Daten
+            // („Schlusstag/-Zeit 25.11.2015 11:02:54 Zinstermin Monat(e) 27. Juni"), und gebucht gehört
+            // nicht zwangsläufig das erste. Beim Lesen zählt dann das erste hinter der Beschriftung.
+            if (!hasDate(line.text(), dateMillis)) {
                 continue;
             }
-            String label = labelOf(line.text());
-            if (!isUsable(label, used, AnchorRule.Position.LAST)) {
+            String label = firstUsable(used, AnchorRule.Position.LAST,
+                    labelBeforeDate(line.text(), dateMillis), labelOf(line.text()));
+            if (label == null) {
                 continue;
             }
             if (chosen != null && chosen.equalsIgnoreCase(label)) {
@@ -260,6 +268,95 @@ public final class TemplateLearner {
             anchor = label;
         }
         return anchor == null ? null : AnchorRule.single(anchor, AnchorRule.Direction.SAME_LINE);
+    }
+
+    /** Ob dieses Datum irgendwo in der Zeile steht. */
+    private static boolean hasDate(String line, long dateMillis) {
+        for (String token : line.trim().split("\\s+")) {
+            if (TextValues.toUnambiguousDateMillis(token) == dateMillis) {
+                return true;
+            }
+        }
+        return false;
+    }
+
+    /** Die erste brauchbare unter mehreren Beschriftungen; {@code null}, wenn keine taugt. */
+    private static String firstUsable(List<String> used, AnchorRule.Position where,
+                                      String... candidates) {
+        for (String candidate : candidates) {
+            if (isUsable(candidate, used, where)) {
+                return candidate;
+            }
+        }
+        return null;
+    }
+
+    /**
+     * Die Beschriftung <b>unmittelbar vor</b> dem Wert: die Wörter davor, zurück bis zur nächsten Zahl.
+     *
+     * <p>Der Unterschied zu {@link #labelOf} zeigt sich erst, wenn vor dem Wert schon eine Zahl steht:
+     * „Beispielstraße 1 DATUM 13.05.2019" — die Beschriftung ist „DATUM", nicht „Beispielstraße". Steht
+     * keine Zahl davor, kommt dasselbe heraus wie bisher, und die gelernten Vorlagen sehen aus wie
+     * gewohnt.</p>
+     */
+    static String labelBefore(String line, AnchorRule.Position where) {
+        if (line == null) {
+            return "";
+        }
+        String[] tokens = line.trim().split("\\s+");
+        int value = numberIndex(tokens, where);
+        return value <= 0 ? labelOf(line) : wordsBefore(tokens, value);
+    }
+
+    /** Dasselbe für ein Datum: die Wörter vor der Datumsangabe. */
+    static String labelBeforeDate(String line, long dateMillis) {
+        if (line == null) {
+            return "";
+        }
+        String[] tokens = line.trim().split("\\s+");
+        for (int i = 0; i < tokens.length; i++) {
+            if (TextValues.toUnambiguousDateMillis(tokens[i]) == dateMillis) {
+                return i == 0 ? "" : wordsBefore(tokens, i);
+            }
+        }
+        return labelOf(line);
+    }
+
+    /** Index der ersten bzw. letzten Zahl unter den Wörtern; -1, wenn keine dabei ist. */
+    private static int numberIndex(String[] tokens, AnchorRule.Position where) {
+        int found = -1;
+        for (int i = 0; i < tokens.length; i++) {
+            if (TextValues.toDecimal(tokens[i]) == null) {
+                continue;
+            }
+            if (where == AnchorRule.Position.FIRST) {
+                return i;
+            }
+            found = i;
+        }
+        return found;
+    }
+
+    /** Die Wörter vor {@code index}, zurück bis zum nächsten mit einer Ziffer; ohne Währungskürzel. */
+    private static String wordsBefore(String[] tokens, int index) {
+        List<String> words = new ArrayList<>();
+        for (int i = index - 1; i >= 0; i--) {
+            if (hasDigit(tokens[i])) {
+                break;
+            }
+            words.add(0, tokens[i]);
+        }
+        while (!words.isEmpty() && isCurrencyCode(words.get(words.size() - 1))) {
+            words.remove(words.size() - 1);
+        }
+        StringBuilder label = new StringBuilder();
+        for (String w : words) {
+            if (label.length() > 0) {
+                label.append(' ');
+            }
+            label.append(w);
+        }
+        return label.toString();
     }
 
     /**

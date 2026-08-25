@@ -21,12 +21,19 @@ import java.util.regex.Pattern;
  */
 public final class TextValues {
 
-    /** Datumsformate in Prüfreihenfolge: ISO (KMyMoney), dt. Punkt (App-Export), Schrägstrich-Varianten. */
+    /**
+     * Datumsformate in Prüfreihenfolge: ISO (KMyMoney), dt. Punkt (App-Export), Schrägstrich- und
+     * Bindestrich-Varianten. Letztere kommen bei französischen und belgischen Banken vor
+     * ({@code 05-12-2019}); dass sie zweideutig sind, fängt {@link #toUnambiguousDateMillis} ab.
+     */
     private static final String[] DATE_PATTERNS = {
-            "yyyy-MM-dd", "dd.MM.yyyy", "yyyy/MM/dd", "MM/dd/yyyy", "dd/MM/yyyy"};
+            "yyyy-MM-dd", "dd.MM.yyyy", "yyyy/MM/dd", "MM/dd/yyyy", "dd/MM/yyyy", "dd-MM-yyyy"};
 
-    /** Ein Datum mit Schrägstrichen, dessen erste beide Zahlen einzeln gelesen werden müssen. */
-    private static final Pattern SLASH_DATE = Pattern.compile("^(\\d{1,2})/(\\d{1,2})/(\\d{2,4})$");
+    /**
+     * Ein Datum mit Schrägstrichen oder Bindestrichen, dessen erste beide Zahlen einzeln gelesen werden
+     * müssen. Der ISO-Form {@code yyyy-MM-dd} kommt das nicht in die Quere: dort steht vorn das Jahr.
+     */
+    private static final Pattern SLASH_DATE = Pattern.compile("^(\\d{1,2})[/-](\\d{1,2})[/-](\\d{2,4})$");
 
     private TextValues() {
     }

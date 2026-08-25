@@ -167,9 +167,13 @@ public class CsvImporter {
     /**
      * Datum und Betrag liest {@link TextValues} — dieselbe Erkennung benutzt die PDF-Auslese der
      * Depotabrechnungen, damit es davon nicht zwei leicht abweichende Fassungen gibt.
+     *
+     * <p>Beim Datum aber die <b>enge</b> Fassung: hier kommen nur Dateien aus dieser App und aus KMyMoney
+     * an. Nähme der Import auch die Datumsformate fremder Belege („04 Nov 2009"), rutschte ein
+     * Bank-Kontoauszug still als Ledger-Export durch, statt abgelehnt zu werden.</p>
      */
     private long parseDate(String s) {
-        return TextValues.toDateMillis(s);
+        return TextValues.toLedgerDateMillis(s);
     }
 
     private Long parseAmountToCents(String raw) {

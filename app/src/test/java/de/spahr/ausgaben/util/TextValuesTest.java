@@ -129,4 +129,27 @@ public class TextValuesTest {
         assertTrue(TextValues.toUnambiguousDateMillis("03.08.2026") > 0);
         assertTrue(TextValues.toUnambiguousDateMillis("2026-08-03") > 0);
     }
+
+    /**
+     * Die beiden Wege gegeneinander festgenagelt: was auf einem Bankbeleg steht, darf in einer
+     * Ledger-Datei nicht als Datum durchgehen. Sonst gäbe sich ein fremder Kontoauszug als Export dieser
+     * App aus, statt abgelehnt zu werden.
+     */
+    @Test
+    public void belegformateGeltenNichtImLedger() {
+        assertTrue(TextValues.toDateMillis("04 Nov 2009") > 0);
+        assertEquals(-1, TextValues.toLedgerDateMillis("04 Nov 2009"));
+        assertEquals(-1, TextValues.toLedgerDateMillis("05-12-2019"));
+        assertEquals(-1, TextValues.toLedgerDateMillis("06/29/22"));
+    }
+
+    /** Was der eigene Export und die KMyMoney-Berichte schreiben, liest der Ledger-Weg weiterhin. */
+    @Test
+    public void ledgerformateBleibenLesbar() {
+        assertEquals(17, ymd(TextValues.toLedgerDateMillis("17.08.2026"))[2]);
+        assertEquals(17, ymd(TextValues.toLedgerDateMillis("2026-08-17"))[2]);
+        assertEquals(17, ymd(TextValues.toLedgerDateMillis("2026/08/17"))[2]);
+        assertEquals(17, ymd(TextValues.toLedgerDateMillis("08/17/2026"))[2]);
+        assertEquals(17, ymd(TextValues.toLedgerDateMillis("17/08/2026"))[2]);
+    }
 }

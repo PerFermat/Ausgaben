@@ -22,9 +22,18 @@ import java.util.regex.Pattern;
 public final class TextValues {
 
     /**
-     * Datumsformate in Prüfreihenfolge: ISO (KMyMoney), dt. Punkt (App-Export), Schrägstrich- und
-     * Bindestrich-Varianten. Letztere kommen bei französischen und belgischen Banken vor
-     * ({@code 05-12-2019}); dass sie zweideutig sind, fängt {@link #toUnambiguousDateMillis} ab.
+     * Datumsformate, die in einer <b>Ledger-Datei</b> vorkommen: ISO (KMyMoney), dt. Punkt (App-Export)
+     * und die Schrägstrich-Varianten der KMyMoney-Berichte. Mehr braucht der CSV-Import nicht — er liest
+     * ausschließlich Dateien aus dieser App und aus KMyMoney, deren Format feststeht.
+     */
+    private static final String[] LEDGER_PATTERNS = {
+            "yyyy-MM-dd", "dd.MM.yyyy", "yyyy/MM/dd", "MM/dd/yyyy", "dd/MM/yyyy"};
+
+    /**
+     * Alle Datumsformate in Prüfreihenfolge — die des Ledgers und zusätzlich die, die auf Abrechnungen
+     * fremder Banken auftauchen: Bindestrich-Varianten (französisch und belgisch, {@code 05-12-2019}),
+     * zweistellige Jahre und englische Monatsnamen. Dass mehrere davon zweideutig sind, fängt
+     * {@link #toUnambiguousDateMillis} ab.
      */
     private static final String[] DATE_PATTERNS = {
             "yyyy-MM-dd", "dd.MM.yyyy", "yyyy/MM/dd", "MM/dd/yyyy", "dd/MM/yyyy", "dd-MM-yyyy",
@@ -189,12 +198,33 @@ public final class TextValues {
         return year >= 1900 && year <= 2100;
     }
 
-    /** Datum → epoch millis zur lokalen Mitternacht; -1 bei Fehler. Toleriert mehrere Formate. */
+    /**
+     * Datum → epoch millis zur lokalen Mitternacht; -1 bei Fehler. Toleriert <b>alle</b> Formate, auch die
+     * fremder Belege. Für Ledger-Dateien gibt es bewusst die engere {@link #toLedgerDateMillis} — ein
+     * Bank-Kontoauszug mit „04 Nov 2009" darf sich nicht als Export dieser App ausgeben.
+     */
     public static long toDateMillis(String s) {
+        return parseDate(s, DATE_PATTERNS);
+    }
+
+    /**
+     * Wie {@link #toDateMillis}, lässt aber nur die Formate zu, die in einer Ledger-Datei stehen können.
+     *
+     * <p>Der Unterschied ist keine Pedanterie: der CSV-Import erkennt eine fremde Datei allein daran, dass
+     * sich keine Zeile als Buchung lesen lässt. Nähme er die Belegformate mit, ginge ein Kontoauszug einer
+     * Bank still als Ledger-Export durch — mit dem Verwendungszweck als Empfänger und Abbuchungen als
+     * Einnahmen. Wer die Belegauslese um ein Format erweitert, darf das hier deshalb nicht mittun.</p>
+     */
+    public static long toLedgerDateMillis(String s) {
+        return parseDate(s, LEDGER_PATTERNS);
+    }
+
+    /** Das eigentliche Lesen — einmal geschrieben, mit der jeweils erlaubten Musterliste aufgerufen. */
+    private static long parseDate(String s, String[] patterns) {
         if (s == null || s.isEmpty()) {
             return -1;
         }
-        for (String pattern : DATE_PATTERNS) {
+        for (String pattern : patterns) {
             // Locale.US auch für die Monatsnamen: „Aug", „Dec" – deutsche Belege schreiben Zahlen.
             SimpleDateFormat fmt = new SimpleDateFormat(pattern, Locale.US);
             fmt.setLenient(false);
@@ -226,8 +256,9 @@ public final class TextValues {
      * der beiden Stellen eine Zahl über 12, ist die Sache entschieden; sonst kommt -1 zurück.
      *
      * <p>Für die Auslese fremder Dokumente gedacht: ein leeres Feld, das der Nutzer ausfüllt, ist besser
-     * als ein falsches Datum, das er übersieht. Der CSV-Import benutzt weiter {@link #toDateMillis} —
-     * dort geht es um Dateien aus der App selbst und aus KMyMoney, deren Format bekannt ist.</p>
+     * als ein falsches Datum, das er übersieht. Der CSV-Import geht seinen eigenen Weg über
+     * {@link #toLedgerDateMillis} — dort geht es um Dateien aus der App selbst und aus KMyMoney, deren
+     * Format bekannt ist.</p>
      */
     public static long toUnambiguousDateMillis(String s) {
         if (s != null) {

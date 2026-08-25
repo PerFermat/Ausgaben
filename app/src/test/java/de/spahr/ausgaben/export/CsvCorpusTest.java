@@ -139,6 +139,30 @@ public class CsvCorpusTest {
     // ---- Was abgelehnt werden muss ----
 
     /**
+     * Ein Bank-Kontoauszug mit englischem Datum. Steht im Quelltext statt im Korpus, weil der Korpuslauf
+     * ohne das Nachbar-Repo stillschweigend übersprungen wird — diese Regel muss überall bewacht sein.
+     *
+     * <p>Der Fall ist keine Erfindung: als die Belegauslese das Format {@code dd MMM yyyy} lernte, nahm der
+     * CSV-Import es mit und ließ solche Dateien durch. „Direct Debit" wurde zum Empfänger, und weil kein
+     * Vorzeichen dasteht, wurde aus jeder Abbuchung eine Einnahme.</p>
+     */
+    @Test
+    public void bankauszugMitEnglischemDatumWirdAbgelehnt() {
+        String csv = "Account name: ,MyAccount_****01233,,,,\n"
+                + "Date,Transactions,Debits,Credits,Balance\n"
+                + "\n"
+                + "04 Nov 2009,\"Direct Debit\",18.75,,902.74\n"
+                + "05 Nov 2009,\"Card Payment\",12.50,,890.24\n";
+        try {
+            List<Booking> b = new CsvImporter(ctx).parse(csv);
+            fail("wurde als Ledger-Export akzeptiert (" + b.size() + " Buchungen)");
+        } catch (IllegalArgumentException e) {
+            assertNotNull(e.getMessage());
+            assertFalse(e.getMessage().isEmpty());
+        }
+    }
+
+    /**
      * Alle CSV-Dateien des KMyMoney-Repos (Berichts-Exporte und Bank-Kontoauszüge) müssen mit einer
      * verständlichen Meldung abgelehnt werden – keine darf still „0 Buchungen" liefern oder Unsinn
      * einlesen. Ohne das Nachbar-Repo wird der Test übersprungen ({@code -Dcsv.corpus=…}).

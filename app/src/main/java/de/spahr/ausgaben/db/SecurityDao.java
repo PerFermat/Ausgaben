@@ -157,6 +157,15 @@ public interface SecurityDao {
     SecurityTx getLastByAction(String depot, String kmyId, String action);
 
     /**
+     * Alle Bewegungen eines Wertpapiers derselben Art an einem Tag — Grundlage für den Hinweis auf eine
+     * doppelt eingelesene Abrechnung. Der Feinvergleich über Beträge und Stückzahl läuft danach in Java
+     * ({@link SecurityTx#sameMovement}); Fließkommazahlen in SQL zu vergleichen wäre unzuverlässig.
+     */
+    @Query("SELECT * FROM security_tx WHERE depot = :depot AND security_kmy_id = :kmyId "
+            + "AND action = :action AND date >= :fromMs AND date < :toMs")
+    List<SecurityTx> getTxOnDay(String depot, String kmyId, String action, long fromMs, long toMs);
+
+    /**
      * Die zuletzt an diesem Wertpapier verwendeten Gebühren-/Steuerkategorien, neueste zuerst – sie
      * stehen in der Auswahlliste als Vorspann ganz oben, wie die Kategorien eines Empfängers.
      */

@@ -112,6 +112,10 @@ public class StatementBatchActivity extends LocalizedActivity {
     // ---- Anzeige ----
 
     private void render() {
+        // Vor jeder Anzeige neu: Bearbeiten und Löschen können eine Doppelung erst schaffen oder wieder
+        // auflösen. Ob eine Bewegung schon im Depot steht, wird hier nicht neu abgefragt — das bringt
+        // die Maske über EXTRA_DUPLICATE mit zurück.
+        StatementDraft.markSelectionDuplicates(drafts);
         container.removeAllViews();
         LayoutInflater inflater = LayoutInflater.from(this);
         for (int i = 0; i < drafts.size(); i++) {
@@ -148,15 +152,19 @@ public class StatementBatchActivity extends LocalizedActivity {
         details.setText(detailsOf(d));
         details.setVisibility(detailsOf(d).isEmpty() ? View.GONE : View.VISIBLE);
 
+        // Rot geht vor Gelb: was gar nicht buchbar ist, muss zuerst berichtigt werden. Der Hinweis auf
+        // eine Doppelung nimmt dieselbe Zeile, nur in gedecktem Gelb — er hält nichts auf.
         int reason = d.problem();
-        if (reason == 0) {
+        int hint = reason == 0 ? d.duplicateHint() : 0;
+        if (reason == 0 && hint == 0) {
             view.setBackgroundColor(0);
             problem.setVisibility(View.GONE);
         } else {
-            view.setBackgroundColor(getColor(R.color.statement_error_bg));
+            view.setBackgroundColor(getColor(
+                    reason == 0 ? R.color.statement_warn_bg : R.color.statement_error_bg));
             problem.setVisibility(View.VISIBLE);
             problem.setText(reason == R.string.statement_problem_security
-                    ? getString(reason, d.isin) : getString(reason));
+                    ? getString(reason, d.isin) : getString(reason == 0 ? hint : reason));
         }
 
         ImageButton edit = view.findViewById(R.id.btnDraftEdit);
@@ -267,6 +275,8 @@ public class StatementBatchActivity extends LocalizedActivity {
         editing = index;
         Intent i = new Intent(this, SecurityTxEditActivity.class);
         i.putExtra(SecurityTxEditActivity.EXTRA_BATCH, true);
+        // Damit die Maske dasselbe sagt wie die Liste – die Doppelung in der Auswahl kennt nur sie.
+        i.putExtra(SecurityTxEditActivity.EXTRA_DUPLICATE, d.duplicateHint());
         i.putExtra(SecurityTxEditActivity.EXTRA_DEPOT, d.depot);
         i.putExtra(SecurityTxEditActivity.EXTRA_KMY_ID, d.kmyId);
         i.putExtra(SecurityTxEditActivity.EXTRA_NAME, d.securityName);
@@ -325,6 +335,7 @@ public class StatementBatchActivity extends LocalizedActivity {
         d.incomeCategory = orEmpty(
                 data.getStringExtra(SecurityTxEditActivity.EXTRA_PREFILL_INCOME_CATEGORY));
         d.conflict = data.getBooleanExtra(SecurityTxEditActivity.EXTRA_CONFLICT, false);
+        d.dupBooked = data.getBooleanExtra(SecurityTxEditActivity.EXTRA_DUP_BOOKED, d.dupBooked);
         // Die Maske hat schon gerechnet; hier wird nur ergänzt, was sie offen gelassen hat.
         d.resolve();
         render();

@@ -70,6 +70,19 @@
                 android:textSize="12sp"
                 android:visibility="gone" />
 
+            <!-- Dieselbe Buchung scheint es schon zu geben. Steht bewusst hier oben, gleich nach der
+                 Auswahl der Art: dort fängt der Blick an, und der Hinweis kommt nicht erst beim
+                 Speichern. Er hält nichts auf – gebucht werden darf trotzdem. -->
+            <TextView
+                android:id="@+id/duplicateWarning"
+                android:layout_width="match_parent"
+                android:layout_height="wrap_content"
+                android:layout_marginTop="8dp"
+                android:background="@color/statement_warn_bg"
+                android:padding="8dp"
+                android:textStyle="bold"
+                android:visibility="gone" />
+
             <!-- Nur in der reinen Ansicht: farbige Überschrift statt der Umschaltknöpfe. -->
             <TextView
                 android:id="@+id/actionHeading"

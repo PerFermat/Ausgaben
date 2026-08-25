@@ -405,6 +405,24 @@ final class StatementImport {
                 }
                 d.resolve();
             }
+            markBooked(activity, repository, drafts);
+        });
+    }
+
+    /**
+     * Steht eine der Bewegungen schon im Depot? Erst danach öffnet die Liste — die Doppelung soll gleich
+     * beim ersten Blick zu sehen sein und nicht kurz darauf nachwachsen.
+     */
+    private static void markBooked(AppCompatActivity activity, Repository repository,
+                                   java.util.ArrayList<StatementDraft> drafts) {
+        java.util.List<de.spahr.ausgaben.db.SecurityTx> candidates = new java.util.ArrayList<>();
+        for (StatementDraft d : drafts) {
+            candidates.add(d.isBookable() ? d.toTx() : null);
+        }
+        repository.findExistingSecurityTx(candidates, 0, found -> {
+            for (int i = 0; i < drafts.size(); i++) {
+                drafts.get(i).dupBooked = found[i];
+            }
             Intent i = new Intent(activity, StatementBatchActivity.class);
             i.putParcelableArrayListExtra(StatementBatchActivity.EXTRA_DRAFTS, drafts);
             activity.startActivity(i);

@@ -61,6 +61,11 @@ public class StatementDraft implements Parcelable {
     /** Brutto, Steuer und Netto gehen nicht auf; dann wird nicht gerechnet, sondern berichtigt. */
     public boolean conflict;
 
+    /** Diese Bewegung steht schon im Depot — ein Hinweis, keine Sperre. */
+    public boolean dupBooked;
+    /** Dieselbe Bewegung kam in der Auswahl schon vorher vor (die erste bleibt unmarkiert). */
+    public boolean dupSelected;
+
     public StatementDraft() {
     }
 
@@ -139,6 +144,44 @@ public class StatementDraft implements Parcelable {
         return problem() == 0;
     }
 
+    /**
+     * Der Hinweis auf eine Doppelung als Textbaustein; 0, wenn keine vorliegt. Anders als {@link #problem()}
+     * hält er nichts auf — zweimal am selben Tag dasselbe Papier zum selben Preis zu kaufen ist selten,
+     * aber möglich. Die schon gebuchte Doppelung sticht: sie ist der schwerere Fall.
+     */
+    public int duplicateHint() {
+        if (dupBooked) {
+            return R.string.statement_dup_booked;
+        }
+        return dupSelected ? R.string.statement_dup_selected : 0;
+    }
+
+    /**
+     * Kennzeichnet in einer Auswahl jede Wiederholung — die <b>erste</b> ihrer Art bleibt unmarkiert,
+     * damit ohne Rätselraten klar ist, welche Zeile weg kann.
+     *
+     * <p>Verglichen wird die fertige Bewegung ({@link #toTx()}), nicht der Entwurf: dort stehen die
+     * Vorzeichen und die Dividendenregeln schon so, wie sie im Depot landen. Unvollständige Einträge
+     * bleiben außen vor — was noch nicht buchbar ist, kann auch keine Doppelung sein.</p>
+     */
+    public static void markSelectionDuplicates(java.util.List<StatementDraft> drafts) {
+        java.util.List<SecurityTx> seen = new java.util.ArrayList<>();
+        for (StatementDraft d : drafts) {
+            d.dupSelected = false;
+            if (d.problem() != 0) {
+                continue;
+            }
+            SecurityTx tx = d.toTx();
+            for (SecurityTx earlier : seen) {
+                if (tx.sameMovement(earlier)) {
+                    d.dupSelected = true;
+                    break;
+                }
+            }
+            seen.add(tx);
+        }
+    }
+
     /** Die Bewegung, wie sie im Depot steht — dieselben Regeln wie in {@code SecurityTxEditActivity}. */
     public SecurityTx toTx() {
         SecurityTx tx = new SecurityTx();
@@ -200,6 +243,8 @@ public class StatementDraft implements Parcelable {
         incomeCategory = orEmpty(in.readString());
         failure = in.readInt();
         conflict = in.readInt() != 0;
+        dupBooked = in.readInt() != 0;
+        dupSelected = in.readInt() != 0;
     }
 
     @Override
@@ -223,6 +268,8 @@ public class StatementDraft implements Parcelable {
         out.writeString(incomeCategory);
         out.writeInt(failure);
         out.writeInt(conflict ? 1 : 0);
+        out.writeInt(dupBooked ? 1 : 0);
+        out.writeInt(dupSelected ? 1 : 0);
     }
 
     @Override

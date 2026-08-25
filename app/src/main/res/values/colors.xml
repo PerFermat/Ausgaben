@@ -43,4 +43,6 @@
     <!-- Zeile der Erkennungsliste, die noch nicht buchbar ist: gedecktes Rot, auf dem die dunkle
          Schrift der Liste lesbar bleibt (siehe values-night für den Gegenpart). -->
     <color name="statement_error_bg">#FFCDD2</color>
+    <!-- Zeile der Erkennungsliste, die buchbar ist, aber doppelt zu sein scheint: gedecktes Gelb. -->
+    <color name="statement_warn_bg">#FFF9C4</color>
 </resources>

@@ -24,4 +24,6 @@
     <color name="import_banner_shimmer">#FFB300</color>
     <!-- Erkennungsliste: dasselbe Signal, aber dunkel genug für weiße Schrift. -->
     <color name="statement_error_bg">#5D2C2C</color>
+    <!-- Der Doppelungs-Hinweis, ebenfalls dunkel genug für weiße Schrift. -->
+    <color name="statement_warn_bg">#5A4B1F</color>
 </resources>

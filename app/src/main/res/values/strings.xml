@@ -741,6 +741,8 @@
     <string name="statement_problem_amounts">Amounts missing</string>
     <string name="statement_problem_shares">Quantity missing</string>
     <string name="statement_problem_account">Counter account missing</string>
+    <string name="statement_dup_booked">This booking already exists</string>
+    <string name="statement_dup_selected">The same statement is selected more than once</string>
     <!-- Aus einer Abrechnung eingelesen, aber nicht gefunden: dann steht das Feld leer. -->
     <string name="statement_date_missing">Not in the statement – please choose</string>
     <string name="statement_action_missing">Not in the statement – please choose</string>

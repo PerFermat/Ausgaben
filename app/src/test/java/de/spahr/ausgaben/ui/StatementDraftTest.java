@@ -240,4 +240,98 @@ public class StatementDraftTest {
         assertEquals(0L, tx.feeCents);
         assertEquals(73_953L, d.toBooking().amountCents);
     }
+
+    // ---- Doppelt eingelesene Abrechnungen ----
+
+    /**
+     * Die <b>erste</b> bleibt unmarkiert, jede weitere gilt als Wiederholung. Andersherum wüsste der
+     * Nutzer nicht, welche der beiden Zeilen er löschen soll.
+     */
+    @Test
+    public void nurDieWiederholungWirdMarkiert() {
+        StatementDraft a = kauf();
+        StatementDraft b = kauf();
+        a.resolve();
+        b.resolve();
+        java.util.List<StatementDraft> liste = java.util.Arrays.asList(a, b);
+
+        StatementDraft.markSelectionDuplicates(liste);
+
+        assertFalse(a.dupSelected);
+        assertTrue(b.dupSelected);
+        assertEquals(R.string.statement_dup_selected, b.duplicateHint());
+        assertEquals(0, a.duplicateHint());
+    }
+
+    /** Ein Hinweis, keine Sperre: gespeichert werden darf die Doppelung trotzdem. */
+    @Test
+    public void eineDoppelungBleibtBuchbar() {
+        StatementDraft a = kauf();
+        StatementDraft b = kauf();
+        a.resolve();
+        b.resolve();
+        StatementDraft.markSelectionDuplicates(java.util.Arrays.asList(a, b));
+
+        assertTrue(b.isBookable());
+        assertEquals(0, b.problem());
+    }
+
+    /**
+     * Wird die erste Zeile gelöscht, ist die zweite keine Wiederholung mehr – die Markierung darf nicht
+     * kleben bleiben, sonst stünde die letzte verbliebene Zeile grundlos in Gelb.
+     */
+    @Test
+    public void ohneVorgaengerFaelltDieMarkierungWiederWeg() {
+        StatementDraft a = kauf();
+        StatementDraft b = kauf();
+        a.resolve();
+        b.resolve();
+        StatementDraft.markSelectionDuplicates(java.util.Arrays.asList(a, b));
+        assertTrue(b.dupSelected);
+
+        StatementDraft.markSelectionDuplicates(java.util.Collections.singletonList(b));
+
+        assertFalse(b.dupSelected);
+        assertEquals(0, b.duplicateHint());
+    }
+
+    /** Ein anderer Betrag ist eine andere Buchung – zwei Käufe am selben Tag sind erlaubt. */
+    @Test
+    public void andererBetragIstKeineDoppelung() {
+        StatementDraft a = kauf();
+        StatementDraft b = kauf();
+        b.netCents = 100_001L;
+        a.resolve();
+        b.resolve();
+
+        StatementDraft.markSelectionDuplicates(java.util.Arrays.asList(a, b));
+
+        assertFalse(b.dupSelected);
+    }
+
+    /** Was noch gar nicht buchbar ist, kann auch keine Doppelung sein. */
+    @Test
+    public void unvollstaendigeEintraegeBleibenAussenVor() {
+        StatementDraft a = kauf();
+        StatementDraft b = kauf();
+        a.moneyAccount = "";
+        b.moneyAccount = "";
+        a.resolve();
+        b.resolve();
+
+        StatementDraft.markSelectionDuplicates(java.util.Arrays.asList(a, b));
+
+        assertFalse(b.dupSelected);
+        assertEquals(R.string.statement_problem_account, b.problem());
+    }
+
+    /** Die schon gebuchte Doppelung ist der schwerere Fall und sticht die in der Auswahl. */
+    @Test
+    public void schonGebuchtStichtDieAuswahl() {
+        StatementDraft d = kauf();
+        d.dupSelected = true;
+        d.dupBooked = true;
+
+        assertEquals(R.string.statement_dup_booked, d.duplicateHint());
+    }
 }

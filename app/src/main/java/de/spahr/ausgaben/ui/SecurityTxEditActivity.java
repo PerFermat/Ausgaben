@@ -75,6 +75,13 @@ public class SecurityTxEditActivity extends LocalizedActivity {
     public static final String EXTRA_BATCH = "batch";
     /** Zurück an die Liste: Brutto, Steuer und Netto gehen nicht auf. */
     public static final String EXTRA_CONFLICT = "conflict";
+    /**
+     * Der Doppelungs-Hinweis, den die Erkennungsliste schon kennt (Textbaustein, 0 = keiner). Die
+     * Doppelung <b>innerhalb der Auswahl</b> sieht nur die Liste – die Maske kennt immer nur einen Beleg.
+     */
+    public static final String EXTRA_DUPLICATE = "duplicate";
+    /** Zurück an die Liste: diese Bewegung steht schon im Depot. */
+    public static final String EXTRA_DUP_BOOKED = "dupBooked";
     /** Pfad zum zwischengespeicherten Abrechnungstext; daraus lernt die App beim Speichern die Anker. */
     public static final String EXTRA_STATEMENT_TEXT = "statementText";
     public static final String EXTRA_STATEMENT_ISIN = "statementIsin";
@@ -110,11 +117,25 @@ public class SecurityTxEditActivity extends LocalizedActivity {
     /** Dasselbe für Kauf/Verkauf/Dividende: ohne erkannte Art ist kein Knopf vorgewählt. */
     private boolean actionKnown;
 
+    /** Diese Bewegung steht schon im Depot — geht so an die Erkennungsliste zurück. */
+    private boolean dupBooked;
+    /**
+     * Der Stand, für den zuletzt nach einer Doppelung gefragt wurde ({@code null} = noch nie). Solange
+     * er sich nicht ändert, wird die Datenbank nicht erneut befragt — sonst liefe bei jedem Tastendruck
+     * eine Abfrage.
+     */
+    private String lastDupKey;
+    /** Der Hinweis, den die Erkennungsliste mitgab, und der Stand, für den er galt. */
+    private int listHint;
+    private String listHintKey;
+
     private MaterialToolbar toolbar;
     private MaterialButtonToggleGroup toggleAction;
     private TextView actionHeading;
     /** Hinweis unter den Umschaltknöpfen, wenn die Abrechnung die Art nicht hergab. */
     private TextView actionHint;
+    /** Gelber Hinweis darunter: dieselbe Buchung scheint es schon zu geben. */
+    private TextView duplicateWarning;
     private TextView textSecurity;
     private TextInputLayout dateLayout;
     private TextInputEditText editDate;
@@ -174,6 +195,7 @@ public class SecurityTxEditActivity extends LocalizedActivity {
         toggleAction = findViewById(R.id.toggleAction);
         actionHeading = findViewById(R.id.actionHeading);
         actionHint = findViewById(R.id.actionHint);
+        duplicateWarning = findViewById(R.id.duplicateWarning);
         textSecurity = findViewById(R.id.textSecurity);
         textSecurity.setText(securityName);
         dateLayout = findViewById(R.id.dateLayout);
@@ -306,6 +328,10 @@ public class SecurityTxEditActivity extends LocalizedActivity {
                 ? in.getLongExtra(EXTRA_PREFILL_NET, 0) : null);
         // Nichts vorgewählt und nichts erkannt: dann fehlt die Art, und das gehört gesagt.
         actionHint.setVisibility(actionKnown ? View.GONE : View.VISIBLE);
+        // Was die Liste schon weiß, sagt die Maske sofort mit – die eigene Prüfung braucht eine Runde
+        // über die Datenbank, und so lange stünde hier sonst nichts.
+        listHint = in.getIntExtra(EXTRA_DUPLICATE, 0);
+        dupBooked = listHint == R.string.statement_dup_booked;
         prefillPicker(editAccount, in.getStringExtra(EXTRA_PREFILL_ACCOUNT));
         prefillPicker(editFeeCategory, in.getStringExtra(EXTRA_PREFILL_FEE_CATEGORY));
         prefillPicker(editIncomeCategory, in.getStringExtra(EXTRA_PREFILL_INCOME_CATEGORY));
@@ -619,6 +645,9 @@ public class SecurityTxEditActivity extends LocalizedActivity {
         conflict = r.conflict;
         netLayout.setError(conflict ? getString(R.string.security_tx_conflict) : null);
         if (conflict) {
+            // Auch hier prüfen: an einem widersprüchlichen Stand ist keine Doppelung zu erkennen, und
+            // ein noch stehender Hinweis von vorhin verschwindet damit.
+            checkDuplicate();
             return;
         }
         if (r.computed != null) {
@@ -638,6 +667,91 @@ public class SecurityTxEditActivity extends LocalizedActivity {
         }
         writeUnset(Field.NET, r.netCents == null ? null : MoneyFormat.plain(r.netCents));
         writingBack = false;
+        checkDuplicate();
+    }
+
+    /**
+     * Gibt es diese Buchung schon? Der Hinweis steht gleich unter der Auswahl der Art und hält nichts
+     * auf — zweimal am selben Tag dasselbe Papier zum selben Preis zu kaufen ist selten, aber möglich.
+     *
+     * <p>Gefragt wird nur, wenn sich an Art, Datum oder Beträgen etwas geändert hat: sonst liefe bei
+     * jedem Tastendruck eine Abfrage. Beim Bearbeiten einer gespeicherten Bewegung nimmt {@code exceptId}
+     * sie selbst aus, sonst meldete sie sich als ihre eigene Doppelung.</p>
+     */
+    private void checkDuplicate() {
+        if (readOnly) {
+            return;
+        }
+        SecurityTx candidate = duplicateCandidate();
+        String key = candidate == null ? "" : candidate.depot + "|" + candidate.securityKmyId + "|"
+                + candidate.action + "|" + candidate.date + "|" + candidate.shares + "|"
+                + candidate.amountCents + "|" + candidate.netCents + "|" + candidate.feeCents;
+        if (key.equals(lastDupKey)) {
+            return;
+        }
+        lastDupKey = key;
+        if (listHintKey == null) {
+            // Der erste Stand ist der, für den der Hinweis der Liste galt.
+            listHintKey = key;
+            showDuplicate(listHint);
+        }
+        if (candidate == null) {
+            dupBooked = false;
+            showDuplicate(key.equals(listHintKey) ? listHint : 0);
+            return;
+        }
+        repository.findExistingSecurityTx(java.util.Collections.singletonList(candidate),
+                loaded == null ? 0 : loaded.id, found -> {
+                    if (!key.equals(lastDupKey)) {
+                        return; // Zwischenzeitlich weitergetippt; die spätere Antwort gilt.
+                    }
+                    dupBooked = found[0];
+                    if (dupBooked) {
+                        showDuplicate(R.string.statement_dup_booked);
+                    } else {
+                        // Die Doppelung innerhalb der Auswahl kennt nur die Liste; sie gilt weiter,
+                        // solange an den Werten nichts geändert wurde.
+                        showDuplicate(key.equals(listHintKey) ? listHint : 0);
+                    }
+                });
+    }
+
+    private void showDuplicate(int hint) {
+        duplicateWarning.setVisibility(hint == 0 ? View.GONE : View.VISIBLE);
+        if (hint != 0) {
+            duplicateWarning.setText(hint);
+        }
+    }
+
+    /**
+     * Die Bewegung, wie sie beim Speichern entstünde — aber nur so weit, wie {@code sameMovement} sie
+     * vergleicht. {@code null}, solange noch etwas Wesentliches fehlt: an einem halben Stand ist keine
+     * Doppelung zu erkennen.
+     */
+    private SecurityTx duplicateCandidate() {
+        String action = currentAction();
+        if (!actionKnown || !dateKnown || action == null || conflict || kmyId.isEmpty()) {
+            return null;
+        }
+        Long gross = money(Field.GROSS);
+        Long net = money(Field.NET);
+        Double count = number(Field.SHARES);
+        boolean dividend = DIVIDEND.equals(action);
+        if (gross == null || net == null || gross <= 0 || (!dividend && (count == null || count <= 0))) {
+            return null;
+        }
+        Long fee = money(Field.FEE);
+        SecurityTx tx = new SecurityTx();
+        tx.depot = depot;
+        tx.securityKmyId = kmyId;
+        tx.securityName = securityName;
+        tx.date = selectedDate.getTimeInMillis();
+        tx.action = action;
+        tx.shares = dividend ? 0 : (SELL.equals(action) ? -Math.abs(count) : Math.abs(count));
+        tx.amountCents = gross;
+        tx.netCents = dividend ? net : gross;
+        tx.feeCents = dividend ? 0 : Math.abs(fee == null ? 0 : fee);
+        return tx;
     }
 
     /** Schreibt einen berechneten Wert – aber nie in ein Feld, das der Nutzer selbst gefüllt hat. */
@@ -847,6 +961,7 @@ public class SecurityTxEditActivity extends LocalizedActivity {
         out.putExtra(EXTRA_PREFILL_INCOME_CATEGORY,
                 DIVIDEND.equals(action) ? textOf(editIncomeCategory).trim() : "");
         out.putExtra(EXTRA_CONFLICT, conflict);
+        out.putExtra(EXTRA_DUP_BOOKED, dupBooked);
         setResult(RESULT_OK, out);
         finish();
     }

@@ -1591,6 +1591,15 @@ public class Repository {
     }
 
     /**
+     * Steht jede dieser Bewegungen schon im Depot? Für den Hinweis auf eine doppelt eingelesene
+     * Abrechnung; {@code exceptId} nimmt die gerade bearbeitete Bewegung aus (0 = keine Ausnahme).
+     */
+    public void findExistingSecurityTx(List<SecurityTx> candidates, long exceptId,
+                                       Callback<boolean[]> callback) {
+        depotRepo.findExisting(candidates, exceptId, callback);
+    }
+
+    /**
      * Legt die Trägerzeile eines Depots in der Konto-Tabelle an. Sie trägt nur Name, Sortierplatz und
      * Gruppen; Wertpapiere und Bewertung bleiben in den {@code security}-Tabellen.
      */

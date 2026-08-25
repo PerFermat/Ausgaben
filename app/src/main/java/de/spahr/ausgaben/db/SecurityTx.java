@@ -121,4 +121,37 @@ public class SecurityTx {
         this.netCents = netCents;
         this.feeCents = feeCents;
     }
+
+    /**
+     * Dieselbe Bewegung wie eine andere — für den Hinweis auf eine doppelt eingelesene Abrechnung.
+     *
+     * <p>Verglichen werden Depot, Wertpapier, Art, Tag und alle Beträge; nicht verglichen werden
+     * {@link #id}, {@link #pending}, Konto und Kategorien: ob eine Buchung schon exportiert wurde oder
+     * über welche Kategorie sie läuft, macht sie nicht zu einer anderen Bewegung.</p>
+     *
+     * <p>Beim Datum zählt der <b>Kalendertag</b>, nicht der Zeitstempel. Eine aus KMyMoney importierte
+     * Zeile und eine aus einer Abrechnung gesetzte kommen aus verschiedenen Quellen; auf die Uhrzeit ist
+     * dabei kein Verlass, auf den Tag schon.</p>
+     */
+    public boolean sameMovement(SecurityTx other) {
+        return other != null
+                && depot.equals(other.depot)
+                && securityKmyId.equals(other.securityKmyId)
+                && action.equals(other.action)
+                && amountCents == other.amountCents
+                && netCents == other.netCents
+                && feeCents == other.feeCents
+                && Math.abs(shares - other.shares) < 1e-6
+                && sameDay(date, other.date);
+    }
+
+    /** Zwei Zeitstempel am selben Kalendertag (lokale Zeitzone). */
+    public static boolean sameDay(long a, long b) {
+        java.util.Calendar ca = java.util.Calendar.getInstance();
+        java.util.Calendar cb = java.util.Calendar.getInstance();
+        ca.setTimeInMillis(a);
+        cb.setTimeInMillis(b);
+        return ca.get(java.util.Calendar.YEAR) == cb.get(java.util.Calendar.YEAR)
+                && ca.get(java.util.Calendar.DAY_OF_YEAR) == cb.get(java.util.Calendar.DAY_OF_YEAR);
+    }
 }

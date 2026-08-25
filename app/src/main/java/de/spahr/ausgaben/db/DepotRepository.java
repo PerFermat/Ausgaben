@@ -282,6 +282,45 @@ class DepotRepository {
     }
 
     /**
+     * Steht jede dieser Bewegungen schon im Depot? Rückgabe in derselben Reihenfolge wie die Eingabe.
+     *
+     * <p>Für den Hinweis auf eine doppelt eingelesene Abrechnung. Geprüft wird der Kalendertag der
+     * Bewegung; {@code exceptId} nimmt die gerade bearbeitete Bewegung aus, damit sie sich nicht selbst
+     * als Dublette meldet (0 = keine Ausnahme).</p>
+     */
+    void findExisting(final List<SecurityTx> candidates, final long exceptId,
+                      final Callback<boolean[]> callback) {
+        executor.execute(() -> {
+            final boolean[] out = new boolean[candidates.size()];
+            for (int i = 0; i < candidates.size(); i++) {
+                out[i] = existsAlready(candidates.get(i), exceptId);
+            }
+            mainHandler.post(() -> callback.onResult(out));
+        });
+    }
+
+    private boolean existsAlready(SecurityTx tx, long exceptId) {
+        if (tx == null || tx.securityKmyId.isEmpty() || tx.action.isEmpty() || tx.date <= 0) {
+            return false;
+        }
+        java.util.Calendar day = java.util.Calendar.getInstance();
+        day.setTimeInMillis(tx.date);
+        day.set(java.util.Calendar.HOUR_OF_DAY, 0);
+        day.set(java.util.Calendar.MINUTE, 0);
+        day.set(java.util.Calendar.SECOND, 0);
+        day.set(java.util.Calendar.MILLISECOND, 0);
+        long from = day.getTimeInMillis();
+        day.add(java.util.Calendar.DAY_OF_MONTH, 1);
+        for (SecurityTx old : securityDao.getTxOnDay(tx.depot, tx.securityKmyId, tx.action,
+                from, day.getTimeInMillis())) {
+            if (old.id != exceptId && tx.sameMovement(old)) {
+                return true;
+            }
+        }
+        return false;
+    }
+
+    /**
      * Von speziell nach allgemein: dasselbe Wertpapier, dann ein beliebiges desselben Depots, zuletzt
      * eines aus einem anderen Depot – immer aber dieselbe Art. Jedes Feld wird einzeln aufgefüllt, denn
      * die speziellere Bewegung kann Konto und Kategorie unterschiedlich gepflegt haben (etwa eine

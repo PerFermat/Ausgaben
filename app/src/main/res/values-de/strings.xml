@@ -740,6 +740,8 @@
     <string name="statement_problem_amounts">Beträge fehlen</string>
     <string name="statement_problem_shares">Anzahl fehlt</string>
     <string name="statement_problem_account">Gegenkonto fehlt</string>
+    <string name="statement_dup_booked">Diese Buchung gibt es schon</string>
+    <string name="statement_dup_selected">Dieselbe Abrechnung ist mehrfach ausgewählt</string>
     <!-- Aus einer Abrechnung eingelesen, aber nicht gefunden: dann steht das Feld leer. -->
     <string name="statement_date_missing">Steht nicht in der Abrechnung – bitte wählen</string>
     <string name="statement_action_missing">Steht nicht in der Abrechnung – bitte wählen</string>

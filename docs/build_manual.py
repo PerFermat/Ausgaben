@@ -59,7 +59,11 @@ def S(name, **kw):
 st_title   = S("t",  fontName="DejaVu-Bold", fontSize=26, leading=30, textColor=GREEN, spaceAfter=6)
 st_sub     = S("s",  fontSize=13, leading=17, textColor=GREY, spaceAfter=2)
 st_h1      = S("h1", fontName="DejaVu-Bold", fontSize=16, leading=20, textColor=GREEN, spaceBefore=16, spaceAfter=6)
-st_h2      = S("h2", fontName="DejaVu-Bold", fontSize=12.5, leading=16, textColor=colors.HexColor("#1b4d1e"), spaceBefore=10, spaceAfter=3)
+# keepWithNext: eine Überschrift allein am Seitenfuß ist schlimmer als eine etwas kürzere Seite.
+st_h2      = S("h2", fontName="DejaVu-Bold", fontSize=12.5, leading=16, textColor=colors.HexColor("#1b4d1e"), spaceBefore=10, spaceAfter=3, keepWithNext=1)
+# Dritte Ebene: benennt die einzelnen Feinheiten innerhalb eines Abschnitts, damit sie nicht zu einem
+# Absatzklotz zusammenwachsen. Bewußt ohne Eintrag im Inhaltsverzeichnis – davon gäbe es zu viele.
+st_h3      = S("h3", fontName="DejaVu-Bold", fontSize=10.5, leading=14, textColor=colors.HexColor("#1b4d1e"), spaceBefore=7, spaceAfter=1, keepWithNext=1)
 st_body    = S("b",  fontSize=10, leading=14.5, spaceAfter=5, alignment=TA_LEFT)
 st_bullet  = S("bu", fontSize=10, leading=14.5, leftIndent=14, bulletIndent=2, spaceAfter=2)
 st_cell    = S("c",  fontSize=9, leading=12)
@@ -101,8 +105,12 @@ def h1(t):
 def h2(t):
     story.append(_heading(t, st_h2, 1))
 
+def h3(t):
+    # Ohne _heading: die dritte Ebene bleibt aus dem Inhaltsverzeichnis heraus.
+    story.append(Paragraph(t, st_h3))
+
 def create_paragraph_elements(content_list):
-    """Erzeugt Flowables für Text, Bullets und H2-Überschriften zur Verwendung neben Bildern."""
+    """Erzeugt Flowables für Text, Bullets und Überschriften zur Verwendung neben Bildern."""
     elements = []
     for item in content_list:
         itype = item.get("type")
@@ -110,9 +118,15 @@ def create_paragraph_elements(content_list):
             elements.append(Paragraph(item["text"], st_body))
         elif itype == "h2":
             elements.append(Paragraph(item["text"], st_h2))
+        elif itype == "h3":
+            elements.append(Paragraph(item["text"], st_h3))
         elif itype == "bullets":
             for bu in item["items"]:
                 elements.append(Paragraph(bu, st_bullet, bulletText="•"))
+            elements.append(Spacer(1, 4))
+        elif itype == "steps":
+            for nummer, schritt in enumerate(item["items"], 1):
+                elements.append(Paragraph(schritt, st_bullet, bulletText=f"{nummer}."))
             elements.append(Spacer(1, 4))
     return elements
 
@@ -146,8 +160,11 @@ MAX_SIDE_HEIGHT = 380
 
 def _geschaetzte_hoehe(tf):
     """Grobe Höhe eines Flowables aus Typ und Textlänge."""
-    if getattr(getattr(tf, 'style', None), 'name', '') == 'h2':
+    name = getattr(getattr(tf, 'style', None), 'name', '')
+    if name == 'h2':
         return 35                      # Überschrift hat mehr Abstand
+    if name == 'h3':
+        return 24                      # dritte Ebene: kleiner, weniger Abstand
     return max(16, (len(getattr(tf, 'text', '')) / 45) * 14) + 4
 
 
@@ -307,11 +324,18 @@ def _abschnitt(sec):
         h1(sec["text"])
     elif stype == "h2":
         h2(sec["text"])
+    elif stype == "h3":
+        h3(sec["text"])
     elif stype == "p":
         story.append(Paragraph(sec["text"], st_body))
     elif stype == "bullets":
         for it in sec["items"]:
             story.append(Paragraph(it, st_bullet, bulletText="•"))
+        story.append(Spacer(1, 4))
+    elif stype == "steps":
+        # Numerierte Handlungsschritte – für die Stellen, an denen die Reihenfolge zählt.
+        for nummer, schritt in enumerate(sec["items"], 1):
+            story.append(Paragraph(schritt, st_bullet, bulletText=f"{nummer}."))
         story.append(Spacer(1, 4))
     elif stype == "text_with_single_shot":
         add_single_shot_section(sec["content"], sec["shot"])

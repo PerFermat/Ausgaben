@@ -62,8 +62,44 @@
     },
     {
       "type": "h1",
+      "id": "b-0005a",
+      "text": "2. In fünf Minuten zur ersten Buchung"
+    },
+    {
+      "type": "p",
+      "id": "b-0005b",
+      "text": "Dieses Kapitel führt Sie einmal durch den ganzen Kreislauf: einrichten, buchen, übertragen. Es nennt nur den geraden Weg und keine Ausnahme. Alles Weitere – jedes Feld, jede Feinheit – steht in den folgenden Kapiteln."
+    },
+    {
+      "type": "steps",
+      "id": "b-0005c",
+      "items": [
+        "<b>Verbindung einrichten.</b> Beim ersten Start erscheint der Willkommen-Assistent. Wählen Sie Ihre Sprache, dann als Format <b>«KMyMoney-Datei (.kmy)»</b> und tragen Sie Ihren Server ein (Nextcloud, WebDAV oder SMB). <b>«Verbindung testen»</b> sagt Ihnen sofort, ob es klappt.",
+        "<b>Ihre KMyMoney-Datei wählen.</b> <b>«.kmy auswählen»</b> zeigt die Dateien im eingestellten Ordner. Nehmen Sie die, mit der Sie am Rechner arbeiten.",
+        "<b>Konten einlesen.</b> <b>«Konten importieren»</b> listet die Konten aus dieser Datei. Haken Sie an, was Sie unterwegs brauchen – meist ein Bargeld- und ein Girokonto. <b>«Fertig»</b> schließt den Assistenten.",
+        "<b>Die erste Ausgabe eintragen.</b> Unten rechts den runden <b>✚</b>-Knopf antippen. Betrag eingeben, Empfänger und Kategorie aus der Liste wählen, <b>«Als neu speichern»</b>. Die Buchung steht sofort in der Liste.",
+        "<b>Nach KMyMoney übertragen.</b> Oben in der Titelleiste auf das <b>Export-Symbol ⬇</b> tippen. Die App holt Ihre .kmy vom Server, legt eine Sicherung an, trägt die neuen Buchungen ein und schreibt die Datei zurück. Am Rechner öffnen Sie sie danach wie gewohnt."
+      ]
+    },
+    {
+      "type": "p",
+      "id": "b-0005d",
+      "text": "Das ist der ganze Kreislauf. Ab jetzt wiederholen sich nur noch die Schritte 4 und 5: unterwegs erfassen, bei Gelegenheit exportieren. Jede Buchung wird dabei nur einmal übertragen."
+    },
+    {
+      "type": "p",
+      "id": "b-0005e",
+      "text": "<b>Ohne KMyMoney-Datei?</b> Wählen Sie im Assistenten statt .kmy das Format <b>CSV</b>. Dann tauscht die App je Konto eine CSV-Datei aus. Alles Übrige bleibt gleich."
+    },
+    {
+      "type": "p",
+      "id": "b-0005f",
+      "text": "<b>Wo es weitergeht:</b> Der Willkommen-Assistent im einzelnen steht im nächsten Kapitel, das Erfassen einer Buchung in Kapitel 7, der Abgleich mit KMyMoney in Kapitel 15 und jede einzelne Einstellung in Kapitel 17."
+    },
+    {
+      "type": "h1",
       "id": "b-0006",
-      "text": "2. Erste Schritte"
+      "text": "3. Erste Schritte"
     },
     {
       "type": "h2",
@@ -104,12 +140,12 @@
     {
       "type": "p",
       "id": "b-0012",
-      "text": "Alle Einstellungen im Detail – Sprache, Zahlenformat, Währung, Server-Verbindung, Export-Modus, Standardkonto, Alias-Namen, App-Sperre, Sicherung u. v. m. – erklärt das Kapitel <b>«Einstellungen»</b> am Ende des Handbuchs (Kapitel 16). Erreichbar sind sie jederzeit über das <b>Menü ⋮</b> oben rechts, Eintrag <b>«Einstellungen»</b> ganz unten."
+      "text": "Alle Einstellungen im Detail – Sprache, Zahlenformat, Währung, Server-Verbindung, Export-Modus, Standardkonto, Alias-Namen, App-Sperre, Sicherung u. v. m. – erklärt das Kapitel <b>«Einstellungen»</b> am Ende des Handbuchs (Kapitel 17). Erreichbar sind sie jederzeit über das <b>Menü ⋮</b> oben rechts, Eintrag <b>«Einstellungen»</b> ganz unten."
     },
     {
       "type": "h1",
       "id": "b-0013",
-      "text": "3. Der Hauptbildschirm"
+      "text": "4. Der Hauptbildschirm"
     },
     {
       "type": "text_with_single_shot",
@@ -168,7 +204,37 @@
         {
           "type": "p",
           "id": "b-0023",
-          "text": "Für den Startbildschirm gibt es vier wählbare Widgets, die den Saldo des <b>Standardorts</b> (Standardkonto → Standardort) zeigen: <b>klein</b> (2×1, nur Saldo), <b>mittel</b> (4×2, Saldo + drei Schnellaktionen: Buchung, Sprache, Betrag), <b>groß</b> (4×4, Saldo-Kopf mit Aktualisieren, die letzten Buchungen und die Aktionsleiste) und <b>Typ</b> (4×2, wie auf der Uhr: drei farbige Knöpfe Einnahme/Umbuchung/Ausgabe als Symbol-Knöpfe + grauer Wechsel-Knopf, darunter der Saldo). Ein Tippen auf den Saldo öffnet die App; die Knöpfe des mittleren/großen Widgets starten «Neue Buchung», die Spracheingabe, die Betrag-only-Erfassung bzw. die Bestände. Beim <b>Typ-Widget</b> startet ein Typ-Knopf <b>sofort die Spracherkennung</b> und legt die Buchung direkt an – die App wird dabei nicht geöffnet (nur der System-Sprachdialog erscheint); der graue <b>Wechsel-Knopf</b> schaltet das gewählte Konto bzw. dessen Orte durch (Saldo und Ziel der neuen Buchung folgen der Auswahl). Das Widget aktualisiert sich beim Öffnen der App und in regelmäßigen Abständen."
+          "text": "Für den Startbildschirm gibt es vier Widgets. Alle zeigen den Saldo des <b>Standardorts</b> (Standardkonto → Standardort), und ein Tippen auf den Saldo öffnet die App."
+        },
+        {
+          "type": "bullets",
+          "id": "b-0023a",
+          "items": [
+            "<b>klein</b> (2×1): nur der Saldo.",
+            "<b>mittel</b> (4×2): Saldo und drei Schnellaktionen – Buchung, Sprache, Betrag.",
+            "<b>groß</b> (4×4): Saldo-Kopf mit Aktualisieren, die letzten Buchungen und die Aktionsleiste.",
+            "<b>Typ</b> (4×2): wie auf der Uhr – drei farbige Symbol-Knöpfe für Einnahme, Umbuchung und Ausgabe, dazu ein grauer Wechsel-Knopf, darunter der Saldo."
+          ]
+        },
+        {
+          "type": "h3",
+          "id": "b-0023b",
+          "text": "Was die Knöpfe tun"
+        },
+        {
+          "type": "p",
+          "id": "b-0023c",
+          "text": "Beim mittleren und großen Widget starten die Knöpfe «Neue Buchung», die Spracheingabe, die Betrag-only-Erfassung oder die Bestände – jeweils in der App."
+        },
+        {
+          "type": "p",
+          "id": "b-0023d",
+          "text": "Das <b>Typ-Widget</b> geht einen Schritt weiter: ein Typ-Knopf startet <b>sofort die Spracherkennung</b> und legt die Buchung direkt an, ohne die App zu öffnen (nur der System-Sprachdialog erscheint). Der graue <b>Wechsel-Knopf</b> schaltet das gewählte Konto beziehungsweise dessen Orte durch; Saldo und Ziel der nächsten Buchung folgen dieser Auswahl."
+        },
+        {
+          "type": "p",
+          "id": "b-0023e",
+          "text": "Aktualisiert wird beim Öffnen der App und in regelmäßigen Abständen."
         }
       ],
       "shot": {"fname": "Widget.png", "caption": "Alle vier Widget-Größen: mittel, Typ, groß und klein", "width": 6.0}
@@ -176,7 +242,7 @@
     {
       "type": "h1",
       "id": "b-0024",
-      "text": "4. Symbol- und Bedienelement-Referenz"
+      "text": "5. Symbol- und Bedienelement-Referenz"
     },
     {
       "type": "p",
@@ -190,7 +256,12 @@
     {
       "type": "h1",
       "id": "b-0027",
-      "text": "5. Konten und die Kontenschublade"
+      "text": "6. Konten und die Kontenschublade"
+    },
+    {
+      "type": "p",
+      "id": "b-0027a",
+      "text": "Die Kontenschublade ist die Liste Ihrer Konten. <b>☰</b> oben links öffnet sie; ein Tipp auf ein Konto zeigt dessen Buchungen, ein langer Druck holt es frisch aus KMyMoney. Mehr braucht man im Alltag nicht. Der Rest dieses Kapitels erklärt, wie Sie Konten gruppieren, suchen und sortieren."
     },
     {
       "type": "text_with_single_shot",
@@ -226,16 +297,49 @@
       "id": "b-0032",
       "content": [
         {
-          "type": "bullets",
+          "type": "h3",
+          "id": "b-0032a",
+          "text": "Eine Gruppe wählen"
+        },
+        {
+          "type": "p",
           "id": "b-0033",
-          "items": [
-            "<b>Tipp auf die Überschrift «Konten»</b>: die Gruppen klappen als Liste darunter auf. Jede Zeile trägt das Zeichen ihrer Herkunft (Stern für die Favoriten, Bankgebäude für die Gruppen aus der .kmy, Ordner für selbst angelegte), die gerade gültige ein <b>Häkchen</b>. Danach stehen in der Schublade nur noch deren Konten, und die oberste Zeile trägt statt «Alle Konten» den Gruppennamen.",
-            "Die gewählte Gruppe gilt <b>app-weit</b>: Buchungsliste, Saldoleiste (dort als zusätzliche erste Seite; «Gesamt» meint weiterhin alle Konten) und die Bestände richten sich danach.",
-            "Nimmt man das <b>letzte Konto</b> aus einer Gruppe heraus (oder löscht es), verschwindet die Gruppe kommentarlos – leere Gruppen gibt es nicht. Das ist auch der Weg, eine Gruppe wieder loszuwerden.",
-            "Gruppen, in denen nur noch <b>geschlossene</b> Konten stehen, tauchen in dieser Auswahl nicht mehr auf. Im «⋮»-Menü eines Kontos bleiben sie wählbar, damit man sie wiederbeleben kann.",
-            "Aus dem Institutsblock der .kmy entstehen zusätzlich <b>Bank-Gruppen</b> (z. B. «Volksbank»). Sie spiegeln nur die Datei: nur der Import schreibt sie, von Hand sind sie nicht änderbar.",
-            "Ebenso entsteht die Gruppe <b>«Favoriten»</b> aus den Konten, die in KMyMoney als bevorzugt gekennzeichnet sind (dort im Kontodialog unter «Bevorzugtes Konto»). Sie steht in der Auswahl ganz oben, ist wie die Bank-Gruppen nicht änderbar und wird bei jedem Import neu gesetzt. Ist kein Konto mehr bevorzugt, verschwindet sie. Ihr Name folgt der Sprache der App."
-          ]
+          "text": "Ein <b>Tipp auf die Überschrift «Konten»</b> klappt die Gruppen als Liste darunter auf; die gerade gültige trägt ein <b>Häkchen</b>. Danach stehen in der Schublade nur noch deren Konten, und die oberste Zeile trägt statt «Alle Konten» den Gruppennamen."
+        },
+        {
+          "type": "p",
+          "id": "b-0033a",
+          "text": "Die Wahl gilt <b>app-weit</b>: Buchungsliste, Saldoleiste und Bestände richten sich danach. In der Saldoleiste kommt die Gruppe als zusätzliche erste Seite hinzu; «Gesamt» meint weiterhin alle Konten."
+        },
+        {
+          "type": "h3",
+          "id": "b-0033b",
+          "text": "Woher die Gruppen kommen"
+        },
+        {
+          "type": "p",
+          "id": "b-0033c",
+          "text": "Jede Zeile trägt das Zeichen ihrer Herkunft: <b>Ordner</b> für selbst angelegte Gruppen, <b>Bankgebäude</b> für die aus dem Institutsblock der .kmy (z. B. «Volksbank»), <b>Stern</b> für die «Favoriten». Die beiden letzten spiegeln nur die Datei – geschrieben werden sie allein vom Import, von Hand sind sie nicht änderbar."
+        },
+        {
+          "type": "p",
+          "id": "b-0033d",
+          "text": "Die <b>«Favoriten»</b> entstehen aus den Konten, die in KMyMoney als bevorzugt gekennzeichnet sind (dort im Kontodialog unter «Bevorzugtes Konto»). Sie stehen in der Auswahl ganz oben, werden bei jedem Import neu gesetzt, und ihr Name folgt der Sprache der App."
+        },
+        {
+          "type": "h3",
+          "id": "b-0033e",
+          "text": "Wenn eine Gruppe verschwindet"
+        },
+        {
+          "type": "p",
+          "id": "b-0033f",
+          "text": "Nimmt man das <b>letzte Konto</b> aus einer Gruppe heraus (oder löscht es), verschwindet sie kommentarlos – leere Gruppen gibt es nicht. Das ist zugleich der Weg, eine Gruppe wieder loszuwerden. Ist kein Konto mehr bevorzugt, verschwinden ebenso die «Favoriten»."
+        },
+        {
+          "type": "p",
+          "id": "b-0033g",
+          "text": "Gruppen, in denen nur noch <b>geschlossene</b> Konten stehen, tauchen in dieser Auswahl nicht mehr auf. Im «⋮»-Menü eines Kontos bleiben sie wählbar, damit man sie wiederbeleben kann."
         }
       ],
       "shots": [
@@ -285,16 +389,44 @@
           "text": "Das <b>Zahnrad</b> rechts neben «Konten» öffnet eine eigene Ansicht. Sie zeigt – anders als die Schublade – auch <b>geschlossene Konten</b>, diese in grauer Schrift, jeweils mit dem Saldo rechts."
         },
         {
-          "type": "bullets",
+          "type": "h3",
+          "id": "b-0041a",
+          "text": "Reihenfolge ändern"
+        },
+        {
+          "type": "p",
           "id": "b-0042",
-          "items": [
-            "<b>Ziehen am Griff</b> sortiert Konten innerhalb ihrer Kontenart. Die Reihenfolge gilt überall, wo Konten aufgelistet werden – auch in den Auswahllisten beim Buchen.",
-            "<b>Eine ganze Kontenart ziehen</b>: ihre Konten klappen für die Dauer des Ziehens ein und es steht nur noch die Anzahl darunter. So wandert auch ein großer Block mit wenigen Bewegungen an seinen Platz.",
-            "<b>«⋮» an einer Kontozeile</b>: die eigenen Kontengruppen als <b>Ankreuzliste</b>. Der Haken sagt, ob das Konto in der Gruppe steht; man setzt und nimmt beliebig viele auf einmal, geschrieben wird erst mit <b>«OK»</b>. Ganz oben steht ein freies Feld für eine <b>neue Gruppe</b> – wer dort etwas eintippt, bekommt den Haken von selbst gesetzt.",
-            "Gruppen aus der .kmy (Banken, Favoriten) stehen nicht in der Liste. Trägt man ihren Namen in das freie Feld ein, bleibt der Dialog mit einem Hinweis stehen und es wird nichts übernommen – eine Zuordnung von Hand wäre beim nächsten Import ohnehin wieder fort.",
-            "Dieselbe Ankreuzliste trägt neben «OK» die Schaltfläche <b>«Konto schließen»</b> bzw. «Konto wiedereröffnen»; sie übernimmt die gesetzten Haken mit. <b>Konto schließen</b> wird nur bei Saldo 0 angeboten.",
-            "Bekommt ein geschlossenes Konto durch einen Import wieder einen Saldo, öffnet es sich von selbst."
-          ]
+          "text": "<b>Ziehen am Griff</b> sortiert Konten innerhalb ihrer Kontenart. Die Reihenfolge gilt überall, wo Konten aufgelistet werden – auch in den Auswahllisten beim Buchen. Zieht man eine <b>ganze Kontenart</b>, klappen ihre Konten für die Dauer des Ziehens ein und es steht nur noch die Anzahl darunter; so wandert auch ein großer Block mit wenigen Bewegungen an seinen Platz."
+        },
+        {
+          "type": "h3",
+          "id": "b-0042a",
+          "text": "Ein Konto einer Gruppe zuordnen"
+        },
+        {
+          "type": "p",
+          "id": "b-0042b",
+          "text": "Das <b>«⋮»</b> an einer Kontozeile öffnet Ihre eigenen Kontengruppen als <b>Ankreuzliste</b>. Der Haken sagt, ob das Konto in der Gruppe steht; man setzt und nimmt beliebig viele auf einmal, geschrieben wird erst mit <b>«OK»</b>. Ganz oben steht ein freies Feld für eine <b>neue Gruppe</b> – wer dort etwas eintippt, bekommt den Haken von selbst gesetzt."
+        },
+        {
+          "type": "h3",
+          "id": "b-0042c",
+          "text": "Konto schließen und wiedereröffnen"
+        },
+        {
+          "type": "p",
+          "id": "b-0042d",
+          "text": "Dieselbe Ankreuzliste trägt neben «OK» die Schaltfläche <b>«Konto schließen»</b> bzw. «Konto wiedereröffnen»; sie übernimmt die gesetzten Haken mit. Geschlossen wird nur bei <b>Saldo 0</b>. Bekommt ein geschlossenes Konto durch einen Import wieder einen Saldo, öffnet es sich von selbst."
+        },
+        {
+          "type": "h3",
+          "id": "b-0042e",
+          "text": "Sonderfall: Gruppen aus der .kmy"
+        },
+        {
+          "type": "p",
+          "id": "b-0042f",
+          "text": "Banken und Favoriten stehen nicht in der Ankreuzliste. Trägt man ihren Namen in das freie Feld ein, bleibt der Dialog mit einem Hinweis stehen und es wird nichts übernommen – eine Zuordnung von Hand wäre beim nächsten Import ohnehin wieder fort."
         }
       ],
       "shots": [
@@ -306,7 +438,7 @@
     {
       "type": "h1",
       "id": "b-0043",
-      "text": "6. Eine Buchung erfassen"
+      "text": "7. Eine Buchung erfassen"
     },
     {
       "type": "text_with_single_shot",
@@ -315,7 +447,22 @@
         {
           "type": "p",
           "id": "b-0045",
-          "text": "Tippen Sie auf den runden <b>✚</b>-Knopf. Es öffnet sich der Buchungs-Editor."
+          "text": "Tippen Sie auf den runden <b>✚</b>-Knopf. Es öffnet sich der Buchungs-Editor. Eine gewöhnliche Ausgabe ist in vier Schritten erfaßt:"
+        },
+        {
+          "type": "steps",
+          "id": "b-0045a",
+          "items": [
+            "<b>Betrag</b> eintippen.",
+            "<b>Empfänger</b> wählen oder neu eintippen.",
+            "<b>Kategorie</b> wählen – meist steht sie schon da.",
+            "<b>«Als neu speichern»</b>."
+          ]
+        },
+        {
+          "type": "p",
+          "id": "b-0045b",
+          "text": "Konto, Datum und Ort sind bereits vorbelegt und brauchen nur Aufmerksamkeit, wenn etwas anderes gelten soll. Der Rest dieses Kapitels erklärt die Felder im einzelnen."
         },
         {
           "type": "h2",
@@ -350,19 +497,74 @@
           "text": "In den <b>Kontenfeldern</b> steht vorn, was Sie am ehesten brauchen: zuerst Ihre <b>Favoriten</b> (Stern), dahinter die Konten der gerade gewählten <b>Kontengruppe</b> (Symbol der Gruppe), dann alle übrigen mit dem Symbol ihrer Kontenart. Ihre eigene Kontenreihenfolge bleibt innerhalb jedes Blocks erhalten."
         },
         {
+          "type": "h2",
+          "id": "b-0050a0",
+          "text": "Was die App für Sie vorwegnimmt"
+        },
+        {
+          "type": "h3",
+          "id": "b-0050a1",
+          "text": "Empfänger in der Nähe zuerst"
+        },
+        {
           "type": "p",
           "id": "b-0050a",
-          "text": "Dasselbe leistet beim <b>Empfänger</b> der Standort: ganz oben stehen die <b>sechs nächstgelegenen Empfänger</b> mit einem <b>Peilpfeil</b>, der nächste zuerst. Gemessen wird vom <b>Standort der Buchung</b> – also von dem, was in der Zeile <b>Standort</b> steht: bei einer <b>neuen Buchung</b> Ihr aktueller (nur bei eingeschaltetem <b>Standort (GPS)</b>), beim <b>Bearbeiten</b> die <b>gespeicherte Marke</b> der Buchung, und wählen Sie dort über <b>«Karte»</b> einen anderen Punkt, wandert der Vorspann mit. Hat eine Buchung keine Marke, gibt es keinen Vorspann – Ihr jetziger Standort sagt über eine alte Buchung nichts. Wie weit ein Empfänger entfernt ist, ergibt sich aus denselben Quellen wie beim Umkreis-Filter: den Koordinaten in den Notizen seiner Buchungen und den gelernten Standorten seiner Aliase; es zählt jeweils der nächste Punkt, und weiter als 10 km entfernte kommen nicht vor. Darunter folgt unverändert die vollständige alphabetische Liste, die sechs stehen dort also ein zweites Mal. <b>Sobald Sie zu tippen beginnen</b>, verschwindet der Vorspann und Sie sehen allein die alphabetischen Treffer; löschen Sie das Getippte wieder, ist er zurück. Beim Ansehen einer geplanten Buchung gibt es ihn nicht."
+          "text": "Ganz oben in der Empfängerliste stehen die <b>sechs nächstgelegenen</b> mit einem <b>Peilpfeil</b>, der nächste zuerst. Darunter folgt unverändert die vollständige alphabetische Liste – die sechs stehen dort also ein zweites Mal. <b>Sobald Sie zu tippen beginnen</b>, verschwindet dieser Vorspann; löschen Sie das Getippte wieder, ist er zurück."
+        },
+        {
+          "type": "p",
+          "id": "b-0050a2",
+          "text": "Gemessen wird vom <b>Standort der Buchung</b>, also von dem, was in der Zeile <b>Standort</b> steht: bei einer neuen Buchung Ihr aktueller (nur bei eingeschaltetem <b>Standort (GPS)</b>), beim Bearbeiten die gespeicherte Marke der Buchung. Wählen Sie dort über <b>«Karte»</b> einen anderen Punkt, wandert der Vorspann mit."
+        },
+        {
+          "type": "p",
+          "id": "b-0050a3",
+          "text": "Die Entfernung stammt aus denselben Quellen wie beim Umkreis-Filter: den Koordinaten in den Notizen der Buchungen eines Empfängers und den gelernten Standorten seiner Aliase. Es zählt jeweils der nächste Punkt; weiter als <b>10 km</b> entfernte kommen nicht vor."
+        },
+        {
+          "type": "p",
+          "id": "b-0050a4",
+          "text": "<b>Kein Vorspann</b> erscheint, wenn die Buchung keine Marke trägt – Ihr jetziger Standort sagt über eine alte Buchung nichts. Beim Ansehen einer geplanten Buchung gibt es ihn ebenfalls nicht."
+        },
+        {
+          "type": "h3",
+          "id": "b-0050b0",
+          "text": "Die Kategorie folgt dem Empfänger"
         },
         {
           "type": "p",
           "id": "b-0050b",
-          "text": "Steht der <b>Empfänger</b> fest, richtet sich die <b>Kategorie</b> nach ihm: Die App sucht Einträge der gerade gewählten Buchungsart – zuerst in den <b>bevorzugten Aliasen</b> (★), dann in Ihren <b>Buchungen</b> bei diesem Empfänger (die jüngste zuerst, Teilzeilen einer Splitbuchung zählen mit), zuletzt in den <b>übrigen Aliasen</b> – und trägt den ersten Fund in die <b>erste Kategoriezeile</b> ein; der Teilbetrag springt dabei auf den Gesamtbetrag. Die Vorbelegung <b>folgt dem Empfänger</b>: hat die App ihn über den Betrag geraten und Sie tragen einen anderen ein, wandert die Kategorie mit – auch eine zweite Zeile aus einem Alias weicht dann der Kategorie des neuen Empfängers. Sobald Sie in den Kategoriezeilen <b>selbst</b> etwas getan haben – eine Kategorie gewählt oder getippt, einen Teilbetrag geändert, eine Zeile entfernt –, bleibt Ihre Eingabe stehen: von da an wird nichts mehr nachgezogen. Beim <b>Bearbeiten</b> einer gespeicherten Buchung (und beim Buchen einer Planung) bleibt die Kategorie ohnehin unangetastet, auch wenn Sie dort den Empfänger ändern. Die weiteren gefundenen Kategorien (bis zu sechs) stehen unter der Überschrift <b>«BEI DIESEM EMPFÄNGER»</b> ganz oben in der Auswahlliste – in <b>jeder</b> Kategoriezeile, also auch beim Aufteilen. <b>Sobald Sie zu tippen beginnen</b>, verschwindet dieser Block und die Kategorien stehen nur noch an ihrem gewohnten Platz unter «AUSGABE» bzw. «EINNAHME». Schalten Sie zwischen Ausgabe und Einnahme um, wechseln Block und Vorbelegung mit; Umbuchungen haben keine Kategorien."
+          "text": "Steht der Empfänger fest, trägt die App die passende Kategorie gleich ein. Gesucht wird in dieser Reihenfolge, jeweils für die gewählte Buchungsart: zuerst in den <b>bevorzugten Aliasen</b> (★), dann in Ihren <b>Buchungen</b> bei diesem Empfänger (die jüngste zuerst, Teilzeilen einer Splitbuchung zählen mit), zuletzt in den <b>übrigen Aliasen</b>. Der erste Fund landet in der ersten Kategoriezeile, und der Teilbetrag springt auf den Gesamtbetrag."
+        },
+        {
+          "type": "p",
+          "id": "b-0050b1",
+          "text": "Die weiteren Funde – bis zu sechs – stehen unter der Überschrift <b>«BEI DIESEM EMPFÄNGER»</b> ganz oben in der Auswahlliste, und zwar in <b>jeder</b> Kategoriezeile, also auch beim Aufteilen. Sobald Sie zu tippen beginnen, verschwindet dieser Block und die Kategorien stehen nur noch an ihrem gewohnten Platz unter «AUSGABE» beziehungsweise «EINNAHME»."
+        },
+        {
+          "type": "p",
+          "id": "b-0050b2",
+          "text": "<b>Wann die Vorbelegung nachzieht:</b> solange Sie die Kategoriezeilen nicht selbst angefaßt haben. Wechseln Sie den Empfänger, wandert die Kategorie mit – auch eine zweite Zeile aus einem Alias weicht dann der des neuen Empfängers. Schalten Sie zwischen Ausgabe und Einnahme um, wechseln Block und Vorbelegung ebenfalls."
+        },
+        {
+          "type": "p",
+          "id": "b-0050b3",
+          "text": "<b>Wann sie stehenbleibt:</b> sobald Sie in den Kategoriezeilen selbst etwas getan haben – eine Kategorie gewählt oder getippt, einen Teilbetrag geändert, eine Zeile entfernt. Von da an zieht nichts mehr nach. Beim <b>Bearbeiten</b> einer gespeicherten Buchung und beim Buchen einer Planung bleibt die Kategorie ohnehin unangetastet, auch wenn Sie dort den Empfänger ändern. Umbuchungen haben keine Kategorien."
+        },
+        {
+          "type": "h3",
+          "id": "b-0050c0",
+          "text": "Der Betrag kann den Empfänger raten (ab Werk aus)"
         },
         {
           "type": "p",
           "id": "b-0050c",
-          "text": "Umgekehrt kann auch der <b>Betrag</b> den Empfänger vorgeben: Verlassen Sie das Betragsfeld und liegt im <b>100-m-Umkreis</b> der Standort-Marke genau <b>ein</b> Empfänger, zu dessen üblichen Beträgen dieser paßt, wird er in das <b>leere</b> Empfängerfeld eingetragen – und zieht seine Kategorie gleich mit. Das gilt für jede Buchungsart, auch für <b>Umbuchungen</b> – dort verglichen mit den Beträgen Ihrer bisherigen Umbuchungen an diesen Empfänger. Passen mehrere oder keiner, geschieht nichts; ein selbst eingetragener Empfänger bleibt unangetastet. Die Vorschlagsliste selbst ändert sich dadurch nicht: dort stehen weiterhin alle Empfänger im 10-km-Umkreis. Diese Vorbelegung ist standardmäßig <b>aus</b>; einschalten läßt sie sich in den Einstellungen unter <b>«Betrag in den Vorschlägen berücksichtigen»</b>."
+          "text": "Umgekehrt kann auch der Betrag den Empfänger vorgeben. Verlassen Sie das Betragsfeld und liegt im <b>100-m-Umkreis</b> der Standort-Marke genau <b>ein</b> Empfänger, zu dessen üblichen Beträgen dieser paßt, wird er in das <b>leere</b> Empfängerfeld eingetragen – und zieht seine Kategorie gleich mit. Das gilt für jede Buchungsart, bei Umbuchungen verglichen mit den Beträgen Ihrer bisherigen Umbuchungen an diesen Empfänger."
+        },
+        {
+          "type": "p",
+          "id": "b-0050c1",
+          "text": "Passen mehrere oder keiner, geschieht nichts; ein selbst eingetragener Empfänger bleibt unangetastet. Die Vorschlagsliste ändert sich dadurch nicht – dort stehen weiterhin alle Empfänger im 10-km-Umkreis. Einschalten läßt sich die Vorbelegung in den Einstellungen unter <b>«Betrag in den Vorschlägen berücksichtigen»</b>."
         }
       ],
       "shot": {"fname": "Buchung Empfänger.png", "caption": "Buchungs-Editor mit Typ-Umschalter, Betrag, Empfänger und Konto", "width": 6.0}
@@ -463,7 +665,12 @@
     {
       "type": "h1",
       "id": "b-0063",
-      "text": "7. Spracheingabe und Standort-Erfassung"
+      "text": "8. Schnell erfassen: Sprache, Standort, Belege"
+    },
+    {
+      "type": "p",
+      "id": "b-0063a",
+      "text": "Dieses Kapitel sammelt die Wege, auf denen eine Buchung mit wenigen Handgriffen entsteht: sie <b>sprechen</b>, nur den <b>Betrag</b> eintippen und den Empfänger vom Standort raten lassen, einen <b>Beleg</b> anhängen, und der App eine Zuordnung als <b>Alias</b> beibringen."
     },
     {
       "type": "h2",
@@ -500,9 +707,59 @@
           "text": "Bei eingeschaltetem Standort erscheint unten das Ziffernblock-Symbol. Tippen Sie nur einen Betrag ein: Die App sucht an Ihrem aktuellen Standort eine passende Vorlage – unter den Empfängern der gerade angezeigten Konten – und zeigt den gefundenen Empfänger bereits vor dem Speichern an."
         },
         {
+          "type": "h3",
+          "id": "b-0070a0",
+          "text": "Mehrere Empfänger am selben Ort"
+        },
+        {
           "type": "p",
           "id": "b-0070a",
-          "text": "Stehen an Ihrem Standort <b>mehrere</b> bekannte Empfänger (Tankstelle und Waschanlage, Rewe und Bäcker), entscheidet der <b>Betrag</b> mit. Vor der Eingabe steht unter dem Feld, wie viele in Frage kommen; während Sie tippen, erscheint der Name, zu dem der Betrag paßt: 8 € ist die Waschanlage, 80 € die Tankstelle. <b>Tippen Sie auf den Namen</b>, geht es der Reihe nach durch die übrigen Kandidaten und zuletzt über <b>«ohne Empfänger»</b> – dann tragen Sie ihn später selbst ein. Gebucht wird immer genau das, was beim Bestätigen dasteht. Als üblich gilt der Bereich, in dem <b>neun von zehn</b> bisherigen Buchungen dieses Empfängers liegen. <b>Ausgeschlossen wird niemand</b>: der Betrag bestimmt allein die Reihenfolge, durchblättern können Sie immer alle. Paßt er in keinen der Bereiche, steht der vorn, der ihm am nächsten kommt – gemessen im Verhältnis, damit ein Empfänger mit kleinen Beträgen nicht immer gegen einen mit großen verliert: bei 15 € gewinnt der Bereich 20–100 € gegen den Bereich 5–10 €, bei 1 € umgekehrt. Wer weniger als fünf Buchungen hat, wird gar nicht beurteilt und reiht sich in der Mitte ein. Dieselbe Reihenfolge entscheidet, wenn Sie <b>nur einen Betrag sprechen</b> – am Handy wie von der Uhr; dort wird ohne Rückfrage der vorderste genommen. Und wenn nur ein Empfänger in der Nähe ist, steht er auch bei ungewöhnlichem Betrag da – einmal groß zu tanken ist kein Grund, die Buchung leer zu lassen. In Frage kommen dabei nur Empfänger der <b>angezeigten Konten</b>: haben Sie in der Schublade ein Konto gewählt (oder eine Kontengruppe), bleibt draußen, wen es bisher nur auf einem anderen Konto gab – auch wenn er direkt nebenan liegt. Ein Alias ohne eigenes Konto zählt überall; auf der Uhr gilt das dort mit der grauen Taste gewählte Konto. Daß der Betrag hier mitredet, setzt den Schalter <b>«Betrag in den Vorschlägen berücksichtigen»</b> voraus (standardmäßig <b>aus</b>). Ohne ihn steht sofort der nächstgelegene Empfänger da und bleibt beim Tippen stehen – gewählt wird dann allein durch Antippen."
+          "text": "Stehen an Ihrem Standort mehrere bekannte Empfänger (Tankstelle und Waschanlage, Rewe und Bäcker), entscheidet der <b>Betrag</b> mit. Vor der Eingabe steht unter dem Feld, wie viele in Frage kommen; während Sie tippen, erscheint der Name, zu dem der Betrag paßt: 8 € ist die Waschanlage, 80 € die Tankstelle."
+        },
+        {
+          "type": "p",
+          "id": "b-0070a1",
+          "text": "<b>Tippen Sie auf den Namen</b>, geht es der Reihe nach durch die übrigen Kandidaten und zuletzt über <b>«ohne Empfänger»</b> – dann tragen Sie ihn später selbst ein. Gebucht wird immer genau das, was beim Bestätigen dasteht."
+        },
+        {
+          "type": "h3",
+          "id": "b-0070a2",
+          "text": "Wie die Reihenfolge zustande kommt"
+        },
+        {
+          "type": "p",
+          "id": "b-0070a3",
+          "text": "Als <b>üblich</b> gilt der Bereich, in dem neun von zehn bisherigen Buchungen dieses Empfängers liegen. <b>Ausgeschlossen wird niemand</b> – der Betrag bestimmt allein die Reihenfolge, durchblättern können Sie immer alle."
+        },
+        {
+          "type": "p",
+          "id": "b-0070a4",
+          "text": "Paßt der Betrag in keinen der Bereiche, steht der vorn, der ihm am nächsten kommt. Gemessen wird im <b>Verhältnis</b>, damit ein Empfänger mit kleinen Beträgen nicht immer gegen einen mit großen verliert: bei 15 € gewinnt der Bereich 20–100 € gegen den Bereich 5–10 €, bei 1 € umgekehrt. Wer weniger als fünf Buchungen hat, wird gar nicht beurteilt und reiht sich in der Mitte ein."
+        },
+        {
+          "type": "p",
+          "id": "b-0070a5",
+          "text": "Dieselbe Reihenfolge entscheidet, wenn Sie <b>nur einen Betrag sprechen</b> – am Handy wie von der Uhr; dort wird ohne Rückfrage der vorderste genommen."
+        },
+        {
+          "type": "h3",
+          "id": "b-0070a6",
+          "text": "Wer überhaupt in Frage kommt"
+        },
+        {
+          "type": "p",
+          "id": "b-0070a7",
+          "text": "Nur Empfänger der <b>angezeigten Konten</b>. Haben Sie in der Schublade ein Konto gewählt (oder eine Kontengruppe), bleibt draußen, wen es bisher nur auf einem anderen Konto gab – auch wenn er direkt nebenan liegt. Ein Alias ohne eigenes Konto zählt überall; auf der Uhr gilt das dort mit der grauen Taste gewählte Konto."
+        },
+        {
+          "type": "p",
+          "id": "b-0070a8",
+          "text": "Ist nur <b>ein</b> Empfänger in der Nähe, steht er auch bei ungewöhnlichem Betrag da – einmal groß zu tanken ist kein Grund, die Buchung leer zu lassen."
+        },
+        {
+          "type": "p",
+          "id": "b-0070a9",
+          "text": "Daß der Betrag hier überhaupt mitredet, setzt den Schalter <b>«Betrag in den Vorschlägen berücksichtigen»</b> voraus (ab Werk <b>aus</b>). Ohne ihn steht sofort der nächstgelegene Empfänger da und bleibt beim Tippen stehen – gewählt wird dann allein durch Antippen."
         }
       ],
       "shot": {"fname": "Buchung Betrag - Automatischer Empfänger anhand GPS.png", "caption": "Betrag-only-Erfassung: der Empfänger wird über den Standort gefunden", "width": 6.0}
@@ -640,7 +897,22 @@
         {
           "type": "p",
           "id": "b-0090a",
-          "text": "Darunter steht <b>«Übliche Beträge»</b>: ein Regler mit zwei Griffen, der festlegt, welche Beträge für diesen Empfänger typisch sind – das <b>Betragssieb</b>, wenn mehrere Empfänger am selben Ort stehen. Der Regler läuft nicht über Beträge, sondern über <b>Ränge</b>: die Vorgabe 10–90 % läßt oben und unten je ein Zehntel der bisherigen Buchungen weg, damit ein einzelner Ausreißer das Band nicht aufreißt. Die zugehörigen Beträge stehen darüber und am Griff. Ziehen Sie enger, gewinnt dieser Empfänger nur noch bei sehr typischen Beträgen; ziehen Sie auf 0–100 %, zählt jeder Betrag, den er je hatte. Unter fünf Buchungen ist der Regler abgeblendet – so wenige sagen noch nichts. Der Regler gehört zur oben gewählten <b>Buchungsart</b>: schalten Sie auf Einnahme oder Umbuchung um, stehen dort die Beträge dieser Art. Bei Umbuchungen zählt dabei nur die Ausgangsseite – sonst stünde jeder Betrag doppelt in der Reihe. Das Band wirkt immer, wenn nur ein Betrag gesprochen wurde; in Zifferneingabe und Buchungseditor erst mit dem Schalter <b>«Betrag in den Vorschlägen berücksichtigen»</b>."
+          "text": "Darunter steht <b>«Übliche Beträge»</b>: ein Regler mit zwei Griffen, der festlegt, welche Beträge für diesen Empfänger typisch sind – das <b>Betragssieb</b>, wenn mehrere Empfänger am selben Ort stehen. Ziehen Sie enger, gewinnt dieser Empfänger nur noch bei sehr typischen Beträgen; ziehen Sie auf 0–100 %, zählt jeder Betrag, den er je hatte."
+        },
+        {
+          "type": "p",
+          "id": "b-0090a1",
+          "text": "Der Regler läuft nicht über Beträge, sondern über <b>Ränge</b>: die Vorgabe 10–90 % läßt oben und unten je ein Zehntel der bisherigen Buchungen weg, damit ein einzelner Ausreißer das Band nicht aufreißt. Die zugehörigen Beträge stehen darüber und am Griff. Unter fünf Buchungen ist der Regler abgeblendet – so wenige sagen noch nichts."
+        },
+        {
+          "type": "p",
+          "id": "b-0090a2",
+          "text": "Der Regler gehört zur oben gewählten <b>Buchungsart</b>: schalten Sie auf Einnahme oder Umbuchung um, stehen dort die Beträge dieser Art. Bei Umbuchungen zählt nur die Ausgangsseite – sonst stünde jeder Betrag doppelt in der Reihe."
+        },
+        {
+          "type": "p",
+          "id": "b-0090a3",
+          "text": "Das Band wirkt immer, wenn nur ein Betrag gesprochen wurde; in Zifferneingabe und Buchungseditor erst mit dem Schalter <b>«Betrag in den Vorschlägen berücksichtigen»</b>."
         },
         {
           "type": "p",
@@ -658,7 +930,7 @@
     {
       "type": "h1",
       "id": "b-0091",
-      "text": "8. Buchungsliste und Filter"
+      "text": "9. Buchungsliste und Filter"
     },
     {
       "type": "text_with_single_shot",
@@ -668,11 +940,11 @@
           "type": "bullets",
           "id": "b-0093",
           "items": [
-            "<b>Kurzer Druck</b> auf eine Buchung öffnet sie als reine Ansicht (gleicher Aufbau wie der Editor, aber ohne Änderungsmöglichkeit): eine große farbige Überschrift zeigt die Art (Einnahme = grün, Umbuchung = gelb, Ausgabe = rot), unten stehen der Kontostand vor und nach der Buchung. <b>Langer Druck</b> öffnet sie zum Bearbeiten.",
-            "In der Liste wird die Notiz auf maximal zwei Zeilen gekürzt; im Editor umfasst das Notizfeld vier Zeilen.",
-            "<b>Herunterziehen</b> (in einer Konto- oder Depot-Ansicht): in der <b>kmy-Variante</b> wird die .kmy-Datei neu eingelesen und genau dieses Konto bzw. Depot aktualisiert. In der <b>CSV-Variante</b> ist das nicht verfügbar – dort aktualisiert man ein Konto über das Kontenmenü (langer Druck auf das Konto in der Schublade).",
-            "Markierungen: «Split», → / ← (Umbuchung), «exportiert»; Farben rot/grün.",
-            "<b>Filter</b> (Trichter ▽): mit einem <b>Suchfeld</b>, das <b>Empfänger, Notiz und Kategorie</b> durchsucht (Teilstring, Groß-/Kleinschreibung egal – so finden Sie auch eine Buchung über ihre Notiz); dazu Kategorie (als Baum), <b>Stichwort</b> (nur vorhanden, wenn die App Stichwörter aus der KMyMoney-Datei kennt; «Alle» hebt die Wahl auf), Betrag (Schieberegler) und <b>Datum von–bis</b> (Schieberegler in Monatsschritten; ein taggenaues Datum geben Sie direkt im Feld ein). Beim <b>Betrag</b> zählen Ausgaben negativ und Einnahmen positiv; der Regler läuft von der größten Ausgabe links bis zur größten Einnahme rechts, ein feiner Strich zeigt die Null dazwischen. Er bewegt sich in <b>Anteilen</b>, nicht in Beträgen: der rechte Daumen bei 90 % schneidet das größte Zehntel ab – ein einzelner Ausreißer zieht den Regler also nicht mehr auf. Eine genaue Grenze tippen Sie direkt ins Feld. Ganz unten steht – nur bei eingeschaltetem <b>Standort (GPS)</b> – der Knopf <b>Umkreis</b>: jeder Tipp schaltet weiter über «aus», 100 m, 500 m, 1 km, 10 km und wieder «aus». Auf einer Stufe bleiben nur Buchungen stehen, die in diesem Umkreis um Ihren jetzigen Standort entstanden sind – die Koordinaten stehen in der Buchungsnotiz, und wo sie fehlen, gilt der gelernte Standort des Empfängers aus dem Alias. Ihre Position wird beim Anwenden einmal festgehalten, die Liste wandert also nicht mit, wenn Sie weitergehen; ist noch keine Position bekannt, bleibt die Liste leer und die Titelzeile zeigt «Filter aktiv (0)». «Zurücksetzen» stellt «Umkreis aus» her, danach spielt der Standort keine Rolle mehr. Bei gesetztem Filter steht im Menü (⋮) zusätzlich <b>«Belege exportieren»</b>, das die Belege genau dieser Auswahl als ZIP-Datei ausgibt. Der Filter wirkt auf Liste und Auswertung (der Umkreis nur auf die Liste). Bei Kategorie-Filter zeigt eine Splitbuchung nur den Teilbetrag der gewählten Kategorie.",
+            "<b>Kurzer Druck</b> auf eine Buchung öffnet sie als reine Ansicht: eine große farbige Überschrift zeigt die Art (Einnahme = grün, Umbuchung = gelb, Ausgabe = rot), unten stehen der Kontostand vor und nach der Buchung.",
+            "<b>Langer Druck</b> öffnet sie zum Bearbeiten.",
+            "<b>Herunterziehen</b> liest in der kmy-Variante die Datei neu ein und aktualisiert genau dieses Konto oder Depot. In der CSV-Variante geht das über die Kontenschublade (langer Druck auf das Konto).",
+            "<b>Markierungen</b> an einer Zeile: «Split», → / ← für eine Umbuchung, «exportiert»; die Farben rot und grün stehen für Ausgabe und Einnahme.",
+            "Die <b>Notiz</b> wird in der Liste auf zwei Zeilen gekürzt; im Editor umfaßt das Feld vier.",
             "<b>Rückgängig</b>: Nach dem Löschen einer Buchung erscheint unten kurz «Rückgängig» – ein Tipp legt sie wieder an. Im Ort-Journal bleiben Löschung und Wiederanlage als Bewegungen sichtbar. Bei Umbuchungen gibt es kein Rückgängig.",
             "<b>Langdruck auf das App-Symbol</b> (Startbildschirm): «Neue Buchung» öffnet den Editor direkt."
           ]
@@ -681,9 +953,69 @@
       "shot": {"fname": "Buchungen Filtern.png", "caption": "Filter nach Suchtext, Kategorie, Betrag und Zeitraum", "width": 6.0}
     },
     {
+      "type": "h2",
+      "id": "b-0093a",
+      "text": "Der Filter (Trichter ▽)"
+    },
+    {
+      "type": "p",
+      "id": "b-0093b",
+      "text": "Der Trichter in der Titelleiste grenzt die Liste ein. Ganz oben steht ein <b>Suchfeld</b>, das <b>Empfänger, Notiz und Kategorie</b> zugleich durchsucht – mitten im Wort und ohne Rücksicht auf Groß- und Kleinschreibung. So finden Sie eine Buchung auch über ihre Notiz. Darunter folgen Kategorie (als Baum), <b>Stichwort</b>, Betrag und <b>Datum von–bis</b>."
+    },
+    {
+      "type": "p",
+      "id": "b-0093c",
+      "text": "Der Filter wirkt auf Liste und Auswertung. Ist er gesetzt, steht im Menü ⋮ zusätzlich <b>«Belege exportieren»</b>, das die Belege genau dieser Auswahl als ZIP-Datei ausgibt."
+    },
+    {
+      "type": "h3",
+      "id": "b-0093d",
+      "text": "Betrag und Zeitraum"
+    },
+    {
+      "type": "p",
+      "id": "b-0093e",
+      "text": "Beim <b>Betrag</b> zählen Ausgaben negativ und Einnahmen positiv; der Regler läuft von der größten Ausgabe links bis zur größten Einnahme rechts, ein feiner Strich zeigt die Null dazwischen. Er bewegt sich in <b>Anteilen</b>, nicht in Beträgen: der rechte Daumen bei 90 % schneidet das größte Zehntel ab – ein einzelner Ausreißer zieht den Regler also nicht mehr auf. Eine genaue Grenze tippen Sie direkt ins Feld."
+    },
+    {
+      "type": "p",
+      "id": "b-0093f",
+      "text": "Das <b>Datum</b> läuft als Schieberegler in Monatsschritten; ein taggenaues Datum geben Sie direkt im Feld ein."
+    },
+    {
+      "type": "h3",
+      "id": "b-0093g",
+      "text": "Umkreis (nur mit Standort)"
+    },
+    {
+      "type": "p",
+      "id": "b-0093h",
+      "text": "Ganz unten steht – nur bei eingeschaltetem <b>Standort (GPS)</b> – der Knopf <b>Umkreis</b>. Jeder Tipp schaltet weiter über «aus», 100 m, 500 m, 1 km, 10 km und wieder «aus». Auf einer Stufe bleiben nur Buchungen stehen, die in diesem Umkreis um Ihren jetzigen Standort entstanden sind."
+    },
+    {
+      "type": "p",
+      "id": "b-0093i",
+      "text": "Woher der Ort einer Buchung kommt: aus den Koordinaten in ihrer Notiz, und wo die fehlen, aus dem gelernten Standort des Empfängers im Alias. Ihre eigene Position wird beim Anwenden <b>einmal</b> festgehalten – die Liste wandert also nicht mit, wenn Sie weitergehen."
+    },
+    {
+      "type": "p",
+      "id": "b-0093j",
+      "text": "Ist noch keine Position bekannt, bleibt die Liste leer und die Titelzeile zeigt «Filter aktiv (0)». <b>«Zurücksetzen»</b> stellt «Umkreis aus» her; danach spielt der Standort keine Rolle mehr. Anders als die übrigen Kriterien wirkt der Umkreis nur auf die Liste, nicht auf die Auswertung."
+    },
+    {
+      "type": "h3",
+      "id": "b-0093k",
+      "text": "Sonderfälle"
+    },
+    {
+      "type": "p",
+      "id": "b-0093l",
+      "text": "Das <b>Stichwort</b> gibt es nur, wenn die App Stichwörter aus der KMyMoney-Datei kennt; «Alle» hebt die Wahl wieder auf. Und ist nach <b>Kategorie</b> gefiltert, zeigt eine Splitbuchung nur den Teilbetrag dieser Kategorie."
+    },
+    {
       "type": "h1",
       "id": "b-0094",
-      "text": "9. Auswertung"
+      "text": "10. Auswertung"
     },
     {
       "type": "text_with_single_shot",
@@ -706,7 +1038,7 @@
     {
       "type": "h1",
       "id": "b-0097",
-      "text": "10. Wofür geht mein Geld?"
+      "text": "11. Wofür geht mein Geld?"
     },
     {
       "type": "text_with_single_shot",
@@ -715,7 +1047,7 @@
         {
           "type": "p",
           "id": "b-0099",
-          "text": "Die Seite <b>Kategorien</b> (Menü <b>⋮ → Kategorien</b>) zeigt die <b>Ausgaben je Kategorie</b> – als Kreisdiagramm und darunter als Liste, <b>absteigend</b> nach Betrag. Sie ergänzt die Auswertung (Kapitel 9), die nur den zeitlichen Verlauf je Konto/Ort zeigt."
+          "text": "Die Seite <b>Kategorien</b> (Menü <b>⋮ → Kategorien</b>) zeigt die <b>Ausgaben je Kategorie</b> – als Kreisdiagramm und darunter als Liste, <b>absteigend</b> nach Betrag. Sie ergänzt die Auswertung (Kapitel 10), die nur den zeitlichen Verlauf je Konto/Ort zeigt."
         },
         {
           "type": "bullets",
@@ -740,7 +1072,7 @@
     {
       "type": "p",
       "id": "b-0102",
-      "text": "Der <b>Kalender-Schalter</b> oben rechts rechnet die im Zeitraum <b>fälligen geplanten Ausgaben</b> (Kapitel 12) zu den bereits getätigten hinzu – auch die, die als <b>Abzug in einer geplanten Einzahlung</b> stecken, etwa die Kapitalertragssteuer einer Dividende. Dann gilt:"
+      "text": "Der <b>Kalender-Schalter</b> oben rechts rechnet die im Zeitraum <b>fälligen geplanten Ausgaben</b> (Kapitel 13) zu den bereits getätigten hinzu – auch die, die als <b>Abzug in einer geplanten Einzahlung</b> stecken, etwa die Kapitalertragssteuer einer Dividende. Dann gilt:"
     },
     {
       "type": "bullets",
@@ -765,7 +1097,7 @@
     {
       "type": "h1",
       "id": "b-0106",
-      "text": "11. Budget"
+      "text": "12. Budget"
     },
     {
       "type": "text_with_single_shot",
@@ -809,13 +1141,23 @@
         "Umschalter <b>Jahr / Monat</b>. Die Jahressicht summiert die Monate; die Monatssicht zeigt das Soll des angezeigten Monats gegen die Ist-Werte desselben Monats. In der Monatssicht blättert man per <b>Wischgeste</b> (oder Tippen auf den grauen Vor-/Folgemonat in der Kopfzeile) durch die Monate.",
         "Umschalter <b>nur Hauptkategorien / mit Unterkategorien</b> (Hauptkategorie = Summe über ihre Unterkategorien).",
         "<b>Einnahmen</b> zuerst, dann <b>Ausgaben</b> (große Überschriften); Hauptkategorien fett, Unterkategorien eingerückt. Rechts steht «Ist / Soll».",
-        "Unter jeder Kategorie ein dünner <b>Balken</b>: <b>grün</b>, wenn man im Plan liegt, <b>rot</b>, wenn daneben (Breite = verbrauchter Anteil des Solls). Statt eines rein linearen Zeitvergleichs lernt die App aus der <b>Zahlungshistorie</b> das typische Timing jeder Kategorie: eine <b>einmalige</b> Ausgabe (z. B. eine am Monatsanfang gekaufte Monatskarte) ist bereits grün, sobald sie im Budget liegt, während <b>regelmäßige</b> Ausgaben (Lebensmittel) weiter am Zeitanteil gemessen werden. Ohne Historie gilt der lineare Vergleich (bei Einnahmen umgekehrt)."
+        "Unter jeder Kategorie ein dünner <b>Balken</b>: <b>grün</b>, wenn man im Plan liegt, <b>rot</b>, wenn daneben. Die Breite zeigt den verbrauchten Anteil des Solls."
       ]
+    },
+    {
+      "type": "h3",
+      "id": "b-0113a",
+      "text": "Wann der Balken grün wird"
+    },
+    {
+      "type": "p",
+      "id": "b-0113b",
+      "text": "Statt eines rein linearen Zeitvergleichs lernt die App aus der <b>Zahlungshistorie</b> das typische Timing jeder Kategorie. Eine <b>einmalige</b> Ausgabe – etwa eine am Monatsanfang gekaufte Monatskarte – ist bereits grün, sobald sie im Budget liegt. <b>Regelmäßige</b> Ausgaben wie Lebensmittel werden weiter am Zeitanteil gemessen. Ohne Historie gilt der lineare Vergleich; bei Einnahmen umgekehrt."
     },
     {
       "type": "h1",
       "id": "b-0114",
-      "text": "12. Geplante Buchungen"
+      "text": "13. Geplante Buchungen"
     },
     {
       "type": "text_with_single_shot",
@@ -830,18 +1172,52 @@
           "type": "bullets",
           "id": "b-0117",
           "items": [
-            "Jede wiederkehrende Planung wird in ihre <b>Einzeltermine aufgefaltet</b> (z. B. ein wöchentlicher Bäcker erscheint mehrfach) – <b>ab der gespeicherten nächsten Fälligkeit</b> bis <b>höchstens 2 Jahre</b> in die Zukunft.",
-            "Nur <b>aktive</b> Planungen; Termine <b>ohne Datum</b> werden ausgelassen, ein <b>Enddatum</b> (bzw. eine begrenzte Anzahl Buchungen in KMyMoney) begrenzt die Vorschau.",
-            "Vor jeder Zeile ein farbiger <b>Strich</b>: <b>grün</b> = Einzahlung, <b>rot</b> = Auszahlung, <b>gelb</b> = Umbuchung. Das <b>Datum</b> steht in einer eigenen Spalte vorne, daneben der <b>Name</b> mit dem <b>Zahlungsempfänger</b> in kleinerer, grauer Schrift dahinter und darunter die <b>Kategorie</b> (bei mehreren Kategorien <b>«Splitbuchung»</b>), dann eine <b>Konto-Spalte</b> und rechts der Betrag. Bei einer <b>Umbuchung</b> zeigt die Konto-Spalte <b>beide Konten untereinander</b> (statt einer Kategorie).",
-            "Die <b>Buchungsart</b> stammt aus KMyMoney: ein <b>Aktien-/ETF-Kauf</b> (Sparplan) ist eine <b>Umbuchung</b> vom Geldkonto ins Wertpapier, keine Ausgabe.",
-            "Ein <b>Tipp auf eine Zeile</b> öffnet die Buchung in der <b>gewohnten Detail-Maske</b> (schreibgeschützt, genau wie eine echte Kontobewegung – inkl. Kategorien einer Splitbuchung und Kontostand vorher/nachher).",
-            "<b>Jetzt buchen</b>: Ein <b>langer Druck</b> auf eine Zeile öffnet den Buchungs-Editor als <b>neue Buchung</b>, vorbefüllt aus der Planung (Datum = Fälligkeit, Betrag, Empfänger, Konto, Kategorien bzw. Von/Nach). Sie prüfen, ändern bei Bedarf und speichern mit «Neue Buchung» – die Buchung landet im Konto und (bei gewähltem Ort) in den Beständen. Kurzer Tipp = ansehen, langer Druck = buchen – wie in der Buchungsliste.",
-            "<b>Buchung überspringen</b>: Im vorbefüllten Editor steht zusätzlich der Knopf <b>«Buchung überspringen»</b> (mit Rückfrage) – es entsteht <b>keine</b> Buchung, der Termin gilt trotzdem als erledigt.",
-            "<b>Die Planung rückt weiter.</b> Ob gebucht oder übersprungen: Der Termin verschwindet sofort aus der Liste, und beim <b>nächsten .kmy-Export</b> wird die Regel in KMyMoney um <b>eine Periode</b> weitergestellt (bei einer tatsächlichen Buchung zusätzlich das Datum der letzten Zahlung). Die Regel selbst – Betrag, Rhythmus, Splits, Startdatum – bleibt unverändert, spätere Termine ebenso. Bricht man den Editor ab, bleibt die Planung stehen."
+            "<b>Kurzer Tipp</b> auf eine Zeile: die Planung ansehen – in der gewohnten Detail-Maske, schreibgeschützt, samt Kategorien einer Splitbuchung und Kontostand vorher/nachher.",
+            "<b>Langer Druck</b>: sie jetzt buchen. Wie in der Buchungsliste."
           ]
         }
       ],
       "shot": {"fname": "Geplante Buchungen.png", "caption": "Geplante Buchungen: chronologische Liste mit Saldo-Streifen", "width": 4.5}
+    },
+    {
+      "type": "h2",
+      "id": "b-0117a",
+      "text": "Was in der Liste steht"
+    },
+    {
+      "type": "p",
+      "id": "b-0117b",
+      "text": "Vor jeder Zeile steht ein farbiger <b>Strich</b>: grün für eine Einzahlung, rot für eine Auszahlung, gelb für eine Umbuchung. Vorn das <b>Datum</b> in einer eigenen Spalte, daneben der <b>Name</b> mit dem Zahlungsempfänger in kleinerer grauer Schrift dahinter, darunter die <b>Kategorie</b> (bei mehreren «Splitbuchung»), dann eine <b>Konto-Spalte</b> und rechts der Betrag. Bei einer Umbuchung stehen in der Konto-Spalte beide Konten untereinander statt einer Kategorie."
+    },
+    {
+      "type": "p",
+      "id": "b-0117c",
+      "text": "Jede wiederkehrende Planung wird in ihre <b>Einzeltermine aufgefaltet</b> – ein wöchentlicher Bäcker erscheint also mehrfach –, und zwar ab der gespeicherten nächsten Fälligkeit bis höchstens <b>zwei Jahre</b> in die Zukunft. Aufgenommen werden nur <b>aktive</b> Planungen; Termine ohne Datum werden ausgelassen, und ein Enddatum (oder eine begrenzte Anzahl Buchungen in KMyMoney) begrenzt die Vorschau."
+    },
+    {
+      "type": "p",
+      "id": "b-0117d",
+      "text": "Die <b>Buchungsart</b> stammt aus KMyMoney. Ein Aktien- oder ETF-Kauf aus einem Sparplan ist dort eine <b>Umbuchung</b> vom Geldkonto ins Wertpapier – und keine Ausgabe."
+    },
+    {
+      "type": "h2",
+      "id": "b-0117e",
+      "text": "Eine Planung buchen oder überspringen"
+    },
+    {
+      "type": "p",
+      "id": "b-0117f",
+      "text": "Ein <b>langer Druck</b> auf eine Zeile öffnet den Buchungs-Editor als <b>neue Buchung</b>, vorbefüllt aus der Planung: Datum gleich Fälligkeit, dazu Betrag, Empfänger, Konto und Kategorien beziehungsweise Von und Nach. Sie prüfen, ändern bei Bedarf und speichern mit «Neue Buchung» – die Buchung landet im Konto und, bei gewähltem Ort, in den Beständen."
+    },
+    {
+      "type": "p",
+      "id": "b-0117g",
+      "text": "Im selben Editor steht der Knopf <b>«Buchung überspringen»</b> (mit Rückfrage): es entsteht keine Buchung, der Termin gilt trotzdem als erledigt."
+    },
+    {
+      "type": "p",
+      "id": "b-0117h",
+      "text": "<b>Die Planung rückt weiter.</b> Ob gebucht oder übersprungen – der Termin verschwindet sofort aus der Liste, und beim nächsten .kmy-Export wird die Regel in KMyMoney um <b>eine Periode</b> weitergestellt; bei einer tatsächlichen Buchung zusätzlich das Datum der letzten Zahlung. Die Regel selbst – Betrag, Rhythmus, Splits, Startdatum – bleibt unverändert, spätere Termine ebenso. Bricht man den Editor ab, bleibt die Planung stehen."
     },
     {
       "type": "h2",
@@ -923,7 +1299,7 @@
     {
       "type": "h1",
       "id": "b-0131",
-      "text": "13. Bestände (Orte) und Depot"
+      "text": "14. Bestände (Orte) und Depot"
     },
     {
       "type": "h2",
@@ -1023,7 +1399,22 @@
         {
           "type": "p",
           "id": "b-0149",
-          "text": "Nach dem Import eines KMyMoney-Investmentkontos erscheint das <b>Depot</b> in der Kontenschublade. Die Depot-Ansicht ist wie eine Konto-Ansicht aufgebaut – gleiche Titelleiste mit denselben Menüpunkten, gleiche Schublade, gleicher Filter – und zeigt je Wertpapier <b>Stückzahl × Kurs = aktueller Wert</b>; vollständig verkaufte Papiere werden ausgeblendet. Die <b>Saldenzeile schaltet per Tipp</b> durch Depotwert → Käufe → Verkäufe (falls vorhanden) → Dividenden (falls vorhanden) → <b>Nettoeinsatz</b> (Käufe − Verkäufe − Dividenden) → <b>Gewinn/Verlust</b> (farbig, mit Prozent). Der <b>Depot-Filter</b> grenzt die Wertpapiere nach Name und Wert ein; der Regler arbeitet wie im Buchungsfilter in Anteilen, nicht in Beträgen. Wer weit nach unten scrollt, springt über den eingeblendeten <b>Nach-oben-Knopf</b> (unten links) direkt an den Anfang. Ein Tipp auf ein Wertpapier öffnet seine <b>Bewegungen im Vollbild</b> (Käufe grün, Verkäufe rot, Dividenden neutral) mit denselben Kennzahlen für dieses Papier und einem <b>Filter nach Käufen/Verkäufen/Dividenden</b> sowie einem Datums-Slider (Startdatum = erster Kauf). Der Depotwert wird getrennt geführt und erscheint zusätzlich als «Gesamtvermögen» in der Saldenzeile des Hauptbildschirms."
+          "text": "Nach dem Import eines KMyMoney-Investmentkontos erscheint das <b>Depot</b> in der Kontenschublade. Die Ansicht ist wie eine Konto-Ansicht aufgebaut – gleiche Titelleiste, gleiche Schublade, gleicher Filter – und zeigt je Wertpapier <b>Stückzahl × Kurs = aktueller Wert</b>. Vollständig verkaufte Papiere werden ausgeblendet."
+        },
+        {
+          "type": "p",
+          "id": "b-0149a",
+          "text": "Die <b>Saldenzeile schaltet per Tipp</b> durch: Depotwert → Käufe → Verkäufe → Dividenden → <b>Nettoeinsatz</b> (Käufe − Verkäufe − Dividenden) → <b>Gewinn/Verlust</b> (farbig, mit Prozent). Verkäufe und Dividenden erscheinen nur, wenn es welche gibt. Der Depotwert wird getrennt geführt und steht zusätzlich als «Gesamtvermögen» in der Saldenzeile des Hauptbildschirms."
+        },
+        {
+          "type": "p",
+          "id": "b-0149b",
+          "text": "Ein Tipp auf ein Wertpapier öffnet seine <b>Bewegungen im Vollbild</b> – Käufe grün, Verkäufe rot, Dividenden neutral – mit denselben Kennzahlen für dieses Papier, einem Filter nach Käufen, Verkäufen und Dividenden sowie einem Datums-Regler, der beim ersten Kauf beginnt."
+        },
+        {
+          "type": "p",
+          "id": "b-0149c",
+          "text": "Der <b>Depot-Filter</b> grenzt die Wertpapiere nach Name und Wert ein; der Regler arbeitet wie im Buchungsfilter in Anteilen, nicht in Beträgen. Wer weit nach unten scrollt, springt über den <b>Nach-oben-Knopf</b> unten links zurück an den Anfang."
         },
         {
           "type": "p",
@@ -1106,7 +1497,7 @@
     {
       "type": "h1",
       "id": "b-0158",
-      "text": "14. Synchronisieren: Export und Import durchführen"
+      "text": "15. Synchronisieren: Export und Import durchführen"
     },
     {
       "type": "text_with_pic",
@@ -1132,8 +1523,28 @@
     },
     {
       "type": "p",
-      "id": "b-0009",
-      "text": "<b>Bearbeitete Buchungen.</b> Ändern Sie eine Buchung, die bereits als «exportiert» markiert ist, so trägt sie danach «bearbeitet» (gelb in der Liste). Beim nächsten Export wird keine zweite Transaktion angelegt, sondern die vorhandene in der .kmy-Datei <b>geändert</b> – dieselbe Transaktion an derselben Stelle, ohne Dublette; danach steht die Buchung wieder auf «exportiert». Diesen Status können Sie nicht selbst setzen: er entsteht allein durch das Ändern, und der Schalter «Als exportiert markiert» ist im Buchungseditor dann gesperrt und beschriftet sich entsprechend. Legen Sie den Schalter beim Ändern dagegen selbst aus, gilt Ihr Wille: die Buchung ist «nicht exportiert» und wird beim nächsten Export als neue Transaktion geschrieben. Ist die alte Transaktion in der Datei nicht mehr zu finden (etwa am Rechner gelöscht), sagt die Meldung das und die Buchung bleibt «bearbeitet» – eingefügt wird nichts. Importieren Sie die .kmy-Datei zwischendurch neu, gewinnt die Datei und die Bearbeitung ist verloren. Umbuchungen verhalten sich genauso, obwohl sie aus zwei Zeilen bestehen: in der Datei sind sie eine Transaktion und werden einmal geändert."
+      "id": "b-0162a",
+      "text": "<b>Bearbeitete Buchungen.</b> Ändern Sie eine Buchung, die bereits als «exportiert» markiert ist, so trägt sie danach «bearbeitet» (gelb in der Liste). Beim nächsten Export wird keine zweite Transaktion angelegt, sondern die vorhandene in der .kmy-Datei <b>geändert</b> – dieselbe Transaktion an derselben Stelle, ohne Dublette; danach steht die Buchung wieder auf «exportiert»."
+    },
+    {
+      "type": "p",
+      "id": "b-0162b",
+      "text": "Diesen Status können Sie nicht selbst setzen: er entsteht allein durch das Ändern, und der Schalter «Als exportiert markiert» ist im Buchungseditor dann gesperrt. Legen Sie den Schalter beim Ändern dagegen selbst aus, gilt Ihr Wille – die Buchung ist «nicht exportiert» und wird beim nächsten Export als neue Transaktion geschrieben."
+    },
+    {
+      "type": "p",
+      "id": "b-0162c",
+      "text": "Eine <b>Umbuchung</b> verhält sich genauso, obwohl sie aus zwei Zeilen besteht: in der Datei ist sie eine Transaktion und wird einmal geändert."
+    },
+    {
+      "type": "h3",
+      "id": "b-0162d",
+      "text": "Wenn die Änderung nicht ankommt"
+    },
+    {
+      "type": "p",
+      "id": "b-0162e",
+      "text": "Ist die alte Transaktion in der Datei nicht mehr zu finden – etwa am Rechner gelöscht –, sagt die Meldung das und die Buchung bleibt «bearbeitet»; eingefügt wird nichts. Importieren Sie die .kmy-Datei zwischendurch neu, gewinnt die Datei und die Bearbeitung ist verloren."
     },
     {
       "type": "h2",
@@ -1193,7 +1604,7 @@
     {
       "type": "h1",
       "id": "b-0173",
-      "text": "15. Wear OS (Uhr)"
+      "text": "16. Wear OS (Uhr)"
     },
     {
       "type": "text_with_single_shot",
@@ -1212,14 +1623,37 @@
             "Der erkannte Text wird kurz mit «Abbrechen» angezeigt und sonst automatisch verarbeitet.",
             "<b>Stille Zifferneingabe</b>: über das Ziffern-Symbol einen Betrag lautlos eingeben (Standort-Auflösung am Handy).",
             "<b>Wear-Tile</b>: Schnellzugriff als Kachel.",
-            "<b>Standardort-Saldo</b>: Unter den Knöpfen zeigen App und Tile den Saldo des Standardorts als «Ort: Saldo» (z. B. «Geldbeutel: 70,00 €»). Der Saldo wird automatisch aktualisiert. Kein Standardort gesetzt → Zeile ausgeblendet.",
-            "<b>Grund statt Saldo</b>: Sind noch Buchungen <b>nicht übertragen</b>, steht an dieser Stelle statt des Saldos der <b>Grund</b> dafür – «Warten auf GPS» (der Standort wird noch aufgelöst), «Keine Verbindung zum Handy» oder «Wird übertragen…». Die Zeile darunter nennt weiterhin die Anzahl.",
-            "<b>Konto/Ort wechseln</b>: Oberhalb von «Buchung erfassen» (mittig) schaltet ein grauer Wechsel-Knopf – in App und Tile – das angezeigte Konto bzw. dessen Orte durch; die nächste Buchung (Handy-Widget und Uhr) betrifft dann das gewählte Konto/den gewählten Ort. Bei einer Umbuchung ist das gewählte Konto das Von-Konto; das Nach-Konto ist das Standardkonto – außer das gewählte Konto ist selbst das Standardkonto, dann bleibt das Nach-Konto leer (am Handy manuell ergänzen). Nach kurzer Zeit springt die Auswahl automatisch auf den Standardort zurück.",
+            "<b>Standardort-Saldo</b>: Unter den Knöpfen zeigen App und Tile den Saldo des Standardorts als «Ort: Saldo» (z. B. «Geldbeutel: 70,00 €»). Ist kein Standardort gesetzt, bleibt die Zeile weg.",
             "<b>Offline</b>: nicht übertragene Buchungen werden angezeigt und automatisch nachgereicht, sobald das Handy erreichbar ist – ohne Verlust und ohne Dopplung."
           ]
         }
       ],
       "shot": {"fname": "Promo-UhranlagemitAlias.png", "caption": "Erfassung auf der Uhr", "width": 4.5}
+    },
+    {
+      "type": "h2",
+      "id": "b-0176a",
+      "text": "Konto und Ort wechseln"
+    },
+    {
+      "type": "p",
+      "id": "b-0176b",
+      "text": "Oberhalb von «Buchung erfassen» schaltet ein grauer <b>Wechsel-Knopf</b> – in App wie Tile – das angezeigte Konto beziehungsweise dessen Orte durch. Die nächste Buchung, vom Handy-Widget wie von der Uhr, betrifft dann das gewählte Konto. Nach kurzer Zeit springt die Auswahl von selbst auf den Standardort zurück."
+    },
+    {
+      "type": "p",
+      "id": "b-0176c",
+      "text": "Bei einer <b>Umbuchung</b> ist das gewählte Konto das Von-Konto, das Nach-Konto ist das Standardkonto. Ist das gewählte Konto selbst das Standardkonto, bleibt das Nach-Konto leer und wird am Handy ergänzt."
+    },
+    {
+      "type": "h2",
+      "id": "b-0176d",
+      "text": "Wenn statt des Saldos ein Grund dasteht"
+    },
+    {
+      "type": "p",
+      "id": "b-0176e",
+      "text": "Sind noch Buchungen <b>nicht übertragen</b>, steht an der Stelle des Saldos der Grund dafür: «Warten auf GPS» (der Standort wird noch aufgelöst), «Keine Verbindung zum Handy» oder «Wird übertragen…». Die Zeile darunter nennt weiterhin die Anzahl."
     },
     {
       "type": "h2",
@@ -1244,7 +1678,7 @@
     {
       "type": "h1",
       "id": "b-0181",
-      "text": "16. Einstellungen (vollständige Referenz)"
+      "text": "17. Einstellungen (vollständige Referenz)"
     },
     {
       "type": "text_with_shot_row",
@@ -1253,7 +1687,7 @@
         {
           "type": "p",
           "id": "b-0183",
-          "text": "Die Einstellungen erreichen Sie über das <b>Menü ⋮</b> oben rechts – Eintrag <b>«Einstellungen»</b> ganz unten. Beim ersten Start setzt der Willkommen-Assistent (Kapitel 2) bereits die wichtigsten Punkte; hier sind alle Felder in der Reihenfolge des Bildschirms beschrieben. Änderungen wirken mit <b>«Speichern»</b> (Sprache und Dunkelmodus sofort)."
+          "text": "Die Einstellungen erreichen Sie über das <b>Menü ⋮</b> oben rechts – Eintrag <b>«Einstellungen»</b> ganz unten. Beim ersten Start setzt der Willkommen-Assistent (Kapitel 3) bereits die wichtigsten Punkte; hier sind alle Felder in der Reihenfolge des Bildschirms beschrieben. Änderungen wirken mit <b>«Speichern»</b> (Sprache und Dunkelmodus sofort)."
         }
       ],
       "shots": [
@@ -1275,9 +1709,9 @@
         "<b>Währung</b>: Standard-Währungskennzeichen für Konten ohne eigene Währung (beim .kmy-Import je Konto aus der Datei übernommen).",
         "<b>Zahlenformat</b>: «1.234,56», «1,234.56» oder «1234,56»/«1234.56» ohne Tausendertrennung; dazu der Schalter <b>«Währungskennzeichen anzeigen»</b>. Gilt für alle Beträge in App und Uhr; der Export bleibt formatstabil.",
         "<b>Dividenden brutto/netto</b>: ob Depot-Dividenden brutto (deklariert) oder netto verrechnet werden.",
-        "<b>Abrechnungen einlesen</b>: erlaubt im Depot das Einlesen von PDF-Abrechnungen der Bank (Standard: aus). Beim Einschalten nennt die App, an wie vielen Banken die Erkennung gemessen wurde (siehe Kapitel 13).",
-        "<b>Budget app-intern</b>: das Budget-Ist aus dem Verlauf berechnen statt aus KMyMoney importieren (siehe Kapitel 11).",
-        "<b>Offline-Sprachpaket auf der Uhr installieren</b> (nur GitHub-Variante mit Wear-Anbindung): erlaubt der Uhr, das Offline-Sprachmodell der gewählten Sprache zu laden, damit die Sprachaufnahme auch offline funktioniert (siehe Kapitel 15). Aus → offline greift der Zahlenblock-Fallback."
+        "<b>Abrechnungen einlesen</b>: erlaubt im Depot das Einlesen von PDF-Abrechnungen der Bank (Standard: aus). Beim Einschalten nennt die App, an wie vielen Banken die Erkennung gemessen wurde (siehe Kapitel 14).",
+        "<b>Budget app-intern</b>: das Budget-Ist aus dem Verlauf berechnen statt aus KMyMoney importieren (siehe Kapitel 12).",
+        "<b>Offline-Sprachpaket auf der Uhr installieren</b> (nur GitHub-Variante mit Wear-Anbindung): erlaubt der Uhr, das Offline-Sprachmodell der gewählten Sprache zu laden, damit die Sprachaufnahme auch offline funktioniert (siehe Kapitel 16). Aus → offline greift der Zahlenblock-Fallback."
       ]
     },
     {
@@ -1315,15 +1749,54 @@
           "text": "Bei Server-Typ <b>SMB/Samba</b> erscheint statt der Adressfelder ein Assistent, damit Sie weder Rechnernamen noch Freigabenamen auswendig wissen müssen:"
         },
         {
-          "type": "bullets",
+          "type": "steps",
           "id": "b-0192",
           "items": [
-            "<b>1. Server suchen</b>: die App durchsucht beim Öffnen automatisch das lokale Netz (Bonjour/mDNS, NetBIOS-Namensabfrage und ein Verbindungstest auf dem SMB-Port). Gefundene Server erscheinen mit Anzeigename und darunter der IP-Adresse – und, sofern der Server sie nennt, seiner <b>Arbeitsgruppe</b>. <b>«Erneut suchen»</b> startet die Suche neu, zuletzt gefundene Server werden gemerkt und sofort angezeigt.",
-            "<b>2. Anmelden</b>: Benutzername und Passwort des Servers, darüber das Feld <b>«Port»</b> – es bleibt leer, solange der Server auf dem üblichen SMB-Port 445 lauscht. Meldet er per Bonjour einen anderen Port, ist er schon eingetragen; antwortet dort niemand, versucht die App zusätzlich den <b>Standardport 445</b> und korrigiert die gespeicherte Adresse. <b>Leerer Benutzer = Gast.</b> Bei einer Freigabe <b>ohne Passwort</b> lassen Sie das Passwortfeld einfach leer – die App arbeitet dann als Gast weiter, auch wenn ein Benutzername eingetragen ist. Gehört der Server einer anderen Arbeitsgruppe als «WORKGROUP» an, ist das Feld bereits mit «ARBEITSGRUPPE\\» vorbelegt. Das Passwort wird verschlüsselt gespeichert und nie im Klartext angezeigt.",
-            "<b>3. Freigabe wählen</b>: nach der Anmeldung liest die App die <b>Freigaben</b> des Servers aus und zeigt sie zur Auswahl (System-Freigaben wie IPC$ werden ausgeblendet). Ein Klick trägt die Freigabe in das Feld <b>«Freigabename»</b> ein; dort lässt sie sich auch von Hand eintippen, falls der Server die Liste nicht herausgibt.",
-            "<b>4. Speichern</b>: daraus entsteht die Adresse «smb://Host/Freigabe» – mit abweichendem Port «smb://Host:7777/Freigabe». Den <b>Zielordner</b> innerhalb der Freigabe wählen Sie danach wie gewohnt mit den Schaltflächen «Ordner durchsuchen» bzw. «.kmy auswählen».",
-            "<b>«Server manuell eingeben»</b> blendet die klassischen Felder ein (Adresse «smb://Host/Freigabe» bzw. «smb://Host:Port/Freigabe» selbst tippen). Über <b>«Server im Netzwerk suchen»</b> kommen Sie jederzeit zum Assistenten zurück."
+            "<b>Server suchen.</b> Die App durchsucht beim Öffnen automatisch das lokale Netz. Gefundene Server erscheinen mit Anzeigename und IP-Adresse; <b>«Erneut suchen»</b> startet die Suche neu.",
+            "<b>Anmelden.</b> Benutzername und Passwort des Servers eintragen. Das Passwort wird verschlüsselt gespeichert und nie im Klartext angezeigt.",
+            "<b>Freigabe wählen.</b> Die App liest die Freigaben des Servers aus; ein Klick trägt die gewählte in das Feld <b>«Freigabename»</b> ein.",
+            "<b>Speichern.</b> Daraus entsteht die Adresse «smb://Host/Freigabe». Den <b>Zielordner</b> darin wählen Sie danach mit «Ordner durchsuchen» beziehungsweise «.kmy auswählen»."
           ]
+        },
+        {
+          "type": "h3",
+          "id": "b-0192a",
+          "text": "Wenn der Server nicht auf Port 445 lauscht"
+        },
+        {
+          "type": "p",
+          "id": "b-0192b",
+          "text": "Über den Anmeldefeldern steht das Feld <b>«Port»</b>. Es bleibt leer, solange der Server den üblichen SMB-Port 445 benutzt. Meldet er per Bonjour einen anderen, ist der schon eingetragen; antwortet dort niemand, versucht die App zusätzlich den Standardport 445 und korrigiert die gespeicherte Adresse. Die Adresse lautet dann «smb://Host:7777/Freigabe»."
+        },
+        {
+          "type": "h3",
+          "id": "b-0192c",
+          "text": "Freigabe ohne Passwort"
+        },
+        {
+          "type": "p",
+          "id": "b-0192d",
+          "text": "<b>Leerer Benutzer heißt Gast.</b> Bei einer Freigabe ohne Passwort lassen Sie das Passwortfeld einfach leer – die App arbeitet dann als Gast weiter, auch wenn ein Benutzername eingetragen ist."
+        },
+        {
+          "type": "h3",
+          "id": "b-0192e",
+          "text": "Weitere Feinheiten"
+        },
+        {
+          "type": "p",
+          "id": "b-0192f",
+          "text": "Gesucht wird auf drei Wegen zugleich: Bonjour/mDNS, eine NetBIOS-Namensabfrage und ein Verbindungstest auf dem SMB-Port. Zuletzt gefundene Server werden gemerkt und beim nächsten Öffnen sofort angezeigt."
+        },
+        {
+          "type": "p",
+          "id": "b-0192h",
+          "text": "Gehört der Server einer anderen <b>Arbeitsgruppe</b> als «WORKGROUP» an, ist das Feld bereits vorbelegt – die Suche nennt sie unter dem Servernamen, sofern der Server sie herausgibt. Gibt er auch die Liste der Freigaben nicht heraus, tippen Sie den Freigabenamen von Hand ein; System-Freigaben wie IPC$ blendet die App ohnehin aus."
+        },
+        {
+          "type": "p",
+          "id": "b-0192g",
+          "text": "<b>«Server manuell eingeben»</b> blendet die klassischen Felder ein, in die Sie die Adresse selbst tippen. Über <b>«Server im Netzwerk suchen»</b> kommen Sie jederzeit zum Assistenten zurück."
         },
         {
           "type": "p",
@@ -1388,7 +1861,7 @@
     {
       "type": "p",
       "id": "b-0202",
-      "text": "Ohne konfiguriertes Sync-Ziel wird lokal in einen selbst gewählten Ordner exportiert. Wie der Abgleich abläuft, steht in Kapitel 14."
+      "text": "Ohne konfiguriertes Sync-Ziel wird lokal in einen selbst gewählten Ordner exportiert. Wie der Abgleich abläuft, steht in Kapitel 15."
     },
     {
       "type": "h2",
@@ -1400,7 +1873,7 @@
       "id": "b-0204",
       "items": [
         "<b>Standardkonto</b>: Vorauswahl für neue Buchungen (auch für Widget und Uhr). Erst wählbar, wenn Konten vorhanden sind.",
-        "<b>Orte je Konto</b>: pro Konto lassen sich Bargeld-<b>Orte</b> anlegen und ein <b>Standardort</b> festlegen (siehe Kapitel 13)."
+        "<b>Orte je Konto</b>: pro Konto lassen sich Bargeld-<b>Orte</b> anlegen und ein <b>Standardort</b> festlegen (siehe Kapitel 14)."
       ]
     },
     {
@@ -1423,7 +1896,7 @@
       "id": "b-0208",
       "items": [
         "<b>Dunkelmodus</b>: Hell/Dunkel (wirkt sofort).",
-        "<b>Erinnerung an geplante Buchungen</b>: erinnert einmal täglich an heute fällige geplante Buchungen (standardmäßig aus; siehe Kapitel 12)."
+        "<b>Erinnerung an geplante Buchungen</b>: erinnert einmal täglich an heute fällige geplante Buchungen (standardmäßig aus; siehe Kapitel 13)."
       ]
     },
     {
@@ -1490,7 +1963,7 @@
     {
       "type": "h1",
       "id": "b-0219",
-      "text": "17. CSV-Format (Export)"
+      "text": "18. CSV-Format (Export)"
     },
     {
       "type": "p",

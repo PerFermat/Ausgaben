@@ -50,8 +50,10 @@ class Typ(enum.Enum):
 
     KAPITEL = ("h1", "Kapitelüberschrift", True)
     ABSCHNITT = ("h2", "Abschnittsüberschrift", True)
+    UNTERABSCHNITT = ("h3", "Unterüberschrift", True)
     ABSATZ = ("p", "Absatz", True)
     AUFZAEHLUNG = ("bullets", "Aufzählung", True)
+    SCHRITTE = ("steps", "Schrittfolge", True)
     BILDER = ("shot_row", "Bilder", True)
     BILD_MIT_TEXT = ("text_with_single_shot", "Bild mit Text", True)
     BILDER_MIT_TEXT = ("text_with_shot_row", "Bilder mit Text", True)
@@ -67,11 +69,11 @@ class Typ(enum.Enum):
 
     @property
     def hat_text(self) -> bool:
-        return self in (Typ.KAPITEL, Typ.ABSCHNITT, Typ.ABSATZ)
+        return self in (Typ.KAPITEL, Typ.ABSCHNITT, Typ.UNTERABSCHNITT, Typ.ABSATZ)
 
     @property
     def hat_punkte(self) -> bool:
-        return self is Typ.AUFZAEHLUNG
+        return self in (Typ.AUFZAEHLUNG, Typ.SCHRITTE)
 
     @property
     def hat_kinder(self) -> bool:

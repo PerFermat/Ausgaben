@@ -62,8 +62,44 @@
     },
     {
       "type": "h1",
+      "id": "b-0005a",
+      "text": "2. Your first booking in five minutes"
+    },
+    {
+      "type": "p",
+      "id": "b-0005b",
+      "text": "This chapter walks you once through the whole cycle: set up, book, transfer. It names only the straight path and no exception. Everything else – every field, every subtlety – follows in the later chapters."
+    },
+    {
+      "type": "steps",
+      "id": "b-0005c",
+      "items": [
+        "<b>Set up the connection.</b> On first start the welcome assistant appears. Choose your language, then <b>«KMyMoney file (.kmy)»</b> as the format, and enter your server (Nextcloud, WebDAV or SMB). <b>«Test connection»</b> tells you right away whether it works.",
+        "<b>Pick your KMyMoney file.</b> <b>«Choose .kmy»</b> lists the files in the folder you configured. Take the one you work with on the desktop.",
+        "<b>Import your accounts.</b> <b>«Import accounts»</b> lists the accounts in that file. Tick the ones you need while out and about – usually a cash and a checking account. <b>«Done»</b> closes the assistant.",
+        "<b>Record your first expense.</b> Tap the round <b>✚</b> button at the bottom right. Enter the amount, pick payee and category from the list, then <b>«Save as new»</b>. The booking appears in the list immediately.",
+        "<b>Transfer it to KMyMoney.</b> Tap the <b>export symbol ⬇</b> in the title bar. The app fetches your .kmy from the server, writes a backup, adds the new bookings and puts the file back. On the desktop you then open it as usual."
+      ]
+    },
+    {
+      "type": "p",
+      "id": "b-0005d",
+      "text": "That is the entire cycle. From now on only steps 4 and 5 repeat: record while you are out, export when it suits you. Each booking is transferred exactly once."
+    },
+    {
+      "type": "p",
+      "id": "b-0005e",
+      "text": "<b>No KMyMoney file?</b> In the assistant pick the format <b>CSV</b> instead of .kmy. The app then exchanges one CSV file per account. Everything else stays the same."
+    },
+    {
+      "type": "p",
+      "id": "b-0005f",
+      "text": "<b>Where to go next:</b> the welcome assistant in detail is in the next chapter, recording a booking in Chapter 7, syncing with KMyMoney in Chapter 15, and every single setting in Chapter 17."
+    },
+    {
+      "type": "h1",
       "id": "b-0006",
-      "text": "2. Getting started"
+      "text": "3. Getting started"
     },
     {
       "type": "h2",
@@ -104,12 +140,12 @@
     {
       "type": "p",
       "id": "b-0012",
-      "text": "All settings in detail – language, number format, currency, server connection, export mode, default account, alias names, app lock, backup and more – are explained in the <b>«Settings»</b> chapter at the end of the manual (Chapter 16). They are reachable any time via the <b>⋮ menu</b> at the top right, entry <b>«Settings»</b> at the very bottom."
+      "text": "All settings in detail – language, number format, currency, server connection, export mode, default account, alias names, app lock, backup and more – are explained in the <b>«Settings»</b> chapter at the end of the manual (Chapter 17). They are reachable any time via the <b>⋮ menu</b> at the top right, entry <b>«Settings»</b> at the very bottom."
     },
     {
       "type": "h1",
       "id": "b-0013",
-      "text": "3. The main screen"
+      "text": "4. The main screen"
     },
     {
       "type": "text_with_single_shot",
@@ -168,7 +204,37 @@
         {
           "type": "p",
           "id": "b-0023",
-          "text": "For the launcher there are four selectable widgets showing the <b>default-place</b> balance (default account → default place): <b>small</b> (2×1, balance only), <b>medium</b> (4×2, balance + three quick actions: booking, voice, amount), <b>large</b> (4×4, a balance header with refresh, the most recent bookings and the action bar) and <b>type</b> (4×2, like on the watch: three coloured income/transfer/expense icon buttons + a grey switch button, with the balance below). Tapping the balance opens the app; the medium/large widget buttons launch «New booking», voice entry, amount-only entry or Holdings. On the <b>type widget</b> a type button <b>starts speech recognition immediately</b> and creates the booking directly – the app is not opened (only the system voice dialog appears); the grey <b>switch button</b> cycles through the chosen account and its places (the balance and the target of the new booking follow the selection). The widget refreshes when the app is opened and at regular intervals."
+          "text": "For the launcher there are four widgets. All of them show the <b>default-place</b> balance (default account → default place), and tapping the balance opens the app."
+        },
+        {
+          "type": "bullets",
+          "id": "b-0023a",
+          "items": [
+            "<b>small</b> (2×1): the balance only.",
+            "<b>medium</b> (4×2): the balance and three quick actions – booking, voice, amount.",
+            "<b>large</b> (4×4): a balance header with refresh, the most recent bookings and the action bar.",
+            "<b>type</b> (4×2): like on the watch – three coloured icon buttons for income, transfer and expense, plus a grey switch button, with the balance below."
+          ]
+        },
+        {
+          "type": "h3",
+          "id": "b-0023b",
+          "text": "What the buttons do"
+        },
+        {
+          "type": "p",
+          "id": "b-0023c",
+          "text": "On the medium and large widget the buttons launch «New booking», voice entry, amount-only entry or Holdings – each of them inside the app."
+        },
+        {
+          "type": "p",
+          "id": "b-0023d",
+          "text": "The <b>type widget</b> goes one step further: a type button <b>starts speech recognition immediately</b> and creates the booking directly, without opening the app (only the system voice dialog appears). The grey <b>switch button</b> cycles through the chosen account and its places; the balance and the target of the next booking follow that selection."
+        },
+        {
+          "type": "p",
+          "id": "b-0023e",
+          "text": "Refreshing happens when the app is opened and at regular intervals."
         }
       ],
       "shot": {"fname": "Widget.png", "caption": "All four widget sizes: medium, type, large and small", "width": 6.0}
@@ -176,7 +242,7 @@
     {
       "type": "h1",
       "id": "b-0024",
-      "text": "4. Symbol and control reference"
+      "text": "5. Symbol and control reference"
     },
     {
       "type": "p",
@@ -190,7 +256,12 @@
     {
       "type": "h1",
       "id": "b-0027",
-      "text": "5. Accounts and the account drawer"
+      "text": "6. Accounts and the account drawer"
+    },
+    {
+      "type": "p",
+      "id": "b-0027a",
+      "text": "The account drawer is the list of your accounts. <b>☰</b> at the top left opens it; a tap on an account shows its bookings, a long press fetches it afresh from KMyMoney. Day to day that is all you need. The rest of this chapter explains how to group, search and sort accounts."
     },
     {
       "type": "text_with_single_shot",
@@ -226,16 +297,49 @@
       "id": "b-0032",
       "content": [
         {
-          "type": "bullets",
+          "type": "h3",
+          "id": "b-0032a",
+          "text": "Choosing a group"
+        },
+        {
+          "type": "p",
           "id": "b-0033",
-          "items": [
-            "<b>Tap the «Accounts» heading</b> and the groups drop down as a list. Each row carries the mark of its origin (a star for the favourites, a bank building for the groups from the .kmy, a folder for your own), and the one in force carries a <b>tick</b>. The drawer then lists only its accounts, and the top row carries the group name instead of «All accounts».",
-            "The chosen group applies <b>app-wide</b>: the booking list, the balance bar (as an additional first page there; «Total» still means all accounts) and the holdings view all follow it.",
-            "Removing the <b>last account</b> from a group (or deleting that account) makes the group disappear without asking – there are no empty groups. That is also how you get rid of a group again.",
-            "Groups holding nothing but <b>closed</b> accounts no longer show up in this picker. They stay selectable in an account's «⋮» menu so they can be revived.",
-            "The institutions block of the .kmy additionally yields <b>bank groups</b> (e.g. «Volksbank»). These merely mirror the file: only the import writes them, they cannot be edited by hand.",
-            "The <b>«Favourites»</b> group likewise comes from the file: it holds the accounts marked as preferred in KMyMoney (its account dialog, «Preferred account»). It sits at the very top of the picker, cannot be edited any more than the bank groups can, and is rebuilt on every import. Once no account is preferred any longer, it disappears. Its name follows the language of the app."
-          ]
+          "text": "<b>Tapping the «Accounts» heading</b> drops the groups down as a list; the one in force carries a <b>tick</b>. The drawer then lists only its accounts, and the top row carries the group name instead of «All accounts»."
+        },
+        {
+          "type": "p",
+          "id": "b-0033a",
+          "text": "The choice applies <b>app-wide</b>: the booking list, the balance bar and the holdings view all follow it. In the balance bar the group appears as an additional first page; «Total» still means all accounts."
+        },
+        {
+          "type": "h3",
+          "id": "b-0033b",
+          "text": "Where the groups come from"
+        },
+        {
+          "type": "p",
+          "id": "b-0033c",
+          "text": "Each row carries the mark of its origin: a <b>folder</b> for groups you created, a <b>bank building</b> for those from the institutions block of the .kmy (e.g. «Volksbank»), a <b>star</b> for the «Favourites». The latter two merely mirror the file – only the import writes them, they cannot be edited by hand."
+        },
+        {
+          "type": "p",
+          "id": "b-0033d",
+          "text": "The <b>«Favourites»</b> come from the accounts marked as preferred in KMyMoney (its account dialog, «Preferred account»). They sit at the very top of the picker, are rebuilt on every import, and their name follows the language of the app."
+        },
+        {
+          "type": "h3",
+          "id": "b-0033e",
+          "text": "When a group disappears"
+        },
+        {
+          "type": "p",
+          "id": "b-0033f",
+          "text": "Removing the <b>last account</b> from a group (or deleting that account) makes it disappear without asking – there are no empty groups. That is also how you get rid of a group again. Once no account is preferred any longer, the «Favourites» likewise disappear."
+        },
+        {
+          "type": "p",
+          "id": "b-0033g",
+          "text": "Groups holding nothing but <b>closed</b> accounts no longer show up in this picker. They stay selectable in an account's «⋮» menu so they can be revived."
         }
       ],
       "shots": [
@@ -285,16 +389,44 @@
           "text": "The <b>gear icon</b> next to «Accounts» opens a view of its own. Unlike the drawer it also shows <b>closed accounts</b>, in grey, each with its balance on the right."
         },
         {
-          "type": "bullets",
+          "type": "h3",
+          "id": "b-0041a",
+          "text": "Changing the order"
+        },
+        {
+          "type": "p",
           "id": "b-0042",
-          "items": [
-            "<b>Drag the handle</b> to sort accounts within their account kind. The order applies everywhere accounts are listed – including the pickers while recording a booking.",
-            "<b>Drag a whole account kind</b>: its accounts collapse for the duration of the drag and only their number is shown. That way even a large block reaches its place in a few movements.",
-            "<b>«⋮» on an account row</b>: your own account groups as a <b>tick list</b>. The tick says whether the account sits in that group; set and clear as many as you like, nothing is written until <b>«OK»</b>. On top there is a free field for a <b>new group</b> – typing into it ticks its box by itself.",
-            "Groups from the .kmy (banks, favourites) are not in the list. Type one of their names into the free field and the dialog stays open with a note, writing nothing – an assignment by hand would be gone again at the next import anyway.",
-            "The same tick list carries, next to «OK», a <b>«Close account»</b> (or «Reopen account») button; it applies the ticks along the way. <b>Close account</b> is offered only at a balance of 0.",
-            "If a closed account regains a balance on import, it reopens by itself."
-          ]
+          "text": "<b>Drag the handle</b> to sort accounts within their account kind. The order applies everywhere accounts are listed – including the pickers while recording a booking. Drag a <b>whole account kind</b> and its accounts collapse for the duration of the drag, leaving only their number; that way even a large block reaches its place in a few movements."
+        },
+        {
+          "type": "h3",
+          "id": "b-0042a",
+          "text": "Putting an account into a group"
+        },
+        {
+          "type": "p",
+          "id": "b-0042b",
+          "text": "The <b>«⋮»</b> on an account row opens your own account groups as a <b>tick list</b>. The tick says whether the account sits in that group; set and clear as many as you like, nothing is written until <b>«OK»</b>. On top there is a free field for a <b>new group</b> – typing into it ticks its box by itself."
+        },
+        {
+          "type": "h3",
+          "id": "b-0042c",
+          "text": "Closing and reopening an account"
+        },
+        {
+          "type": "p",
+          "id": "b-0042d",
+          "text": "The same tick list carries, next to «OK», a <b>«Close account»</b> (or «Reopen account») button; it applies the ticks along the way. Closing is offered only at a <b>balance of 0</b>. If a closed account regains a balance on import, it reopens by itself."
+        },
+        {
+          "type": "h3",
+          "id": "b-0042e",
+          "text": "Special case: groups from the .kmy"
+        },
+        {
+          "type": "p",
+          "id": "b-0042f",
+          "text": "Banks and favourites are not in the tick list. Type one of their names into the free field and the dialog stays open with a note, writing nothing – an assignment by hand would be gone again at the next import anyway."
         }
       ],
       "shots": [
@@ -306,7 +438,7 @@
     {
       "type": "h1",
       "id": "b-0043",
-      "text": "6. Recording a booking"
+      "text": "7. Recording a booking"
     },
     {
       "type": "text_with_single_shot",
@@ -315,7 +447,22 @@
         {
           "type": "p",
           "id": "b-0045",
-          "text": "Tap the round <b>✚</b> button. The booking editor opens."
+          "text": "Tap the round <b>✚</b> button. The booking editor opens. An ordinary expense is recorded in four steps:"
+        },
+        {
+          "type": "steps",
+          "id": "b-0045a",
+          "items": [
+            "Type the <b>amount</b>.",
+            "Pick the <b>payee</b> or type a new one.",
+            "Pick the <b>category</b> – usually it is already there.",
+            "<b>«Save as new»</b>."
+          ]
+        },
+        {
+          "type": "p",
+          "id": "b-0045b",
+          "text": "Account, date and place are pre-filled and need attention only if something else should apply. The rest of this chapter explains the fields one by one."
         },
         {
           "type": "h2",
@@ -350,19 +497,74 @@
           "text": "<b>Account fields</b> put what you are most likely to need at the top: first your <b>favourites</b> (star), then the accounts of the currently selected <b>account group</b> (the group's own icon), then all the rest with the icon of their account kind. Your own account order is kept within each block."
         },
         {
+          "type": "h2",
+          "id": "b-0050a0",
+          "text": "What the app fills in for you"
+        },
+        {
+          "type": "h3",
+          "id": "b-0050a1",
+          "text": "Nearby payees first"
+        },
+        {
           "type": "p",
           "id": "b-0050a",
-          "text": "For the <b>payee</b> the location does the same: the <b>six nearest payees</b> head the list with a <b>bearing arrow</b>, the nearest one first. Distances are measured from the <b>booking's location</b> – whatever the <b>location</b> row shows: in a <b>new booking</b> your current one (only with <b>location (GPS)</b> switched on), while <b>editing</b> the booking's <b>stored mark</b>, and if you pick another point there via <b>«Map»</b>, the block follows. A booking without a mark gets no block – where you stand today says nothing about an old booking. How far away a payee is comes from the same sources as the radius filter: the coordinates in the notes of its bookings and the learned locations of its aliases; the nearest point counts, and anything beyond 10 km does not appear. Below them the complete alphabetical list follows unchanged, so those six appear a second time. <b>As soon as you start typing</b> the block disappears and you see the alphabetical matches alone; delete what you typed and it is back. It does not appear when you view a planned booking."
+          "text": "The <b>six nearest payees</b> head the payee list with a <b>bearing arrow</b>, the nearest one first. Below them the complete alphabetical list follows unchanged – so those six appear a second time. <b>As soon as you start typing</b> this block disappears; delete what you typed and it is back."
+        },
+        {
+          "type": "p",
+          "id": "b-0050a2",
+          "text": "Distances are measured from the <b>booking's location</b>, that is from whatever the <b>location</b> row shows: in a new booking your current one (only with <b>location (GPS)</b> switched on), while editing the booking's stored mark. If you pick another point there via <b>«Map»</b>, the block follows."
+        },
+        {
+          "type": "p",
+          "id": "b-0050a3",
+          "text": "The distance comes from the same sources as the radius filter: the coordinates in the notes of a payee's bookings and the learned locations of its aliases. The nearest point counts; anything beyond <b>10 km</b> does not appear."
+        },
+        {
+          "type": "p",
+          "id": "b-0050a4",
+          "text": "<b>No block appears</b> when the booking carries no mark – where you stand today says nothing about an old booking. It does not appear when you view a planned booking either."
+        },
+        {
+          "type": "h3",
+          "id": "b-0050b0",
+          "text": "The category follows the payee"
         },
         {
           "type": "p",
           "id": "b-0050b",
-          "text": "Once the <b>payee</b> is set, the <b>category</b> follows from it: the app looks for entries of the currently selected booking type – first in the <b>preferred aliases</b> (★), then in your <b>bookings</b> for that payee (the most recent first, the parts of a split booking count too), finally in the <b>remaining aliases</b> – and puts the first find into the <b>first category row</b>; the partial amount jumps to the total. The preset <b>follows the payee</b>: if the app guessed him from the amount and you enter someone else, the category moves along – a second row from an alias gives way to the new payee's category as well. As soon as you have done something in the category rows <b>yourself</b> – picked or typed a category, changed a partial amount, removed a row – your entry stays put: from then on nothing is pulled in any more. When <b>editing</b> a saved booking (or booking a scheduled one) the category is left alone anyway, even if you change the payee there. The other categories found (up to six) head the list under the heading <b>«FOR THIS PAYEE»</b> – in <b>every</b> category row, so splitting benefits too. <b>As soon as you start typing</b> that block disappears and the categories only appear in their usual place under «EXPENSE» or «INCOME». Switching between expense and income switches block and preset with it; transfers have no categories."
+          "text": "Once the payee is set, the app fills in the matching category. It searches in this order, always for the selected booking type: first the <b>preferred aliases</b> (★), then your <b>bookings</b> for that payee (the most recent first, the parts of a split booking count too), finally the <b>remaining aliases</b>. The first find goes into the first category row, and the partial amount jumps to the total."
+        },
+        {
+          "type": "p",
+          "id": "b-0050b1",
+          "text": "The other finds – up to six – head the picker under the heading <b>«FOR THIS PAYEE»</b>, and they do so in <b>every</b> category row, so splitting benefits too. As soon as you start typing, that block disappears and the categories only appear in their usual place under «EXPENSE» or «INCOME»."
+        },
+        {
+          "type": "p",
+          "id": "b-0050b2",
+          "text": "<b>When the preset keeps up:</b> as long as you have not touched the category rows yourself. Change the payee and the category moves along – a second row from an alias gives way to the new payee's category as well. Switch between expense and income and both block and preset switch with it."
+        },
+        {
+          "type": "p",
+          "id": "b-0050b3",
+          "text": "<b>When it stays put:</b> as soon as you have done something in the category rows yourself – picked or typed a category, changed a partial amount, removed a row. From then on nothing is pulled in any more. When <b>editing</b> a saved booking or booking a scheduled one the category is left alone anyway, even if you change the payee there. Transfers have no categories."
+        },
+        {
+          "type": "h3",
+          "id": "b-0050c0",
+          "text": "The amount can guess the payee (off by default)"
         },
         {
           "type": "p",
           "id": "b-0050c",
-          "text": "The other way round, the <b>amount</b> can supply the payee: leave the amount field, and if within <b>100 m</b> of the location mark there is exactly <b>one</b> payee whose usual amounts match it, that name goes into the <b>empty</b> payee field – bringing its category along. This applies to every booking type, <b>transfers</b> included – there compared against the amounts of your previous transfers to that payee. If several match, or none, nothing happens; a payee you entered yourself is never touched. The suggestion list itself is unaffected: it still lists every payee within 10 km. This pre-fill is <b>off</b> by default; switch it on under <b>«Use amount for payee suggestions»</b> in the settings."
+          "text": "The other way round, the amount can supply the payee. Leave the amount field, and if within <b>100 m</b> of the location mark there is exactly <b>one</b> payee whose usual amounts match it, that name goes into the <b>empty</b> payee field – bringing its category along. This applies to every booking type; for transfers it is compared against the amounts of your previous transfers to that payee."
+        },
+        {
+          "type": "p",
+          "id": "b-0050c1",
+          "text": "If several match, or none, nothing happens; a payee you entered yourself is never touched. The suggestion list itself is unaffected – it still lists every payee within 10 km. Switch the pre-fill on under <b>«Use amount for payee suggestions»</b> in the settings."
         }
       ],
       "shot": {"fname": "Buchung Empfänger.png", "caption": "Booking editor with type switch, amount, payee and account", "width": 6.0}
@@ -463,7 +665,12 @@
     {
       "type": "h1",
       "id": "b-0063",
-      "text": "7. Voice input and location capture"
+      "text": "8. Recording quickly: voice, location, receipts"
+    },
+    {
+      "type": "p",
+      "id": "b-0063a",
+      "text": "This chapter gathers the ways a booking comes about in a few moves: <b>speaking</b> it, typing the <b>amount</b> alone and letting the location guess the payee, attaching a <b>receipt</b>, and teaching the app a mapping as an <b>alias</b>."
     },
     {
       "type": "h2",
@@ -500,9 +707,59 @@
           "text": "With location enabled, the keypad symbol appears at the bottom. Type just an amount: the app looks for a matching template at your current location – among the payees of the accounts on display – and shows the resolved payee before you even save."
         },
         {
+          "type": "h3",
+          "id": "b-0070a0",
+          "text": "Several payees at the same place"
+        },
+        {
           "type": "p",
           "id": "b-0070a",
-          "text": "Where <b>several</b> known payees share your location (petrol station and car wash, supermarket and bakery), the <b>amount</b> decides as well. Before you type, the field below states how many come into question; while you type, the name matching the amount appears: €8 is the car wash, €80 the petrol station. <b>Tap the name</b> to cycle through the remaining candidates and finally through <b>«no payee»</b> – then you fill it in later yourself. Whatever is shown when you confirm is what gets booked. Usual means the range holding <b>nine out of ten</b> of that payee's previous bookings. <b>Nobody is ruled out</b>: the amount only sets the order, you can always cycle through them all. If it fits none of the ranges, the one closest to it comes first – measured as a ratio, so that a payee with small amounts does not always lose against one with large ones: at €15 the range €20–100 beats the range €5–10, at €1 it is the other way round. Anyone with fewer than five bookings is not judged at all and falls in the middle. The same order decides when you <b>only speak an amount</b> – on the phone as from the watch; there the first one is taken without asking. And if only one payee is nearby, it appears even with an unusual amount – filling the tank once is no reason to leave the booking blank. Only payees of the <b>accounts on display</b> come into question: once you pick an account in the drawer (or an account group), anyone who so far has only been booked on another account stays out – even standing right next to them. An alias without an account of its own counts everywhere; on the watch the account picked there with the grey key applies. The amount only has a say here with the <b>«Use amount for payee suggestions»</b> switch on (<b>off</b> by default). Without it the nearest payee appears at once and stays put while you type – you then choose by tapping alone."
+          "text": "Where several known payees share your location (petrol station and car wash, supermarket and bakery), the <b>amount</b> decides as well. Before you type, the field below states how many come into question; while you type, the name matching the amount appears: €8 is the car wash, €80 the petrol station."
+        },
+        {
+          "type": "p",
+          "id": "b-0070a1",
+          "text": "<b>Tap the name</b> to cycle through the remaining candidates and finally through <b>«no payee»</b> – then you fill it in later yourself. Whatever is shown when you confirm is what gets booked."
+        },
+        {
+          "type": "h3",
+          "id": "b-0070a2",
+          "text": "How the order comes about"
+        },
+        {
+          "type": "p",
+          "id": "b-0070a3",
+          "text": "<b>Usual</b> means the range holding nine out of ten of that payee's previous bookings. <b>Nobody is ruled out</b> – the amount only sets the order, you can always cycle through them all."
+        },
+        {
+          "type": "p",
+          "id": "b-0070a4",
+          "text": "If the amount fits none of the ranges, the one closest to it comes first. It is measured as a <b>ratio</b>, so that a payee with small amounts does not always lose against one with large ones: at €15 the range €20–100 beats the range €5–10, at €1 it is the other way round. Anyone with fewer than five bookings is not judged at all and falls in the middle."
+        },
+        {
+          "type": "p",
+          "id": "b-0070a5",
+          "text": "The same order decides when you <b>only speak an amount</b> – on the phone as from the watch; there the first one is taken without asking."
+        },
+        {
+          "type": "h3",
+          "id": "b-0070a6",
+          "text": "Who comes into question at all"
+        },
+        {
+          "type": "p",
+          "id": "b-0070a7",
+          "text": "Only payees of the <b>accounts on display</b>. Once you pick an account in the drawer (or an account group), anyone who so far has only been booked on another account stays out – even standing right next to them. An alias without an account of its own counts everywhere; on the watch the account picked there with the grey key applies."
+        },
+        {
+          "type": "p",
+          "id": "b-0070a8",
+          "text": "If only <b>one</b> payee is nearby, it appears even with an unusual amount – filling the tank once is no reason to leave the booking blank."
+        },
+        {
+          "type": "p",
+          "id": "b-0070a9",
+          "text": "For the amount to have a say here at all, the <b>«Use amount for payee suggestions»</b> switch must be on (<b>off</b> by default). Without it the nearest payee appears at once and stays put while you type – you then choose by tapping alone."
         }
       ],
       "shot": {"fname": "Buchung Betrag - Automatischer Empfänger anhand GPS.png", "caption": "Amount-only entry: the payee is resolved via the current location", "width": 6.0}
@@ -640,7 +897,22 @@
         {
           "type": "p",
           "id": "b-0090a",
-          "text": "Below that sits <b>«Usual amounts»</b>: a two-handled slider defining which amounts are typical for this payee – the <b>amount filter</b> used when several payees share a location. The slider does not move in amounts but in <b>ranks</b>: the default 10–90 % drops a tenth of the previous bookings at each end, so a single outlier cannot stretch the range. The corresponding amounts are shown above and on the handle. Narrow it, and this payee only wins on very typical amounts; widen it to 0–100 %, and every amount it ever had counts. With fewer than five bookings the slider is greyed out – that few say nothing yet. The slider belongs to the <b>booking type</b> selected above: switch to income or transfer and it shows the amounts of that type. For transfers only the outgoing side counts – otherwise every amount would appear twice. The range always applies when only an amount was spoken; in the number pad and the booking editor it takes the <b>«Use amount for payee suggestions»</b> switch."
+          "text": "Below that sits <b>«Usual amounts»</b>: a two-handled slider defining which amounts are typical for this payee – the <b>amount filter</b> used when several payees share a location. Narrow it, and this payee only wins on very typical amounts; widen it to 0–100 %, and every amount it ever had counts."
+        },
+        {
+          "type": "p",
+          "id": "b-0090a1",
+          "text": "The slider does not move in amounts but in <b>ranks</b>: the default 10–90 % drops a tenth of the previous bookings at each end, so a single outlier cannot stretch the range. The corresponding amounts are shown above and on the handle. With fewer than five bookings the slider is greyed out – that few say nothing yet."
+        },
+        {
+          "type": "p",
+          "id": "b-0090a2",
+          "text": "The slider belongs to the <b>booking type</b> selected above: switch to income or transfer and it shows the amounts of that type. For transfers only the outgoing side counts – otherwise every amount would appear twice."
+        },
+        {
+          "type": "p",
+          "id": "b-0090a3",
+          "text": "The range always applies when only an amount was spoken; in the number pad and the booking editor it takes the <b>«Use amount for payee suggestions»</b> switch."
         },
         {
           "type": "p",
@@ -658,7 +930,7 @@
     {
       "type": "h1",
       "id": "b-0091",
-      "text": "8. Booking list and filter"
+      "text": "9. Booking list and filter"
     },
     {
       "type": "text_with_single_shot",
@@ -668,11 +940,11 @@
           "type": "bullets",
           "id": "b-0093",
           "items": [
-            "<b>Short tap</b> on a booking opens it as a read-only view (same layout as the editor, but without any editing): a large coloured heading shows the type (income = green, transfer = yellow, expense = red), and the balance before and after the booking is shown at the bottom. <b>Long press</b> opens it for editing.",
-            "In the list the note is truncated to at most two lines; in the editor the note field spans four lines.",
-            "<b>Pull down</b> (in an account or portfolio view): in the <b>kmy variant</b> the .kmy file is re-read and that account or portfolio is refreshed. In the <b>CSV variant</b> this is not available – there you refresh an account via the account menu (long-press the account in the drawer).",
-            "Markers: «Split», → / ← (transfer), «exported»; colours red/green.",
-            "<b>Filter</b> (funnel ▽): with a <b>search field</b> that searches <b>payee, note and category</b> (substring, case-insensitive – so you can find a booking by its note as well); plus category (as a tree), <b>tag</b> (only present when the app knows tags from the KMyMoney file; «All» clears the choice), amount (slider) and <b>date from–to</b> (slider in whole-month steps; type an exact day into the field). For the <b>amount</b>, expenses count negative and income positive; the slider runs from the largest expense on the left to the largest income on the right, with a thin mark showing the zero in between. It moves in <b>shares</b>, not in amounts: the right thumb at 90 % cuts off the largest tenth – so a single outlier no longer stretches the whole slider. For an exact bound, type it into the field. At the bottom – only with <b>location (GPS)</b> switched on – sits the <b>Radius</b> button: each tap steps through «off», 100 m, 500 m, 1 km, 10 km and back to «off». On a step only those bookings remain that were made within that radius of where you are now – the coordinates sit in the booking note, and where they are missing the learned location of the payee from the alias applies. Your position is captured once when you apply, so the list does not travel with you; if no position is known yet the list stays empty and the title line shows «Filter active (0)». «Reset» restores «Radius off», after which location no longer matters. With a filter set, the menu (⋮) also offers <b>«Export receipts»</b>, which writes the receipts of exactly that selection into a ZIP file. The filter applies to the list and the analysis (the radius to the list only). With a category filter a split booking shows only the partial amount of the chosen category.",
+            "<b>Short tap</b> on a booking opens it as a read-only view: a large coloured heading shows the type (income = green, transfer = yellow, expense = red), and the balance before and after the booking is shown at the bottom.",
+            "<b>Long press</b> opens it for editing.",
+            "<b>Pulling down</b> re-reads the file in the kmy variant and refreshes exactly this account or portfolio. In the CSV variant this goes through the account drawer (long-press the account).",
+            "<b>Markers</b> on a row: «Split», → / ← for a transfer, «exported»; the colours red and green stand for expense and income.",
+            "The <b>note</b> is truncated to two lines in the list; in the editor the field spans four.",
             "<b>Undo</b>: after deleting a booking, «Undo» appears briefly at the bottom – one tap recreates it. In the place journal the deletion and the recreation stay visible as movements. Transfers have no undo.",
             "<b>Long press on the app icon</b> (home screen): «New booking» opens the editor directly."
           ]
@@ -681,9 +953,69 @@
       "shot": {"fname": "Buchungen Filtern.png", "caption": "Filter by search text, category, amount and period", "width": 6.0}
     },
     {
+      "type": "h2",
+      "id": "b-0093a",
+      "text": "The filter (funnel ▽)"
+    },
+    {
+      "type": "p",
+      "id": "b-0093b",
+      "text": "The funnel in the title bar narrows the list. At the top sits a <b>search field</b> that searches <b>payee, note and category</b> at once – anywhere in the word and regardless of case. That way you can find a booking by its note as well. Below it follow category (as a tree), <b>tag</b>, amount and <b>date from–to</b>."
+    },
+    {
+      "type": "p",
+      "id": "b-0093c",
+      "text": "The filter applies to the list and the analysis. With one set, the ⋮ menu also offers <b>«Export receipts»</b>, which writes the receipts of exactly that selection into a ZIP file."
+    },
+    {
+      "type": "h3",
+      "id": "b-0093d",
+      "text": "Amount and period"
+    },
+    {
+      "type": "p",
+      "id": "b-0093e",
+      "text": "For the <b>amount</b>, expenses count negative and income positive; the slider runs from the largest expense on the left to the largest income on the right, with a thin mark showing the zero in between. It moves in <b>shares</b>, not in amounts: the right thumb at 90 % cuts off the largest tenth – so a single outlier no longer stretches the whole slider. For an exact bound, type it into the field."
+    },
+    {
+      "type": "p",
+      "id": "b-0093f",
+      "text": "The <b>date</b> runs as a slider in whole-month steps; type an exact day into the field."
+    },
+    {
+      "type": "h3",
+      "id": "b-0093g",
+      "text": "Radius (only with location)"
+    },
+    {
+      "type": "p",
+      "id": "b-0093h",
+      "text": "At the bottom – only with <b>location (GPS)</b> switched on – sits the <b>Radius</b> button. Each tap steps through «off», 100 m, 500 m, 1 km, 10 km and back to «off». On a step only those bookings remain that were made within that radius of where you are now."
+    },
+    {
+      "type": "p",
+      "id": "b-0093i",
+      "text": "Where a booking's location comes from: the coordinates in its note, and where those are missing, the learned location of the payee in the alias. Your own position is captured <b>once</b> when you apply – so the list does not travel with you as you move on."
+    },
+    {
+      "type": "p",
+      "id": "b-0093j",
+      "text": "If no position is known yet the list stays empty and the title line shows «Filter active (0)». <b>«Reset»</b> restores «Radius off»; after that location no longer matters. Unlike the other criteria the radius applies to the list only, not to the analysis."
+    },
+    {
+      "type": "h3",
+      "id": "b-0093k",
+      "text": "Special cases"
+    },
+    {
+      "type": "p",
+      "id": "b-0093l",
+      "text": "The <b>tag</b> is only present when the app knows tags from the KMyMoney file; «All» clears the choice again. And with a <b>category</b> filter set, a split booking shows only the partial amount of that category."
+    },
+    {
       "type": "h1",
       "id": "b-0094",
-      "text": "9. Analysis"
+      "text": "10. Analysis"
     },
     {
       "type": "text_with_single_shot",
@@ -706,7 +1038,7 @@
     {
       "type": "h1",
       "id": "b-0097",
-      "text": "10. Where does my money go?"
+      "text": "11. Where does my money go?"
     },
     {
       "type": "text_with_single_shot",
@@ -765,7 +1097,7 @@
     {
       "type": "h1",
       "id": "b-0106",
-      "text": "11. Budget"
+      "text": "12. Budget"
     },
     {
       "type": "text_with_single_shot",
@@ -809,13 +1141,23 @@
         "Toggle <b>year / month</b>. The year view sums the months; the month view shows the displayed month's target against that same month's actuals. In month view you page through months with a <b>swipe</b> (or by tapping the grey previous/next month in the header).",
         "Toggle <b>main categories only / with subcategories</b> (a main category sums its subcategories).",
         "<b>Income</b> first, then <b>expenses</b> (large headers); main categories bold, subcategories indented. The right side shows «actual / target».",
-        "Under each category a slim <b>bar</b>: <b>green</b> when on plan, <b>red</b> when behind (width = share of the target used). Instead of a purely linear time comparison, the app learns each category's typical timing from the <b>payment history</b>: a <b>one-time</b> expense (e.g. a transit pass bought at the start of the month) is green as soon as it is within budget, while <b>regular</b> expenses (groceries) are still measured against the elapsed time. Without history the linear comparison applies (for income reversed)."
+        "Under each category a slim <b>bar</b>: <b>green</b> when on plan, <b>red</b> when behind. Its width shows the share of the target used."
       ]
+    },
+    {
+      "type": "h3",
+      "id": "b-0113a",
+      "text": "When the bar turns green"
+    },
+    {
+      "type": "p",
+      "id": "b-0113b",
+      "text": "Instead of a purely linear time comparison, the app learns each category's typical timing from the <b>payment history</b>. A <b>one-time</b> expense – a transit pass bought at the start of the month, say – is green as soon as it is within budget. <b>Regular</b> expenses such as groceries are still measured against the elapsed time. Without history the linear comparison applies; for income it is reversed."
     },
     {
       "type": "h1",
       "id": "b-0114",
-      "text": "12. Scheduled transactions"
+      "text": "13. Scheduled transactions"
     },
     {
       "type": "text_with_single_shot",
@@ -830,18 +1172,52 @@
           "type": "bullets",
           "id": "b-0117",
           "items": [
-            "Each recurring schedule is <b>expanded into its individual occurrences</b> (e.g. a weekly bakery appears several times) — from the stored next due date up to <b>2 years</b> ahead.",
-            "Only <b>active</b> schedules; entries <b>without a date</b> are skipped, and an <b>end date</b> (or a limited number of payments in KMyMoney) limits the preview.",
-            "A coloured <b>strip</b> precedes each row: <b>green</b> = deposit, <b>red</b> = payment, <b>yellow</b> = transfer. The <b>date</b> is its own column at the front, next to it the <b>name</b> with the <b>payee</b> in smaller, grey text behind it and below it the <b>category</b> (with several categories <b>«Split transaction»</b>), then an <b>account column</b> and the amount on the right. For a <b>transfer</b> the account column shows <b>both accounts, one below the other</b> (instead of a category).",
-            "The <b>type</b> comes from KMyMoney: a <b>stock/ETF purchase</b> (savings plan) is a <b>transfer</b> from the cash account into the security, not an expense.",
-            "A <b>tap on a row</b> opens the transaction in the <b>familiar detail view</b> (read-only, exactly like a real account movement – including the categories of a split transaction and the balance before/after).",
-            "<b>Book now</b>: a <b>long press</b> on a row opens the booking editor as a <b>new booking</b>, prefilled from the schedule (date = due date, amount, payee, account, categories resp. from/to). Check it, adjust if needed and save with «New booking» – it lands in the account and (with a place chosen) in the holdings. Tap = view, long press = book – just like in the booking list.",
-            "<b>Skip booking</b>: the prefilled editor also offers a <b>«Skip booking»</b> button (with a confirmation) – <b>no</b> transaction is created, but the date still counts as done.",
-            "<b>The schedule moves on.</b> Booked or skipped, the date disappears from the list right away, and on the <b>next .kmy export</b> the KMyMoney schedule is moved on by <b>one period</b> (for an actual booking the date of the last payment is written as well). The schedule itself – amount, rhythm, splits, start date – stays unchanged, and so do later dates. Cancelling the editor leaves the schedule as it is."
+            "<b>Short tap</b> on a row: view the schedule – in the familiar detail view, read-only, including the categories of a split transaction and the balance before and after.",
+            "<b>Long press</b>: book it now. Just like in the booking list."
           ]
         }
       ],
       "shot": {"fname": "Geplante Buchungen.png", "caption": "Scheduled transactions: chronological list with balance strip", "width": 4.5}
+    },
+    {
+      "type": "h2",
+      "id": "b-0117a",
+      "text": "What the list shows"
+    },
+    {
+      "type": "p",
+      "id": "b-0117b",
+      "text": "A coloured <b>strip</b> precedes each row: green for a deposit, red for a payment, yellow for a transfer. At the front the <b>date</b> in a column of its own, next to it the <b>name</b> with the payee in smaller grey text behind it, below it the <b>category</b> (with several, «Split transaction»), then an <b>account column</b> and the amount on the right. For a transfer the account column shows both accounts one below the other instead of a category."
+    },
+    {
+      "type": "p",
+      "id": "b-0117c",
+      "text": "Each recurring schedule is <b>expanded into its individual occurrences</b> – a weekly bakery therefore appears several times – from the stored next due date up to <b>two years</b> ahead. Only <b>active</b> schedules are included; entries without a date are skipped, and an end date (or a limited number of payments in KMyMoney) limits the preview."
+    },
+    {
+      "type": "p",
+      "id": "b-0117d",
+      "text": "The <b>type</b> comes from KMyMoney. A stock or ETF purchase from a savings plan is a <b>transfer</b> there, from the cash account into the security – not an expense."
+    },
+    {
+      "type": "h2",
+      "id": "b-0117e",
+      "text": "Booking or skipping a schedule"
+    },
+    {
+      "type": "p",
+      "id": "b-0117f",
+      "text": "A <b>long press</b> on a row opens the booking editor as a <b>new booking</b>, prefilled from the schedule: date equals due date, plus amount, payee, account and categories or from and to. Check it, adjust if needed and save with «New booking» – it lands in the account and, with a place chosen, in the holdings."
+    },
+    {
+      "type": "p",
+      "id": "b-0117g",
+      "text": "The same editor offers a <b>«Skip booking»</b> button (with a confirmation): no transaction is created, but the date still counts as done."
+    },
+    {
+      "type": "p",
+      "id": "b-0117h",
+      "text": "<b>The schedule moves on.</b> Booked or skipped, the date disappears from the list right away, and on the next .kmy export the KMyMoney schedule is moved on by <b>one period</b>; for an actual booking the date of the last payment is written as well. The schedule itself – amount, rhythm, splits, start date – stays unchanged, and so do later dates. Cancelling the editor leaves the schedule as it is."
     },
     {
       "type": "h2",
@@ -923,7 +1299,7 @@
     {
       "type": "h1",
       "id": "b-0131",
-      "text": "13. Holdings (places) and portfolio"
+      "text": "14. Holdings (places) and portfolio"
     },
     {
       "type": "h2",
@@ -1023,7 +1399,22 @@
         {
           "type": "p",
           "id": "b-0149",
-          "text": "After importing a KMyMoney investment account, the <b>portfolio</b> appears in the account drawer. The portfolio view is laid out like an account view – same title bar with the same menu items, same drawer, same filter – and shows <b>shares × price = current value</b> per security; fully sold securities are hidden. The <b>balance line toggles by tap</b> through portfolio value → buys → sells (if any) → dividends (if any) → <b>net invested</b> (buys − sells − dividends) → <b>gain/loss</b> (coloured, with percentage). The <b>portfolio filter</b> narrows the securities by name and value; like in the booking filter the slider works in shares, not in amounts. When you scroll far down, the <b>scroll-to-top button</b> (bottom left) jumps straight back to the start. A tap on a security opens its <b>movements full-screen</b> (buys green, sells red, dividends neutral) with the same figures for that security plus a <b>filter by buys/sells/dividends</b> and a date slider (start date = first purchase). The portfolio value is kept separate and also appears as «Net worth» in the main screen's balance line."
+          "text": "After importing a KMyMoney investment account, the <b>portfolio</b> appears in the account drawer. The view is laid out like an account view – same title bar, same drawer, same filter – and shows <b>shares × price = current value</b> per security. Fully sold securities are hidden."
+        },
+        {
+          "type": "p",
+          "id": "b-0149a",
+          "text": "The <b>balance line toggles by tap</b> through: portfolio value → buys → sells → dividends → <b>net invested</b> (buys − sells − dividends) → <b>gain/loss</b> (coloured, with percentage). Sells and dividends only appear when there are any. The portfolio value is kept separate and also appears as «Net worth» in the main screen's balance line."
+        },
+        {
+          "type": "p",
+          "id": "b-0149b",
+          "text": "A tap on a security opens its <b>movements full-screen</b> – buys green, sells red, dividends neutral – with the same figures for that security, a filter by buys, sells and dividends, and a date slider starting at the first purchase."
+        },
+        {
+          "type": "p",
+          "id": "b-0149c",
+          "text": "The <b>portfolio filter</b> narrows the securities by name and value; like in the booking filter the slider works in shares, not in amounts. When you scroll far down, the <b>scroll-to-top button</b> at the bottom left jumps straight back to the start."
         },
         {
           "type": "p",
@@ -1106,7 +1497,7 @@
     {
       "type": "h1",
       "id": "b-0158",
-      "text": "14. Synchronizing: performing export and import"
+      "text": "15. Synchronizing: performing export and import"
     },
     {
       "type": "text_with_pic",
@@ -1132,8 +1523,28 @@
     },
     {
       "type": "p",
-      "id": "b-0009",
-      "text": "<b>Edited bookings.</b> Change a booking that is already marked «exported» and it carries «edited» afterwards (yellow in the list). The next export does not add a second transaction: the existing one in the .kmy file is <b>changed</b> instead – the same transaction in the same place, no duplicate; the booking then reads «exported» again. You cannot set this status yourself: it only arises from a change, and the «Marked as exported» switch in the booking editor is locked and relabelled accordingly. If you switch it off yourself while editing, your choice wins: the booking is «not exported» and will be written as a new transaction on the next export. If the old transaction is no longer in the file (deleted on the computer, say), the message says so and the booking stays «edited» – nothing is inserted. Re-import the .kmy file in between and the file wins: the edit is gone. Transfers behave the same way even though they consist of two rows: in the file they are one transaction and are changed once."
+      "id": "b-0162a",
+      "text": "<b>Edited bookings.</b> Change a booking that is already marked «exported» and it carries «edited» afterwards (yellow in the list). The next export does not add a second transaction: the existing one in the .kmy file is <b>changed</b> instead – the same transaction in the same place, no duplicate; the booking then reads «exported» again."
+    },
+    {
+      "type": "p",
+      "id": "b-0162b",
+      "text": "You cannot set this status yourself: it only arises from a change, and the «Marked as exported» switch in the booking editor is locked then. If you switch it off yourself while editing, your choice wins – the booking is «not exported» and will be written as a new transaction on the next export."
+    },
+    {
+      "type": "p",
+      "id": "b-0162c",
+      "text": "A <b>transfer</b> behaves the same way even though it consists of two rows: in the file it is one transaction and is changed once."
+    },
+    {
+      "type": "h3",
+      "id": "b-0162d",
+      "text": "When the change does not arrive"
+    },
+    {
+      "type": "p",
+      "id": "b-0162e",
+      "text": "If the old transaction is no longer in the file – deleted on the computer, say – the message says so and the booking stays «edited»; nothing is inserted. Re-import the .kmy file in between and the file wins: the edit is gone."
     },
     {
       "type": "h2",
@@ -1193,7 +1604,7 @@
     {
       "type": "h1",
       "id": "b-0173",
-      "text": "15. Wear OS (watch)"
+      "text": "16. Wear OS (watch)"
     },
     {
       "type": "text_with_single_shot",
@@ -1212,14 +1623,37 @@
             "The recognized text is shown briefly with «Cancel» and otherwise processed automatically.",
             "<b>Silent digit entry</b>: enter an amount silently via the digits symbol (resolved by location on the phone).",
             "<b>Wear tile</b>: quick access as a tile.",
-            "<b>Default-place balance</b>: below the buttons, the app and tile show the balance of the default place as «Place: balance» (e.g. «Wallet: 70.00 €»). The balance updates automatically. No default place set → line hidden.",
-            "<b>Reason instead of balance</b>: while bookings are <b>not yet transferred</b>, this line shows the <b>reason</b> instead of the balance – «Waiting for GPS» (the location is still being resolved), «No connection to phone» or «Transferring…». The line below still states the count.",
-            "<b>Switch account/place</b>: above «Record booking» (centred), a grey switch button – in the app and the tile – cycles through the shown account and its places; the next booking (phone widget and watch) then targets the chosen account/place. For a transfer the chosen account is the from-account; the to-account is the default account – unless the chosen account already is the default, in which case the to-account stays empty (to fill in manually on the phone). After a short while the selection reverts to the default place.",
+            "<b>Default-place balance</b>: below the buttons, the app and tile show the balance of the default place as «Place: balance» (e.g. «Wallet: 70.00 €»). With no default place set, the line stays away.",
             "<b>Offline</b>: bookings not yet transmitted are shown and delivered automatically once the phone is reachable – without loss and without duplication."
           ]
         }
       ],
       "shot": {"fname": "Promo-UhranlagemitAlias.png", "caption": "Recording on the watch", "width": 4.5}
+    },
+    {
+      "type": "h2",
+      "id": "b-0176a",
+      "text": "Switching account and place"
+    },
+    {
+      "type": "p",
+      "id": "b-0176b",
+      "text": "Above «Record booking» a grey <b>switch button</b> – in the app as in the tile – cycles through the shown account and its places. The next booking, from the phone widget as from the watch, then targets the chosen account. After a short while the selection reverts to the default place by itself."
+    },
+    {
+      "type": "p",
+      "id": "b-0176c",
+      "text": "For a <b>transfer</b> the chosen account is the from-account and the to-account is the default account. If the chosen account already is the default, the to-account stays empty and is filled in on the phone."
+    },
+    {
+      "type": "h2",
+      "id": "b-0176d",
+      "text": "When a reason appears instead of the balance"
+    },
+    {
+      "type": "p",
+      "id": "b-0176e",
+      "text": "While bookings are <b>not yet transferred</b>, the reason takes the place of the balance: «Waiting for GPS» (the location is still being resolved), «No connection to phone» or «Transferring…». The line below still states the count."
     },
     {
       "type": "h2",
@@ -1244,7 +1678,7 @@
     {
       "type": "h1",
       "id": "b-0181",
-      "text": "16. Settings (complete reference)"
+      "text": "17. Settings (complete reference)"
     },
     {
       "type": "text_with_shot_row",
@@ -1253,7 +1687,7 @@
         {
           "type": "p",
           "id": "b-0183",
-          "text": "The settings are reached via the <b>⋮ menu</b> at the top right – entry <b>«Settings»</b> at the very bottom. On first start the welcome assistant (Chapter 2) already sets the essentials; here all fields are described in screen order. Changes take effect on <b>«Save»</b> (language and dark mode immediately)."
+          "text": "The settings are reached via the <b>⋮ menu</b> at the top right – entry <b>«Settings»</b> at the very bottom. On first start the welcome assistant (Chapter 3) already sets the essentials; here all fields are described in screen order. Changes take effect on <b>«Save»</b> (language and dark mode immediately)."
         }
       ],
       "shots": [
@@ -1275,9 +1709,9 @@
         "<b>Currency</b>: default currency symbol for accounts without their own currency (taken per account from the file on .kmy import).",
         "<b>Number format</b>: «1.234,56», «1,234.56» or «1234,56»/«1234.56» without grouping; plus the <b>«Show currency symbol»</b> toggle. Applies to all amounts in the app and on the watch; the export keeps a stable format.",
         "<b>Dividends gross/net</b>: whether portfolio dividends are settled gross (declared) or net.",
-        "<b>Read statements</b>: allows reading the bank's PDF statements in the portfolio (default: off). When switched on the app states how many banks the recognition was measured against (see Chapter 13).",
-        "<b>Budget in-app</b>: compute the budget actuals from history instead of importing from KMyMoney (see Chapter 11).",
-        "<b>Install offline speech package on the watch</b> (GitHub build with the Wear bridge only): lets the watch download the offline speech model of the chosen language so voice recording works offline too (see Chapter 15). Off → the number-pad fallback applies offline."
+        "<b>Read statements</b>: allows reading the bank's PDF statements in the portfolio (default: off). When switched on the app states how many banks the recognition was measured against (see Chapter 14).",
+        "<b>Budget in-app</b>: compute the budget actuals from history instead of importing from KMyMoney (see Chapter 12).",
+        "<b>Install offline speech package on the watch</b> (GitHub build with the Wear bridge only): lets the watch download the offline speech model of the chosen language so voice recording works offline too (see Chapter 16). Off → the number-pad fallback applies offline."
       ]
     },
     {
@@ -1315,15 +1749,54 @@
           "text": "With server type <b>SMB/Samba</b> a wizard replaces the address fields, so you don't have to remember host or share names:"
         },
         {
-          "type": "bullets",
+          "type": "steps",
           "id": "b-0192",
           "items": [
-            "<b>1. Search for servers</b>: on opening, the app scans the local network automatically (Bonjour/mDNS, a NetBIOS name query and a connection test on the SMB port). Each hit is listed with its display name and the IP address below it – plus its <b>workgroup</b> if the server reports one. <b>«Search again»</b> restarts the scan; the servers found last time are remembered and shown right away.",
-            "<b>2. Log in</b>: username and password of the server, with a <b>«Port»</b> field above them – leave it empty as long as the server listens on the usual SMB port 445. If it announces a different port over Bonjour, that port is already filled in; if nothing answers there, the app also tries the <b>default port 445</b> and corrects the stored address. <b>An empty user means guest.</b> For a share <b>without a password</b> simply leave the password field empty – the app then continues as guest, even with a user name filled in. If the server belongs to a workgroup other than «WORKGROUP», the field is pre-filled with «WORKGROUP\\». The password is stored encrypted and never shown in clear text.",
-            "<b>3. Pick the share</b>: after logging in the app reads the server's <b>shares</b> and offers them for selection (system shares such as IPC$ are hidden). Clicking one fills the <b>«Share name»</b> field; you can also type it there if the server refuses to list them.",
-            "<b>4. Save</b>: this becomes the address «smb://host/share» – with a different port «smb://host:7777/share». The <b>target folder</b> inside the share is then chosen as usual with the «Browse folder» resp. «Choose .kmy» buttons.",
-            "<b>«Enter server manually»</b> brings back the classic fields (type «smb://host/share» resp. «smb://host:port/share» yourself). <b>«Search for servers on the network»</b> returns to the wizard at any time."
+            "<b>Search for servers.</b> On opening, the app scans the local network automatically. Each hit is listed with its display name and IP address; <b>«Search again»</b> restarts the scan.",
+            "<b>Log in.</b> Enter username and password of the server. The password is stored encrypted and never shown in clear text.",
+            "<b>Pick the share.</b> The app reads the server's shares; clicking one fills the <b>«Share name»</b> field.",
+            "<b>Save.</b> This becomes the address «smb://host/share». The <b>target folder</b> inside it is then chosen with «Browse folder» or «Choose .kmy»."
           ]
+        },
+        {
+          "type": "h3",
+          "id": "b-0192a",
+          "text": "When the server does not listen on port 445"
+        },
+        {
+          "type": "p",
+          "id": "b-0192b",
+          "text": "Above the login fields sits a <b>«Port»</b> field. Leave it empty as long as the server uses the usual SMB port 445. If it announces a different one over Bonjour, that port is already filled in; if nothing answers there, the app also tries the default port 445 and corrects the stored address. The address then reads «smb://host:7777/share»."
+        },
+        {
+          "type": "h3",
+          "id": "b-0192c",
+          "text": "A share without a password"
+        },
+        {
+          "type": "p",
+          "id": "b-0192d",
+          "text": "<b>An empty user means guest.</b> For a share without a password simply leave the password field empty – the app then continues as guest, even with a user name filled in."
+        },
+        {
+          "type": "h3",
+          "id": "b-0192e",
+          "text": "Further details"
+        },
+        {
+          "type": "p",
+          "id": "b-0192f",
+          "text": "The scan runs three ways at once: Bonjour/mDNS, a NetBIOS name query and a connection test on the SMB port. The servers found last time are remembered and shown right away when you open it again."
+        },
+        {
+          "type": "p",
+          "id": "b-0192h",
+          "text": "If the server belongs to a <b>workgroup</b> other than «WORKGROUP», the field is already pre-filled – the search names it below the server name whenever the server reports one. If it refuses to list its shares either, type the share name by hand; system shares such as IPC$ are hidden anyway."
+        },
+        {
+          "type": "p",
+          "id": "b-0192g",
+          "text": "<b>«Enter server manually»</b> brings back the classic fields for typing the address yourself. <b>«Search for servers on the network»</b> returns to the wizard at any time."
         },
         {
           "type": "p",
@@ -1388,7 +1861,7 @@
     {
       "type": "p",
       "id": "b-0202",
-      "text": "Without a configured sync target, export goes locally into a folder you choose. How the sync runs is in Chapter 14."
+      "text": "Without a configured sync target, export goes locally into a folder you choose. How the sync runs is in Chapter 15."
     },
     {
       "type": "h2",
@@ -1400,7 +1873,7 @@
       "id": "b-0204",
       "items": [
         "<b>Default account</b>: pre-selection for new bookings (also for widget and watch). Selectable only once accounts exist.",
-        "<b>Places per account</b>: per account you can create cash <b>places</b> and set a <b>default place</b> (see Chapter 13)."
+        "<b>Places per account</b>: per account you can create cash <b>places</b> and set a <b>default place</b> (see Chapter 14)."
       ]
     },
     {
@@ -1423,7 +1896,7 @@
       "id": "b-0208",
       "items": [
         "<b>Dark mode</b>: light/dark (takes effect immediately).",
-        "<b>Reminder for scheduled bookings</b>: reminds once a day of scheduled bookings due today (off by default; see Chapter 12)."
+        "<b>Reminder for scheduled bookings</b>: reminds once a day of scheduled bookings due today (off by default; see Chapter 13)."
       ]
     },
     {
@@ -1490,7 +1963,7 @@
     {
       "type": "h1",
       "id": "b-0219",
-      "text": "17. CSV format (export)"
+      "text": "18. CSV format (export)"
     },
     {
       "type": "p",

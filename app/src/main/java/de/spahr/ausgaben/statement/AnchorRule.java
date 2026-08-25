@@ -74,8 +74,16 @@ public final class AnchorRule {
      * eine Regel den Dollarbetrag als Euro — still, und um ein Sechstel daneben.</p>
      */
     public final String currency;
-    /** Welche Zahl der Zeile gilt; der Lerner ermittelt es (siehe {@link Position}). */
+    /** Von welchem Ende der Zeile gezählt wird; der Lerner ermittelt es (siehe {@link Position}). */
     public final Position position;
+    /**
+     * Die wievielte Zahl von diesem Ende gemeint ist, ab 1.
+     *
+     * <p>Gebraucht für Tabellenzeilen: „YOU BOUGHT XBI 78464A870 06/29/22 07/01/22 MARGIN 5 $74.33000"
+     * nennt den Kurs als letzte und die Menge als <b>zweitletzte</b> Zahl. Ohne das wäre die Menge nicht
+     * auszudrücken.</p>
+     */
+    public final int nth;
 
     public AnchorRule(List<String> anchors, Direction direction, boolean sum) {
         this(anchors, direction, sum, "");
@@ -87,6 +95,11 @@ public final class AnchorRule {
 
     public AnchorRule(List<String> anchors, Direction direction, boolean sum, String currency,
                       Position position) {
+        this(anchors, direction, sum, currency, position, 1);
+    }
+
+    public AnchorRule(List<String> anchors, Direction direction, boolean sum, String currency,
+                      Position position, int nth) {
         List<String> copy = new ArrayList<>();
         for (String a : anchors) {
             if (a != null && !a.trim().isEmpty()) {
@@ -98,6 +111,7 @@ public final class AnchorRule {
         this.sum = sum;
         this.currency = currency == null ? "" : currency.trim();
         this.position = position == null ? Position.LAST : position;
+        this.nth = Math.max(1, nth);
     }
 
     public static AnchorRule single(String anchor, Direction direction) {
@@ -110,8 +124,13 @@ public final class AnchorRule {
 
     public static AnchorRule single(String anchor, Direction direction, String currency,
                                     Position position) {
+        return single(anchor, direction, currency, position, 1);
+    }
+
+    public static AnchorRule single(String anchor, Direction direction, String currency,
+                                    Position position, int nth) {
         return new AnchorRule(java.util.Collections.singletonList(anchor), direction, false, currency,
-                position);
+                position, nth);
     }
 
     public static AnchorRule summed(List<String> anchors, Direction direction, String currency) {
@@ -161,7 +180,7 @@ public final class AnchorRule {
             if (valueText == null || !currencyFits(valueText)) {
                 continue;   // andere Währung als gelernt – dann ist es nicht der gesuchte Betrag
             }
-            Double value = numberAt(valueText, position);
+            Double value = numberAt(valueText, position, nth);
             if (value != null) {
                 result = value;   // weiter suchen: die unterste Fundstelle gewinnt
             }
@@ -258,15 +277,33 @@ public final class AnchorRule {
         return result;
     }
 
-    /** Das erste eindeutige Datum einer Zeile; -1, wenn keines darin steht. */
+    /**
+     * Das erste eindeutige Datum einer Zeile; -1, wenn keines darin steht.
+     *
+     * <p>Auch über mehrere Wörter: englischsprachige Belege schreiben „30 Aug 2023" oder „Dec 5, 2019",
+     * und das sind drei Wörter, kein eines. Geprüft werden deshalb ein, zwei und drei aufeinander
+     * folgende — das längste zuerst, sonst gewönne bei „5 Dec 2019" die bloße 5.</p>
+     */
     static long firstDate(String line) {
         if (line == null) {
             return -1;
         }
-        for (String token : line.split("\\s+")) {
-            long millis = TextValues.toUnambiguousDateMillis(token);
-            if (millis > 0) {
-                return millis;
+        String[] tokens = line.split("\\s+");
+        for (int i = 0; i < tokens.length; i++) {
+            for (int len = Math.min(3, tokens.length - i); len >= 1; len--) {
+                StringBuilder joined = new StringBuilder();
+                for (int k = 0; k < len; k++) {
+                    if (k > 0) {
+                        joined.append(' ');
+                    }
+                    joined.append(tokens[i + k]);
+                }
+                // Das Komma in „Dec 5, 2019" gehört zur Schreibweise, nicht zum Datum.
+                long millis = TextValues.toUnambiguousDateMillis(
+                        joined.toString().replace(",", ""));
+                if (millis > 0) {
+                    return millis;
+                }
             }
         }
         return -1;
@@ -275,6 +312,15 @@ public final class AnchorRule {
     /** Ob die Zeile mit genau dieser Beschriftung beginnt. */
     private static boolean startsWithAnchor(String line, String anchor) {
         return afterAnchor(line, anchor) >= 0;
+    }
+
+    /**
+     * Der Teil der Zeile hinter der Beschriftung, oder {@code null}. Für den Lerner: die Währung muss aus
+     * demselben Text stammen, der beim Lesen geprüft wird, sonst lernt er eine, die nie wieder passt.
+     */
+    static String afterAnchorText(String line, String anchor) {
+        int at = afterAnchor(line, anchor);
+        return at < 0 ? null : line.substring(at);
     }
 
     /**
@@ -348,19 +394,20 @@ public final class AnchorRule {
         return "";
     }
 
-    /** Die erste oder die letzte Zahl einer Zeile, je nach Regel. */
-    static Double numberAt(String line, Position position) {
-        return position == Position.FIRST ? firstNumber(line) : lastNumber(line);
+    /** Die {@code nth}-te Zahl vom vorderen oder hinteren Ende der Zeile. */
+    static Double numberAt(String line, Position position, int nth) {
+        List<String> tokens = TextValues.numberTokens(line);
+        int index = position == Position.FIRST ? nth - 1 : tokens.size() - nth;
+        if (index < 0 || index >= tokens.size()) {
+            return null;
+        }
+        Double value = TextValues.toDecimal(tokens.get(index));
+        return value == null ? null : Math.abs(value);
     }
 
     /** Die erste Zahl einer Zeile, ohne Vorzeichen; {@code null}, wenn keine darin steht. */
     static Double firstNumber(String line) {
-        List<String> tokens = TextValues.numberTokens(line);
-        if (tokens.isEmpty()) {
-            return null;
-        }
-        Double value = TextValues.toDecimal(tokens.get(0));
-        return value == null ? null : Math.abs(value);
+        return numberAt(line, Position.FIRST, 1);
     }
 
     /**
@@ -375,12 +422,7 @@ public final class AnchorRule {
      * 107,79. Ebenso beim Lernen — der Nutzer tippt 1.100 ein und muss die Zeile wiederfinden.</p>
      */
     static Double lastNumber(String line) {
-        List<String> tokens = TextValues.numberTokens(line);
-        if (tokens.isEmpty()) {
-            return null;
-        }
-        Double value = TextValues.toDecimal(tokens.get(tokens.size() - 1));
-        return value == null ? null : Math.abs(value);
+        return numberAt(line, Position.LAST, 1);
     }
 
     /**
@@ -397,19 +439,20 @@ public final class AnchorRule {
         }
         AnchorRule other = (AnchorRule) o;
         return sum == other.sum && direction == other.direction && anchors.equals(other.anchors)
-                && currency.equals(other.currency) && position == other.position;
+                && currency.equals(other.currency) && position == other.position && nth == other.nth;
     }
 
     @Override
     public int hashCode() {
-        return ((anchors.hashCode() * 31 + direction.hashCode()) * 31 + currency.hashCode()) * 31
-                + position.hashCode() + (sum ? 1 : 0);
+        return (((anchors.hashCode() * 31 + direction.hashCode()) * 31 + currency.hashCode()) * 31
+                + position.hashCode()) * 31 + nth + (sum ? 1 : 0);
     }
 
     @Override
     public String toString() {
         return (sum ? "Summe von " : "") + anchors + " (" + direction
-                + (position == Position.FIRST ? ", erste Zahl" : "")
+                + (position == Position.FIRST || nth > 1 ? ", " + nth + ". Zahl von "
+                        + (position == Position.FIRST ? "links" : "rechts") : "")
                 + (currency.isEmpty() ? "" : ", " + currency) + ")";
     }
 }

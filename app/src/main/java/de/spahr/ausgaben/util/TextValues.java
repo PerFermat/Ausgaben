@@ -27,7 +27,8 @@ public final class TextValues {
      * ({@code 05-12-2019}); dass sie zweideutig sind, fängt {@link #toUnambiguousDateMillis} ab.
      */
     private static final String[] DATE_PATTERNS = {
-            "yyyy-MM-dd", "dd.MM.yyyy", "yyyy/MM/dd", "MM/dd/yyyy", "dd/MM/yyyy", "dd-MM-yyyy"};
+            "yyyy-MM-dd", "dd.MM.yyyy", "yyyy/MM/dd", "MM/dd/yyyy", "dd/MM/yyyy", "dd-MM-yyyy",
+            "MM-dd-yyyy", "MM/dd/yy", "dd/MM/yy", "dd MMM yyyy", "MMM dd yyyy"};
 
     /**
      * Ein Datum mit Schrägstrichen oder Bindestrichen, dessen erste beide Zahlen einzeln gelesen werden
@@ -180,17 +181,29 @@ public final class TextValues {
         return out;
     }
 
+    /** Ob ein gelesenes Datum in einem Bereich liegt, in dem eine Abrechnung stehen kann. */
+    private static boolean plausibel(Date d) {
+        Calendar c = Calendar.getInstance();
+        c.setTime(d);
+        int year = c.get(Calendar.YEAR);
+        return year >= 1900 && year <= 2100;
+    }
+
     /** Datum → epoch millis zur lokalen Mitternacht; -1 bei Fehler. Toleriert mehrere Formate. */
     public static long toDateMillis(String s) {
         if (s == null || s.isEmpty()) {
             return -1;
         }
         for (String pattern : DATE_PATTERNS) {
+            // Locale.US auch für die Monatsnamen: „Aug", „Dec" – deutsche Belege schreiben Zahlen.
             SimpleDateFormat fmt = new SimpleDateFormat(pattern, Locale.US);
             fmt.setLenient(false);
             try {
                 Date d = fmt.parse(s);
-                if (d == null) {
+                if (d == null || !plausibel(d)) {
+                    // „06/29/22" ginge sonst als Jahr 22 durch das Muster MM/dd/yyyy, weil
+                    // SimpleDateFormat die Stellenzahl des Jahres nicht erzwingt – und das folgende
+                    // Muster MM/dd/yy käme nie zum Zug.
                     continue;
                 }
                 Calendar cal = Calendar.getInstance();

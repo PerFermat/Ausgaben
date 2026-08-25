@@ -774,4 +774,6 @@
     <string name="statement_rules_position">Welche Zahl der Zeile</string>
     <string name="statement_rules_last_number">die letzte</string>
     <string name="statement_rules_first_number">die erste (Tabellenspalte)</string>
+    <string name="statement_rules_nth_right">die %1$d. von rechts</string>
+    <string name="statement_rules_nth_left">die %1$d. von links</string>
 </resources>

@@ -107,11 +107,12 @@ public class StatementDraft implements Parcelable {
         if (failure != 0) {
             return failure;
         }
-        if (isin == null || isin.isEmpty()) {
-            return R.string.statement_problem_isin;
-        }
         if (kmyId.isEmpty()) {
-            return R.string.statement_problem_security;
+            // Ohne ISIN kann die App gar nicht suchen; mit einer unbekannten immerhin fragen. Seit die
+            // Zuordnung auch über Kennnummer und Kürzel geht, ist eine fehlende ISIN kein Ausschluss
+            // mehr — sie wird erst zum Mangel, wenn auch sonst nichts passt.
+            return isin == null || isin.isEmpty()
+                    ? R.string.statement_problem_isin : R.string.statement_problem_security;
         }
         if (action == null) {
             return R.string.statement_problem_action;

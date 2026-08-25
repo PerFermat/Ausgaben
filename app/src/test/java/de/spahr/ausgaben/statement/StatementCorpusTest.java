@@ -254,6 +254,69 @@ public class StatementCorpusTest {
     }
 
     /**
+     * Dasselbe, aber nur mit den <b>jüngsten</b> Abrechnungen je Bank und Art.
+     *
+     * <p>Der Bestand deckt zehn Jahre ab, und eine Bank steht darin mit fünf Beleggenerationen. Ein
+     * Nutzer bekommt aber nur, was seine Bank heute verschickt — er lernt an einem aktuellen Beleg und
+     * liest damit den nächsten. Diese Zahl sagt, wie gut das geht; die über den ganzen Bestand sagt, wie
+     * gut eine Vorlage auch die Belege von vorgestern noch trägt.</p>
+     */
+    @Test
+    public void nurDieJuengstenAbrechnungen() throws Exception {
+        List<PpCorpus.Case> juengste = juengste(corpus(), 3);
+        Map<String, String> jeBank = durchlauf(juengste, false);
+        int ok = 0;
+        Map<String, int[]> proBank = new TreeMap<>();
+        StringBuilder gruende = new StringBuilder();
+        for (PpCorpus.Case c : juengste) {
+            String grund = jeBank.get(c.bank + '/' + c.file);
+            int[] z = proBank.computeIfAbsent(c.bank, k -> new int[2]);
+            z[0]++;
+            if (grund == null) {
+                ok++;
+                z[1]++;
+            } else {
+                gruende.append(String.format("%-34s %-28s %s%n", c.bank, c.file, grund));
+            }
+        }
+        int voll = 0;
+        int gar = 0;
+        StringBuilder bericht = new StringBuilder();
+        for (Map.Entry<String, int[]> e : proBank.entrySet()) {
+            int[] z = e.getValue();
+            if (z[0] == z[1]) {
+                voll++;
+            }
+            if (z[1] == 0) {
+                gar++;
+            }
+            bericht.append(String.format("%-38s %3d von %3d%n", e.getKey(), z[1], z[0]));
+        }
+        String kopf = "Nur die juengsten drei Abrechnungen je Bank und Art\n"
+                + "Abrechnungen: " + juengste.size()
+                + String.format("   gelesen: %d  (%.1f %%)%n", ok, 100.0 * ok / juengste.size())
+                + "Banken vollstaendig: " + voll + "   gar nicht: " + gar
+                + "   von " + proBank.size() + "\n\n";
+        schreibeBericht(kopf + bericht + "\n--- Fehlschlaege ---\n" + gruende,
+                "statement-aktuell.txt");
+        assertTrue(ok > 0);
+    }
+
+    /** Je Bank und Art die {@code n} jüngsten Abrechnungen. */
+    private static List<PpCorpus.Case> juengste(List<PpCorpus.Case> cases, int n) {
+        Map<String, List<PpCorpus.Case>> gruppen = new LinkedHashMap<>();
+        for (PpCorpus.Case c : cases) {
+            gruppen.computeIfAbsent(c.bank + '|' + c.kind, k -> new ArrayList<>()).add(c);
+        }
+        List<PpCorpus.Case> out = new ArrayList<>();
+        for (List<PpCorpus.Case> gruppe : gruppen.values()) {
+            gruppe.sort((a, b) -> Long.compare(b.dateMillis, a.dateMillis));
+            out.addAll(gruppe.subList(0, Math.min(n, gruppe.size())));
+        }
+        return out;
+    }
+
+    /**
      * Erst lernen, dann erkennen.
      *
      * @param gemeinsam alle Banken in einem Vorlagenspeicher — dann zeigt sich, ob die Vorlagen einander

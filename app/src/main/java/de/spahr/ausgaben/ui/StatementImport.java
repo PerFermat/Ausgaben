@@ -65,22 +65,34 @@ final class StatementImport {
         });
     }
 
-    /** Wertpapier über die ISIN suchen — erst in den importierten Stammdaten, dann im Gelernten. */
+    /**
+     * Das Wertpapier zur Abrechnung suchen — der Reihe nach: ISIN in den importierten Stammdaten, dann
+     * im Gelernten, dann über die Kennnummer oder das Kürzel eines eigenen Wertpapiers im Text.
+     */
     private static void resolve(AppCompatActivity activity, Repository repository,
                                 PdfText text, Uri source) {
         final String isin = StatementScan.isin(text);
-        if (isin == null) {
-            Toast.makeText(activity, R.string.statement_no_isin, Toast.LENGTH_LONG).show();
-            return;
-        }
-        repository.getSecurityByIsin(isin, security -> {
-            if (security != null) {
-                start(activity, text, source, isin, security.depot, security.kmyId, security.name);
+        repository.getAllSecurities(securities -> {
+            if (isin != null) {
+                Security byIsin = withIsin(securities, isin);
+                if (byIsin != null) {
+                    start(activity, text, source, isin, byIsin.depot, byIsin.kmyId, byIsin.name);
+                    return;
+                }
+                String[] learned = new StatementTemplates(activity).security(isin);
+                if (learned != null) {
+                    start(activity, text, source, isin, learned[0], learned[1], learned[2]);
+                    return;
+                }
+            }
+            // Ohne ISIN oder mit einer unbekannten: kommt eines der eigenen Wertpapiere im Text vor?
+            Security named = namedIn(securities, text);
+            if (named != null) {
+                start(activity, text, source, isin, named.depot, named.kmyId, named.name);
                 return;
             }
-            String[] learned = new StatementTemplates(activity).security(isin);
-            if (learned != null) {
-                start(activity, text, source, isin, learned[0], learned[1], learned[2]);
+            if (isin == null) {
+                Toast.makeText(activity, R.string.statement_no_isin, Toast.LENGTH_LONG).show();
                 return;
             }
             // Die ISIN ist unbekannt – in KMyMoney ist bei diesem Papier das Feld „Identifikation" nicht
@@ -88,6 +100,70 @@ final class StatementImport {
             // könnte, also fragt sie einmal und merkt sich die Antwort.
             askForSecurity(activity, repository, text, source, isin);
         });
+    }
+
+    private static Security withIsin(java.util.List<Security> securities, String isin) {
+        for (Security s : securities) {
+            if (isin.equalsIgnoreCase(s.isin.trim())) {
+                return s;
+            }
+        }
+        return null;
+    }
+
+    /**
+     * Welches der <b>eigenen</b> Wertpapiere in diesem Dokument genannt wird — über sein
+     * Identifikationsfeld oder sein Kürzel. {@code null}, wenn keines oder mehrere passen.
+     *
+     * <p>Der Weg für amerikanische Abrechnungen: dort steht keine ISIN, sondern CUSIP und Kürzel
+     * („YOU BOUGHT XBI 78464A870 …"). In KMyMoney ist die Identifikation freier Text und trägt bei einem
+     * US-Papier die CUSIP; das Kürzel steht ohnehin am Wertpapier.</p>
+     *
+     * <p>Umgedreht gesucht — nicht „Kennnummer auslesen und nachschlagen", sondern „kommt eines meiner
+     * Wertpapiere vor". Das erspart Prüfziffernrechnerei und Kürzel-Heuristik: Kandidaten sind allein die
+     * eigenen Bestände, ein dreibuchstabiges Kürzel kann also nicht wild um sich greifen. Passen mehrere,
+     * wird nicht geraten, sondern gefragt.</p>
+     */
+    static Security namedIn(java.util.List<Security> securities, PdfText text) {
+        if (text == null) {
+            return null;
+        }
+        String haystack = normalize(text.text());
+        Security found = null;
+        for (Security s : securities) {
+            if (!mentions(haystack, s.isin, 6) && !mentions(haystack, s.symbol, 3)) {
+                continue;
+            }
+            if (found != null && !found.kmyId.equals(s.kmyId)) {
+                return null;   // mehrdeutig – dann lieber fragen
+            }
+            found = s;
+        }
+        return found;
+    }
+
+    /** Ob die Kennung als eigenes Wort im Text vorkommt; zu kurze werden nicht gesucht. */
+    private static boolean mentions(String haystack, String needle, int minLength) {
+        if (needle == null) {
+            return false;
+        }
+        // normalize() polstert den Heuhaufen bereits mit Leerzeichen; die Nadel wird deshalb getrimmt
+        // und hier einmal eingefasst, damit sie als eigenes Wort gesucht wird.
+        String n = normalize(needle).trim();
+        return n.replace(" ", "").length() >= minLength && haystack.contains(' ' + n + ' ');
+    }
+
+    /**
+     * Kleinschreibung, und alles außer Buchstaben und Ziffern zu Leerzeichen. Damit findet sich ein
+     * Kürzel wie {@code XAD1.DE} auch dann, wenn die Bank es anders trennt, und die Suche stolpert nicht
+     * über Satzzeichen am Wortrand.
+     */
+    private static String normalize(String s) {
+        StringBuilder out = new StringBuilder(" ");
+        for (char c : s.toLowerCase(java.util.Locale.ROOT).toCharArray()) {
+            out.append(Character.isLetterOrDigit(c) ? c : ' ');
+        }
+        return out.append(' ').toString();
     }
 
     /**
@@ -108,9 +184,18 @@ final class StatementImport {
      */
     static void pickSecurity(AppCompatActivity activity, Repository repository, String isin,
                              Repository.Callback<Security> onPicked) {
+        pickSecurity(activity, repository, isin, isin, onPicked);
+    }
+
+    /**
+     * @param label   was im Titel steht — die ISIN, oder der Dateiname, wenn der Beleg keine trägt
+     * @param remember ISIN, unter der die Wahl gemerkt wird; {@code null}, wenn es nichts zu merken gibt
+     */
+    static void pickSecurity(AppCompatActivity activity, Repository repository, String label,
+                             String remember, Repository.Callback<Security> onPicked) {
         repository.getAllSecurities(securities -> {
             if (securities.isEmpty()) {
-                Toast.makeText(activity, activity.getString(R.string.statement_no_security, isin),
+                Toast.makeText(activity, activity.getString(R.string.statement_no_security, label),
                         Toast.LENGTH_LONG).show();
                 return;
             }
@@ -125,11 +210,11 @@ final class StatementImport {
             // Die ISIN steht im Titel, nicht als Nachricht: ein Dialog zeigt entweder eine Nachricht
             // oder eine Liste – mit setMessage bliebe die Auswahl unsichtbar.
             new AppDialog(activity)
-                    .setTitle(activity.getString(R.string.statement_pick_security, isin))
+                    .setTitle(activity.getString(R.string.statement_pick_security, label))
                     .setItems(labels, (d, which) -> {
                         Security s = securities.get(which);
                         new StatementTemplates(activity)
-                                .rememberSecurity(isin, s.depot, s.kmyId, s.name);
+                                .rememberSecurity(remember, s.depot, s.kmyId, s.name);
                         onPicked.onResult(s);
                     })
                     .setNegativeButton(R.string.cancel, null)
@@ -249,7 +334,7 @@ final class StatementImport {
             return d;
         }
         d.isin = StatementScan.isin(text);
-        assign(d, store, securities);
+        assign(d, store, securities, text);
 
         StatementTemplate template = store.match(text);
         StatementTemplate.Extraction e = template != null ? template.apply(text) : templateFree(text);
@@ -271,26 +356,31 @@ final class StatementImport {
         return d;
     }
 
-    /** Wertpapier über die ISIN — erst in den importierten Stammdaten, dann im Gelernten. */
+    /** Wertpapier über die ISIN, das Gelernte oder eine im Text genannte eigene Kennung. */
     private static void assign(StatementDraft d, StatementTemplates store,
-                               java.util.List<Security> securities) {
-        if (d.isin == null) {
-            return;
-        }
-        for (Security s : securities) {
-            if (d.isin.equalsIgnoreCase(s.isin)) {
-                d.depot = s.depot;
-                d.kmyId = s.kmyId;
-                d.securityName = s.name;
+                               java.util.List<Security> securities, PdfText text) {
+        if (d.isin != null) {
+            Security byIsin = withIsin(securities, d.isin);
+            if (byIsin != null) {
+                take(d, byIsin.depot, byIsin.kmyId, byIsin.name);
+                return;
+            }
+            String[] learned = store.security(d.isin);
+            if (learned != null) {
+                take(d, learned[0], learned[1], learned[2]);
                 return;
             }
         }
-        String[] learned = store.security(d.isin);
-        if (learned != null) {
-            d.depot = learned[0];
-            d.kmyId = learned[1];
-            d.securityName = learned[2];
+        Security named = namedIn(securities, text);
+        if (named != null) {
+            take(d, named.depot, named.kmyId, named.name);
         }
+    }
+
+    private static void take(StatementDraft d, String depot, String kmyId, String name) {
+        d.depot = depot;
+        d.kmyId = kmyId;
+        d.securityName = name;
     }
 
     /**

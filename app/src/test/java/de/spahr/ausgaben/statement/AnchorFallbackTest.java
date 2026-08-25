@@ -210,6 +210,63 @@ public class AnchorFallbackTest {
         assertEquals(1950.0, kurswert.read(tabelle()), 1e-9);
     }
 
+    // ---- Tabellenzeilen: die n-te Zahl ----
+
+    /**
+     * Eine amerikanische Wertpapierabrechnung: Kopfzeile mit Spaltennamen, darunter die Zeile mit acht
+     * Angaben. Der Kurs ist die letzte Zahl, die Menge die vorletzte — ohne die Stelle in der Zeile wäre
+     * sie nicht auszudrücken.
+     */
+    private static PdfText usAbrechnung() {
+        return StatementFixtures.of(
+                "We are pleased to confirm the following transaction",
+                "ACTION SYMBOL CUSIP DATE DATE TYPE QUANTITY PRICE",
+                "YOU BOUGHT XBI 78464A870 06/29/22 07/01/22 MARGIN 5 $74.33000",
+                "SPDR SER TR S&P BIOTECH ETF PRINCIPAL $371.65",
+                "UNSOLICITED NET AMOUNT $371.65");
+    }
+
+    @Test
+    public void dieVorletzteZahlDerZeile() {
+        AnchorRule menge = new AnchorRule(Arrays.asList("MARGIN"),
+                AnchorRule.Direction.SAME_LINE, false, "", AnchorRule.Position.LAST, 2);
+        assertEquals(5.0, menge.read(usAbrechnung()), 1e-9);
+
+        AnchorRule kurs = kette("MARGIN");
+        assertEquals(74.33, kurs.read(usAbrechnung()), 1e-9);
+    }
+
+    /** Der Lerner findet die Stelle selbst — er zählt von aussen nach innen. */
+    @Test
+    public void derLernerZaehltInDieZeileHinein() {
+        TemplateLearner.Known k = new TemplateLearner.Known();
+        k.action = StatementScan.BUY;
+        k.shares = 5.0;
+        k.price = 74.33;
+        k.netCents = 37165L;
+        StatementTemplate t = TemplateLearner.learn(usAbrechnung(), k);
+
+        StatementTemplate.Extraction e = t.apply(usAbrechnung());
+        assertEquals(5.0, e.shares, 1e-9);
+        assertEquals(74.33, e.price, 1e-9);
+        assertEquals(Long.valueOf(37165L), e.netCents);
+    }
+
+    /**
+     * Die Währung wird aus dem Text <b>hinter</b> der Beschriftung gelernt, nicht aus der ganzen Zeile.
+     * Sonst nähme „UNSOLICITED NET AMOUNT $371.65" das Wort „NET" für ein Währungskürzel und fände den
+     * Betrag nie wieder.
+     */
+    @Test
+    public void keinEnglischesWortAlsWaehrung() {
+        TemplateLearner.Known k = new TemplateLearner.Known();
+        k.action = StatementScan.BUY;
+        k.netCents = 37165L;
+        StatementTemplate t = TemplateLearner.learn(usAbrechnung(), k);
+        assertEquals("", t.rule(StatementTemplate.Field.NET).currency);
+        assertEquals(Long.valueOf(37165L), t.apply(usAbrechnung()).netCents);
+    }
+
     // ---- Vorlage: Treffer zählen und Ketten ergänzen ----
 
     private static StatementTemplate template(Map<StatementTemplate.Field, AnchorRule> rules) {

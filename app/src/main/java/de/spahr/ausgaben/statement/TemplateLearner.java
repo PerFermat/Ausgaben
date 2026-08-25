@@ -36,6 +36,9 @@ public final class TemplateLearner {
     /** Höchstens so viele Zeilen werden zu einer Summe zusammengesucht (Steuer + Soli + Kirchensteuer). */
     private static final int MAX_SUMMANDS = 3;
 
+    /** Bis zu dieser Stelle wird in einer Zeile nach dem Wert gesucht (siehe {@code stelleIn}). */
+    private static final int MAX_STELLE = 3;
+
     private TemplateLearner() {
     }
 
@@ -137,21 +140,20 @@ public final class TemplateLearner {
         String currency = "";
         AnchorRule.Direction direction = AnchorRule.Direction.SAME_LINE;
         AnchorRule.Position position = AnchorRule.Position.LAST;
+        int nthFound = 1;
         List<PdfText.Line> lines = text.lines();
         for (int i = 0; i < lines.size(); i++) {
-            // Zuerst die letzte Zahl – der Regelfall. Trifft sie nicht, die erste: unter einer
-            // Spaltenüberschrift führt der Wert die Zeile an („EUR 2.000,00 8,75 % METALCORP …").
-            AnchorRule.Position where = AnchorRule.Position.LAST;
-            Double found = AnchorRule.lastNumber(lines.get(i).text());
-            if (found == null || Math.abs(found - value) > epsilon) {
-                where = AnchorRule.Position.FIRST;
-                found = AnchorRule.firstNumber(lines.get(i).text());
-            }
-            if (found == null || Math.abs(found - value) > epsilon) {
+            // Von aussen nach innen: erst die letzte Zahl – der Regelfall –, dann die erste (unter einer
+            // Spaltenüberschrift führt der Wert die Zeile an), dann die zweitletzte und so fort. In einer
+            // Tabellenzeile steht der gesuchte Wert weiter innen: „… MARGIN 5 $74.33000" nennt den Kurs
+            // zuletzt und die Menge davor.
+            int[] stelle = stelleIn(lines.get(i).text(), value, epsilon);
+            if (stelle == null) {
                 continue;
             }
-            // Die Währung der Wertzeile – nur festgehalten, wo sie feststeht (siehe learn()).
-            String lineCurrency = bindCurrency ? AnchorRule.currencyOf(lines.get(i).text()) : "";
+            AnchorRule.Position where = stelle[0] == 1
+                    ? AnchorRule.Position.FIRST : AnchorRule.Position.LAST;
+            int nth = stelle[1];
             // Beschriftung in derselben Zeile — erst die unmittelbar vor dem Wert, dann die am
             // Zeilenanfang. Beides wird gebraucht: „Beispielstraße 1 DATUM 13.05.2019" gibt nur die erste
             // her, „Stückzinsen für 153 Tage per 26.11.2015 73,16-" nur die zweite. Hat die Zeile keine
@@ -161,21 +163,51 @@ public final class TemplateLearner {
             if (own != null) {
                 anchor = own;
                 direction = AnchorRule.Direction.SAME_LINE;
-                currency = lineCurrency;
+                // Die Währung aus dem Text hinter der Beschriftung – genau dem, den die Regel beim Lesen
+                // ansieht. Nähme man die ganze Zeile, lernte „UNSOLICITED NET AMOUNT $371.65" die
+                // Währung „NET" (drei Großbuchstaben) und fände sie nie wieder.
+                currency = bindCurrency
+                        ? AnchorRule.currencyOf(AnchorRule.afterAnchorText(lines.get(i).text(), own))
+                        : "";
                 position = where;
+                nthFound = nth;
             } else if (i > 0) {
                 String above = labelOf(lines.get(i - 1).text());
                 if (isUsable(above, used, where)) {
                     anchor = above;
                     direction = AnchorRule.Direction.LINE_BELOW;
-                    currency = lineCurrency;
+                    currency = bindCurrency ? AnchorRule.currencyOf(lines.get(i).text()) : "";
                     position = where;
+                    nthFound = nth;
                 }
             }
         }
         // Mehrere Fundstellen: die unterste gewinnt (die Schleife überschreibt) – in einer Abrechnung
         // steht die Endsumme unten, und sie ist die Zahl, die auch mit Gebühren noch stimmt.
-        return anchor == null ? null : AnchorRule.single(anchor, direction, currency, position);
+        return anchor == null ? null
+                : AnchorRule.single(anchor, direction, currency, position, nthFound);
+    }
+
+    /**
+     * Wo der Wert in der Zeile steht: {@code {0 = von rechts | 1 = von links, Stelle ab 1}}, oder
+     * {@code null}, wenn er dort nicht vorkommt.
+     *
+     * <p>Gesucht wird von aussen nach innen und höchstens bis zur dritten Stelle. Weiter zu zählen wäre
+     * gefährlich: je tiefer, desto grösser die Aussicht, dass irgendeine Zahl der Zeile zufällig passt
+     * und eine Regel entsteht, die beim nächsten Beleg etwas anderes meint.</p>
+     */
+    private static int[] stelleIn(String line, double value, double epsilon) {
+        for (int nth = 1; nth <= MAX_STELLE; nth++) {
+            for (int vonLinks = 0; vonLinks <= 1; vonLinks++) {
+                AnchorRule.Position where = vonLinks == 1
+                        ? AnchorRule.Position.FIRST : AnchorRule.Position.LAST;
+                Double found = AnchorRule.numberAt(line, where, nth);
+                if (found != null && Math.abs(found - value) <= epsilon) {
+                    return new int[]{vonLinks, nth};
+                }
+            }
+        }
+        return null;
     }
 
     /** Der Wert ist die Summe der letzten Zahlen mehrerer Zeilen (aufgeteilte Steuer). */

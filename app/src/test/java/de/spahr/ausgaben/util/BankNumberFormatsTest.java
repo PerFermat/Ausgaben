@@ -70,6 +70,32 @@ public class BankNumberFormatsTest {
         assertEquals(1839.80185, TextValues.toDecimal("1.839,80185"), 1e-9);
     }
 
+    // ---- Datumsangaben ----
+
+    @Test
+    public void amerikanischeUndEnglischeDatumsformate() {
+        // 06/29/22 – zweistelliges Jahr, amerikanische Reihenfolge. Eindeutig, weil 29 kein Monat ist.
+        assertEquals(TextValues.toDateMillis("2022-06-29"),
+                TextValues.toUnambiguousDateMillis("06/29/22"));
+        assertEquals(TextValues.toDateMillis("2025-02-28"),
+                TextValues.toUnambiguousDateMillis("02-28-2025"));
+        assertEquals(TextValues.toDateMillis("2023-08-30"),
+                TextValues.toUnambiguousDateMillis("30 Aug 2023"));
+    }
+
+    @Test
+    public void zweideutigeDatumsangabenBleibenAbgelehnt() {
+        // 06/07/22 kann der 6. Juli oder der 7. Juni sein – dann lieber keines.
+        assertEquals(-1, TextValues.toUnambiguousDateMillis("06/07/22"));
+        assertEquals(-1, TextValues.toUnambiguousDateMillis("05-12-2019"));
+    }
+
+    @Test
+    public void einJahrAusserhalbJederAbrechnungZaehltNicht() {
+        // Ohne Plausibilitätsprüfung ginge „06/29/22" als Jahr 22 durch das Muster MM/dd/yyyy.
+        assertEquals(-1, TextValues.toDateMillis("06/29/0022"));
+    }
+
     // ---- Was abgelehnt bleiben muss ----
 
     @Test

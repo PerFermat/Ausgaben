@@ -234,6 +234,9 @@ public class StatementTemplates {
                 ro.put("d", r.direction.name());
                 ro.put("s", r.sum);
                 ro.put("c", r.currency);
+                if (r.nth > 1) {
+                    ro.put("n", r.nth);
+                }
                 if (r.position == AnchorRule.Position.FIRST) {
                     // Nur schreiben, wenn es vom Regelfall abweicht – Bestandsvorlagen bleiben so, wie
                     // sie sind, und beim Lesen gilt ohne Angabe die letzte Zahl.
@@ -280,7 +283,7 @@ public class StatementTemplates {
                 AnchorRule.Position pos = "FIRST".equals(ro.optString("p", ""))
                         ? AnchorRule.Position.FIRST : AnchorRule.Position.LAST;
                 rules.put(field, new AnchorRule(anchors, dir, ro.optBoolean("s", false),
-                        ro.optString("c", ""), pos));
+                        ro.optString("c", ""), pos, ro.optInt("n", 1)));
             }
         }
         return new StatementTemplate(o.optString("a", ""), rules);

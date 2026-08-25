@@ -231,11 +231,10 @@ public class StatementBatchActivity extends LocalizedActivity {
     private void edit(int index) {
         StatementDraft d = drafts.get(index);
         if (d.kmyId.isEmpty()) {
-            if (d.isin == null) {
-                Toast.makeText(this, R.string.statement_problem_isin, Toast.LENGTH_LONG).show();
-                return;
-            }
-            StatementImport.pickSecurity(this, repository, d.isin, s -> {
+            // Auch ohne ISIN lässt sich wählen – nur gemerkt werden kann die Wahl dann nicht, es fehlt
+            // der Schlüssel dafür. Im Titel steht dann der Dateiname.
+            String label = d.isin == null ? d.fileName : d.isin;
+            StatementImport.pickSecurity(this, repository, label, d.isin, s -> {
                 d.depot = s.depot;
                 d.kmyId = s.kmyId;
                 d.securityName = s.name;

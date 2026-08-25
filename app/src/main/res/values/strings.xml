@@ -775,4 +775,6 @@
     <string name="statement_rules_position">Which number on the line</string>
     <string name="statement_rules_last_number">the last one</string>
     <string name="statement_rules_first_number">the first one (column)</string>
+    <string name="statement_rules_nth_right">the %1$d. from the right</string>
+    <string name="statement_rules_nth_left">the %1$d. from the left</string>
 </resources>

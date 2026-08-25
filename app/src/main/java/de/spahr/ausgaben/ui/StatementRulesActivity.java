@@ -194,9 +194,7 @@ public class StatementRulesActivity extends LocalizedActivity {
             PickerAdapters.plain(direction, Arrays.asList(
                     getString(R.string.statement_rules_same_line),
                     getString(R.string.statement_rules_line_below)));
-            PickerAdapters.plain(position, Arrays.asList(
-                    getString(R.string.statement_rules_last_number),
-                    getString(R.string.statement_rules_first_number)));
+            PickerAdapters.plain(position, stellen());
 
             AnchorRule rule = template.rule(field);
             if (rule != null) {
@@ -206,12 +204,10 @@ public class StatementRulesActivity extends LocalizedActivity {
                         : R.string.statement_rules_same_line), false);
                 currency.setText(rule.currency);
                 sum.setChecked(rule.sum);
-                position.setText(getString(rule.position == AnchorRule.Position.FIRST
-                        ? R.string.statement_rules_first_number
-                        : R.string.statement_rules_last_number), false);
+                position.setText(stelle(rule.position, rule.nth), false);
             } else {
                 direction.setText(getString(R.string.statement_rules_same_line), false);
-                position.setText(getString(R.string.statement_rules_last_number), false);
+                position.setText(stelle(AnchorRule.Position.LAST, 1), false);
             }
             view.findViewById(R.id.btnAddAnchor).setOnClickListener(v -> {
                 readBack();
@@ -284,17 +280,50 @@ public class StatementRulesActivity extends LocalizedActivity {
             boolean below = getString(R.string.statement_rules_line_below)
                     .contentEquals(direction.getText() == null ? "" : direction.getText());
             String code = currency.getText() == null ? "" : currency.getText().toString().trim();
-            boolean first = getString(R.string.statement_rules_first_number)
-                    .contentEquals(position.getText() == null ? "" : position.getText());
+            String gewaehlt = position.getText() == null ? "" : position.getText().toString();
+            AnchorRule.Position wo = AnchorRule.Position.LAST;
+            int nth = 1;
+            for (int i = 1; i <= MAX_STELLE; i++) {
+                if (stelle(AnchorRule.Position.FIRST, i).equals(gewaehlt)) {
+                    wo = AnchorRule.Position.FIRST;
+                    nth = i;
+                } else if (stelle(AnchorRule.Position.LAST, i).equals(gewaehlt)) {
+                    nth = i;
+                }
+            }
             return new AnchorRule(kept,
                     below ? AnchorRule.Direction.LINE_BELOW : AnchorRule.Direction.SAME_LINE,
-                    sum.isChecked(), code,
-                    first ? AnchorRule.Position.FIRST : AnchorRule.Position.LAST);
+                    sum.isChecked(), code, wo, nth);
         }
 
         Field field() {
             return field;
         }
+    }
+
+    /** Bis zu dieser Stelle lässt sich von Hand wählen — so weit sucht auch der Lerner. */
+    private static final int MAX_STELLE = 3;
+
+    /** Die Auswahl „welche Zahl der Zeile", von aussen nach innen. */
+    private List<String> stellen() {
+        List<String> out = new ArrayList<>();
+        for (int i = 1; i <= MAX_STELLE; i++) {
+            out.add(stelle(AnchorRule.Position.LAST, i));
+        }
+        for (int i = 1; i <= MAX_STELLE; i++) {
+            out.add(stelle(AnchorRule.Position.FIRST, i));
+        }
+        return out;
+    }
+
+    /** Die Beschriftung zu einer Stelle: „die letzte", „die 2. von rechts", „die erste (Spalte)" … */
+    private String stelle(AnchorRule.Position wo, int nth) {
+        if (nth == 1) {
+            return getString(wo == AnchorRule.Position.FIRST
+                    ? R.string.statement_rules_first_number : R.string.statement_rules_last_number);
+        }
+        return getString(wo == AnchorRule.Position.FIRST
+                ? R.string.statement_rules_nth_left : R.string.statement_rules_nth_right, nth);
     }
 
     private static void dim(View button, boolean usable) {

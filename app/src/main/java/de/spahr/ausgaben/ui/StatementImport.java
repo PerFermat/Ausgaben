@@ -19,6 +19,8 @@ import de.spahr.ausgaben.pdf.PdfText;
 import de.spahr.ausgaben.pdf.PdfTextExtractor;
 import de.spahr.ausgaben.settings.StatementTemplates;
 import de.spahr.ausgaben.statement.StatementScan;
+import de.spahr.ausgaben.statement.bank.BankReader;
+import de.spahr.ausgaben.statement.bank.BankReaders;
 import de.spahr.ausgaben.statement.StatementTemplate;
 
 /**
@@ -236,9 +238,7 @@ final class StatementImport {
     private static void start(AppCompatActivity activity, PdfText text, Uri source, String isin,
                               String depot, String kmyId, String name) {
         StatementTemplates store = new StatementTemplates(activity);
-        StatementTemplate template = store.match(text);
-        StatementTemplate.Extraction e = template != null
-                ? template.apply(text) : templateFree(text);
+        StatementTemplate.Extraction e = extract(store, text);
 
         Intent i = new Intent(activity, SecurityTxEditActivity.class);
         i.putExtra(SecurityTxEditActivity.EXTRA_DEPOT, depot);
@@ -336,8 +336,7 @@ final class StatementImport {
         d.isin = StatementScan.isin(text);
         assign(d, store, securities, text);
 
-        StatementTemplate template = store.match(text);
-        StatementTemplate.Extraction e = template != null ? template.apply(text) : templateFree(text);
+        StatementTemplate.Extraction e = extract(store, text);
         d.action = e.action;
         d.dateMillis = e.dateMillis;
         d.shares = e.shares;
@@ -445,6 +444,65 @@ final class StatementImport {
         }
         String last = uri.getLastPathSegment();
         return last == null ? "" : last;
+    }
+
+    /**
+     * Was in dieser Abrechnung steht — für beide Wege dieselbe Reihenfolge:
+     *
+     * <ol>
+     *   <li>ein fest programmierter Leser für diese Bank ({@link BankReaders}), sofern es einen gibt;</li>
+     *   <li>die gelernte Vorlage für alles, was er offen gelassen hat;</li>
+     *   <li>ohne Vorlage nur noch der Vorschlag für die Art und die ISIN.</li>
+     * </ol>
+     *
+     * <p>Der Leser hat Vorrang, weil er die Abrechnung dieser Bank kennt, statt sie sich anhand von
+     * Beschriftungen zu erschließen. Er verdrängt die Vorlage aber nicht: was er nicht liefert, trägt sie
+     * nach. Wer sich für seine Bank zusätzlich eine Regel angelegt hat, verliert sie also nicht.</p>
+     */
+    static StatementTemplate.Extraction extract(StatementTemplates store, PdfText text) {
+        BankReader reader = BankReaders.find(text);
+        if (reader == null) {
+            StatementTemplate template = store.match(text);
+            return template != null ? template.apply(text) : templateFree(text);
+        }
+        StatementTemplate.Extraction e = new StatementTemplate.Extraction();
+        reader.read(text, e);
+        StatementTemplate template = store.match(text);
+        if (template != null) {
+            ergaenze(e, template.apply(text));
+        }
+        if (e.action == null) {
+            e.action = StatementScan.guessAction(text);
+        }
+        if (e.isin == null) {
+            e.isin = StatementScan.isin(text);
+        }
+        return e;
+    }
+
+    /** Trägt aus {@code von} nur das nach, was in {@code e} noch offen ist. */
+    private static void ergaenze(StatementTemplate.Extraction e, StatementTemplate.Extraction von) {
+        if (e.action == null) {
+            e.action = von.action;
+        }
+        if (e.dateMillis <= 0) {
+            e.dateMillis = von.dateMillis;
+        }
+        if (e.shares == null) {
+            e.shares = von.shares;
+        }
+        if (e.price == null) {
+            e.price = von.price;
+        }
+        if (e.feeCents == null) {
+            e.feeCents = von.feeCents;
+        }
+        if (e.netCents == null) {
+            e.netCents = von.netCents;
+        }
+        if (e.grossCents == null) {
+            e.grossCents = von.grossCents;
+        }
     }
 
     /** Ohne gelernte Vorlage bleibt der Aktions-Vorschlag und die ISIN — mehr wird nicht geraten. */

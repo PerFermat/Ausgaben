@@ -1,5 +1,6 @@
 package de.spahr.ausgaben.statement;
 
+import static org.junit.Assert.assertFalse;
 import static org.junit.Assert.assertTrue;
 
 import android.content.Context;
@@ -24,6 +25,8 @@ import java.util.TreeMap;
 
 import de.spahr.ausgaben.pdf.PdfText;
 import de.spahr.ausgaben.settings.StatementTemplates;
+import de.spahr.ausgaben.statement.bank.BankReader;
+import de.spahr.ausgaben.statement.bank.BankReaders;
 import de.spahr.ausgaben.util.TextValues;
 
 /**
@@ -254,6 +257,87 @@ public class StatementCorpusTest {
     }
 
     /**
+     * Kein fest programmierter Leser darf sich für einen fremden Beleg zuständig fühlen.
+     *
+     * <p>Das ist die einzige Art, wie ein Leser wirklich Schaden anrichten kann: sagt er zu Unrecht zu,
+     * liest er mit den Beschriftungen seiner Bank durch ein fremdes Dokument und legt stillschweigend
+     * falsche Zahlen vor. Sagt er zu Unrecht ab, übernimmt die Ankerlogik — das ist der harmlose
+     * Fehler.</p>
+     *
+     * <p>Der Bestand mit 2675 Belegen aus 132 Häusern ist der schärfste Prüfstein dafür, den es gibt.
+     * Ein Treffer zählt nur, wenn der Ordner der Bank den Kurznamen des Lesers trägt.</p>
+     */
+    @Test
+    public void keinLeserGreiftNachFremdenBelegen() throws Exception {
+        StringBuilder daneben = new StringBuilder();
+        int eigene = 0;
+        for (PpCorpus.Case c : corpus()) {
+            BankReader reader = BankReaders.find(PpCorpus.text(c));
+            if (reader == null) {
+                continue;
+            }
+            if (c.bank.contains(reader.id())) {
+                eigene++;
+            } else {
+                daneben.append(reader.id()).append(" greift nach ")
+                        .append(c.bank).append('/').append(c.file).append('\n');
+            }
+        }
+        assertTrue("Leser greifen nach fremden Belegen:\n" + daneben, daneben.length() == 0);
+        assertTrue("kein einziger eigener Beleg erkannt - stimmt das matches noch?", eigene > 0);
+    }
+
+    /**
+     * Wie weit trägt ein fest programmierter Leser über die eigenen Testbelege hinaus?
+     *
+     * <p>Der Leser ist aus echten Abrechnungen geschrieben, nicht aus diesem Bestand — der steht unter
+     * der EPL und taugt nicht als Vorlage für Code. Zum <b>Messen</b> ist er der beste Prüfstein, den es
+     * gibt: er enthält Beleggenerationen aus zehn Jahren, die keiner von uns je gesehen hat.</p>
+     *
+     * <p>Der Bericht sagt, wie viele davon der Leser vollständig richtig liest. Bleibt die Zahl niedrig,
+     * heißt das nicht, dass der Leser schlecht ist — er ist auf die heutigen Belege geschrieben —,
+     * sondern dass er nicht rückwärts altert. Nachbessern lässt sich das nur mit einem echten Beleg.</p>
+     */
+    @Test
+    public void wieWeitTraegtEinLeser() throws Exception {
+        Map<String, int[]> proBank = new TreeMap<>();
+        StringBuilder gruende = new StringBuilder();
+        for (PpCorpus.Case c : corpus()) {
+            PdfText text = PpCorpus.text(c);
+            BankReader reader = BankReaders.find(text);
+            if (reader == null) {
+                continue;
+            }
+            StatementTemplate.Extraction e = new StatementTemplate.Extraction();
+            reader.read(text, e);
+            int[] z = proBank.computeIfAbsent(reader.id(), k -> new int[2]);
+            z[0]++;
+            String grund = c.kind.equals(e.action) ? pruefe(c, e) : "Art " + e.action + " statt " + c.kind;
+            if (grund == null) {
+                z[1]++;
+            } else {
+                gruende.append(String.format("%-34s %s%n", c.file, grund));
+            }
+        }
+        StringBuilder bericht = new StringBuilder("Fest programmierte Leser am Bestand\n\n");
+        for (Map.Entry<String, int[]> e : proBank.entrySet()) {
+            int[] z = e.getValue();
+            bericht.append(String.format("%-12s %3d von %3d  (%.1f %%)%n", e.getKey(), z[1], z[0],
+                    100.0 * z[1] / z[0]));
+        }
+        schreibeBericht(bericht + "\n--- Fehlschlaege ---\n" + gruende, "statement-leser.txt");
+        assertFalse("kein Leser hat einen Beleg beansprucht", proBank.isEmpty());
+        // Die Untergrenze fängt den kaputten Leser, nicht den unvollständigen: wer neu dazukommt, ist
+        // aus einem heutigen Beleg geschrieben und muss die Formen von vor zehn Jahren nicht kennen.
+        // Der Bericht hält den tatsächlichen Stand fest — die ING liegt dort bei 46 von 46.
+        for (Map.Entry<String, int[]> e : proBank.entrySet()) {
+            int[] z = e.getValue();
+            assertTrue(e.getKey() + " liest nur " + z[1] + " von " + z[0] + " – kaputt?",
+                    z[1] * 2 >= z[0]);
+        }
+    }
+
+    /**
      * Dasselbe, aber nur mit den <b>jüngsten</b> Abrechnungen je Bank und Art.
      *
      * <p>Der Bestand deckt zehn Jahre ab, und eine Bank steht darin mit fünf Beleggenerationen. Ein
@@ -445,7 +529,11 @@ public class StatementCorpusTest {
         if (!c.kind.equals(t.action)) {
             return "Art " + t.action + " statt " + c.kind;
         }
-        StatementTemplate.Extraction e = t.apply(text);
+        return pruefe(c, t.apply(text));
+    }
+
+    /** Derselbe Vergleich, aber auf dem fertigen Ergebnis — so lässt sich auch ein Leser messen. */
+    private static String pruefe(PpCorpus.Case c, StatementTemplate.Extraction e) {
         String fehler = geld("Netto", e.netCents, c.netCents);
         if (fehler != null) {
             return fehler;

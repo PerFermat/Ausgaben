@@ -1,0 +1,124 @@
+package de.spahr.ausgaben.statement;
+
+import static org.junit.Assert.assertEquals;
+import static org.junit.Assert.assertNotNull;
+import static org.junit.Assert.assertNull;
+import static org.junit.Assert.assertTrue;
+
+import org.junit.Test;
+
+import java.util.Calendar;
+
+import de.spahr.ausgaben.pdf.PdfText;
+import de.spahr.ausgaben.statement.bank.BankReaders;
+import de.spahr.ausgaben.statement.bank.IngReader;
+
+/**
+ * Der fest programmierte Leser für die ING.
+ *
+ * <p>Der Anspruch ist hier ein anderer als bei der gelernten Ankerlogik: dort zählt, wie weit man ohne
+ * jede Kenntnis der Bank kommt, hier müssen <b>alle</b> Werte stimmen. Ein Leser, der nur die Hälfte
+ * liefert, lohnt den Quelltext nicht — dafür gibt es die Vorlagen.</p>
+ */
+public class IngReaderTest {
+
+    private final IngReader leser = new IngReader();
+
+    private static long tag(int jahr, int monat, int tag) {
+        Calendar c = Calendar.getInstance();
+        c.clear();
+        c.set(jahr, monat - 1, tag);
+        return c.getTimeInMillis();
+    }
+
+    private StatementTemplate.Extraction lies(PdfText text) {
+        assertTrue("erkennt den Beleg nicht", leser.matches(text));
+        StatementTemplate.Extraction e = new StatementTemplate.Extraction();
+        leser.read(text, e);
+        return e;
+    }
+
+    @Test
+    public void kaufAusSparplan() {
+        StatementTemplate.Extraction e = lies(StatementFixtures.ingKauf());
+
+        assertEquals("buy", e.action);
+        // Der Ausführungstag – nicht die Valuta (19.08., nur die Wertstellung des Geldes) und nicht
+        // das Druckdatum (18.08.). Ein Kauf gilt an dem Tag, an dem er ausgeführt wurde.
+        assertEquals(tag(2026, 8, 17), e.dateMillis);
+        assertEquals(6.09607, e.shares, 1e-9);
+        assertEquals(164.04, e.price, 1e-9);
+        assertEquals(Long.valueOf(100_000L), e.netCents);
+        // Kurswert und Endbetrag sind gleich: es fiel nichts an. Das ist eine Auskunft, kein Nichtwissen.
+        assertEquals(Long.valueOf(0L), e.feeCents);
+    }
+
+    @Test
+    public void kaufMitProvision() {
+        StatementTemplate.Extraction e = lies(StatementFixtures.ingKaufMitProvision());
+
+        assertEquals("buy", e.action);
+        // Weder Valuta noch Zahltag stehen da – dann ist der Ausführungstag der richtige.
+        assertEquals(tag(2026, 9, 19), e.dateMillis);
+        assertEquals(3.12345, e.shares, 1e-9);
+        assertEquals(170.50, e.price, 1e-9);
+        assertEquals(Long.valueOf(490L), e.feeCents);
+        assertEquals(Long.valueOf(53_753L), e.netCents);
+    }
+
+    /** Dollar-Papier: der Bruttobetrag steht in USD, gebucht wird der umgerechnete Euro-Betrag. */
+    @Test
+    public void dividendeInFremdwaehrung() {
+        StatementTemplate.Extraction e = lies(StatementFixtures.ingDividende());
+
+        assertEquals("dividend", e.action);
+        assertEquals(tag(2026, 8, 17), e.dateMillis);
+        assertEquals(1839.80185, e.shares, 1e-9);
+        assertNull("eine Dividende hat keinen Stückpreis", e.price);
+        assertEquals(Long.valueOf(90_699L), e.grossCents);
+        // Kapitalertragsteuer 158,73 + Solidaritätszuschlag 8,73.
+        assertEquals(Long.valueOf(16_746L), e.feeCents);
+        assertEquals(Long.valueOf(73_953L), e.netCents);
+        // Die Rechnung muss aufgehen, sonst meldet die Maske einen Widerspruch.
+        assertEquals(e.netCents.longValue(), e.grossCents - e.feeCents);
+    }
+
+    /** Fällt die Valuta mit dem Zahltag zusammen, druckt die Bank die Zeile nicht. */
+    @Test
+    public void dividendeOhneValutaNimmtDenZahltag() {
+        StatementTemplate.Extraction e = lies(StatementFixtures.ingDividendeOhneValuta());
+
+        assertEquals(tag(2026, 8, 17), e.dateMillis);
+        assertEquals(Long.valueOf(73_953L), e.netCents);
+    }
+
+    /**
+     * Innerhalb des Freibetrags wird nichts abgezogen. Die Steuer ist dann <b>0</b> und nicht unbekannt —
+     * genau hier hat die App schon einmal eine gerechnete Steuer gezeigt, die nirgends stand.
+     */
+    @Test
+    public void dividendeImFreibetragHatKeineSteuer() {
+        StatementTemplate.Extraction e = lies(StatementFixtures.ingDividendeOhneSteuer());
+
+        assertEquals("dividend", e.action);
+        assertEquals(tag(2026, 3, 5), e.dateMillis);
+        assertEquals(215.44908, e.shares, 1e-9);
+        assertEquals(Long.valueOf(0L), e.feeCents);
+        assertEquals(Long.valueOf(6_316L), e.grossCents);
+        assertEquals(Long.valueOf(6_316L), e.netCents);
+    }
+
+    /** Die zweite Seite rechnet den Freibetrag durch; keine ihrer Zeilen ist ein Abzug. */
+    @Test
+    public void dieFreibetragsrechnungWirdNichtAlsSteuerGelesen() {
+        StatementTemplate.Extraction e = lies(StatementFixtures.ingDividendeOhneSteuer());
+
+        assertEquals(Long.valueOf(0L), e.feeCents);
+    }
+
+    @Test
+    public void inDerListeGefunden() {
+        assertNotNull(BankReaders.find(StatementFixtures.ingKauf()));
+        assertEquals("ing", BankReaders.find(StatementFixtures.ingKauf()).id());
+    }
+}

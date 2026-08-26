@@ -227,6 +227,9 @@ public class SecurityTxEditActivity extends LocalizedActivity {
         btnShowStatement.setOnClickListener(v -> showStatement());
         detailBox = findViewById(R.id.detailBox);
         calcKeyboard = findViewById(R.id.calcKeyboard);
+        // Im Hochformat haelt der Platzhalter die Hoehe der Tastatur frei, damit das Formular
+        // wie bisher ueber ihr endet; quer schwebt sie darueber und der Platzhalter bleibt weg.
+        calcKeyboard.reserveSpaceWith(findViewById(R.id.calcSpacer));
 
         numberFields.put(Field.SHARES, findViewById(R.id.editShares));
         numberFields.put(Field.PRICE, findViewById(R.id.editPrice));

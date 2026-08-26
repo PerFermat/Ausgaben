@@ -297,6 +297,9 @@ public class BookingEditActivity extends LocalizedActivity {
         editAmount = findViewById(R.id.editAmount);
         amountLayout = findViewById(R.id.amountLayout);
         calcKeyboard = findViewById(R.id.calcKeyboard);
+        // Im Hochformat haelt der Platzhalter die Hoehe der Tastatur frei, damit das Formular
+        // wie bisher ueber ihr endet; quer schwebt sie darueber und der Platzhalter bleibt weg.
+        calcKeyboard.reserveSpaceWith(findViewById(R.id.calcSpacer));
         // Haupt-Betragsfeld an die eigene Rechentastatur binden (Teilbeträge folgen unten über den Binder).
         // Steht der Betrag fest, darf er einen Empfänger vorschlagen – während des Tippens stünde
         // zwischendurch „8" da, wo „80" gemeint ist.

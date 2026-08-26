@@ -1,0 +1,49 @@
+<?xml version="1.0" encoding="utf-8"?>
+<!-- Inhalt der CalcKeyboardView im Querformat. Quer ist Platz in der Breite, nicht in der Höhe: drei
+     Reihen zu sechs Spalten statt fünf Reihen zu vier. Bei quadratischen Tasten wird die Tastatur damit
+     von selbst doppelt so breit wie hoch, und die Tasten werden größer als im Hochformat.
+
+         7   8   9   ,   ×   ⌫
+         4   5   6  ┌─┐  −  ┌──┐
+         1   2   3  │0│  +  │OK│
+                    └─┘     └──┘
+
+     Sechs senkrechte Spalten statt eines Zellenrasters: die doppelt hohen Tasten sind damit schlicht
+     layout_weight="2". Alle Tasten tragen dieselben IDs wie im Hochformat – die Verdrahtung in
+     CalcKeyboardView kennt den Unterschied nicht. -->
+<merge xmlns:android="http://schemas.android.com/apk/res/android">
+
+    <LinearLayout style="@style/CalcColumn">
+        <com.google.android.material.button.MaterialButton android:id="@+id/key7" style="@style/CalcKey.Land" android:text="7" android:tag="7" />
+        <com.google.android.material.button.MaterialButton android:id="@+id/key4" style="@style/CalcKey.Land" android:text="4" android:tag="4" />
+        <com.google.android.material.button.MaterialButton android:id="@+id/key1" style="@style/CalcKey.Land" android:text="1" android:tag="1" />
+    </LinearLayout>
+
+    <LinearLayout style="@style/CalcColumn">
+        <com.google.android.material.button.MaterialButton android:id="@+id/key8" style="@style/CalcKey.Land" android:text="8" android:tag="8" />
+        <com.google.android.material.button.MaterialButton android:id="@+id/key5" style="@style/CalcKey.Land" android:text="5" android:tag="5" />
+        <com.google.android.material.button.MaterialButton android:id="@+id/key2" style="@style/CalcKey.Land" android:text="2" android:tag="2" />
+    </LinearLayout>
+
+    <LinearLayout style="@style/CalcColumn">
+        <com.google.android.material.button.MaterialButton android:id="@+id/key9" style="@style/CalcKey.Land" android:text="9" android:tag="9" />
+        <com.google.android.material.button.MaterialButton android:id="@+id/key6" style="@style/CalcKey.Land" android:text="6" android:tag="6" />
+        <com.google.android.material.button.MaterialButton android:id="@+id/key3" style="@style/CalcKey.Land" android:text="3" android:tag="3" />
+    </LinearLayout>
+
+    <LinearLayout style="@style/CalcColumn">
+        <com.google.android.material.button.MaterialButton android:id="@+id/keyDot" style="@style/CalcKey.Land" android:text="," />
+        <com.google.android.material.button.MaterialButton android:id="@+id/key0" style="@style/CalcKey.Land" android:layout_weight="2" android:text="0" android:tag="0" />
+    </LinearLayout>
+
+    <LinearLayout style="@style/CalcColumn">
+        <com.google.android.material.button.MaterialButton android:id="@+id/keyMul" style="@style/CalcKey.Land.Action" android:text="×" android:tag="*" />
+        <com.google.android.material.button.MaterialButton android:id="@+id/keyMinus" style="@style/CalcKey.Land.Action" android:text="−" android:tag="-" />
+        <com.google.android.material.button.MaterialButton android:id="@+id/keyAdd" style="@style/CalcKey.Land.Action" android:text="+" android:tag="+" />
+    </LinearLayout>
+
+    <LinearLayout style="@style/CalcColumn">
+        <com.google.android.material.button.MaterialButton android:id="@+id/keyDel" style="@style/CalcKey.Land.Action" android:text="⌫" android:contentDescription="@string/calc_delete" />
+        <com.google.android.material.button.MaterialButton android:id="@+id/keyOk" style="@style/CalcKey.Land.Ok" android:layout_weight="2" android:text="@string/calc_ok" />
+    </LinearLayout>
+</merge>

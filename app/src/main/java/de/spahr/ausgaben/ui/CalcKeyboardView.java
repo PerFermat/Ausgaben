@@ -36,9 +36,15 @@ public class CalcKeyboardView extends LinearLayout {
         void onOk(boolean valid);
     }
 
+    /** Seitenverhältnis im Querformat: doppelt so breit wie hoch (drei Reihen, sechs Spalten). */
+    private static final int LAND_ASPECT = 2;
+
     private EditText target;
     private OnOk onOk;
     private boolean allowNegative = false;   // z. B. Bestände-Bewegungen dürfen negativ sein
+
+    /** Der Platzhalter, der im Hochformat die Höhe der Tastatur freihält; {@code null} = keiner. */
+    private View spacer;
 
     public CalcKeyboardView(Context context) {
         super(context);
@@ -51,8 +57,12 @@ public class CalcKeyboardView extends LinearLayout {
     }
 
     private void init(Context context) {
-        setOrientation(VERTICAL);
-        LayoutInflater.from(context).inflate(R.layout.view_calc_keyboard, this, true);
+        // Quer sechs Spalten nebeneinander, hoch fünf Reihen untereinander. Beide Fassungen tragen
+        // dieselben Tasten-IDs; die Verdrahtung darunter kennt den Unterschied nicht.
+        boolean land = isLandscape();
+        setOrientation(land ? HORIZONTAL : VERTICAL);
+        LayoutInflater.from(context).inflate(
+                land ? R.layout.view_calc_keyboard_land : R.layout.view_calc_keyboard, this, true);
 
         int[] valueKeys = {R.id.key0, R.id.key1, R.id.key2, R.id.key3, R.id.key4,
                 R.id.key5, R.id.key6, R.id.key7, R.id.key8, R.id.key9,
@@ -76,6 +86,77 @@ public class CalcKeyboardView extends LinearLayout {
         });
 
         findViewById(R.id.keyOk).setOnClickListener(v -> evaluate());
+    }
+
+    /**
+     * Im Querformat höchstens halbe Bildschirmhöhe, und doppelt so breit wie hoch.
+     *
+     * <p>Quer bedeckte die Tastatur in der Anordnung des Hochformats fast die ganze Seite. Sie wird
+     * deshalb zu einem flachen Feld unten in der Mitte: darüber bleibt das Formular sichtbar, links und
+     * rechts daneben ebenfalls, und dort lässt es sich bedienen.</p>
+     *
+     * <p>Die Aufteilung der Fläche auf die Tasten macht das Layout selbst über Gewichte — hier wird nur
+     * der Rahmen gesetzt. Auch die Zentrierung rechnet diese Klasse nicht: der Eltern-Container stellt
+     * das Kind nach dessen <b>gemessener</b> Breite und der {@code layout_gravity} auf.</p>
+     */
+    @Override
+    protected void onMeasure(int widthSpec, int heightSpec) {
+        if (!isLandscape()) {
+            super.onMeasure(widthSpec, heightSpec);
+            return;
+        }
+        int height = Math.min(getResources().getDisplayMetrics().heightPixels / 2,
+                MeasureSpec.getSize(widthSpec) / LAND_ASPECT);
+        super.onMeasure(
+                MeasureSpec.makeMeasureSpec(height * LAND_ASPECT, MeasureSpec.EXACTLY),
+                MeasureSpec.makeMeasureSpec(height, MeasureSpec.EXACTLY));
+    }
+
+    private boolean isLandscape() {
+        return getResources().getConfiguration().orientation
+                == android.content.res.Configuration.ORIENTATION_LANDSCAPE;
+    }
+
+    /**
+     * Merkt sich den Platzhalter, der im Hochformat die Höhe der Tastatur freihält.
+     *
+     * <p>Dort schwebt die Tastatur nicht, sondern das Formular endet über ihr — wie bisher. Der
+     * Platzhalter sitzt im scrollenden Teil und wächst genau dann, wenn die Tastatur sichtbar ist. So
+     * bleiben alle vorhandenen {@code setVisibility}-Aufrufe unverändert.</p>
+     */
+    public void reserveSpaceWith(View placeholder) {
+        this.spacer = placeholder;
+        updateSpacer();
+    }
+
+    @Override
+    public void setVisibility(int visibility) {
+        super.setVisibility(visibility);
+        updateSpacer();
+    }
+
+    /**
+     * Zieht den Platzhalter nach. Seine Höhe ist die der Tastatur — ein {@code Space} mit
+     * {@code wrap_content} wäre null hoch und hielte gar nichts frei.
+     */
+    private void updateSpacer() {
+        if (spacer == null) {
+            return;
+        }
+        // Quer schwebt die Tastatur über dem Formular – dann ist nichts freizuhalten.
+        boolean brauchtPlatz = getVisibility() == VISIBLE && !isLandscape();
+        if (brauchtPlatz && spacer.getLayoutParams().height != getMeasuredHeight()) {
+            spacer.getLayoutParams().height = getMeasuredHeight();
+            spacer.requestLayout();
+        }
+        spacer.setVisibility(brauchtPlatz ? VISIBLE : GONE);
+    }
+
+    @Override
+    protected void onSizeChanged(int w, int h, int oldW, int oldH) {
+        super.onSizeChanged(w, h, oldW, oldH);
+        // Erst jetzt steht die Höhe fest; beim Einblenden war sie noch unbekannt.
+        updateSpacer();
     }
 
     /** Verbindet die Tastatur mit einem Betragsfeld und unterdrückt dort die System-Tastatur. */
@@ -119,6 +200,12 @@ public class CalcKeyboardView extends LinearLayout {
         kb.attachTo(field);
         kb.setVisibility(GONE);
         container.addView(kb);
+        // Im Dialog sitzt die Tastatur in einem senkrechten LinearLayout; ohne diese Angabe klebte das
+        // quadratische Tastenfeld quer am linken Rand.
+        if (kb.getLayoutParams() instanceof LinearLayout.LayoutParams) {
+            ((LinearLayout.LayoutParams) kb.getLayoutParams()).gravity =
+                    android.view.Gravity.CENTER_HORIZONTAL;
+        }
         field.setOnFocusChangeListener((v, hasFocus) -> {
             if (hasFocus) {
                 kb.attachTo(field);

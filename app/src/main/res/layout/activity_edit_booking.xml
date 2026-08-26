@@ -1,9 +1,18 @@
 <?xml version="1.0" encoding="utf-8"?>
-<LinearLayout xmlns:android="http://schemas.android.com/apk/res/android"
+<!-- FrameLayout als Wurzel, damit die Rechentastatur im Querformat ueber dem Formular
+     schweben kann: dort ist sie ein Quadrat in der Mitte, und links und rechts davon
+     bleibt das Formular sichtbar und scrollbar. Im Hochformat haelt der Platzhalter
+     calcSpacer ihre Hoehe frei, dann steht sie wie bisher unter dem Formular. -->
+<FrameLayout xmlns:android="http://schemas.android.com/apk/res/android"
     xmlns:app="http://schemas.android.com/apk/res-auto"
     android:layout_width="match_parent"
-    android:layout_height="match_parent"
-    android:orientation="vertical">
+    android:layout_height="match_parent">
+
+    <LinearLayout
+        android:layout_width="match_parent"
+        android:layout_height="match_parent"
+        android:orientation="vertical">
+
 
     <com.google.android.material.appbar.MaterialToolbar
         android:id="@+id/toolbar"
@@ -460,12 +469,22 @@
         </LinearLayout>
     </ScrollView>
 
+        <!-- Haelt im Hochformat die Hoehe der Tastatur frei, damit nichts hinter ihr
+             verschwindet; quer bleibt er verborgen. Gesteuert von der Tastatur selbst. -->
+        <Space
+            android:id="@+id/calcSpacer"
+            android:layout_width="match_parent"
+            android:layout_height="wrap_content"
+            android:visibility="gone" />
+    </LinearLayout>
+
     <!-- Eigene Rechentastatur; nur sichtbar, wenn das Betragsfeld aktiv ist. -->
     <de.spahr.ausgaben.ui.CalcKeyboardView
         android:id="@+id/calcKeyboard"
         android:layout_width="match_parent"
         android:layout_height="wrap_content"
+        android:layout_gravity="bottom|center_horizontal"
         android:paddingHorizontal="6dp"
         android:paddingBottom="6dp"
         android:visibility="gone" />
-</LinearLayout>
+</FrameLayout>

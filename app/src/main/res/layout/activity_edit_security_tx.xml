@@ -13,310 +13,309 @@
         android:layout_height="match_parent"
         android:orientation="vertical">
 
-
-    <com.google.android.material.appbar.MaterialToolbar
-        android:id="@+id/toolbar"
-        android:layout_width="match_parent"
-        android:layout_height="?attr/actionBarSize"
-        android:background="@color/green_primary"
-        android:theme="@style/ThemeOverlay.Ausgaben.Toolbar"
-        app:navigationIcon="@drawable/ic_back"
-        app:title="@string/security_tx_new_title"
-        app:titleTextColor="@color/white" />
-
-    <ScrollView
-        android:layout_width="match_parent"
-        android:layout_height="0dp"
-        android:layout_weight="1">
-
-        <LinearLayout
+        <com.google.android.material.appbar.MaterialToolbar
+            android:id="@+id/toolbar"
             android:layout_width="match_parent"
-            android:layout_height="wrap_content"
-            android:orientation="vertical"
-            android:padding="16dp">
+            android:layout_height="?attr/actionBarSize"
+            android:background="@color/green_primary"
+            android:theme="@style/ThemeOverlay.Ausgaben.Toolbar"
+            app:navigationIcon="@drawable/ic_back"
+            app:title="@string/security_tx_new_title"
+            app:titleTextColor="@color/white" />
 
-            <com.google.android.material.button.MaterialButtonToggleGroup
-                android:id="@+id/toggleAction"
-                android:layout_width="match_parent"
-                android:layout_height="wrap_content"
-                app:selectionRequired="true"
-                app:singleSelection="true">
-
-                <com.google.android.material.button.MaterialButton
-                    android:id="@+id/btnBuy"
-                    style="?attr/materialButtonOutlinedStyle"
-                    android:layout_width="0dp"
-                    android:layout_height="wrap_content"
-                    android:layout_weight="1"
-                    android:text="@string/action_buy" />
-
-                <com.google.android.material.button.MaterialButton
-                    android:id="@+id/btnSell"
-                    style="?attr/materialButtonOutlinedStyle"
-                    android:layout_width="0dp"
-                    android:layout_height="wrap_content"
-                    android:layout_weight="1"
-                    android:text="@string/action_sell" />
-
-                <com.google.android.material.button.MaterialButton
-                    android:id="@+id/btnDividend"
-                    style="?attr/materialButtonOutlinedStyle"
-                    android:layout_width="0dp"
-                    android:layout_height="wrap_content"
-                    android:layout_weight="1"
-                    android:text="@string/action_dividend" />
-            </com.google.android.material.button.MaterialButtonToggleGroup>
-
-            <!-- Kam die Maske aus einer Abrechnung, in der die Art nicht zu erkennen war: dann ist kein
-                 Knopf vorgewählt, und hier steht, warum. -->
-            <TextView
-                android:id="@+id/actionHint"
-                android:layout_width="match_parent"
-                android:layout_height="wrap_content"
-                android:layout_marginTop="4dp"
-                android:text="@string/statement_action_missing"
-                android:textColor="@color/expense_red"
-                android:textSize="12sp"
-                android:visibility="gone" />
-
-            <!-- Dieselbe Buchung scheint es schon zu geben. Steht bewusst hier oben, gleich nach der
-                 Auswahl der Art: dort fängt der Blick an, und der Hinweis kommt nicht erst beim
-                 Speichern. Er hält nichts auf – gebucht werden darf trotzdem. -->
-            <TextView
-                android:id="@+id/duplicateWarning"
-                android:layout_width="match_parent"
-                android:layout_height="wrap_content"
-                android:layout_marginTop="8dp"
-                android:background="@color/statement_warn_bg"
-                android:padding="8dp"
-                android:textStyle="bold"
-                android:visibility="gone" />
-
-            <!-- Nur in der reinen Ansicht: farbige Überschrift statt der Umschaltknöpfe. -->
-            <TextView
-                android:id="@+id/actionHeading"
-                android:layout_width="match_parent"
-                android:layout_height="wrap_content"
-                android:gravity="center"
-                android:textSize="26sp"
-                android:textStyle="bold"
-                android:visibility="gone" />
-
-            <TextView
-                android:id="@+id/textSecurity"
-                android:layout_width="match_parent"
-                android:layout_height="wrap_content"
-                android:layout_marginTop="12dp"
-                android:gravity="center"
-                android:textSize="18sp"
-                android:textStyle="bold" />
-
-            <com.google.android.material.textfield.TextInputLayout
-                android:id="@+id/dateLayout"
-                android:layout_width="match_parent"
-                android:layout_height="wrap_content"
-                android:layout_marginTop="12dp"
-                app:endIconMode="custom"
-                app:endIconDrawable="@drawable/ic_calendar"
-                app:endIconContentDescription="@string/date_pick"
-                android:hint="@string/date_hint">
-
-                <com.google.android.material.textfield.TextInputEditText
-                    android:id="@+id/editDate"
-                    android:layout_width="match_parent"
-                    android:layout_height="wrap_content"
-                    android:focusable="false"
-                    android:clickable="true"
-                    android:cursorVisible="false"
-                    android:inputType="none" />
-            </com.google.android.material.textfield.TextInputLayout>
+        <ScrollView
+            android:layout_width="match_parent"
+            android:layout_height="0dp"
+            android:layout_weight="1">
 
             <LinearLayout
-                android:id="@+id/sharesRow"
                 android:layout_width="match_parent"
                 android:layout_height="wrap_content"
-                android:layout_marginTop="12dp"
-                android:orientation="horizontal">
-
-                <com.google.android.material.textfield.TextInputLayout
-                    android:id="@+id/sharesLayout"
-                    android:layout_width="0dp"
-                    android:layout_height="wrap_content"
-                    android:layout_weight="1"
-                    android:hint="@string/security_tx_shares">
-
-                    <com.google.android.material.textfield.TextInputEditText
-                        android:id="@+id/editShares"
-                        android:layout_width="match_parent"
-                        android:layout_height="wrap_content"
-                        android:inputType="numberDecimal" />
-                </com.google.android.material.textfield.TextInputLayout>
-
-                <com.google.android.material.textfield.TextInputLayout
-                    android:id="@+id/priceLayout"
-                    android:layout_width="0dp"
-                    android:layout_height="wrap_content"
-                    android:layout_weight="1"
-                    android:layout_marginStart="8dp"
-                    android:hint="@string/security_tx_price">
-
-                    <com.google.android.material.textfield.TextInputEditText
-                        android:id="@+id/editPrice"
-                        android:layout_width="match_parent"
-                        android:layout_height="wrap_content"
-                        android:inputType="numberDecimal" />
-                </com.google.android.material.textfield.TextInputLayout>
-            </LinearLayout>
-
-            <!-- Nur bei einer Dividende: der Bruttobetrag ist dort ein eigenes Eingabefeld. -->
-            <com.google.android.material.textfield.TextInputLayout
-                android:id="@+id/grossLayout"
-                android:layout_width="match_parent"
-                android:layout_height="wrap_content"
-                android:layout_marginTop="12dp"
-                android:visibility="gone"
-                android:hint="@string/security_tx_gross">
-
-                <com.google.android.material.textfield.TextInputEditText
-                    android:id="@+id/editGross"
-                    android:layout_width="match_parent"
-                    android:layout_height="wrap_content"
-                    android:inputType="numberDecimal" />
-            </com.google.android.material.textfield.TextInputLayout>
-
-            <com.google.android.material.textfield.TextInputLayout
-                android:id="@+id/feeLayout"
-                android:layout_width="match_parent"
-                android:layout_height="wrap_content"
-                android:layout_marginTop="12dp"
-                android:hint="@string/security_tx_fee">
-
-                <com.google.android.material.textfield.TextInputEditText
-                    android:id="@+id/editFee"
-                    android:layout_width="match_parent"
-                    android:layout_height="wrap_content"
-                    android:inputType="numberDecimal" />
-            </com.google.android.material.textfield.TextInputLayout>
-
-            <com.google.android.material.textfield.TextInputLayout
-                android:id="@+id/netLayout"
-                android:layout_width="match_parent"
-                android:layout_height="wrap_content"
-                android:layout_marginTop="12dp"
-                android:hint="@string/security_tx_total">
-
-                <com.google.android.material.textfield.TextInputEditText
-                    android:id="@+id/editNet"
-                    android:layout_width="match_parent"
-                    android:layout_height="wrap_content"
-                    android:inputType="numberDecimal" />
-            </com.google.android.material.textfield.TextInputLayout>
-
-            <com.google.android.material.textfield.TextInputLayout
-                android:id="@+id/accountLayout"
-                android:layout_width="match_parent"
-                android:layout_height="wrap_content"
-                android:layout_marginTop="12dp"
-                android:hint="@string/security_tx_account">
-
-                <de.spahr.ausgaben.ui.PickerTextView
-                    android:id="@+id/editAccount"
-                    android:layout_width="match_parent"
-                    android:layout_height="wrap_content"
-                    android:minHeight="64dp"
-                    android:paddingVertical="14dp"
-                    android:paddingStart="16dp"
-                    android:paddingEnd="16dp"
-                    android:textSize="18sp"
-                    android:completionThreshold="1"
-                    android:inputType="textCapWords" />
-            </com.google.android.material.textfield.TextInputLayout>
-
-            <!-- Nur bei einer Dividende: der Bruttobetrag hängt in KMyMoney an einer Ertragskategorie. -->
-            <com.google.android.material.textfield.TextInputLayout
-                android:id="@+id/incomeCategoryLayout"
-                android:layout_width="match_parent"
-                android:layout_height="wrap_content"
-                android:layout_marginTop="12dp"
-                android:visibility="gone"
-                android:hint="@string/security_tx_income_category">
-
-                <de.spahr.ausgaben.ui.PickerTextView
-                    android:id="@+id/editIncomeCategory"
-                    android:layout_width="match_parent"
-                    android:layout_height="wrap_content"
-                    android:minHeight="64dp"
-                    android:paddingVertical="14dp"
-                    android:paddingStart="16dp"
-                    android:paddingEnd="16dp"
-                    android:textSize="18sp"
-                    android:completionThreshold="1"
-                    android:inputType="textCapWords" />
-            </com.google.android.material.textfield.TextInputLayout>
-
-            <com.google.android.material.textfield.TextInputLayout
-                android:id="@+id/feeCategoryLayout"
-                android:layout_width="match_parent"
-                android:layout_height="wrap_content"
-                android:layout_marginTop="12dp"
-                android:hint="@string/security_tx_fee_category">
-
-                <de.spahr.ausgaben.ui.PickerTextView
-                    android:id="@+id/editFeeCategory"
-                    android:layout_width="match_parent"
-                    android:layout_height="wrap_content"
-                    android:minHeight="64dp"
-                    android:paddingVertical="14dp"
-                    android:paddingStart="16dp"
-                    android:paddingEnd="16dp"
-                    android:textSize="18sp"
-                    android:completionThreshold="1"
-                    android:inputType="textCapWords" />
-            </com.google.android.material.textfield.TextInputLayout>
-
-            <!-- Nur wenn eine Abrechnung angehängt ist: sie beim Eintippen nebenher ansehen. -->
-            <com.google.android.material.button.MaterialButton
-                android:id="@+id/btnShowStatement"
-                style="?attr/materialButtonOutlinedStyle"
-                android:layout_width="match_parent"
-                android:layout_height="wrap_content"
-                android:layout_marginTop="16dp"
-                android:textColor="@color/button_accent"
-                app:strokeColor="@color/button_accent"
-                app:icon="@drawable/ic_pdf"
-                app:iconTint="@color/button_accent"
-                android:text="@string/statement_show"
-                android:visibility="gone" />
-
-            <com.google.android.material.button.MaterialButton
-                android:id="@+id/btnSave"
-                android:layout_width="match_parent"
-                android:layout_height="wrap_content"
-                android:layout_marginTop="16dp"
-                android:text="@string/security_tx_save" />
-
-            <com.google.android.material.button.MaterialButton
-                android:id="@+id/btnDelete"
-                style="?attr/materialButtonOutlinedStyle"
-                android:layout_width="match_parent"
-                android:layout_height="wrap_content"
-                android:layout_marginTop="8dp"
-                android:text="@string/security_tx_delete"
-                app:strokeColor="@color/expense_red"
-                android:textColor="@color/expense_red"
-                android:visibility="gone" />
-
-            <!-- Nur in der reinen Ansicht: was die Bewegung sonst noch hergibt (Gebühr, Steuer, Belastung). -->
-            <LinearLayout
-                android:id="@+id/detailBox"
-                android:layout_width="match_parent"
-                android:layout_height="wrap_content"
-                android:layout_marginTop="16dp"
                 android:orientation="vertical"
-                android:visibility="gone" />
+                android:padding="16dp">
 
-        </LinearLayout>
-    </ScrollView>
+                <com.google.android.material.button.MaterialButtonToggleGroup
+                    android:id="@+id/toggleAction"
+                    android:layout_width="match_parent"
+                    android:layout_height="wrap_content"
+                    app:selectionRequired="true"
+                    app:singleSelection="true">
+
+                    <com.google.android.material.button.MaterialButton
+                        android:id="@+id/btnBuy"
+                        style="?attr/materialButtonOutlinedStyle"
+                        android:layout_width="0dp"
+                        android:layout_height="wrap_content"
+                        android:layout_weight="1"
+                        android:text="@string/action_buy" />
+
+                    <com.google.android.material.button.MaterialButton
+                        android:id="@+id/btnSell"
+                        style="?attr/materialButtonOutlinedStyle"
+                        android:layout_width="0dp"
+                        android:layout_height="wrap_content"
+                        android:layout_weight="1"
+                        android:text="@string/action_sell" />
+
+                    <com.google.android.material.button.MaterialButton
+                        android:id="@+id/btnDividend"
+                        style="?attr/materialButtonOutlinedStyle"
+                        android:layout_width="0dp"
+                        android:layout_height="wrap_content"
+                        android:layout_weight="1"
+                        android:text="@string/action_dividend" />
+                </com.google.android.material.button.MaterialButtonToggleGroup>
+
+                <!-- Kam die Maske aus einer Abrechnung, in der die Art nicht zu erkennen war: dann ist kein
+                     Knopf vorgewählt, und hier steht, warum. -->
+                <TextView
+                    android:id="@+id/actionHint"
+                    android:layout_width="match_parent"
+                    android:layout_height="wrap_content"
+                    android:layout_marginTop="4dp"
+                    android:text="@string/statement_action_missing"
+                    android:textColor="@color/expense_red"
+                    android:textSize="12sp"
+                    android:visibility="gone" />
+
+                <!-- Dieselbe Buchung scheint es schon zu geben. Steht bewusst hier oben, gleich nach der
+                     Auswahl der Art: dort fängt der Blick an, und der Hinweis kommt nicht erst beim
+                     Speichern. Er hält nichts auf – gebucht werden darf trotzdem. -->
+                <TextView
+                    android:id="@+id/duplicateWarning"
+                    android:layout_width="match_parent"
+                    android:layout_height="wrap_content"
+                    android:layout_marginTop="8dp"
+                    android:background="@color/statement_warn_bg"
+                    android:padding="8dp"
+                    android:textStyle="bold"
+                    android:visibility="gone" />
+
+                <!-- Nur in der reinen Ansicht: farbige Überschrift statt der Umschaltknöpfe. -->
+                <TextView
+                    android:id="@+id/actionHeading"
+                    android:layout_width="match_parent"
+                    android:layout_height="wrap_content"
+                    android:gravity="center"
+                    android:textSize="26sp"
+                    android:textStyle="bold"
+                    android:visibility="gone" />
+
+                <TextView
+                    android:id="@+id/textSecurity"
+                    android:layout_width="match_parent"
+                    android:layout_height="wrap_content"
+                    android:layout_marginTop="12dp"
+                    android:gravity="center"
+                    android:textSize="18sp"
+                    android:textStyle="bold" />
+
+                <com.google.android.material.textfield.TextInputLayout
+                    android:id="@+id/dateLayout"
+                    android:layout_width="match_parent"
+                    android:layout_height="wrap_content"
+                    android:layout_marginTop="12dp"
+                    app:endIconMode="custom"
+                    app:endIconDrawable="@drawable/ic_calendar"
+                    app:endIconContentDescription="@string/date_pick"
+                    android:hint="@string/date_hint">
+
+                    <com.google.android.material.textfield.TextInputEditText
+                        android:id="@+id/editDate"
+                        android:layout_width="match_parent"
+                        android:layout_height="wrap_content"
+                        android:focusable="false"
+                        android:clickable="true"
+                        android:cursorVisible="false"
+                        android:inputType="none" />
+                </com.google.android.material.textfield.TextInputLayout>
+
+                <LinearLayout
+                    android:id="@+id/sharesRow"
+                    android:layout_width="match_parent"
+                    android:layout_height="wrap_content"
+                    android:layout_marginTop="12dp"
+                    android:orientation="horizontal">
+
+                    <com.google.android.material.textfield.TextInputLayout
+                        android:id="@+id/sharesLayout"
+                        android:layout_width="0dp"
+                        android:layout_height="wrap_content"
+                        android:layout_weight="1"
+                        android:hint="@string/security_tx_shares">
+
+                        <com.google.android.material.textfield.TextInputEditText
+                            android:id="@+id/editShares"
+                            android:layout_width="match_parent"
+                            android:layout_height="wrap_content"
+                            android:inputType="numberDecimal" />
+                    </com.google.android.material.textfield.TextInputLayout>
+
+                    <com.google.android.material.textfield.TextInputLayout
+                        android:id="@+id/priceLayout"
+                        android:layout_width="0dp"
+                        android:layout_height="wrap_content"
+                        android:layout_weight="1"
+                        android:layout_marginStart="8dp"
+                        android:hint="@string/security_tx_price">
+
+                        <com.google.android.material.textfield.TextInputEditText
+                            android:id="@+id/editPrice"
+                            android:layout_width="match_parent"
+                            android:layout_height="wrap_content"
+                            android:inputType="numberDecimal" />
+                    </com.google.android.material.textfield.TextInputLayout>
+                </LinearLayout>
+
+                <!-- Nur bei einer Dividende: der Bruttobetrag ist dort ein eigenes Eingabefeld. -->
+                <com.google.android.material.textfield.TextInputLayout
+                    android:id="@+id/grossLayout"
+                    android:layout_width="match_parent"
+                    android:layout_height="wrap_content"
+                    android:layout_marginTop="12dp"
+                    android:visibility="gone"
+                    android:hint="@string/security_tx_gross">
+
+                    <com.google.android.material.textfield.TextInputEditText
+                        android:id="@+id/editGross"
+                        android:layout_width="match_parent"
+                        android:layout_height="wrap_content"
+                        android:inputType="numberDecimal" />
+                </com.google.android.material.textfield.TextInputLayout>
+
+                <com.google.android.material.textfield.TextInputLayout
+                    android:id="@+id/feeLayout"
+                    android:layout_width="match_parent"
+                    android:layout_height="wrap_content"
+                    android:layout_marginTop="12dp"
+                    android:hint="@string/security_tx_fee">
+
+                    <com.google.android.material.textfield.TextInputEditText
+                        android:id="@+id/editFee"
+                        android:layout_width="match_parent"
+                        android:layout_height="wrap_content"
+                        android:inputType="numberDecimal" />
+                </com.google.android.material.textfield.TextInputLayout>
+
+                <com.google.android.material.textfield.TextInputLayout
+                    android:id="@+id/netLayout"
+                    android:layout_width="match_parent"
+                    android:layout_height="wrap_content"
+                    android:layout_marginTop="12dp"
+                    android:hint="@string/security_tx_total">
+
+                    <com.google.android.material.textfield.TextInputEditText
+                        android:id="@+id/editNet"
+                        android:layout_width="match_parent"
+                        android:layout_height="wrap_content"
+                        android:inputType="numberDecimal" />
+                </com.google.android.material.textfield.TextInputLayout>
+
+                <com.google.android.material.textfield.TextInputLayout
+                    android:id="@+id/accountLayout"
+                    android:layout_width="match_parent"
+                    android:layout_height="wrap_content"
+                    android:layout_marginTop="12dp"
+                    android:hint="@string/security_tx_account">
+
+                    <de.spahr.ausgaben.ui.PickerTextView
+                        android:id="@+id/editAccount"
+                        android:layout_width="match_parent"
+                        android:layout_height="wrap_content"
+                        android:minHeight="64dp"
+                        android:paddingVertical="14dp"
+                        android:paddingStart="16dp"
+                        android:paddingEnd="16dp"
+                        android:textSize="18sp"
+                        android:completionThreshold="1"
+                        android:inputType="textCapWords" />
+                </com.google.android.material.textfield.TextInputLayout>
+
+                <!-- Nur bei einer Dividende: der Bruttobetrag hängt in KMyMoney an einer Ertragskategorie. -->
+                <com.google.android.material.textfield.TextInputLayout
+                    android:id="@+id/incomeCategoryLayout"
+                    android:layout_width="match_parent"
+                    android:layout_height="wrap_content"
+                    android:layout_marginTop="12dp"
+                    android:visibility="gone"
+                    android:hint="@string/security_tx_income_category">
+
+                    <de.spahr.ausgaben.ui.PickerTextView
+                        android:id="@+id/editIncomeCategory"
+                        android:layout_width="match_parent"
+                        android:layout_height="wrap_content"
+                        android:minHeight="64dp"
+                        android:paddingVertical="14dp"
+                        android:paddingStart="16dp"
+                        android:paddingEnd="16dp"
+                        android:textSize="18sp"
+                        android:completionThreshold="1"
+                        android:inputType="textCapWords" />
+                </com.google.android.material.textfield.TextInputLayout>
+
+                <com.google.android.material.textfield.TextInputLayout
+                    android:id="@+id/feeCategoryLayout"
+                    android:layout_width="match_parent"
+                    android:layout_height="wrap_content"
+                    android:layout_marginTop="12dp"
+                    android:hint="@string/security_tx_fee_category">
+
+                    <de.spahr.ausgaben.ui.PickerTextView
+                        android:id="@+id/editFeeCategory"
+                        android:layout_width="match_parent"
+                        android:layout_height="wrap_content"
+                        android:minHeight="64dp"
+                        android:paddingVertical="14dp"
+                        android:paddingStart="16dp"
+                        android:paddingEnd="16dp"
+                        android:textSize="18sp"
+                        android:completionThreshold="1"
+                        android:inputType="textCapWords" />
+                </com.google.android.material.textfield.TextInputLayout>
+
+                <!-- Nur wenn eine Abrechnung angehängt ist: sie beim Eintippen nebenher ansehen. -->
+                <com.google.android.material.button.MaterialButton
+                    android:id="@+id/btnShowStatement"
+                    style="?attr/materialButtonOutlinedStyle"
+                    android:layout_width="match_parent"
+                    android:layout_height="wrap_content"
+                    android:layout_marginTop="16dp"
+                    android:textColor="@color/button_accent"
+                    app:strokeColor="@color/button_accent"
+                    app:icon="@drawable/ic_pdf"
+                    app:iconTint="@color/button_accent"
+                    android:text="@string/statement_show"
+                    android:visibility="gone" />
+
+                <com.google.android.material.button.MaterialButton
+                    android:id="@+id/btnSave"
+                    android:layout_width="match_parent"
+                    android:layout_height="wrap_content"
+                    android:layout_marginTop="16dp"
+                    android:text="@string/security_tx_save" />
+
+                <com.google.android.material.button.MaterialButton
+                    android:id="@+id/btnDelete"
+                    style="?attr/materialButtonOutlinedStyle"
+                    android:layout_width="match_parent"
+                    android:layout_height="wrap_content"
+                    android:layout_marginTop="8dp"
+                    android:text="@string/security_tx_delete"
+                    app:strokeColor="@color/expense_red"
+                    android:textColor="@color/expense_red"
+                    android:visibility="gone" />
+
+                <!-- Nur in der reinen Ansicht: was die Bewegung sonst noch hergibt (Gebühr, Steuer, Belastung). -->
+                <LinearLayout
+                    android:id="@+id/detailBox"
+                    android:layout_width="match_parent"
+                    android:layout_height="wrap_content"
+                    android:layout_marginTop="16dp"
+                    android:orientation="vertical"
+                    android:visibility="gone" />
+
+            </LinearLayout>
+        </ScrollView>
 
         <!-- Haelt im Hochformat die Hoehe der Tastatur frei, damit nichts hinter ihr
              verschwindet; quer bleibt er verborgen. Gesteuert von der Tastatur selbst. -->

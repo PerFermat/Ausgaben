@@ -13,461 +13,460 @@
         android:layout_height="match_parent"
         android:orientation="vertical">
 
-
-    <com.google.android.material.appbar.MaterialToolbar
-        android:id="@+id/toolbar"
-        android:layout_width="match_parent"
-        android:layout_height="?attr/actionBarSize"
-        android:background="@color/green_primary"
-        android:theme="@style/ThemeOverlay.Ausgaben.Toolbar"
-        app:navigationIcon="@drawable/ic_back"
-        app:title="@string/edit_title"
-        app:titleTextColor="@color/white" />
-
-    <!-- Statuszeile beim Nachladen eines Belegs (unbestimmt, ohne Prozent) -->
-    <FrameLayout
-        android:id="@+id/receiptBanner"
-        android:layout_width="match_parent"
-        android:layout_height="48dp"
-        android:visibility="gone">
-
-        <de.spahr.ausgaben.ui.ShimmerView
-            android:id="@+id/receiptShimmer"
+        <com.google.android.material.appbar.MaterialToolbar
+            android:id="@+id/toolbar"
             android:layout_width="match_parent"
-            android:layout_height="match_parent" />
+            android:layout_height="?attr/actionBarSize"
+            android:background="@color/green_primary"
+            android:theme="@style/ThemeOverlay.Ausgaben.Toolbar"
+            app:navigationIcon="@drawable/ic_back"
+            app:title="@string/edit_title"
+            app:titleTextColor="@color/white" />
 
-        <TextView
-            android:id="@+id/receiptStatus"
+        <!-- Statuszeile beim Nachladen eines Belegs (unbestimmt, ohne Prozent) -->
+        <FrameLayout
+            android:id="@+id/receiptBanner"
             android:layout_width="match_parent"
-            android:layout_height="match_parent"
-            android:gravity="center_vertical"
-            android:paddingHorizontal="16dp"
-            android:textStyle="bold"
-            android:textColor="@color/import_banner_text"
-            android:text="@string/receipt_loading_wait" />
-    </FrameLayout>
+            android:layout_height="48dp"
+            android:visibility="gone">
 
-    <ScrollView
-        android:layout_width="match_parent"
-        android:layout_height="0dp"
-        android:layout_weight="1">
-
-        <LinearLayout
-            android:layout_width="match_parent"
-            android:layout_height="wrap_content"
-            android:orientation="vertical"
-            android:padding="16dp">
-
-            <com.google.android.material.button.MaterialButtonToggleGroup
-                android:id="@+id/toggleType"
+            <de.spahr.ausgaben.ui.ShimmerView
+                android:id="@+id/receiptShimmer"
                 android:layout_width="match_parent"
-                android:layout_height="wrap_content"
-                app:selectionRequired="true"
-                app:singleSelection="true">
+                android:layout_height="match_parent" />
 
-                <com.google.android.material.button.MaterialButton
-                    android:id="@+id/btnExpense"
-                    style="?attr/materialButtonOutlinedStyle"
-                    android:layout_width="0dp"
-                    android:layout_height="wrap_content"
-                    android:layout_weight="1"
-                    android:text="@string/type_expense" />
-
-                <com.google.android.material.button.MaterialButton
-                    android:id="@+id/btnTransfer"
-                    style="?attr/materialButtonOutlinedStyle"
-                    android:layout_width="0dp"
-                    android:layout_height="wrap_content"
-                    android:layout_weight="1"
-                    android:text="@string/type_transfer" />
-
-                <com.google.android.material.button.MaterialButton
-                    android:id="@+id/btnIncome"
-                    style="?attr/materialButtonOutlinedStyle"
-                    android:layout_width="0dp"
-                    android:layout_height="wrap_content"
-                    android:layout_weight="1"
-                    android:text="@string/type_income" />
-            </com.google.android.material.button.MaterialButtonToggleGroup>
-
-            <!-- Nur in der reinen Ansicht: große farbige Typ-Überschrift statt der Umschaltknöpfe. -->
             <TextView
-                android:id="@+id/typeHeading"
+                android:id="@+id/receiptStatus"
                 android:layout_width="match_parent"
-                android:layout_height="wrap_content"
-                android:gravity="center"
-                android:textSize="26sp"
+                android:layout_height="match_parent"
+                android:gravity="center_vertical"
+                android:paddingHorizontal="16dp"
                 android:textStyle="bold"
-                android:visibility="gone" />
+                android:textColor="@color/import_banner_text"
+                android:text="@string/receipt_loading_wait" />
+        </FrameLayout>
+
+        <ScrollView
+            android:layout_width="match_parent"
+            android:layout_height="0dp"
+            android:layout_weight="1">
 
             <LinearLayout
                 android:layout_width="match_parent"
                 android:layout_height="wrap_content"
-                android:layout_marginTop="12dp"
-                android:orientation="horizontal"
-                android:gravity="center_vertical">
+                android:orientation="vertical"
+                android:padding="16dp">
 
-                <com.google.android.material.textfield.TextInputLayout
-                    android:id="@+id/dateLayout"
-                    android:layout_width="0dp"
+                <com.google.android.material.button.MaterialButtonToggleGroup
+                    android:id="@+id/toggleType"
+                    android:layout_width="match_parent"
                     android:layout_height="wrap_content"
-                    android:layout_weight="1"
-                    app:endIconMode="custom"
-                    app:endIconDrawable="@drawable/ic_calendar"
-                    app:endIconContentDescription="@string/date_pick"
-                    android:hint="@string/date_hint">
+                    app:selectionRequired="true"
+                    app:singleSelection="true">
 
-                    <com.google.android.material.textfield.TextInputEditText
-                        android:id="@+id/editDate"
-                        android:layout_width="match_parent"
+                    <com.google.android.material.button.MaterialButton
+                        android:id="@+id/btnExpense"
+                        style="?attr/materialButtonOutlinedStyle"
+                        android:layout_width="0dp"
                         android:layout_height="wrap_content"
-                        android:focusable="false"
-                        android:clickable="true"
-                        android:cursorVisible="false"
-                        android:inputType="none" />
-                </com.google.android.material.textfield.TextInputLayout>
+                        android:layout_weight="1"
+                        android:text="@string/type_expense" />
 
-                <com.google.android.material.button.MaterialButton
-                    android:id="@+id/btnToday"
-                    style="?attr/materialButtonOutlinedStyle"
-                    android:layout_width="wrap_content"
-                    android:layout_height="wrap_content"
-                    android:layout_marginStart="8dp"
-                    android:textColor="@color/button_accent"
-                    app:strokeColor="@color/button_accent"
-                    android:text="@string/today"
-                    android:visibility="gone" />
-            </LinearLayout>
+                    <com.google.android.material.button.MaterialButton
+                        android:id="@+id/btnTransfer"
+                        style="?attr/materialButtonOutlinedStyle"
+                        android:layout_width="0dp"
+                        android:layout_height="wrap_content"
+                        android:layout_weight="1"
+                        android:text="@string/type_transfer" />
 
-            <com.google.android.material.textfield.TextInputLayout
-                android:id="@+id/amountLayout"
-                android:layout_width="match_parent"
-                android:layout_height="wrap_content"
-                android:layout_marginTop="12dp"
-                android:hint="@string/amount_hint"
-                app:helperTextEnabled="true"
-                app:helperText="@string/amount_calc_help">
+                    <com.google.android.material.button.MaterialButton
+                        android:id="@+id/btnIncome"
+                        style="?attr/materialButtonOutlinedStyle"
+                        android:layout_width="0dp"
+                        android:layout_height="wrap_content"
+                        android:layout_weight="1"
+                        android:text="@string/type_income" />
+                </com.google.android.material.button.MaterialButtonToggleGroup>
 
-                <!-- Kein android:inputType: erlaubte Zeichen (Ziffern, das eingestellte Dezimalzeichen,
-                     + - * für kleine Rechnungen wie 10+20*3) setzt AmountField im Code, die Struktur der
-                     CalcInputFilter. Eingetippt wird ohnehin auf der eigenen Rechentastatur. -->
-                <com.google.android.material.textfield.TextInputEditText
-                    android:id="@+id/editAmount"
-                    android:layout_width="match_parent"
-                    android:layout_height="wrap_content" />
-            </com.google.android.material.textfield.TextInputLayout>
-
-            <com.google.android.material.textfield.TextInputLayout
-                android:id="@+id/payeeLayout"
-                android:layout_width="match_parent"
-                android:layout_height="wrap_content"
-                android:layout_marginTop="12dp"
-                android:hint="@string/payee_hint">
-
-                <de.spahr.ausgaben.ui.PickerTextView
-                    android:id="@+id/editPayee"
-                    android:layout_width="match_parent"
-                    android:layout_height="wrap_content"
-                    android:minHeight="64dp"
-                    android:paddingVertical="14dp"
-                    android:paddingStart="16dp"
-                    android:paddingEnd="16dp"
-                    android:textSize="18sp"
-                    android:completionThreshold="1"
-                    android:inputType="textCapWords" />
-            </com.google.android.material.textfield.TextInputLayout>
-
-            <com.google.android.material.textfield.TextInputLayout
-                android:id="@+id/accountLayout"
-                android:layout_width="match_parent"
-                android:layout_height="wrap_content"
-                android:layout_marginTop="12dp"
-                android:hint="@string/account_hint">
-
-                <de.spahr.ausgaben.ui.PickerTextView
-                    android:id="@+id/editAccount"
-                    android:layout_width="match_parent"
-                    android:layout_height="wrap_content"
-                    android:minHeight="64dp"
-                    android:paddingVertical="14dp"
-                    android:paddingStart="16dp"
-                    android:paddingEnd="16dp"
-                    android:textSize="18sp"
-                    android:completionThreshold="1"
-                    android:inputType="textCapWords" />
-            </com.google.android.material.textfield.TextInputLayout>
-
-            <com.google.android.material.textfield.TextInputLayout
-                android:id="@+id/placeLayout"
-                android:layout_width="match_parent"
-                android:layout_height="wrap_content"
-                android:layout_marginTop="12dp"
-                android:hint="@string/place_hint">
-
-                <de.spahr.ausgaben.ui.PickerTextView
-                    android:id="@+id/editPlace"
-                    android:layout_width="match_parent"
-                    android:layout_height="wrap_content"
-                    android:minHeight="64dp"
-                    android:paddingVertical="14dp"
-                    android:paddingStart="16dp"
-                    android:paddingEnd="16dp"
-                    android:textSize="18sp"
-                    android:completionThreshold="1"
-                    android:inputType="textCapWords" />
-            </com.google.android.material.textfield.TextInputLayout>
-
-            <com.google.android.material.textfield.TextInputLayout
-                android:id="@+id/accountToLayout"
-                android:layout_width="match_parent"
-                android:layout_height="wrap_content"
-                android:layout_marginTop="12dp"
-                android:hint="@string/transfer_to"
-                android:visibility="gone">
-
-                <de.spahr.ausgaben.ui.PickerTextView
-                    android:id="@+id/editAccountTo"
-                    android:layout_width="match_parent"
-                    android:layout_height="wrap_content"
-                    android:minHeight="64dp"
-                    android:paddingVertical="14dp"
-                    android:paddingStart="16dp"
-                    android:paddingEnd="16dp"
-                    android:textSize="18sp"
-                    android:completionThreshold="1"
-                    android:inputType="textCapWords" />
-            </com.google.android.material.textfield.TextInputLayout>
-
-            <com.google.android.material.textfield.TextInputLayout
-                android:id="@+id/placeToLayout"
-                android:layout_width="match_parent"
-                android:layout_height="wrap_content"
-                android:layout_marginTop="12dp"
-                android:hint="@string/transfer_place_to"
-                android:visibility="gone">
-
-                <de.spahr.ausgaben.ui.PickerTextView
-                    android:id="@+id/editPlaceTo"
-                    android:layout_width="match_parent"
-                    android:layout_height="wrap_content"
-                    android:minHeight="64dp"
-                    android:paddingVertical="14dp"
-                    android:paddingStart="16dp"
-                    android:paddingEnd="16dp"
-                    android:textSize="18sp"
-                    android:completionThreshold="1"
-                    android:inputType="textCapWords" />
-            </com.google.android.material.textfield.TextInputLayout>
-
-            <LinearLayout
-                android:id="@+id/splitSection"
-                android:layout_width="match_parent"
-                android:layout_height="wrap_content"
-                android:layout_marginTop="12dp"
-                android:orientation="vertical">
-
+                <!-- Nur in der reinen Ansicht: große farbige Typ-Überschrift statt der Umschaltknöpfe. -->
                 <TextView
+                    android:id="@+id/typeHeading"
                     android:layout_width="match_parent"
                     android:layout_height="wrap_content"
-                    android:text="@string/split_categories"
-                    android:textColor="@color/grey_text"
-                    android:textSize="14sp" />
+                    android:gravity="center"
+                    android:textSize="26sp"
+                    android:textStyle="bold"
+                    android:visibility="gone" />
 
                 <LinearLayout
-                    android:id="@+id/splitContainer"
+                    android:layout_width="match_parent"
+                    android:layout_height="wrap_content"
+                    android:layout_marginTop="12dp"
+                    android:orientation="horizontal"
+                    android:gravity="center_vertical">
+
+                    <com.google.android.material.textfield.TextInputLayout
+                        android:id="@+id/dateLayout"
+                        android:layout_width="0dp"
+                        android:layout_height="wrap_content"
+                        android:layout_weight="1"
+                        app:endIconMode="custom"
+                        app:endIconDrawable="@drawable/ic_calendar"
+                        app:endIconContentDescription="@string/date_pick"
+                        android:hint="@string/date_hint">
+
+                        <com.google.android.material.textfield.TextInputEditText
+                            android:id="@+id/editDate"
+                            android:layout_width="match_parent"
+                            android:layout_height="wrap_content"
+                            android:focusable="false"
+                            android:clickable="true"
+                            android:cursorVisible="false"
+                            android:inputType="none" />
+                    </com.google.android.material.textfield.TextInputLayout>
+
+                    <com.google.android.material.button.MaterialButton
+                        android:id="@+id/btnToday"
+                        style="?attr/materialButtonOutlinedStyle"
+                        android:layout_width="wrap_content"
+                        android:layout_height="wrap_content"
+                        android:layout_marginStart="8dp"
+                        android:textColor="@color/button_accent"
+                        app:strokeColor="@color/button_accent"
+                        android:text="@string/today"
+                        android:visibility="gone" />
+                </LinearLayout>
+
+                <com.google.android.material.textfield.TextInputLayout
+                    android:id="@+id/amountLayout"
+                    android:layout_width="match_parent"
+                    android:layout_height="wrap_content"
+                    android:layout_marginTop="12dp"
+                    android:hint="@string/amount_hint"
+                    app:helperTextEnabled="true"
+                    app:helperText="@string/amount_calc_help">
+
+                    <!-- Kein android:inputType: erlaubte Zeichen (Ziffern, das eingestellte Dezimalzeichen,
+                         + - * für kleine Rechnungen wie 10+20*3) setzt AmountField im Code, die Struktur der
+                         CalcInputFilter. Eingetippt wird ohnehin auf der eigenen Rechentastatur. -->
+                    <com.google.android.material.textfield.TextInputEditText
+                        android:id="@+id/editAmount"
+                        android:layout_width="match_parent"
+                        android:layout_height="wrap_content" />
+                </com.google.android.material.textfield.TextInputLayout>
+
+                <com.google.android.material.textfield.TextInputLayout
+                    android:id="@+id/payeeLayout"
+                    android:layout_width="match_parent"
+                    android:layout_height="wrap_content"
+                    android:layout_marginTop="12dp"
+                    android:hint="@string/payee_hint">
+
+                    <de.spahr.ausgaben.ui.PickerTextView
+                        android:id="@+id/editPayee"
+                        android:layout_width="match_parent"
+                        android:layout_height="wrap_content"
+                        android:minHeight="64dp"
+                        android:paddingVertical="14dp"
+                        android:paddingStart="16dp"
+                        android:paddingEnd="16dp"
+                        android:textSize="18sp"
+                        android:completionThreshold="1"
+                        android:inputType="textCapWords" />
+                </com.google.android.material.textfield.TextInputLayout>
+
+                <com.google.android.material.textfield.TextInputLayout
+                    android:id="@+id/accountLayout"
+                    android:layout_width="match_parent"
+                    android:layout_height="wrap_content"
+                    android:layout_marginTop="12dp"
+                    android:hint="@string/account_hint">
+
+                    <de.spahr.ausgaben.ui.PickerTextView
+                        android:id="@+id/editAccount"
+                        android:layout_width="match_parent"
+                        android:layout_height="wrap_content"
+                        android:minHeight="64dp"
+                        android:paddingVertical="14dp"
+                        android:paddingStart="16dp"
+                        android:paddingEnd="16dp"
+                        android:textSize="18sp"
+                        android:completionThreshold="1"
+                        android:inputType="textCapWords" />
+                </com.google.android.material.textfield.TextInputLayout>
+
+                <com.google.android.material.textfield.TextInputLayout
+                    android:id="@+id/placeLayout"
+                    android:layout_width="match_parent"
+                    android:layout_height="wrap_content"
+                    android:layout_marginTop="12dp"
+                    android:hint="@string/place_hint">
+
+                    <de.spahr.ausgaben.ui.PickerTextView
+                        android:id="@+id/editPlace"
+                        android:layout_width="match_parent"
+                        android:layout_height="wrap_content"
+                        android:minHeight="64dp"
+                        android:paddingVertical="14dp"
+                        android:paddingStart="16dp"
+                        android:paddingEnd="16dp"
+                        android:textSize="18sp"
+                        android:completionThreshold="1"
+                        android:inputType="textCapWords" />
+                </com.google.android.material.textfield.TextInputLayout>
+
+                <com.google.android.material.textfield.TextInputLayout
+                    android:id="@+id/accountToLayout"
+                    android:layout_width="match_parent"
+                    android:layout_height="wrap_content"
+                    android:layout_marginTop="12dp"
+                    android:hint="@string/transfer_to"
+                    android:visibility="gone">
+
+                    <de.spahr.ausgaben.ui.PickerTextView
+                        android:id="@+id/editAccountTo"
+                        android:layout_width="match_parent"
+                        android:layout_height="wrap_content"
+                        android:minHeight="64dp"
+                        android:paddingVertical="14dp"
+                        android:paddingStart="16dp"
+                        android:paddingEnd="16dp"
+                        android:textSize="18sp"
+                        android:completionThreshold="1"
+                        android:inputType="textCapWords" />
+                </com.google.android.material.textfield.TextInputLayout>
+
+                <com.google.android.material.textfield.TextInputLayout
+                    android:id="@+id/placeToLayout"
+                    android:layout_width="match_parent"
+                    android:layout_height="wrap_content"
+                    android:layout_marginTop="12dp"
+                    android:hint="@string/transfer_place_to"
+                    android:visibility="gone">
+
+                    <de.spahr.ausgaben.ui.PickerTextView
+                        android:id="@+id/editPlaceTo"
+                        android:layout_width="match_parent"
+                        android:layout_height="wrap_content"
+                        android:minHeight="64dp"
+                        android:paddingVertical="14dp"
+                        android:paddingStart="16dp"
+                        android:paddingEnd="16dp"
+                        android:textSize="18sp"
+                        android:completionThreshold="1"
+                        android:inputType="textCapWords" />
+                </com.google.android.material.textfield.TextInputLayout>
+
+                <LinearLayout
+                    android:id="@+id/splitSection"
+                    android:layout_width="match_parent"
+                    android:layout_height="wrap_content"
+                    android:layout_marginTop="12dp"
+                    android:orientation="vertical">
+
+                    <TextView
+                        android:layout_width="match_parent"
+                        android:layout_height="wrap_content"
+                        android:text="@string/split_categories"
+                        android:textColor="@color/grey_text"
+                        android:textSize="14sp" />
+
+                    <LinearLayout
+                        android:id="@+id/splitContainer"
+                        android:layout_width="match_parent"
+                        android:layout_height="wrap_content"
+                        android:orientation="vertical" />
+                </LinearLayout>
+
+                <com.google.android.material.textfield.TextInputLayout
+                    android:layout_width="match_parent"
+                    android:layout_height="wrap_content"
+                    android:layout_marginTop="12dp"
+                    android:hint="@string/note_hint">
+
+                    <com.google.android.material.textfield.TextInputEditText
+                        android:id="@+id/editNote"
+                        android:layout_width="match_parent"
+                        android:layout_height="wrap_content"
+                        android:gravity="top|start"
+                        android:minLines="4"
+                        android:inputType="textCapSentences|textMultiLine" />
+                </com.google.android.material.textfield.TextInputLayout>
+
+                <!-- GPS-Koordinaten als eigene, nicht editierbare Ausgabezeile (Wert + Karten-Icon). -->
+                <LinearLayout
+                    android:id="@+id/rowGps"
+                    android:layout_width="match_parent"
+                    android:layout_height="wrap_content"
+                    android:layout_marginTop="4dp"
+                    android:gravity="center_vertical"
+                    android:orientation="horizontal"
+                    android:visibility="gone">
+
+                    <TextView
+                        android:id="@+id/textGps"
+                        android:layout_width="0dp"
+                        android:layout_height="wrap_content"
+                        android:layout_weight="1"
+                        android:textColor="?android:attr/textColorSecondary"
+                        android:textSize="14sp" />
+
+                    <ImageButton
+                        android:id="@+id/btnNoteMap"
+                        android:layout_width="48dp"
+                        android:layout_height="48dp"
+                        android:background="?attr/selectableItemBackgroundBorderless"
+                        android:src="@android:drawable/ic_menu_mylocation"
+                        android:contentDescription="@string/alias_map" />
+                </LinearLayout>
+
+                <!-- Stichwörter als Ausgabezeile (Namen bzw. Anzahl + Bearbeiten + Leeren). Bleibt
+                     unsichtbar, solange die App keine Stichwörter aus einer .kmy kennt. -->
+                <LinearLayout
+                    android:id="@+id/rowTags"
+                    android:layout_width="match_parent"
+                    android:layout_height="wrap_content"
+                    android:layout_marginTop="2dp"
+                    android:gravity="center_vertical"
+                    android:orientation="horizontal"
+                    android:visibility="gone">
+
+                    <TextView
+                        android:id="@+id/textTags"
+                        android:layout_width="0dp"
+                        android:layout_height="wrap_content"
+                        android:layout_weight="1"
+                        android:textColor="?android:attr/textColorSecondary"
+                        android:textSize="14sp" />
+
+                    <ImageButton
+                        android:id="@+id/btnTagsEdit"
+                        android:layout_width="48dp"
+                        android:layout_height="48dp"
+                        android:background="?attr/selectableItemBackgroundBorderless"
+                        android:contentDescription="@string/tags_edit"
+                        android:src="@android:drawable/ic_menu_edit" />
+
+                    <ImageButton
+                        android:id="@+id/btnTagsClear"
+                        android:layout_width="48dp"
+                        android:layout_height="48dp"
+                        android:background="?attr/selectableItemBackgroundBorderless"
+                        android:contentDescription="@string/tags_clear"
+                        android:src="@android:drawable/ic_menu_delete" />
+                </LinearLayout>
+
+                <!-- Beleg-Kopfzeile (Beschriftung + Kamera-Icon, das eine weitere Seite anhängt). -->
+                <LinearLayout
+                    android:id="@+id/rowReceipt"
+                    android:layout_width="match_parent"
+                    android:layout_height="wrap_content"
+                    android:layout_marginTop="2dp"
+                    android:gravity="center_vertical"
+                    android:orientation="horizontal"
+                    android:visibility="gone">
+
+                    <TextView
+                        android:id="@+id/textReceipt"
+                        android:layout_width="0dp"
+                        android:layout_height="wrap_content"
+                        android:layout_weight="1"
+                        android:textColor="?android:attr/textColorSecondary"
+                        android:textSize="14sp" />
+
+                    <!-- Nur-Ansicht: ein Bild-Symbol je Seite, rechtsbündig. -->
+                    <LinearLayout
+                        android:id="@+id/receiptPageIcons"
+                        android:layout_width="wrap_content"
+                        android:layout_height="wrap_content"
+                        android:gravity="end|center_vertical"
+                        android:orientation="horizontal" />
+
+                    <ImageButton
+                        android:id="@+id/btnReceipt"
+                        android:layout_width="48dp"
+                        android:layout_height="48dp"
+                        android:background="?attr/selectableItemBackgroundBorderless"
+                        android:src="@android:drawable/ic_menu_camera"
+                        android:contentDescription="@string/receipt_add_page" />
+                </LinearLayout>
+
+                <!-- Eine Zeile je Belegseite; wird in updateNoteTagRows() gefüllt. -->
+                <LinearLayout
+                    android:id="@+id/receiptPages"
                     android:layout_width="match_parent"
                     android:layout_height="wrap_content"
                     android:orientation="vertical" />
-            </LinearLayout>
 
-            <com.google.android.material.textfield.TextInputLayout
-                android:layout_width="match_parent"
-                android:layout_height="wrap_content"
-                android:layout_marginTop="12dp"
-                android:hint="@string/note_hint">
-
-                <com.google.android.material.textfield.TextInputEditText
-                    android:id="@+id/editNote"
+                <com.google.android.material.materialswitch.MaterialSwitch
+                    android:id="@+id/switchExported"
                     android:layout_width="match_parent"
                     android:layout_height="wrap_content"
-                    android:gravity="top|start"
-                    android:minLines="4"
-                    android:inputType="textCapSentences|textMultiLine" />
-            </com.google.android.material.textfield.TextInputLayout>
+                    android:layout_marginTop="12dp"
+                    android:text="@string/mark_exported"
+                    android:visibility="gone" />
 
-            <!-- GPS-Koordinaten als eigene, nicht editierbare Ausgabezeile (Wert + Karten-Icon). -->
-            <LinearLayout
-                android:id="@+id/rowGps"
-                android:layout_width="match_parent"
-                android:layout_height="wrap_content"
-                android:layout_marginTop="4dp"
-                android:gravity="center_vertical"
-                android:orientation="horizontal"
-                android:visibility="gone">
+                <com.google.android.material.button.MaterialButton
+                    android:id="@+id/btnSaveNew"
+                    android:layout_width="match_parent"
+                    android:layout_height="wrap_content"
+                    android:layout_marginTop="16dp"
+                    android:text="@string/new_booking" />
+
+                <!-- Nur bei „jetzt buchen" aus den geplanten Buchungen: Termin ohne Buchung überspringen. -->
+                <com.google.android.material.button.MaterialButton
+                    android:id="@+id/btnSkipSchedule"
+                    style="?attr/materialButtonOutlinedStyle"
+                    android:layout_width="match_parent"
+                    android:layout_height="wrap_content"
+                    android:layout_marginTop="8dp"
+                    android:textColor="@color/button_accent"
+                    app:strokeColor="@color/button_accent"
+                    android:text="@string/scheduled_skip_booking"
+                    android:visibility="gone" />
+
+                <com.google.android.material.button.MaterialButton
+                    android:id="@+id/btnUpdate"
+                    style="?attr/materialButtonOutlinedStyle"
+                    android:layout_width="match_parent"
+                    android:layout_height="wrap_content"
+                    android:layout_marginTop="8dp"
+                    android:textColor="@color/button_accent"
+                    app:strokeColor="@color/button_accent"
+                    android:text="@string/update_booking"
+                    android:visibility="gone" />
+
+                <com.google.android.material.button.MaterialButton
+                    android:id="@+id/btnDelete"
+                    style="?attr/materialButtonOutlinedStyle"
+                    android:layout_width="match_parent"
+                    android:layout_height="wrap_content"
+                    android:layout_marginTop="8dp"
+                    android:text="@string/delete_booking"
+                    app:strokeColor="@color/expense_red"
+                    android:textColor="@color/expense_red"
+                    android:visibility="gone" />
+
+                <!-- Nur in der reinen Ansicht: Kontostand vor/nach dieser Buchung. -->
+                <TextView
+                    android:id="@+id/textBalanceBefore"
+                    android:layout_width="match_parent"
+                    android:layout_height="wrap_content"
+                    android:layout_marginTop="16dp"
+                    android:textSize="16sp"
+                    android:visibility="gone" />
 
                 <TextView
-                    android:id="@+id/textGps"
-                    android:layout_width="0dp"
+                    android:id="@+id/textBalanceAfter"
+                    android:layout_width="match_parent"
                     android:layout_height="wrap_content"
-                    android:layout_weight="1"
-                    android:textColor="?android:attr/textColorSecondary"
-                    android:textSize="14sp" />
+                    android:layout_marginTop="4dp"
+                    android:textSize="16sp"
+                    android:visibility="gone" />
 
-                <ImageButton
-                    android:id="@+id/btnNoteMap"
-                    android:layout_width="48dp"
-                    android:layout_height="48dp"
-                    android:background="?attr/selectableItemBackgroundBorderless"
-                    android:src="@android:drawable/ic_menu_mylocation"
-                    android:contentDescription="@string/alias_map" />
             </LinearLayout>
-
-            <!-- Stichwörter als Ausgabezeile (Namen bzw. Anzahl + Bearbeiten + Leeren). Bleibt
-                 unsichtbar, solange die App keine Stichwörter aus einer .kmy kennt. -->
-            <LinearLayout
-                android:id="@+id/rowTags"
-                android:layout_width="match_parent"
-                android:layout_height="wrap_content"
-                android:layout_marginTop="2dp"
-                android:gravity="center_vertical"
-                android:orientation="horizontal"
-                android:visibility="gone">
-
-                <TextView
-                    android:id="@+id/textTags"
-                    android:layout_width="0dp"
-                    android:layout_height="wrap_content"
-                    android:layout_weight="1"
-                    android:textColor="?android:attr/textColorSecondary"
-                    android:textSize="14sp" />
-
-                <ImageButton
-                    android:id="@+id/btnTagsEdit"
-                    android:layout_width="48dp"
-                    android:layout_height="48dp"
-                    android:background="?attr/selectableItemBackgroundBorderless"
-                    android:contentDescription="@string/tags_edit"
-                    android:src="@android:drawable/ic_menu_edit" />
-
-                <ImageButton
-                    android:id="@+id/btnTagsClear"
-                    android:layout_width="48dp"
-                    android:layout_height="48dp"
-                    android:background="?attr/selectableItemBackgroundBorderless"
-                    android:contentDescription="@string/tags_clear"
-                    android:src="@android:drawable/ic_menu_delete" />
-            </LinearLayout>
-
-            <!-- Beleg-Kopfzeile (Beschriftung + Kamera-Icon, das eine weitere Seite anhängt). -->
-            <LinearLayout
-                android:id="@+id/rowReceipt"
-                android:layout_width="match_parent"
-                android:layout_height="wrap_content"
-                android:layout_marginTop="2dp"
-                android:gravity="center_vertical"
-                android:orientation="horizontal"
-                android:visibility="gone">
-
-                <TextView
-                    android:id="@+id/textReceipt"
-                    android:layout_width="0dp"
-                    android:layout_height="wrap_content"
-                    android:layout_weight="1"
-                    android:textColor="?android:attr/textColorSecondary"
-                    android:textSize="14sp" />
-
-                <!-- Nur-Ansicht: ein Bild-Symbol je Seite, rechtsbündig. -->
-                <LinearLayout
-                    android:id="@+id/receiptPageIcons"
-                    android:layout_width="wrap_content"
-                    android:layout_height="wrap_content"
-                    android:gravity="end|center_vertical"
-                    android:orientation="horizontal" />
-
-                <ImageButton
-                    android:id="@+id/btnReceipt"
-                    android:layout_width="48dp"
-                    android:layout_height="48dp"
-                    android:background="?attr/selectableItemBackgroundBorderless"
-                    android:src="@android:drawable/ic_menu_camera"
-                    android:contentDescription="@string/receipt_add_page" />
-            </LinearLayout>
-
-            <!-- Eine Zeile je Belegseite; wird in updateNoteTagRows() gefüllt. -->
-            <LinearLayout
-                android:id="@+id/receiptPages"
-                android:layout_width="match_parent"
-                android:layout_height="wrap_content"
-                android:orientation="vertical" />
-
-            <com.google.android.material.materialswitch.MaterialSwitch
-                android:id="@+id/switchExported"
-                android:layout_width="match_parent"
-                android:layout_height="wrap_content"
-                android:layout_marginTop="12dp"
-                android:text="@string/mark_exported"
-                android:visibility="gone" />
-
-            <com.google.android.material.button.MaterialButton
-                android:id="@+id/btnSaveNew"
-                android:layout_width="match_parent"
-                android:layout_height="wrap_content"
-                android:layout_marginTop="16dp"
-                android:text="@string/new_booking" />
-
-            <!-- Nur bei „jetzt buchen" aus den geplanten Buchungen: Termin ohne Buchung überspringen. -->
-            <com.google.android.material.button.MaterialButton
-                android:id="@+id/btnSkipSchedule"
-                style="?attr/materialButtonOutlinedStyle"
-                android:layout_width="match_parent"
-                android:layout_height="wrap_content"
-                android:layout_marginTop="8dp"
-                android:textColor="@color/button_accent"
-                app:strokeColor="@color/button_accent"
-                android:text="@string/scheduled_skip_booking"
-                android:visibility="gone" />
-
-            <com.google.android.material.button.MaterialButton
-                android:id="@+id/btnUpdate"
-                style="?attr/materialButtonOutlinedStyle"
-                android:layout_width="match_parent"
-                android:layout_height="wrap_content"
-                android:layout_marginTop="8dp"
-                android:textColor="@color/button_accent"
-                app:strokeColor="@color/button_accent"
-                android:text="@string/update_booking"
-                android:visibility="gone" />
-
-            <com.google.android.material.button.MaterialButton
-                android:id="@+id/btnDelete"
-                style="?attr/materialButtonOutlinedStyle"
-                android:layout_width="match_parent"
-                android:layout_height="wrap_content"
-                android:layout_marginTop="8dp"
-                android:text="@string/delete_booking"
-                app:strokeColor="@color/expense_red"
-                android:textColor="@color/expense_red"
-                android:visibility="gone" />
-
-            <!-- Nur in der reinen Ansicht: Kontostand vor/nach dieser Buchung. -->
-            <TextView
-                android:id="@+id/textBalanceBefore"
-                android:layout_width="match_parent"
-                android:layout_height="wrap_content"
-                android:layout_marginTop="16dp"
-                android:textSize="16sp"
-                android:visibility="gone" />
-
-            <TextView
-                android:id="@+id/textBalanceAfter"
-                android:layout_width="match_parent"
-                android:layout_height="wrap_content"
-                android:layout_marginTop="4dp"
-                android:textSize="16sp"
-                android:visibility="gone" />
-
-        </LinearLayout>
-    </ScrollView>
+        </ScrollView>
 
         <!-- Haelt im Hochformat die Hoehe der Tastatur frei, damit nichts hinter ihr
              verschwindet; quer bleibt er verborgen. Gesteuert von der Tastatur selbst. -->

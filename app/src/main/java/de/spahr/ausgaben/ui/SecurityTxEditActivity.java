@@ -117,6 +117,16 @@ public class SecurityTxEditActivity extends LocalizedActivity {
     /** Dasselbe für Kauf/Verkauf/Dividende: ohne erkannte Art ist kein Knopf vorgewählt. */
     private boolean actionKnown;
 
+    /**
+     * Das Zahlenfeld, in dem der Nutzer gerade steht — dort schreibt die Rechnung nicht hinein.
+     *
+     * <p>Ohne diese Sperre ließe sich eine vorbelegte Steuer nicht löschen: mit dem letzten gelöschten
+     * Zeichen gilt das Feld als frei, die Rechnung setzt sofort wieder den Steuersatz hinein, und wer
+     * eine 0 eintragen will, kommt nie dazu. Beim Verlassen des Feldes greift die Vorbelegung wieder —
+     * dann ist es eine Hilfe und keine Bevormundung.</p>
+     */
+    private Field focusedField;
+
     /** Diese Bewegung steht schon im Depot — geht so an die Erkennungsliste zurück. */
     private boolean dupBooked;
     /**
@@ -595,6 +605,7 @@ public class SecurityTxEditActivity extends LocalizedActivity {
         input.setShowSoftInputOnFocus(false);
         input.setOnFocusChangeListener((v, hasFocus) -> {
             if (hasFocus) {
+                focusedField = field;
                 calcKeyboard.attachTo(input);
                 calcKeyboard.setOnOk(valid -> {
                     if (valid) {
@@ -605,6 +616,12 @@ public class SecurityTxEditActivity extends LocalizedActivity {
                 CalcKeyboardView.hideSystemKeyboard(input);
             } else {
                 calcKeyboard.setVisibility(View.GONE);
+                if (focusedField == field) {
+                    focusedField = null;
+                    // Jetzt erst: wer das Feld leer verlässt, bekommt die Vorbelegung zurück; wer eine
+                    // 0 hineingeschrieben hat, behält sie.
+                    recompute(null);
+                }
             }
         });
         input.addTextChangedListener(new SimpleWatcher(() -> {
@@ -754,9 +771,12 @@ public class SecurityTxEditActivity extends LocalizedActivity {
         return tx;
     }
 
-    /** Schreibt einen berechneten Wert – aber nie in ein Feld, das der Nutzer selbst gefüllt hat. */
+    /**
+     * Schreibt einen berechneten Wert – aber nie in ein Feld, das der Nutzer selbst gefüllt hat, und
+     * nie in das, in dem er gerade steht.
+     */
     private void writeUnset(Field field, String text) {
-        if (userSet.contains(field)) {
+        if (userSet.contains(field) || field == focusedField) {
             return;
         }
         TextInputEditText input = numberFields.get(field);

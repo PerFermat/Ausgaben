@@ -62,8 +62,15 @@ public class StatementCorpusTest {
      *
      * <p>Keine Zahl aus dem Lehrbuch, sondern der gemessene Stand: sie hält fest, was erreicht ist, und
      * schlägt an, wenn eine Änderung es verschlechtert. Wer sie hebt, hat etwas verbessert.</p>
+     *
+     * <p>Von 0.30 auf 0.15 gesenkt, seit die Vorlagen zum Depot gehören und es je Depot nur noch eine
+     * je Aktion gibt: hier durchlaufen alle Abrechnungen einer Bank aus vielen Jahren dasselbe Depot,
+     * und jedes Format überschreibt das vorige. Das ist der ungünstigste denkbare Fall und nicht der
+     * echte — im Betrieb kommen die Abrechnungen der Reihe nach herein, eine neue Form wird einmal
+     * gelernt, und alle folgenden haben eben diese Form. Was die Erkennung wirklich kann, messen
+     * {@link #wasSichUeberhauptAusdrueckenLaesst} und {@link #nurDieJuengstenAbrechnungen}.</p>
      */
-    private static final double MIN_QUOTE = 0.30;
+    private static final double MIN_QUOTE = 0.15;
 
     private final Context ctx = ApplicationProvider.getApplicationContext();
 

@@ -1445,12 +1445,27 @@
     {
       "type": "p",
       "id": "b-0151b",
-      "text": "Ein Wertpapierkauf erscheint auch in der Buchungsliste des Verrechnungskontos – als Umbuchung zwischen diesem Konto und dem Wertpapier. Öffnen Sie sie, sind <b>Betrag, Empfänger, Konten und Datum gesperrt</b>, und «Löschen» gibt es nicht. Der Grund: <b>Stückzahl und Kurs</b> gehören zu dieser Buchung, stehen aber nur in der KMyMoney-Datei. Die App kennt sie nicht – dürfte sie die Buchung wie eine gewöhnliche Umbuchung zurückschreiben, wäre aus dem Wertpapierkauf in Ihrer Datei eine nackte Umbuchung geworden, und das Depot dort zerstört."
+      "text": "Ein Wertpapierkauf erscheint auch in der Buchungsliste des Verrechnungskontos – als Umbuchung zwischen diesem Konto und dem Wertpapier. Öffnen Sie sie, sind <b>Betrag, Empfänger, Konten und Datum gesperrt</b>. Der Grund: <b>Stückzahl und Kurs</b> gehören zu dieser Buchung, stehen aber nur in der KMyMoney-Datei. Die App kennt sie nicht – dürfte sie die Buchung wie eine gewöhnliche Umbuchung zurückschreiben, wäre aus dem Wertpapierkauf in Ihrer Datei eine nackte Umbuchung geworden, und das Depot dort zerstört."
     },
     {
       "type": "p",
       "id": "b-0151c",
       "text": "Ändern lassen sich dafür genau die drei Dinge, die KMyMoney bei einer solchen Buchung nicht selbst braucht: die <b>Notiz</b>, die <b>Stichwörter</b> und der <b>Beleg</b> – etwa die Abrechnung Ihrer Bank als PDF. Beim nächsten Export trägt die App sie in die vorhandene Transaktion nach, ohne sie neu zu bauen: Stückzahl, Kurs und Art der Bewegung bleiben unangetastet. So finden Sie die Abrechnung auch nach einem erneuten Einlesen des Depots wieder."
+    },
+    {
+      "type": "h3",
+      "id": "b-0151d",
+      "text": "Löschen geht – anders als Ändern"
+    },
+    {
+      "type": "p",
+      "id": "b-0151e",
+      "text": "<b>«Löschen»</b> gibt es hier sehr wohl, und es nimmt die zugehörige <b>Depot-Bewegung</b> mit; sonst bliebe im Depot eine Bewegung ohne Geldbuchung stehen. Warum das erlaubt ist, wo das Ändern gesperrt bleibt: beim Löschen verschwindet die <b>ganze</b> Transaktion – Geld-, Wertpapier- und Gebührenteil zusammen. Es kann nichts halb stehenbleiben, und genau das war der Grund, das Ändern zu verbieten."
+    },
+    {
+      "type": "p",
+      "id": "b-0151f",
+      "text": "Steht die Buchung bereits in der KMyMoney-Datei, sagt die Rückfrage das ausdrücklich: beim nächsten Export wird die Transaktion auch <b>dort</b> entfernt, samt Stückzahl und Kurs. <b>Rückgängig gibt es nicht</b> – die Buchung ließe sich wiederherstellen, die Depot-Bewegung nicht, und ein halbes Zurück wäre schlimmer als keines."
     },
     {
       "type": "text_with_single_shot",
@@ -1493,6 +1508,51 @@
       "type": "p",
       "id": "b-0157a",
       "text": "<b>Abrechnung einlesen:</b> Das Depot kann eine Wertpapierabrechnung als PDF einlesen und daraus eine Buchung vorbereiten. Die Funktion ist ab Werk <b>ausgeschaltet</b> und lässt sich in den Einstellungen einschalten; dort nennt die App auch, an wie vielen Banken die Erkennung gemessen wurde. Sie trägt nicht bei jeder Bank – <b>prüfen Sie die erkannten Werte, bevor Sie buchen</b>."
+    },
+    {
+      "type": "h3",
+      "id": "b-0157g",
+      "text": "Werte in einer Tabelle"
+    },
+    {
+      "type": "p",
+      "id": "b-0157h",
+      "text": "Manche Banken stellen die Zahlen nicht hinter eine Beschriftung, sondern <b>unter eine Spaltenüberschrift</b>. Die Datenzeile beginnt dann mit einer Zahl und trägt selbst gar keine Beschriftung. Für solche Belege heißt <b>«in einer der Zeilen darunter»</b>: die nächste Zeile, die überhaupt einen Wert trägt – bis zu drei Zeilen weit. Das überspringt eine zweite Kopfzeile, die manche Banken einschieben. Wenn diese Suche an einer Zwischenzeile hängenbleibt, die zufällig eine Zahl trägt, wählen Sie stattdessen <b>«genau 1, 2 oder 3 Zeilen darunter»</b>."
+    },
+    {
+      "type": "p",
+      "id": "b-0157i",
+      "text": "Eine Tabellenzeile trägt oft mehrere Angaben derselben Art – vorn den Buchungstag, daneben die Wertstellung. Welche gemeint ist, sagt die Auswahl <b>«Welche Zahl der Zeile»</b>; sie gilt auch für Datumsangaben. Beim Datum bedeutet die Vorgabe «die letzte» aus Rücksicht auf ältere Regeln weiterhin <b>die erste</b> Angabe hinter der Beschriftung – wer eine andere will, wählt ausdrücklich «die erste (Tabellenspalte)» oder «die 2. von links»."
+    },
+    {
+      "type": "p",
+      "id": "b-0157j",
+      "text": "<b>Hilfe beim Eintippen:</b> Unter «Abrechnung prüfen» steht neben dem Ergebnis der Knopf <b>«Text mit Zeilennummern»</b>. Er zeigt die Abrechnung so, wie die App sie liest. Das ist nötig, weil ihre Zeilen nicht die Zeilen des PDF-Betrachters sind: sie entstehen aus den Wortpositionen, und eine optisch leere Zeile gibt es dort gar nicht. Zum Abzählen des Abstands ist das die einzige verläßliche Quelle."
+    },
+    {
+      "type": "h3",
+      "id": "b-0157b",
+      "text": "Eine Gebühr, die nicht auf der Abrechnung steht"
+    },
+    {
+      "type": "p",
+      "id": "b-0157c",
+      "text": "Manche Banken nehmen je Order einen festen Betrag, ohne ihn auf der Abrechnung auszuweisen. Eine Regel kann ihn nicht finden – sie sucht nach einer Beschriftung, und es gibt keine. Auf der Regelseite steht deshalb bei der <b>Gebühr</b> ein Feld <b>«Feste Gebühr je Order»</b> samt Kategorie."
+    },
+    {
+      "type": "p",
+      "id": "b-0157d",
+      "text": "Ob dieser Betrag zum Zuge kommt, entscheidet der Schalter <b>«Mehrere Zeilen zusammenzählen»</b> darüber. Findet die Regel im Beleg keine Gebühr, gilt der feste Wert. Findet sie eine und der Schalter steht <b>an</b>, kommt der feste Wert hinzu. Steht er <b>aus</b>, gewinnt die gefundene Gebühr und der feste Wert bleibt außen vor."
+    },
+    {
+      "type": "p",
+      "id": "b-0157e",
+      "text": "Beim <b>Gesamtbetrag</b> steht dazu der Schalter <b>«Feste Gebühr steckt schon im Gesamtbetrag»</b>. Steht er aus, ist der abgebuchte Betrag um die Gebühr höher als die Zahl auf dem Beleg – beim Verkauf die Gutschrift um sie niedriger –, und die App rechnet das hinzu. Steht er an, bleibt der Gesamtbetrag, wie er dasteht."
+    },
+    {
+      "type": "p",
+      "id": "b-0157f",
+      "text": "<b>Von selbst erkannt:</b> Tragen Sie beim Erfassen einen Gesamtbetrag und eine Gebühr ein, die <b>beide</b> nicht in der Abrechnung stehen, probiert die App die Differenz – also den Betrag ohne die Gebühr. Findet sie den, lernt sie dessen Beschriftung und trägt die Gebühr gleich als feste Ordergebühr ein. Das ist der einzige Wert, den die App nicht abliest, sondern erschließt; die Rückfrage nennt ihn deshalb ausdrücklich mit Betrag."
     },
     {
       "type": "h1",

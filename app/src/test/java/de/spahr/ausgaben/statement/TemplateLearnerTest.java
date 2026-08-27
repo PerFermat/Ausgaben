@@ -360,4 +360,33 @@ public class TemplateLearnerTest {
         assertEquals(AnchorRule.Direction.LINE_BELOW, net.direction);
         assertEquals(Double.valueOf(1234.56), net.read(t));
     }
+
+    /**
+     * Nur für die übergebenen Werte entsteht eine Regel — das ist die Zusage, auf der die Maske aufbaut.
+     *
+     * <p>Sie reicht ausschließlich das weiter, was der Nutzer selbst eingetippt hat; alles andere hat sie
+     * sich selbst vorgelegt, und dazu eine Beschriftung zu suchen hieße, den eigenen Vorschlag im
+     * Dokument wiederzufinden und für eine Bestätigung zu halten. Ginge der Lerner darüber hinaus, wäre
+     * diese Zurückhaltung wirkungslos.</p>
+     */
+    @Test
+    public void nurZuDenUebergebenenWertenEntstehtEineRegel() {
+        PdfText t = StatementFixtures.ingKauf();
+        TemplateLearner.Known nurGesamt = new TemplateLearner.Known();
+        nurGesamt.action = StatementScan.BUY;
+        nurGesamt.netCents = 100000L;
+
+        StatementTemplate gelernt = TemplateLearner.learn(t, nurGesamt);
+        assertEquals("nur der Gesamtbetrag war angegeben",
+                java.util.Collections.singleton(StatementTemplate.Field.NET),
+                gelernt.rules().keySet());
+    }
+
+    /** Ohne einen einzigen Wert bleibt die Vorlage leer – und die Maske fragt dann gar nicht erst. */
+    @Test
+    public void ohneWerteEntstehtKeineRegel() {
+        TemplateLearner.Known leer = new TemplateLearner.Known();
+        leer.action = StatementScan.BUY;
+        assertTrue(TemplateLearner.learn(StatementFixtures.ingKauf(), leer).isEmpty());
+    }
 }

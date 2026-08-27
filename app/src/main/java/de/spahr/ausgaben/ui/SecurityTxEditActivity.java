@@ -187,6 +187,18 @@ public class SecurityTxEditActivity extends LocalizedActivity {
     private String savedStatementTag;
     /** Beschriftung des aus der Abrechnung gewählten Datums; sie wird zum Anker. */
     private String chosenDateLabel;
+    /**
+     * Die Felder, in die der Nutzer <b>selbst</b> geschrieben hat — nur aus ihnen wird gelernt.
+     *
+     * <p>Nicht zu verwechseln mit {@code userSet}: dort stehen auch die Werte, welche die Maske aus der
+     * Abrechnung vorbelegt hat. Hier landet nur, was durch den Beobachter kam, und der schweigt bei jedem
+     * programmatischen Schreiben ({@code writingBack}). Genau diese Unterscheidung ist der Punkt: die App
+     * soll die Beschriftung zu einer Zahl suchen, die der Nutzer abgetippt hat — nicht zu einer, die sie
+     * sich selbst vorgelegt hat.</p>
+     */
+    private final Set<Field> typedFields = EnumSet.noneOf(Field.class);
+    /** Hat der Nutzer das Datum selbst gewählt? Dann gehört auch dessen Beschriftung gelernt. */
+    private boolean dateTyped;
 
     @Override
     protected void onCreate(Bundle savedInstanceState) {
@@ -633,8 +645,12 @@ public class SecurityTxEditActivity extends LocalizedActivity {
             }
             if (textOf(input).trim().isEmpty()) {
                 userSet.remove(field);
+                typedFields.remove(field);
             } else {
                 userSet.add(field);
+                // Hierher kommt nur, was der Nutzer wirklich getippt hat – programmatisches Schreiben
+                // hat oben schon abgedreht.
+                typedFields.add(field);
             }
             recompute(field);
         }));
@@ -1020,21 +1036,39 @@ public class SecurityTxEditActivity extends LocalizedActivity {
             return;
         }
         final StatementTemplates store = new StatementTemplates(this);
-        final StatementTemplate existing = store.match(text);
+        final StatementTemplate existing = store.match(text, depot);
 
+        // Wer nichts angefasst hat, hat der App nichts beizubringen – dann bleibt die Rückfrage aus.
+        if (typedFields.isEmpty() && !dateTyped) {
+            finish();
+            return;
+        }
+        // Wieviel gelernt wird, hängt daran, ob es für diese Bank schon eine Vorlage gibt.
+        //
+        // <b>Noch keine:</b> dann zählt jeder Wert der Maske, auch ein gerechneter. Bei einer Dividende
+        // tippt man Brutto und Steuer, und das Netto rechnet die Maske – ohne diesen Fall entstünde eine
+        // Vorlage ohne Gesamtbetrag-Regel, und die erkennt kein Dokument wieder ({@code score}).
+        //
+        // <b>Schon eine:</b> dann nur das selbst Getippte. Alles andere hat die Vorlage vorgelegt, und
+        // dazu erneut eine Beschriftung zu suchen hieße, den eigenen Vorschlag wiederzufinden und für
+        // eine Bestätigung zu halten.
+        final boolean ersteVorlage = existing == null;
         TemplateLearner.Known known = new TemplateLearner.Known();
         known.action = action;
         // Bei einer Dividende gibt es weder Stückzahl noch Stückpreis: die Anzahl am Ex-Tag steht nicht in
         // der Abrechnung, und die Ausschüttung je Stück ist dort in Fremdwährung ausgewiesen.
-        known.shares = DIVIDEND.equals(action) ? null : shares;
-        known.price = DIVIDEND.equals(action) ? null : price;
-        known.feeCents = feeCents;
-        known.netCents = netCents;
-        known.dateMillis = selectedDate.getTimeInMillis();
-        // Hat der Nutzer das Datum nicht selbst gewählt, bleibt die schon gelernte Beschriftung gültig.
-        // Ohne das würde bei zwei Zeilen mit demselben Datum („Zahltag" und „Valuta") jedes Mal die
-        // unterste neu gelernt – und die Rückfrage käme, obwohl sich nichts geändert hat.
+        known.shares = DIVIDEND.equals(action) || !lernen(ersteVorlage, Field.SHARES) ? null : shares;
+        known.price = DIVIDEND.equals(action) || !lernen(ersteVorlage, Field.PRICE) ? null : price;
+        known.feeCents = lernen(ersteVorlage, Field.FEE) ? feeCents : null;
+        known.netCents = lernen(ersteVorlage, Field.NET) ? netCents : null;
+        // Wird aus der Gebühr eine feste Ordergebühr, braucht sie eine Kategorie – und die steht hier.
+        known.feeCategory = textOf(editFeeCategory).trim();
+        // Beim Datum zählt die eigene Wahl: hat der Nutzer sie nicht getroffen, bleibt die schon gelernte
+        // Beschriftung gültig. Ohne das würde bei zwei Zeilen mit demselben Datum („Zahltag" und
+        // „Valuta") jedes Mal die unterste neu gelernt.
+        known.dateMillis = ersteVorlage || dateTyped ? selectedDate.getTimeInMillis() : -1;
         known.dateAnchor = chosenDateLabel;
+
         if (known.dateAnchor == null && existing != null
                 && existing.rule(StatementTemplate.Field.DATE) != null) {
             known.dateAnchor = existing.rule(StatementTemplate.Field.DATE).anchors.get(0);
@@ -1046,7 +1080,7 @@ public class SecurityTxEditActivity extends LocalizedActivity {
         // „Hinzufügen" – die bisherige Reihenfolge behält Vorrang, die neue Beschriftung kommt als
         //   weiterer Rückfall dahinter. Das schützt, was auf der Regelseite von Hand geordnet wurde.
         final StatementTemplate replaced = raw.mergedOver(existing);
-        final StatementTemplate appended = raw.appendedTo(existing);
+        final StatementTemplate appended = raw.appendedTo(existing, text);
         // Nur fragen, wenn dabei wirklich etwas Neues herauskam. Wer nichts korrigiert hat, bekommt
         // dieselben Regeln zurück – dann gibt es nichts zu merken, und die Rückfrage wäre nur Lärm.
         // Dasselbe, wenn der korrigierte Wert im PDF gar nicht vorkommt: dann entsteht keine Regel.
@@ -1057,7 +1091,7 @@ public class SecurityTxEditActivity extends LocalizedActivity {
         AppDialog dialog = new AppDialog(this);
         dialog.setTitle(R.string.statement_learn_title);
         if (appended.sameAs(replaced)) {
-            dialog.setMessage(R.string.statement_learn_message);
+            dialog.setMessage(learnMessage(raw, existing));
             dialog.setPositiveButton(R.string.statement_learn_yes, (d, w) -> keep(store, replaced));
         } else {
             // Es gibt einen echten Widerspruch: die neue Beschriftung tritt an die Stelle einer
@@ -1072,9 +1106,31 @@ public class SecurityTxEditActivity extends LocalizedActivity {
         dialog.show();
     }
 
+    /** Ob dieses Feld in den Lernvorgang geht (siehe {@code offerToLearn}). */
+    private boolean lernen(boolean ersteVorlage, Field field) {
+        return ersteVorlage || typedFields.contains(field);
+    }
+
+    /**
+     * Der Text der Rückfrage. Hat der Lerner eine <b>feste Ordergebühr</b> erschlossen, sagt er das mit
+     * dem Betrag.
+     *
+     * <p>Das ist der einzige Wert, den die App nicht im Dokument gefunden, sondern aus einer Differenz
+     * gefolgert hat: der Gesamtbetrag stand nicht darin, der Betrag ohne die Gebühr schon. Ein solcher
+     * Wert darf nicht stillschweigend entstehen — wer später auf der Regelseite eine Gebühr vorfindet,
+     * die er nie eingetragen hat, rätselt sonst, woher sie kommt.</p>
+     */
+    private String learnMessage(StatementTemplate raw, StatementTemplate existing) {
+        boolean neu = raw.fixedFeeCents > 0
+                && (existing == null || existing.fixedFeeCents != raw.fixedFeeCents);
+        return neu
+                ? getString(R.string.statement_learn_fixed_fee, MoneyFormat.plain(raw.fixedFeeCents))
+                : getString(R.string.statement_learn_message);
+    }
+
     /** Die gewählte Fassung merken und die Maske schließen. */
     private void keep(StatementTemplates store, StatementTemplate template) {
-        store.save(template);
+        store.save(template, depot);
         // Auch die Zuordnung merken – dann findet die nächste Abrechnung das Wertpapier selbst dann,
         // wenn die ISIN in KMyMoney nicht gepflegt ist.
         store.rememberSecurity(statementIsin, depot, kmyId, securityName);
@@ -1229,6 +1285,7 @@ public class SecurityTxEditActivity extends LocalizedActivity {
                     }
                     selectedDate.setTimeInMillis(found.get(which).millis);
                     chosenDateLabel = found.get(which).label;
+                    dateTyped = true;
                     updateDateField();
                 })
                 .show();
@@ -1252,6 +1309,7 @@ public class SecurityTxEditActivity extends LocalizedActivity {
             selectedDate.set(Calendar.YEAR, year);
             selectedDate.set(Calendar.MONTH, month);
             selectedDate.set(Calendar.DAY_OF_MONTH, day);
+            dateTyped = true;
             updateDateField();
         }, selectedDate.get(Calendar.YEAR), selectedDate.get(Calendar.MONTH),
                 selectedDate.get(Calendar.DAY_OF_MONTH)).show();

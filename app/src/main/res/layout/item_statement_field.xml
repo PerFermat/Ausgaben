@@ -7,11 +7,16 @@
     android:layout_marginTop="20dp"
     android:orientation="vertical">
 
+    <!-- Gross und mittig: die Seite reiht sechs gleich gebaute Bereiche untereinander, und ohne eine
+         Ueberschrift, die sich vom Formular abhebt, verschwimmen sie ineinander. -->
     <TextView
         android:id="@+id/textFieldName"
         android:layout_width="match_parent"
         android:layout_height="wrap_content"
-        android:textSize="16sp"
+        android:layout_marginBottom="8dp"
+        android:gravity="center_horizontal"
+        android:textColor="@color/green_primary"
+        android:textSize="20sp"
         android:textStyle="bold" />
 
     <TextView
@@ -97,5 +102,69 @@
         android:layout_height="wrap_content"
         android:layout_marginTop="4dp"
         android:text="@string/statement_rules_sum" />
+
+    <!-- Nur bei der Gebühr: ein Betrag, den die Bank nicht ausdruckt (feste Ordergebühr). -->
+    <LinearLayout
+        android:id="@+id/fixedFeeBox"
+        android:layout_width="match_parent"
+        android:layout_height="wrap_content"
+        android:orientation="vertical"
+        android:visibility="gone">
+
+        <TextView
+            android:id="@+id/textFixedFeeHint"
+            android:layout_width="match_parent"
+            android:layout_height="wrap_content"
+            android:layout_marginTop="8dp"
+            android:text="@string/statement_rules_fixed_fee_hint"
+            android:textColor="@color/grey_text"
+            android:textSize="12sp" />
+
+        <com.google.android.material.textfield.TextInputLayout
+            android:layout_width="match_parent"
+            android:layout_height="wrap_content"
+            android:layout_marginTop="4dp"
+            android:hint="@string/statement_rules_fixed_fee">
+
+            <!-- Kein inputType="numberDecimal": dessen Zeichenfilter kennt nur den Punkt und
+                 verschluckt das Komma sogar dann, wenn es von der eigenen Tastatur kommt. Den
+                 Zeichenvorrat setzt AmountField im Code. -->
+            <com.google.android.material.textfield.TextInputEditText
+                android:id="@+id/editFixedFee"
+                android:layout_width="match_parent"
+                android:layout_height="wrap_content"
+                android:maxLines="1" />
+        </com.google.android.material.textfield.TextInputLayout>
+
+        <com.google.android.material.textfield.TextInputLayout
+            style="@style/Widget.Material3.TextInputLayout.OutlinedBox.ExposedDropdownMenu"
+            android:layout_width="match_parent"
+            android:layout_height="wrap_content"
+            android:layout_marginTop="8dp"
+            android:hint="@string/statement_rules_fixed_fee_category">
+
+            <de.spahr.ausgaben.ui.PickerTextView
+                android:id="@+id/editFixedFeeCategory"
+                android:layout_width="match_parent"
+                android:layout_height="wrap_content"
+                android:inputType="text" />
+        </com.google.android.material.textfield.TextInputLayout>
+    </LinearLayout>
+
+    <!-- Nur beim Gesamtbetrag: steckt die feste Gebühr schon darin? -->
+    <com.google.android.material.materialswitch.MaterialSwitch
+        android:id="@+id/switchFixedFeeInTotal"
+        android:layout_width="match_parent"
+        android:layout_height="wrap_content"
+        android:layout_marginTop="4dp"
+        android:text="@string/statement_rules_fixed_fee_in_total"
+        android:visibility="gone" />
+
+    <!-- Schlussstrich des Bereichs: er trennt vom naechsten, ohne eine eigene Ueberschrift zu brauchen. -->
+    <View
+        android:layout_width="match_parent"
+        android:layout_height="1dp"
+        android:layout_marginTop="20dp"
+        android:background="@color/list_divider" />
 
 </LinearLayout>

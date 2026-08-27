@@ -133,6 +133,18 @@ public interface SecurityDao {
     @Query("SELECT * FROM security_tx WHERE id = :id")
     SecurityTx getTxById(long id);
 
+    /**
+     * Die Bewegungen, die zu einer Geldbuchung gehören können: entweder über die Verknüpfung (in der App
+     * erfasst) oder inhaltlich über Wertpapier, Konto und Tag (aus KMyMoney eingelesen, dort steht
+     * {@code booking_id = 0}). Welche es wirklich ist, entscheidet {@link SecurityTxMatch} — hier wird
+     * nur grob vorgesiebt, damit nicht das ganze Depot durch Java muss.
+     */
+    @Query("SELECT * FROM security_tx WHERE booking_id = :bookingId "
+            + "OR (security_name = :securityName AND money_account = :moneyAccount "
+            + "AND date >= :fromMs AND date < :toMs) ORDER BY id ASC")
+    List<SecurityTx> getTxForBooking(long bookingId, String securityName, String moneyAccount,
+                                     long fromMs, long toMs);
+
     @Update
     void updateTx(SecurityTx tx);
 

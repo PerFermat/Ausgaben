@@ -268,6 +268,9 @@
     <string name="delete">Löschen</string>
     <string name="delete_confirm_title">Buchung löschen?</string>
     <string name="delete_confirm_message">Diese Buchung wird dauerhaft entfernt.</string>
+    <string name="delete_security_confirm_title">Wertpapier-Buchung löschen?</string>
+    <string name="delete_security_confirm_message">Buchung und Depot-Bewegung werden sofort entfernt. Beim nächsten Export verschwindet die ganze Transaktion aus der KMyMoney-Datei – samt Stückzahl und Kurs. Rückgängig geht das nicht.</string>
+    <string name="delete_security_pending_message">Buchung und Depot-Bewegung werden dauerhaft entfernt. Rückgängig geht das nicht.</string>
     <string name="booking_updated">Buchung aktualisiert</string>
     <string name="booking_deleted">Buchung gelöscht</string>
     <string name="undo">Rückgängig</string>
@@ -714,6 +717,7 @@
     <string name="statement_reading">Abrechnung wird gelesen…</string>
     <string name="statement_learn_title">Für diese Bank merken?</string>
     <string name="statement_learn_message">Die App hat sich gemerkt, wo die Werte in dieser Abrechnung stehen. Beim nächsten Mal füllt sie die Maske dann selbst aus.</string>
+    <string name="statement_learn_fixed_fee">Der Gesamtbetrag stand nicht in der Abrechnung, wohl aber der Betrag ohne die Gebühr. Die App merkt sich deshalb zusätzlich eine feste Gebühr von %1$s je Order – ändern lässt sie sich auf der Regelseite.</string>
     <string name="statement_learn_yes">Merken</string>
     <string name="statement_learned">Gemerkt</string>
     <string name="statement_pick_security">Welches Wertpapier gehört zu %1$s?</string>
@@ -761,8 +765,14 @@
     <string name="statement_rules_remove">Beschriftung entfernen</string>
     <string name="statement_rules_direction">Der Wert steht</string>
     <string name="statement_rules_same_line">in derselben Zeile</string>
-    <string name="statement_rules_line_below">in der Zeile darunter</string>
+    <string name="statement_rules_line_below">in einer der Zeilen darunter</string>
+    <string name="statement_rules_below_one">genau 1 Zeile darunter</string>
+    <string name="statement_rules_below_n">genau %1$d Zeilen darunter</string>
     <string name="statement_rules_sum">Mehrere Zeilen zusammenzählen</string>
+    <string name="statement_rules_fixed_fee">Feste Gebühr je Order</string>
+    <string name="statement_rules_fixed_fee_category">Kategorie der festen Gebühr</string>
+    <string name="statement_rules_fixed_fee_hint">Für Banken, die eine Ordergebühr nehmen, ohne sie auf der Abrechnung auszuweisen. Findet die Regel oben eine Gebühr, gilt sie allein – es sei denn, „Mehrere Zeilen zusammenzählen" steht an, dann kommt die feste hinzu.</string>
+    <string name="statement_rules_fixed_fee_in_total">Feste Gebühr steckt schon im Gesamtbetrag</string>
     <string name="statement_rules_currency">Währung (leer = beliebig)</string>
     <string name="statement_rules_order_hint">In dieser Reihenfolge gesucht – es gilt die erste Beschriftung, die einen Wert trägt.</string>
     <string name="statement_rules_saved">Regeln gespeichert</string>
@@ -771,6 +781,7 @@
     <string name="statement_rules_delete_message">Abrechnungen dieser Bank werden dann nicht mehr vorbelegt.</string>
     <string name="statement_rules_try">Probe mit einer Abrechnung…</string>
     <string name="statement_rules_try_title">Was die Regeln lesen</string>
+    <string name="statement_rules_show_text">Text mit Zeilennummern</string>
     <string name="statement_rules_try_nomatch">Die Vorlage greift bei dieser Abrechnung nicht.</string>
     <string name="statement_rules_nothing">—</string>
     <string name="statement_learn_conflict">Eine bereits gemerkte Beschriftung würde ersetzt. Die neue als weiteren Rückfall hinzufügen oder die alte ersetzen?</string>

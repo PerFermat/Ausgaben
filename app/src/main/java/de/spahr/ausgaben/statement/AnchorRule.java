@@ -84,6 +84,21 @@ public final class AnchorRule {
      * auszudrücken.</p>
      */
     public final int nth;
+    /**
+     * Wie viele Zeilen unter der Beschriftung der Wert steht — nur bei {@link Direction#LINE_BELOW}.
+     *
+     * <p><b>0 heißt suchend:</b> die nächste Zeile darunter, die überhaupt einen brauchbaren Wert trägt,
+     * höchstens {@link #MAX_BELOW} weit. Das ist der Regelfall und der nachsichtige: bei einer
+     * Spaltenüberschrift steht zwischen ihr und den Daten oft noch eine zweite Kopfzeile
+     * („Betrag / Stk." und darunter „Wechselkurs"), und ob sie da ist, hängt vom einzelnen Beleg ab.</p>
+     *
+     * <p><b>1 bis 3</b> heißt genau so viele Zeilen tiefer — für den Fall, dass die suchende Fassung an
+     * einer Zwischenzeile hängenbleibt, die zufällig eine Zahl trägt.</p>
+     */
+    public final int linesBelow;
+
+    /** So weit sucht die nachsichtige Fassung von {@link #linesBelow} nach unten. */
+    public static final int MAX_BELOW = 3;
 
     public AnchorRule(List<String> anchors, Direction direction, boolean sum) {
         this(anchors, direction, sum, "");
@@ -100,6 +115,11 @@ public final class AnchorRule {
 
     public AnchorRule(List<String> anchors, Direction direction, boolean sum, String currency,
                       Position position, int nth) {
+        this(anchors, direction, sum, currency, position, nth, 0);
+    }
+
+    public AnchorRule(List<String> anchors, Direction direction, boolean sum, String currency,
+                      Position position, int nth, int linesBelow) {
         List<String> copy = new ArrayList<>();
         for (String a : anchors) {
             if (a != null && !a.trim().isEmpty()) {
@@ -112,6 +132,7 @@ public final class AnchorRule {
         this.currency = currency == null ? "" : currency.trim();
         this.position = position == null ? Position.LAST : position;
         this.nth = Math.max(1, nth);
+        this.linesBelow = Math.max(0, Math.min(MAX_BELOW, linesBelow));
     }
 
     public static AnchorRule single(String anchor, Direction direction) {
@@ -176,37 +197,53 @@ public final class AnchorRule {
         List<PdfText.Line> lines = text.lines();
         Double result = null;
         for (int i = 0; i < lines.size(); i++) {
-            String valueText = valueText(lines, i, anchor);
-            if (valueText == null || !currencyFits(valueText)) {
-                continue;   // andere Währung als gelernt – dann ist es nicht der gesuchte Betrag
-            }
-            Double value = numberAt(valueText, position, nth);
-            if (value != null) {
-                result = value;   // weiter suchen: die unterste Fundstelle gewinnt
+            for (String valueText : valueTexts(lines, i, anchor)) {
+                if (!currencyFits(valueText)) {
+                    continue;   // andere Währung als gelernt – dann ist es nicht der gesuchte Betrag
+                }
+                Double value = numberAt(valueText, position, nth);
+                if (value != null) {
+                    result = value;   // weiter suchen: die unterste Fundstelle gewinnt
+                    break;            // je Fundstelle aber nur die erste Zeile mit einem Wert
+                }
             }
         }
         return result;
     }
 
     /**
-     * Der Teil der Zeile, in dem der Wert zu suchen ist — {@code null}, wenn die Beschriftung hier nicht
-     * anschlägt.
+     * Die Textstücke, in denen der Wert zu suchen ist — leer, wenn die Beschriftung hier nicht anschlägt.
+     * Der Aufrufer nimmt das <b>erste</b>, das einen Wert hergibt.
      *
      * <p>Steht die Beschriftung <b>mitten</b> in der Zeile, gilt nur, was dahinter kommt. Nötig, weil
      * nicht jede Bank die Beschriftung an den Anfang setzt: Trade Republic schreibt
      * „Beispielstraße 1 DATUM 13.05.2019", und ohne diese Einschränkung läse eine Regel für „DATUM" die
      * Hausnummer mit. Führt die Beschriftung die Zeile an — der Regelfall —, ist es wie bisher der
      * ganze Rest.</p>
+     *
+     * <p>Bei „darunter" ist es eine Zeile tiefer, bei einem festen {@link #linesBelow} genau so viele —
+     * und ohne Angabe die nächsten {@link #MAX_BELOW}, aus denen der Aufrufer die erste mit einem Wert
+     * nimmt. Letzteres macht Spaltenüberschriften erreichbar, unter denen noch eine zweite Kopfzeile
+     * steht.</p>
      */
-    private String valueText(List<PdfText.Line> lines, int i, String anchor) {
+    private List<String> valueTexts(List<PdfText.Line> lines, int i, String anchor) {
         int after = afterAnchor(lines.get(i).text(), anchor);
         if (after < 0) {
-            return null;
+            return java.util.Collections.emptyList();
         }
-        if (direction == Direction.LINE_BELOW) {
-            return i + 1 < lines.size() ? lines.get(i + 1).text() : null;
+        if (direction != Direction.LINE_BELOW) {
+            return java.util.Collections.singletonList(lines.get(i).text().substring(after));
         }
-        return lines.get(i).text().substring(after);
+        if (linesBelow > 0) {
+            int j = i + linesBelow;
+            return j < lines.size() ? java.util.Collections.singletonList(lines.get(j).text())
+                    : java.util.Collections.emptyList();
+        }
+        List<String> out = new ArrayList<>();
+        for (int j = i + 1; j <= i + MAX_BELOW && j < lines.size(); j++) {
+            out.add(lines.get(j).text());
+        }
+        return out;
     }
 
     /**
@@ -265,16 +302,57 @@ public final class AnchorRule {
         List<PdfText.Line> lines = text.lines();
         long result = -1;
         for (int i = 0; i < lines.size(); i++) {
-            String valueText = valueText(lines, i, anchor);
-            if (valueText == null) {
-                continue;
-            }
-            long millis = firstDate(valueText);
-            if (millis > 0) {
-                result = millis;   // unterste Fundstelle gewinnt, wie bei den Zahlen
+            for (String valueText : valueTexts(lines, i, anchor)) {
+                long millis = dateAt(valueText, position, nth);
+                if (millis > 0) {
+                    result = millis;   // unterste Fundstelle gewinnt, wie bei den Zahlen
+                    break;             // je Fundstelle die erste Zeile mit einem Datum
+                }
             }
         }
         return result;
+    }
+
+    /**
+     * Das gesuchte Datum einer Zeile — dieselbe Stellenangabe wie bei den Zahlen.
+     *
+     * <p>Nötig für Tabellenzeilen: „30.06.2026 01.07.2026 Gutschrift …" nennt vorn den Buchungstag und
+     * daneben die Wertstellung. Ohne die Stelle gewönne immer der erste, und die Wertstellung wäre nicht
+     * auszudrücken — obwohl die Regelseite die Auswahl anbietet.</p>
+     */
+    static long dateAt(String line, Position position, int nth) {
+        // Die Vorgabe LAST/1 heisst beim Datum weiterhin «das erste hinter der Beschriftung» und nicht
+        // «das letzte». Das ist eine Rücksicht auf den Bestand: gelernte Regeln tragen diese Vorgabe,
+        // ohne dass jemand sie gewählt hätte, und eine Zeile wie «Für 01.07.2025 - 30.06.2026» läse
+        // sonst über Nacht das Enddatum statt des Anfangs. Wer die letzte Angabe will, sagt es über eine
+        // Stelle grösser eins oder über «von links».
+        if (position != Position.FIRST && nth <= 1) {
+            return firstDate(line);
+        }
+        List<Long> found = allDates(line);
+        if (found.isEmpty()) {
+            return -1;
+        }
+        int index = position == Position.FIRST ? nth - 1 : found.size() - nth;
+        return index >= 0 && index < found.size() ? found.get(index) : -1;
+    }
+
+    /** Alle eindeutigen Daten einer Zeile, von links nach rechts. */
+    static List<Long> allDates(String line) {
+        List<Long> out = new ArrayList<>();
+        if (line == null) {
+            return out;
+        }
+        String[] tokens = line.split("\\s+");
+        for (int i = 0; i < tokens.length; i++) {
+            long millis = dateStartingAt(tokens, i);
+            if (millis > 0) {
+                out.add(millis);
+                // Ein mehrteiliges Datum verbraucht seine Wörter nicht: der nächste Anlauf beginnt beim
+                // folgenden Wort und findet dort nichts mehr, weil ein Teilstück allein kein Datum ist.
+            }
+        }
+        return out;
     }
 
     /**
@@ -290,20 +368,28 @@ public final class AnchorRule {
         }
         String[] tokens = line.split("\\s+");
         for (int i = 0; i < tokens.length; i++) {
-            for (int len = Math.min(3, tokens.length - i); len >= 1; len--) {
-                StringBuilder joined = new StringBuilder();
-                for (int k = 0; k < len; k++) {
-                    if (k > 0) {
-                        joined.append(' ');
-                    }
-                    joined.append(tokens[i + k]);
+            long millis = dateStartingAt(tokens, i);
+            if (millis > 0) {
+                return millis;
+            }
+        }
+        return -1;
+    }
+
+    /** Das Datum, das bei Wort {@code i} beginnt; -1, wenn dort keines steht. */
+    private static long dateStartingAt(String[] tokens, int i) {
+        for (int len = Math.min(3, tokens.length - i); len >= 1; len--) {
+            StringBuilder joined = new StringBuilder();
+            for (int k = 0; k < len; k++) {
+                if (k > 0) {
+                    joined.append(' ');
                 }
-                // Das Komma in „Dec 5, 2019" gehört zur Schreibweise, nicht zum Datum.
-                long millis = TextValues.toUnambiguousDateMillis(
-                        joined.toString().replace(",", ""));
-                if (millis > 0) {
-                    return millis;
-                }
+                joined.append(tokens[i + k]);
+            }
+            // Das Komma in „Dec 5, 2019" gehört zur Schreibweise, nicht zum Datum.
+            long millis = TextValues.toUnambiguousDateMillis(joined.toString().replace(",", ""));
+            if (millis > 0) {
+                return millis;
             }
         }
         return -1;
@@ -439,18 +525,20 @@ public final class AnchorRule {
         }
         AnchorRule other = (AnchorRule) o;
         return sum == other.sum && direction == other.direction && anchors.equals(other.anchors)
-                && currency.equals(other.currency) && position == other.position && nth == other.nth;
+                && currency.equals(other.currency) && position == other.position && nth == other.nth
+                && linesBelow == other.linesBelow;
     }
 
     @Override
     public int hashCode() {
-        return (((anchors.hashCode() * 31 + direction.hashCode()) * 31 + currency.hashCode()) * 31
-                + position.hashCode()) * 31 + nth + (sum ? 1 : 0);
+        return ((((anchors.hashCode() * 31 + direction.hashCode()) * 31 + currency.hashCode()) * 31
+                + position.hashCode()) * 31 + nth) * 31 + linesBelow + (sum ? 1 : 0);
     }
 
     @Override
     public String toString() {
         return (sum ? "Summe von " : "") + anchors + " (" + direction
+                + (linesBelow > 0 ? " " + linesBelow : "")
                 + (position == Position.FIRST || nth > 1 ? ", " + nth + ". Zahl von "
                         + (position == Position.FIRST ? "links" : "rechts") : "")
                 + (currency.isEmpty() ? "" : ", " + currency) + ")";

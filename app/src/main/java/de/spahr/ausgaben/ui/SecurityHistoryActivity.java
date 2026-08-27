@@ -269,8 +269,25 @@ public class SecurityHistoryActivity extends LocalizedActivity {
         amount.setGravity(Gravity.END);
         amount.setTextColor(shown != 0 ? amountColor(tx.action) : getColor(R.color.grey_text));
 
+        // Rechte Spalte: Betrag, darunter das Kennzeichen – dieselbe Anordnung wie in der Buchungsliste
+        // (item_booking.xml). Steht die Bewegung schon in der KMyMoney-Datei, trägt sie dort dasselbe
+        // grüne Wort. Ein Gegenstück «noch nicht exportiert» gibt es bewusst nicht: die Abwesenheit des
+        // Wortes ist dort wie hier die Auskunft.
+        LinearLayout right = new LinearLayout(this);
+        right.setOrientation(LinearLayout.VERTICAL);
+        right.setGravity(Gravity.END);
+        right.addView(amount);
+        if (!tx.pending) {
+            TextView exported = new TextView(this);
+            exported.setText(R.string.exported_badge);
+            exported.setTextSize(11f);
+            exported.setTextColor(getColor(R.color.income_green));
+            exported.setGravity(Gravity.END);
+            right.addView(exported);
+        }
+
         row.addView(left);
-        row.addView(amount);
+        row.addView(right);
         // Kurzer Klick = Details ansehen, langer Klick = Wert bearbeiten (nur Ein-/Ausbuchungen).
         android.util.TypedValue bg = new android.util.TypedValue();
         getTheme().resolveAttribute(android.R.attr.selectableItemBackground, bg, true);

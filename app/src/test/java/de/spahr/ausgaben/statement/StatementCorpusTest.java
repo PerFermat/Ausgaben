@@ -485,23 +485,25 @@ public class StatementCorpusTest {
             store.clearAll();
             Map<String, PdfText> texte = new LinkedHashMap<>();
 
-            // Durchlauf 1: lernen, wie es die Maske beim Speichern tut.
+            // Im gemeinsamen Speicher steht die Bank fürs Depot: reale Abrechnungen tragen immer eins,
+            // und getrennte Depots sind der Weg, wie mehrere Banken in einem Speicher einander nicht in
+            // die Quere kommen (siehe Klassenkommentar) – nicht mehr unterschiedliche Ankertexte.
             for (PpCorpus.Case c : gruppe) {
                 PdfText text = PpCorpus.text(c);
                 texte.put(c.bank + '/' + c.file, text);
-                StatementTemplate gelernt = lerne(c, text, store.match(text));
+                String depot = gemeinsam ? c.bank : "";
+                StatementTemplate gelernt = lerne(c, text, store.match(text, depot));
                 if (!gelernt.isEmpty()) {
-                    store.save(gelernt);
+                    store.save(gelernt, depot);
                 }
             }
-            // Einmal laden statt je Abrechnung: das JSON-Format prüft StatementRoundtripTest.
-            List<StatementTemplate> vorlagen = store.all();
 
             // Durchlauf 2: erkennen, ohne die Sollwerte zu kennen.
             for (PpCorpus.Case c : gruppe) {
                 PdfText text = texte.get(c.bank + '/' + c.file);
+                String depot = gemeinsam ? c.bank : "";
                 ergebnis.put(c.bank + '/' + c.file,
-                        pruefe(c, StatementTemplates.best(vorlagen, text), text));
+                        pruefe(c, StatementTemplates.best(store.all(depot), text), text));
             }
         }
         return ergebnis;

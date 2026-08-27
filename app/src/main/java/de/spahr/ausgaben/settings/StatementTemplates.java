@@ -25,8 +25,14 @@ import de.spahr.ausgaben.statement.StatementTemplate;
  * die Datei steht dafür namentlich in {@code BackupStore.PREFS_FILES}.</p>
  *
  * <p>Speicherformat unter {@code templates}: eine Liste von
- * {@code {"a":"buy","r":{"NET":{"t":["Endbetrag zu Ihren Lasten"],"d":"SAME_LINE","s":false,"c":"EUR"}, …}}}.
+ * {@code {"a":"buy","d":"Depot","r":{"NET":{"t":["Endbetrag zu Ihren Lasten"],"d":"SAME_LINE","s":false,"c":"EUR"}, …}}}.
  * Unter {@code isins} steht je ISIN Depot, Wertpapier-ID und Name.</p>
+ *
+ * <p>Die Vorlagen gehören zum <b>Depot</b>, nicht zur Bank: verschickt eine Bank Abrechnungen an zwei
+ * Depots, entstehen dort zwei (gleichlautende) Vorlagen je Aktion statt einer geteilten. So bleiben es je
+ * Depot höchstens drei — eine je {@code buy}, {@code sell}, {@code dividend} —, und wechselt ein Depot die
+ * Bank, verlernt es die alten Beschriftungen von selbst über {@link StatementTemplate#mergedOver} bzw.
+ * {@link StatementTemplate#appendedTo}, statt das andere Depot mitzuverändern.</p>
  */
 public class StatementTemplates {
 
@@ -38,7 +44,7 @@ public class StatementTemplates {
      * "unit separator" kann in keinem der drei vorkommen; als Fluchtfolge geschrieben, weil es
      * sonst unsichtbar im Quelltext stuende.
      */
-    private static final String SEP = "\u001F";
+    private static final String SEP = "";
 
     private final SharedPreferences prefs;
 
@@ -48,9 +54,14 @@ public class StatementTemplates {
 
     // ---- Vorlagen ----
 
-    /** Die Vorlage, die zu diesem Dokument passt, oder {@code null} (siehe {@link #best}). */
+    /** Wie {@link #match(PdfText, String)}, ohne Depot — für Aufrufer, die keins kennen. */
     public StatementTemplate match(PdfText text) {
-        return best(all(), text);
+        return match(text, "");
+    }
+
+    /** Die Vorlage dieses Depots, die zu diesem Dokument passt, oder {@code null} (siehe {@link #best}). */
+    public StatementTemplate match(PdfText text, String depot) {
+        return best(all(depot), text);
     }
 
     /**
@@ -106,67 +117,84 @@ public class StatementTemplates {
         return best;
     }
 
+    /** Wie {@link #all(String)}, über alle Depots hinweg — nur für die Fälle, denen keins bekannt ist. */
     public List<StatementTemplate> all() {
+        return all("");
+    }
+
+    /** Die Vorlagen dieses Depots (höchstens drei: je eine für buy, sell, dividend). */
+    public List<StatementTemplate> all(String depot) {
         List<StatementTemplate> out = new ArrayList<>();
-        try {
-            JSONArray arr = new JSONArray(prefs.getString(KEY_TEMPLATES, "[]"));
-            for (int i = 0; i < arr.length(); i++) {
-                StatementTemplate t = fromJson(arr.optJSONObject(i));
-                if (t != null && !t.isEmpty()) {
-                    out.add(t);
-                }
+        for (Entry e : entries()) {
+            if (sameDepot(e.depot, depot)) {
+                out.add(e.template);
             }
-        } catch (Exception ignored) {
-            // Unlesbarer Bestand: lieber ohne Vorlagen weiterarbeiten als die App daran scheitern lassen.
         }
         return out;
     }
 
     /**
-     * Merkt sich eine Vorlage. Eine bereits vorhandene mit derselben Aktion <b>und</b> demselben
-     * Hauptanker wird ersetzt — sonst sammelten sich mit jedem Lernvorgang Dubletten an, von denen die
-     * ältere zufällig gewinnen könnte.
+     * Merkt sich eine Vorlage im Depot {@code ""} — für Aufrufer, die keins kennen.
+     *
+     * @see #save(StatementTemplate, String)
      */
     public void save(StatementTemplate template) {
-        if (template == null || template.isEmpty()) {
-            return;
-        }
-        List<StatementTemplate> kept = new ArrayList<>();
-        for (StatementTemplate t : all()) {
-            if (!sameKind(t, template)) {
-                kept.add(t);
-            }
-        }
-        kept.add(template);
-        JSONArray arr = new JSONArray();
-        for (StatementTemplate t : kept) {
-            JSONObject o = toJson(t);
-            if (o != null) {
-                arr.put(o);
-            }
-        }
-        prefs.edit().putString(KEY_TEMPLATES, arr.toString()).apply();
+        save(template, "");
     }
 
     /**
-     * Schreibt die ganze Liste — für die Regelseite, auf der von Hand bearbeitet wird.
-     *
-     * <p>Nicht {@link #save} nehmen: das verdrängt eine gleichartige Vorlage über Aktion und
-     * NET-Beschriftung. Wird ausgerechnet die bearbeitet, fände es die bisherige nicht wieder und legte
-     * eine Dublette an.</p>
+     * Merkt sich eine Vorlage für dieses Depot. Eine bereits vorhandene Vorlage desselben Depots und
+     * derselben Aktion wird ersetzt — je Depot gibt es nie mehr als eine Vorlage je Aktion.
+     */
+    public void save(StatementTemplate template, String depot) {
+        if (template == null || template.isEmpty()) {
+            return;
+        }
+        List<Entry> kept = new ArrayList<>();
+        for (Entry e : entries()) {
+            if (!(sameDepot(e.depot, depot) && sameAction(e.template.action, template.action))) {
+                kept.add(e);
+            }
+        }
+        kept.add(new Entry(normalize(depot), template));
+        write(kept);
+    }
+
+    /**
+     * Schreibt die ganze Liste — für die Regelseite, auf der von Hand bearbeitet wird. Ersetzt alles im
+     * Depot {@code ""}; für ein bestimmtes Depot {@link #saveAll(String, List)} nehmen.
      */
     public void saveAll(List<StatementTemplate> templates) {
-        JSONArray arr = new JSONArray();
+        List<Entry> kept = new ArrayList<>();
         for (StatementTemplate t : templates) {
             if (t == null || t.isEmpty()) {
                 continue;
             }
-            JSONObject o = toJson(t);
-            if (o != null) {
-                arr.put(o);
+            kept.add(new Entry("", t));
+        }
+        write(kept);
+    }
+
+    /**
+     * Schreibt die Vorlagen dieses Depots neu — die anderer Depots bleiben unangetastet.
+     *
+     * <p>Nicht {@link #save}: das ersetzt nur je Aktion eine, hier steht die ganze von Hand geordnete
+     * Liste des Depots auf einmal fest.</p>
+     */
+    public void saveAll(String depot, List<StatementTemplate> templates) {
+        List<Entry> kept = new ArrayList<>();
+        for (Entry e : entries()) {
+            if (!sameDepot(e.depot, depot)) {
+                kept.add(e);
             }
         }
-        prefs.edit().putString(KEY_TEMPLATES, arr.toString()).apply();
+        for (StatementTemplate t : templates) {
+            if (t == null || t.isEmpty()) {
+                continue;
+            }
+            kept.add(new Entry(normalize(depot), t));
+        }
+        write(kept);
     }
 
     /** Alles Gelernte verwerfen (Auslieferungszustand). */
@@ -174,16 +202,16 @@ public class StatementTemplates {
         prefs.edit().clear().apply();
     }
 
-    private static boolean sameKind(StatementTemplate a, StatementTemplate b) {
-        if (a.action == null ? b.action != null : !a.action.equals(b.action)) {
-            return false;
-        }
-        AnchorRule ra = a.rule(StatementTemplate.Field.NET);
-        AnchorRule rb = b.rule(StatementTemplate.Field.NET);
-        if (ra == null || rb == null || ra.anchors.isEmpty() || rb.anchors.isEmpty()) {
-            return false;
-        }
-        return ra.anchors.get(0).equalsIgnoreCase(rb.anchors.get(0));
+    private static boolean sameDepot(String a, String b) {
+        return normalize(a).equals(normalize(b));
+    }
+
+    private static boolean sameAction(String a, String b) {
+        return a == null ? b == null : a.equals(b);
+    }
+
+    private static String normalize(String depot) {
+        return depot == null ? "" : depot;
     }
 
     // ---- ISIN → Wertpapier ----
@@ -222,6 +250,49 @@ public class StatementTemplates {
 
     // ---- JSON ----
 
+    /** Eine gespeicherte Vorlage mitsamt dem Depot, zu dem sie gehört. */
+    private static final class Entry {
+        final String depot;
+        final StatementTemplate template;
+
+        Entry(String depot, StatementTemplate template) {
+            this.depot = normalize(depot);
+            this.template = template;
+        }
+    }
+
+    private List<Entry> entries() {
+        List<Entry> out = new ArrayList<>();
+        try {
+            JSONArray arr = new JSONArray(prefs.getString(KEY_TEMPLATES, "[]"));
+            for (int i = 0; i < arr.length(); i++) {
+                JSONObject o = arr.optJSONObject(i);
+                StatementTemplate t = fromJson(o);
+                if (t != null && !t.isEmpty()) {
+                    out.add(new Entry(o == null ? "" : o.optString("d", ""), t));
+                }
+            }
+        } catch (Exception ignored) {
+            // Unlesbarer Bestand: lieber ohne Vorlagen weiterarbeiten als die App daran scheitern lassen.
+        }
+        return out;
+    }
+
+    private void write(List<Entry> entries) {
+        JSONArray arr = new JSONArray();
+        for (Entry e : entries) {
+            JSONObject o = toJson(e.template);
+            if (o != null) {
+                try {
+                    o.put("d", e.depot);
+                } catch (Exception ignored) {
+                }
+                arr.put(o);
+            }
+        }
+        prefs.edit().putString(KEY_TEMPLATES, arr.toString()).apply();
+    }
+
     private static JSONObject toJson(StatementTemplate t) {
         try {
             JSONObject o = new JSONObject();
@@ -237,6 +308,10 @@ public class StatementTemplates {
                 if (r.nth > 1) {
                     ro.put("n", r.nth);
                 }
+                if (r.linesBelow > 0) {
+                    // Nur bei fester Angabe – ohne sie sucht die Regel, und das ist der Regelfall.
+                    ro.put("b", r.linesBelow);
+                }
                 if (r.position == AnchorRule.Position.FIRST) {
                     // Nur schreiben, wenn es vom Regelfall abweicht – Bestandsvorlagen bleiben so, wie
                     // sie sind, und beim Lesen gilt ohne Angabe die letzte Zahl.
@@ -245,6 +320,12 @@ public class StatementTemplates {
                 rules.put(e.getKey().name(), ro);
             }
             o.put("r", rules);
+            // Nur schreiben, wenn es eine feste Gebühr gibt – Bestandsvorlagen bleiben so, wie sie sind.
+            if (t.fixedFeeCents > 0) {
+                o.put("ff", t.fixedFeeCents);
+                o.put("fc", t.fixedFeeCategory);
+                o.put("fi", t.fixedFeeInTotal);
+            }
             return o;
         } catch (Exception e) {
             return null;
@@ -283,9 +364,10 @@ public class StatementTemplates {
                 AnchorRule.Position pos = "FIRST".equals(ro.optString("p", ""))
                         ? AnchorRule.Position.FIRST : AnchorRule.Position.LAST;
                 rules.put(field, new AnchorRule(anchors, dir, ro.optBoolean("s", false),
-                        ro.optString("c", ""), pos, ro.optInt("n", 1)));
+                        ro.optString("c", ""), pos, ro.optInt("n", 1), ro.optInt("b", 0)));
             }
         }
-        return new StatementTemplate(o.optString("a", ""), rules);
+        return new StatementTemplate(o.optString("a", ""), rules,
+                o.optLong("ff", 0L), o.optString("fc", ""), o.optBoolean("fi", false));
     }
 }

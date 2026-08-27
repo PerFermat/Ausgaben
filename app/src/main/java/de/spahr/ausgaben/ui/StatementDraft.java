@@ -50,6 +50,13 @@ public class StatementDraft implements Parcelable {
 
     public String moneyAccount = "";
     public String feeCategory = "";
+    /**
+     * Kategorie einer festen Gebühr aus der Erkennungsregel; leer, wenn keine angesetzt wurde.
+     *
+     * <p>Sie steht in der Regel und nicht im Beleg und schlägt deshalb die aus der letzten Bewegung
+     * geratene: sie ist von Hand festgelegt, die andere nur erschlossen.</p>
+     */
+    public String fixedFeeCategory = "";
     public String incomeCategory = "";
 
     /**
@@ -240,6 +247,7 @@ public class StatementDraft implements Parcelable {
         netCents = (Long) in.readValue(Long.class.getClassLoader());
         moneyAccount = orEmpty(in.readString());
         feeCategory = orEmpty(in.readString());
+        fixedFeeCategory = orEmpty(in.readString());
         incomeCategory = orEmpty(in.readString());
         failure = in.readInt();
         conflict = in.readInt() != 0;
@@ -265,6 +273,7 @@ public class StatementDraft implements Parcelable {
         out.writeValue(netCents);
         out.writeString(moneyAccount);
         out.writeString(feeCategory);
+        out.writeString(fixedFeeCategory);
         out.writeString(incomeCategory);
         out.writeInt(failure);
         out.writeInt(conflict ? 1 : 0);

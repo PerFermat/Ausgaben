@@ -1,7 +1,16 @@
 <?xml version="1.0" encoding="utf-8"?>
-<!-- Die gelernten Erkennungsregeln von Hand nachbessern; oben die Wahl der Vorlage. -->
-<LinearLayout xmlns:android="http://schemas.android.com/apk/res/android"
+<!-- Die gelernten Erkennungsregeln von Hand nachbessern; oben die Wahl der Vorlage.
+
+     FrameLayout als Wurzel wie in der Erfassungsmaske, damit die eigene Rechentastatur ueber dem
+     Formular schweben kann: das Feld fuer die feste Gebuehr ist ein Betragsfeld und wird mit
+     derselben Tastatur bedient wie jedes andere. Die System-Tastatur taugt dafuer nicht - ihr
+     Ziffernblock kennt nur den Punkt und verschluckt das Komma. -->
+<FrameLayout xmlns:android="http://schemas.android.com/apk/res/android"
     xmlns:app="http://schemas.android.com/apk/res-auto"
+    android:layout_width="match_parent"
+    android:layout_height="match_parent">
+
+<LinearLayout
     android:layout_width="match_parent"
     android:layout_height="match_parent"
     android:orientation="vertical">
@@ -88,4 +97,23 @@
         </LinearLayout>
     </ScrollView>
 
+    <!-- Haelt im Hochformat die Hoehe der Tastatur frei, damit nichts hinter ihr verschwindet;
+         quer bleibt er verborgen. Gesteuert von der Tastatur selbst. -->
+    <Space
+        android:id="@+id/calcSpacer"
+        android:layout_width="match_parent"
+        android:layout_height="wrap_content"
+        android:visibility="gone" />
+
 </LinearLayout>
+
+    <!-- Eigene Rechentastatur; nur sichtbar, wenn das Betragsfeld aktiv ist. -->
+    <de.spahr.ausgaben.ui.CalcKeyboardView
+        android:id="@+id/calcKeyboard"
+        android:layout_width="match_parent"
+        android:layout_height="wrap_content"
+        android:layout_gravity="bottom|center_horizontal"
+        android:paddingHorizontal="6dp"
+        android:paddingBottom="6dp"
+        android:visibility="gone" />
+</FrameLayout>

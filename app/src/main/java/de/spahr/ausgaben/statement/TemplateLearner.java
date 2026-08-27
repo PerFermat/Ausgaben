@@ -48,6 +48,8 @@ public final class TemplateLearner {
         public Double shares;
         public Double price;
         public Long feeCents;
+        /** Kategorie der Gebühr — nur gebraucht, wenn daraus eine feste Ordergebühr wird. */
+        public String feeCategory = "";
         public Long netCents;
         public long dateMillis = -1;
         /**
@@ -78,17 +80,52 @@ public final class TemplateLearner {
         // Notierung des Wertpapiers – bei einem Dollar-Papier steht dort USD, bei einem Euro-Papier EUR.
         // Bände man ihn an die einmal gelernte Währung, ginge nach dem Lernen an einem Dollar-Papier
         // kein Euro-Papier mehr, und umgekehrt.
-        put(rules, StatementTemplate.Field.NET,
-                forValue(text, cents(known.netCents), MONEY_EPSILON, true, used), used);
-        put(rules, StatementTemplate.Field.FEE,
-                forValue(text, cents(known.feeCents), MONEY_EPSILON, true, used), used);
+        AnchorRule net = forValue(text, cents(known.netCents), MONEY_EPSILON, true, used);
+        put(rules, StatementTemplate.Field.NET, net, used);
+        AnchorRule fee = forValue(text, cents(known.feeCents), MONEY_EPSILON, true, used);
+        put(rules, StatementTemplate.Field.FEE, fee, used);
+
+        // Weder Gesamtbetrag noch Gebühr gefunden? Dann kann beides denselben Grund haben: die Bank nimmt
+        // eine feste Ordergebühr, druckt sie nicht aus – und ihr Gesamtbetrag ist der ohne diese Gebühr.
+        long fixedFee = 0;
+        if (net == null && fee == null) {
+            AnchorRule ersatz = forValue(text, cents(printedTotal(known)), MONEY_EPSILON, true, used);
+            if (ersatz != null) {
+                put(rules, StatementTemplate.Field.NET, ersatz, used);
+                fixedFee = known.feeCents;
+            }
+        }
+
         put(rules, StatementTemplate.Field.PRICE,
                 forValue(text, known.price, MONEY_EPSILON, false, used), used);
         put(rules, StatementTemplate.Field.SHARES,
                 forValue(text, known.shares, SHARE_EPSILON, false, used), used);
         put(rules, StatementTemplate.Field.DATE,
                 forDate(text, known.dateMillis, known.dateAnchor, used), used);
-        return new StatementTemplate(known.action, rules);
+        return new StatementTemplate(known.action, rules, fixedFee,
+                fixedFee > 0 ? known.feeCategory : "", false);
+    }
+
+    /**
+     * Der Betrag, den die Bank ausdrucken würde, wenn ihr Gesamtbetrag die feste Gebühr <b>nicht</b>
+     * enthält — oder {@code null}, wenn diese Vermutung hier nicht in Frage kommt.
+     *
+     * <p>Beim Kauf erhöht die Gebühr die Belastung, beim Verkauf mindert sie die Gutschrift; der
+     * ausgedruckte Betrag ist also der eingetragene ohne sie. Dasselbe Vorzeichen benutzt
+     * {@code SecurityAmounts}.</p>
+     *
+     * <p><b>Nur bei Kauf und Verkauf.</b> Bei einer Dividende ist die „Gebühr" die Steuer, und
+     * Brutto minus Steuer ergibt das Netto — die Rechnung träfe dort regelmäßig die Bruttozeile und
+     * erfände eine Ordergebühr, die es nicht gibt.</p>
+     */
+    private static Long printedTotal(Known known) {
+        boolean kauf = StatementScan.BUY.equals(known.action);
+        boolean verkauf = StatementScan.SELL.equals(known.action);
+        if ((!kauf && !verkauf) || known.netCents == null
+                || known.feeCents == null || known.feeCents == 0) {
+            return null;
+        }
+        return known.netCents - (kauf ? known.feeCents : -known.feeCents);
     }
 
     private static Double cents(Long value) {
@@ -171,9 +208,9 @@ public final class TemplateLearner {
                         : "";
                 position = where;
                 nthFound = nth;
-            } else if (i > 0) {
-                String above = labelOf(lines.get(i - 1).text());
-                if (isUsable(above, used, where)) {
+            } else {
+                String above = labelAbove(lines, i, used, where);
+                if (above != null) {
                     anchor = above;
                     direction = AnchorRule.Direction.LINE_BELOW;
                     currency = bindCurrency ? AnchorRule.currencyOf(lines.get(i).text()) : "";
@@ -186,6 +223,29 @@ public final class TemplateLearner {
         // steht die Endsumme unten, und sie ist die Zahl, die auch mit Gebühren noch stimmt.
         return anchor == null ? null
                 : AnchorRule.single(anchor, direction, currency, position, nthFound);
+    }
+
+    /**
+     * Die Spaltenüberschrift über einer Wertzeile — {@code null}, wenn keine taugt.
+     *
+     * <p>Gesucht wird bis zu {@link AnchorRule#MAX_BELOW} Zeilen nach oben, denn zwischen Überschrift und
+     * Daten steht oft noch eine zweite Kopfzeile: Scalable Capital schreibt „Buchung Wertstellung Typ …
+     * Gesamt", darunter „Wechselkurs" und erst dann die Zahlen. Eine Zeile weit zu schauen fände dort
+     * nur „Wechselkurs" — und das ist die Überschrift einer anderen Spalte.</p>
+     *
+     * <p>Die gelernte Regel merkt sich den Abstand <b>nicht</b>: sie sucht beim Lesen die nächste Zeile
+     * mit einem Wert. Fällt beim nächsten Beleg eine Zwischenzeile weg (kein Wechselkurs bei einem
+     * Euro-Papier), stimmt sie weiterhin.</p>
+     */
+    private static String labelAbove(List<PdfText.Line> lines, int i, List<String> used,
+                                     AnchorRule.Position where) {
+        for (int j = i - 1; j >= 0 && j >= i - AnchorRule.MAX_BELOW; j--) {
+            String label = labelOf(lines.get(j).text());
+            if (isUsable(label, used, where)) {
+                return label;
+            }
+        }
+        return null;
     }
 
     /**
@@ -282,24 +342,60 @@ public final class TemplateLearner {
             return null;
         }
         String anchor = null;
-        for (PdfText.Line line : text.lines()) {
+        AnchorRule.Direction direction = AnchorRule.Direction.SAME_LINE;
+        AnchorRule.Position position = AnchorRule.Position.LAST;
+        int nthFound = 1;
+        List<PdfText.Line> lines = text.lines();
+        for (int i = 0; i < lines.size(); i++) {
             // Irgendwo in der Zeile, nicht nur als erste Angabe: eine Zeile trägt oft mehrere Daten
             // („Schlusstag/-Zeit 25.11.2015 11:02:54 Zinstermin Monat(e) 27. Juni"), und gebucht gehört
-            // nicht zwangsläufig das erste. Beim Lesen zählt dann das erste hinter der Beschriftung.
-            if (!hasDate(line.text(), dateMillis)) {
+            // nicht zwangsläufig das erste.
+            int[] stelle = datumsStelle(lines.get(i).text(), dateMillis);
+            if (stelle == null) {
                 continue;
             }
-            String label = firstUsable(used, AnchorRule.Position.LAST,
-                    labelBeforeDate(line.text(), dateMillis), labelOf(line.text()));
-            if (label == null) {
+            AnchorRule.Position where = stelle[0] == 1
+                    ? AnchorRule.Position.FIRST : AnchorRule.Position.LAST;
+            String label = firstUsable(used, where,
+                    labelBeforeDate(lines.get(i).text(), dateMillis), labelOf(lines.get(i).text()));
+            if (label != null) {
+                if (chosen != null && chosen.equalsIgnoreCase(label)) {
+                    // Seine Wahl gewinnt – und mit ihr die Stelle, an der das Datum dort steht.
+                    return AnchorRule.single(label, AnchorRule.Direction.SAME_LINE, "",
+                            where, stelle[1]);
+                }
+                anchor = label;
+                direction = AnchorRule.Direction.SAME_LINE;
+                position = where;
+                nthFound = stelle[1];
                 continue;
             }
-            if (chosen != null && chosen.equalsIgnoreCase(label)) {
-                return AnchorRule.single(label, AnchorRule.Direction.SAME_LINE);   // seine Wahl gewinnt
+            // Keine eigene Beschriftung – dann trägt sie die Spaltenüberschrift darüber. So steht das
+            // Datum bei Scalable Capital: die Zeile beginnt mit ihm und hat gar keine.
+            String above = labelAbove(lines, i, used, where);
+            if (above != null) {
+                anchor = above;
+                direction = AnchorRule.Direction.LINE_BELOW;
+                position = where;
+                nthFound = stelle[1];
             }
-            anchor = label;
         }
-        return anchor == null ? null : AnchorRule.single(anchor, AnchorRule.Direction.SAME_LINE);
+        return anchor == null ? null
+                : AnchorRule.single(anchor, direction, "", position, nthFound);
+    }
+
+    /**
+     * Das wievielte Datum der Zeile das gesuchte ist: {@code {0 = von rechts | 1 = von links, Stelle}}.
+     *
+     * <p>Gezählt wird <b>immer von links</b>. Anders als bei den Zahlen ist das keine Geschmacksfrage:
+     * die Vorgabe „von rechts, erste" bedeutet beim Datum aus Rücksicht auf den Bestand etwas anderes
+     * ({@link AnchorRule#dateAt}), und eine gelernte Regel soll nicht in diese Zweideutigkeit geraten.
+     * „30.06.2026 01.07.2026 Gutschrift …" ergibt für die Wertstellung also die zweite von links.</p>
+     */
+    private static int[] datumsStelle(String line, long dateMillis) {
+        List<Long> alle = AnchorRule.allDates(line);
+        int vonLinks = alle.indexOf(dateMillis);
+        return vonLinks < 0 ? null : new int[]{1, vonLinks + 1};
     }
 
     /** Ob dieses Datum irgendwo in der Zeile steht. */

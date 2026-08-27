@@ -1445,12 +1445,27 @@
     {
       "type": "p",
       "id": "b-0151b",
-      "text": "A securities purchase also appears in the booking list of the settlement account – as a transfer between that account and the security. Open it and <b>amount, payee, accounts and date are locked</b>, and there is no «Delete». The reason: <b>shares and price</b> belong to this booking but exist only in the KMyMoney file. The app does not know them – were it allowed to write the booking back like an ordinary transfer, the securities purchase in your file would have turned into a bare transfer, wrecking the portfolio there."
+      "text": "A securities purchase also appears in the booking list of the settlement account – as a transfer between that account and the security. Open it and <b>amount, payee, accounts and date are locked</b>. The reason: <b>shares and price</b> belong to this booking but exist only in the KMyMoney file. The app does not know them – were it allowed to write the booking back like an ordinary transfer, the securities purchase in your file would have turned into a bare transfer, wrecking the portfolio there."
     },
     {
       "type": "p",
       "id": "b-0151c",
       "text": "What you can change are exactly the three things KMyMoney does not need itself on such a booking: the <b>note</b>, the <b>tags</b> and the <b>receipt</b> – your bank's statement as a PDF, for instance. On the next export the app adds them to the existing transaction without rebuilding it: shares, price and the kind of movement stay untouched. That way you find the statement again even after re-reading the portfolio."
+    },
+    {
+      "type": "h3",
+      "id": "b-0151d",
+      "text": "Deleting works – unlike editing"
+    },
+    {
+      "type": "p",
+      "id": "b-0151e",
+      "text": "<b>«Delete»</b> is available here, and it takes the matching <b>portfolio movement</b> with it; otherwise a movement without a money booking would be left behind. Why this is allowed where editing stays locked: deleting removes the <b>whole</b> transaction – money, security and fee parts together. Nothing can be left half done, and that was exactly the reason for forbidding the edit."
+    },
+    {
+      "type": "p",
+      "id": "b-0151f",
+      "text": "If the booking is already in the KMyMoney file, the confirmation says so plainly: on the next export the transaction is removed <b>there</b> as well, including shares and price. <b>There is no undo</b> – the booking could be restored, the portfolio movement could not, and half a way back would be worse than none."
     },
     {
       "type": "text_with_single_shot",
@@ -1493,6 +1508,51 @@
       "type": "p",
       "id": "b-0157a",
       "text": "<b>Reading a statement:</b> the portfolio can read a securities statement from a PDF and prepare a booking from it. The feature ships <b>switched off</b> and can be enabled in the settings, where the app also states how many banks the recognition was measured against. It does not work with every bank – <b>check the recognised values before you book</b>."
+    },
+    {
+      "type": "h3",
+      "id": "b-0157g",
+      "text": "Values inside a table"
+    },
+    {
+      "type": "p",
+      "id": "b-0157h",
+      "text": "Some banks do not put the figures behind a label but <b>under a column heading</b>. The data row then starts with a number and carries no label of its own. For such statements <b>«on one of the lines below»</b> means: the next line that carries a value at all – up to three lines away. That skips a second header line, which some banks insert. If the search gets stuck on an in-between line that happens to carry a number, pick <b>«exactly 1, 2 or 3 lines below»</b> instead."
+    },
+    {
+      "type": "p",
+      "id": "b-0157i",
+      "text": "A table row often carries several entries of the same kind – the booking day first, the value date next to it. Which one is meant is set by <b>«Which number on the line»</b>; it applies to dates as well. For dates the default «the last one» still means <b>the first</b> entry after the label, out of consideration for older rules – if you want another, pick «the first (table column)» or «the 2nd from the left» explicitly."
+    },
+    {
+      "type": "p",
+      "id": "b-0157j",
+      "text": "<b>Help while typing:</b> under «Check statement», next to the result, sits the button <b>«Text with line numbers»</b>. It shows the statement the way the app reads it. That is necessary because its lines are not the lines of a PDF viewer: they come from the word positions, and a visually empty line does not exist there at all. For counting the distance it is the only reliable source."
+    },
+    {
+      "type": "h3",
+      "id": "b-0157b",
+      "text": "A fee that is not on the statement"
+    },
+    {
+      "type": "p",
+      "id": "b-0157c",
+      "text": "Some banks charge a fixed amount per order without printing it on the statement. A rule cannot find it – it searches for a label, and there is none. On the rules page the <b>fee</b> therefore has a field <b>«Fixed fee per order»</b> together with a category."
+    },
+    {
+      "type": "p",
+      "id": "b-0157d",
+      "text": "Whether that amount applies is decided by the <b>«Add up several lines»</b> switch above it. If the rule finds no fee in the document, the fixed value applies. If it finds one and the switch is <b>on</b>, the fixed value is added. With the switch <b>off</b> the fee found in the document wins and the fixed value stays out."
+    },
+    {
+      "type": "p",
+      "id": "b-0157e",
+      "text": "Next to the <b>total</b> sits the switch <b>«Fixed fee is already in the total»</b>. With it off, the debited amount is higher than the figure on the statement by that fee – for a sale the credit is lower by it – and the app adds it in. With it on, the total stays exactly as printed."
+    },
+    {
+      "type": "p",
+      "id": "b-0157f",
+      "text": "<b>Recognised by itself:</b> if you enter a total and a fee that are <b>both</b> absent from the statement, the app tries the difference – the amount without the fee. If it finds that, it learns its label and records the fee as a fixed order fee right away. This is the only value the app does not read but infers; the confirmation therefore names it explicitly, with the amount."
     },
     {
       "type": "h1",

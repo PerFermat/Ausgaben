@@ -293,15 +293,30 @@ public class AnchorFallbackTest {
     }
 
     @Test
-    public void gelerntesWirdHintenAngehängtNichtVorn() {
+    public void gelerntesWirdHintenAngehängtWennAlteRegelNichtsFand() {
         Map<StatementTemplate.Field, AnchorRule> alt = new EnumMap<>(StatementTemplate.Field.class);
         alt.put(StatementTemplate.Field.DATE, kette("Valuta"));
         Map<StatementTemplate.Field, AnchorRule> neu = new EnumMap<>(StatementTemplate.Field.class);
         neu.put(StatementTemplate.Field.DATE, kette("Zahltag"));
 
-        AnchorRule merged = template(neu).appendedTo(template(alt))
+        // "Valuta" kommt im Dokument nicht vor – die alte Regel fand also nichts.
+        AnchorRule merged = template(neu).appendedTo(template(alt), PdfText.fromLines("Zahltag 100,00"))
                 .rule(StatementTemplate.Field.DATE);
         assertEquals(Arrays.asList("Valuta", "Zahltag"), merged.anchors);
+    }
+
+    @Test
+    public void gelerntesWirdVornAngehängtWennAlteRegelEtwasFand() {
+        Map<StatementTemplate.Field, AnchorRule> alt = new EnumMap<>(StatementTemplate.Field.class);
+        alt.put(StatementTemplate.Field.DATE, kette("Valuta"));
+        Map<StatementTemplate.Field, AnchorRule> neu = new EnumMap<>(StatementTemplate.Field.class);
+        neu.put(StatementTemplate.Field.DATE, kette("Zahltag"));
+
+        // "Valuta" steht im Dokument – die alte Regel hätte (falsch) etwas gefunden.
+        AnchorRule merged = template(neu)
+                .appendedTo(template(alt), PdfText.fromLines("Valuta 01.01.2024\nZahltag 100,00"))
+                .rule(StatementTemplate.Field.DATE);
+        assertEquals(Arrays.asList("Zahltag", "Valuta"), merged.anchors);
     }
 
     @Test
@@ -312,6 +327,6 @@ public class AnchorFallbackTest {
         neu.put(StatementTemplate.Field.DATE, kette("Zahltag"));
 
         assertEquals(Arrays.asList("Valuta", "Zahltag"),
-                template(neu).appendedTo(template(alt)).rule(StatementTemplate.Field.DATE).anchors);
+                template(neu).appendedTo(template(alt), PdfText.fromLines("")).rule(StatementTemplate.Field.DATE).anchors);
     }
 }

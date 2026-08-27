@@ -419,7 +419,9 @@ public class DepotActivity extends LocalizedActivity {
             showFilterDialog();
             return true;
         } else if (id == R.id.action_statement_rules) {
-            startActivity(new Intent(this, StatementRulesActivity.class));
+            Intent i = new Intent(this, StatementRulesActivity.class);
+            i.putExtra(StatementRulesActivity.EXTRA_DEPOT, depot);
+            startActivity(i);
             return true;
         } else if (id == R.id.action_categories) {
             startActivity(new Intent(this, CategoryChartActivity.class));

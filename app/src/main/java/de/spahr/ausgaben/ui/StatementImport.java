@@ -238,7 +238,7 @@ final class StatementImport {
     private static void start(AppCompatActivity activity, PdfText text, Uri source, String isin,
                               String depot, String kmyId, String name) {
         StatementTemplates store = new StatementTemplates(activity);
-        StatementTemplate.Extraction e = extract(store, text);
+        StatementTemplate.Extraction e = extract(store, text, depot);
 
         Intent i = new Intent(activity, SecurityTxEditActivity.class);
         i.putExtra(SecurityTxEditActivity.EXTRA_DEPOT, depot);
@@ -265,6 +265,11 @@ final class StatementImport {
         // Nur vorhanden, wenn auf der Regelseite eine Brutto-Regel angelegt wurde (Dollar-Papiere).
         if (e.grossCents != null) {
             i.putExtra(SecurityTxEditActivity.EXTRA_PREFILL_GROSS, e.grossCents);
+        }
+        // Die Kategorie einer festen Gebühr steht in der Regel und nicht im Beleg; sie kommt nur mit,
+        // wenn die Gebühr auch wirklich angesetzt wurde.
+        if (e.feeCategory != null && !e.feeCategory.isEmpty()) {
+            i.putExtra(SecurityTxEditActivity.EXTRA_PREFILL_FEE_CATEGORY, e.feeCategory);
         }
         // Die Abrechnung wandert schon jetzt in die Belegablage – beim Speichern wird sie dort zum Beleg
         // der Gegenbuchung, und bis dahin lässt sie sich in der Maske ansehen.
@@ -336,7 +341,7 @@ final class StatementImport {
         d.isin = StatementScan.isin(text);
         assign(d, store, securities, text);
 
-        StatementTemplate.Extraction e = extract(store, text);
+        StatementTemplate.Extraction e = extract(store, text, d.depot);
         d.action = e.action;
         d.dateMillis = e.dateMillis;
         d.shares = e.shares;
@@ -344,6 +349,9 @@ final class StatementImport {
         d.feeCents = e.feeCents;
         d.netCents = e.netCents;
         d.grossCents = e.grossCents;
+        // Die Kategorie einer festen Gebühr steht in der Regel und schlägt die aus der letzten Bewegung
+        // geratene; sie wird deshalb erst nach fillDefaults gesetzt (siehe dort).
+        d.fixedFeeCategory = e.feeCategory == null ? "" : e.feeCategory;
 
         File staged = de.spahr.ausgaben.receipt.SingleReceipt.stage(activity, uri);
         if (staged != null) {
@@ -401,6 +409,11 @@ final class StatementImport {
                     d.moneyAccount = last.moneyAccount;
                     d.feeCategory = last.feeCategory;
                     d.incomeCategory = last.incomeCategory;
+                }
+                // Zuletzt, damit sie sich durchsetzt: die Kategorie einer festen Gebühr ist von Hand
+                // festgelegt, die aus der letzten Bewegung nur erschlossen.
+                if (!d.fixedFeeCategory.isEmpty()) {
+                    d.feeCategory = d.fixedFeeCategory;
                 }
                 d.resolve();
             }
@@ -460,14 +473,18 @@ final class StatementImport {
      * nach. Wer sich für seine Bank zusätzlich eine Regel angelegt hat, verliert sie also nicht.</p>
      */
     static StatementTemplate.Extraction extract(StatementTemplates store, PdfText text) {
+        return extract(store, text, "");
+    }
+
+    static StatementTemplate.Extraction extract(StatementTemplates store, PdfText text, String depot) {
         BankReader reader = BankReaders.find(text);
         if (reader == null) {
-            StatementTemplate template = store.match(text);
+            StatementTemplate template = store.match(text, depot);
             return template != null ? template.apply(text) : templateFree(text);
         }
         StatementTemplate.Extraction e = new StatementTemplate.Extraction();
         reader.read(text, e);
-        StatementTemplate template = store.match(text);
+        StatementTemplate template = store.match(text, depot);
         if (template != null) {
             ergaenze(e, template.apply(text));
         }
@@ -496,6 +513,9 @@ final class StatementImport {
         }
         if (e.feeCents == null) {
             e.feeCents = von.feeCents;
+            // Die Kategorie gehört zu der Gebühr, die hier gerade übernommen wird – ohne sie käme der
+            // Betrag ohne seine Zuordnung an. Der Gesamtbetrag hat weiter unten seinen eigenen Zweig.
+            e.feeCategory = von.feeCategory;
         }
         if (e.netCents == null) {
             e.netCents = von.netCents;

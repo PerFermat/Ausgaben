@@ -171,6 +171,11 @@ public class BookingEditActivity extends LocalizedActivity {
      * Siehe {@link #applyNotesOnlyIfNeeded()}.
      */
     private boolean notesOnly;
+    /**
+     * Zu dieser Buchung gehört eine Depot-Bewegung, die beim Löschen mitgehen muss. Erst nach der
+     * Rückfrage an die Datenbank gesetzt; solange {@code false}, gibt es keinen Löschknopf.
+     */
+    private boolean securityTxFound;
     /** Die Namen der Wertpapiere aller Depots (klein); {@code null} = noch nicht geladen. */
     private java.util.Set<String> knownSecurityNames;
 
@@ -937,8 +942,17 @@ public class BookingEditActivity extends LocalizedActivity {
         dateLayout.setEndIconMode(TextInputLayout.END_ICON_NONE);
         toggleType.setVisibility(View.GONE);
         btnToday.setVisibility(View.GONE);
-        // Löschen ist nicht vorgesehen: die Transaktion gehört zum Depot.
+        // Löschen darf sein, Ändern nicht – der Unterschied ist entscheidend: beim Löschen verschwindet
+        // die ganze Transaktion samt Stückzahl und Kurs, es kann nichts halb stehenbleiben. Der Knopf
+        // kommt aber erst zurück, wenn feststeht, dass wirklich eine Depot-Bewegung dazugehört; bis
+        // dahin bleibt er weg. Ein Knopf, der sich gleich wieder verabschiedet, wäre schlimmer.
         btnDelete.setVisibility(View.GONE);
+        repository.getSecurityTxForBooking(booking, tx -> {
+            if (tx != null && !isFinishing()) {
+                securityTxFound = true;
+                btnDelete.setVisibility(View.VISIBLE);
+            }
+        });
         // „Als neu speichern" ebensowenig: eine Wertpapier-Buchung kann die App nicht anlegen – ihr
         // fehlen Stückzahl und Kurs.
         btnSaveNew.setVisibility(View.GONE);
@@ -2695,6 +2709,10 @@ public class BookingEditActivity extends LocalizedActivity {
         if (booking == null) {
             return;
         }
+        if (securityTxFound) {
+            confirmDeleteSecurity();
+            return;
+        }
         AppDialog.destructive(this)
                 .setTitle(R.string.delete_confirm_title)
                 .setMessage(R.string.delete_confirm_message)
@@ -2718,6 +2736,31 @@ public class BookingEditActivity extends LocalizedActivity {
                         repository.deleteBooking(booking.id, done);
                     }
                 })
+                .show();
+    }
+
+    /**
+     * Eine Wertpapier-Buchung löschen — sie nimmt die Depot-Bewegung mit.
+     *
+     * <p>Steht sie schon in der KMyMoney-Datei, sagt die Rückfrage das ausdrücklich: beim nächsten Export
+     * verschwindet dort die ganze Transaktion samt Stückzahl und Kurs. Das ist kein Nebeneffekt, sondern
+     * der Zweck — und deshalb gehört es vor den Klick, nicht danach.</p>
+     *
+     * <p><b>Kein «Rückgängig».</b> Der Undo-Weg legt allein die Buchung wieder an; die Depot-Bewegung
+     * käme nicht zurück, und die Vormerkung für die Datei bliebe stehen. Ein halbes Zurück wäre
+     * schlimmer als keines.</p>
+     */
+    private void confirmDeleteSecurity() {
+        AppDialog.destructive(this)
+                .setTitle(R.string.delete_security_confirm_title)
+                .setMessage(booking.exported || booking.edited
+                        ? R.string.delete_security_confirm_message
+                        : R.string.delete_security_pending_message)
+                .setPositiveButton(R.string.delete, (d, w) -> repository.deleteSecurityBooking(booking,
+                        () -> {
+                            Toast.makeText(this, R.string.booking_deleted, Toast.LENGTH_SHORT).show();
+                            finish();
+                        }))
                 .show();
     }
 

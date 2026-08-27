@@ -159,4 +159,39 @@ final class StatementFixtures {
                 "Gesamtbetrag zu Ihren Gunsten     EUR             739,53",
                 "Valuta                            17.08.2026"};
     }
+
+    /**
+     * Eine Ertragsgutschrift im <b>Tabellenaufbau</b> — nachgebaut aus einem echten Beleg von Scalable
+     * Capital, ohne dessen persönliche Angaben.
+     *
+     * <p>Der Prüfstein für Werte, die unter einer Spaltenüberschrift stehen: die Datenzeile beginnt mit
+     * dem Datum und hat deshalb <b>keine eigene Beschriftung</b>, und zwischen Überschrift und Daten
+     * steht noch eine zweite Kopfzeile („Wechselkurs"). Weder „in derselben Zeile" noch „genau eine
+     * Zeile darunter" erreicht sie.</p>
+     *
+     * <p>Die Zeile trägt zudem <b>zwei</b> Daten: vorn den Buchungstag, daneben die Wertstellung. Gebucht
+     * gehört die zweite.</p>
+     */
+    static PdfText tabellenDividende() {
+        return of(
+                "Dividende",
+                "Für 01.07.2025 - 30.06.2026",
+                "Berechtigtes Wertpapier   Vanguard FTSE All-World U.ETF",
+                "ISIN                      IE00B3RBWM25",
+                "Berechtigte Anzahl        816,652",
+                "Ex Tag                    18.06.2026",
+                "Kontobewegung",
+                "Buchung    Wertstellung   Typ          Betrag / Stk.   Berechtigte Anzahl   Gesamt",
+                "                                       Wechselkurs",
+                "30.06.2026 01.07.2026     Gutschrift   0,905474 USD    816,652    648,36 EUR",
+                "USD / EUR 1,1405",
+                "Steuern      -126,26 EUR",
+                "Gesamtbetrag 522,10 EUR",
+                "Anfallende Steuern",
+                "Typ                       Betrag",
+                "Kapitalertragsteuer       111,24 EUR",
+                "Solidaritätszuschlag        6,12 EUR",
+                "Kirchensteuer               8,90 EUR",
+                "Anfallende Steuern        126,26 EUR");
+    }
 }

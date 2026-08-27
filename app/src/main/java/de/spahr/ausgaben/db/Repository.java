@@ -836,6 +836,72 @@ public class Repository {
         });
     }
 
+    /**
+     * Die Depot-Bewegung zu dieser Geldbuchung – oder {@code null}, wenn es keine gibt.
+     *
+     * <p>Die Maske fragt damit vorab, ob sie «Löschen» überhaupt anbieten darf: bei einer gewöhnlichen
+     * Umbuchung zwischen zwei eigenen Konten kommt hier nichts zurück.</p>
+     */
+    public void getSecurityTxForBooking(final Booking booking, final Callback<SecurityTx> callback) {
+        executor.execute(() -> {
+            final SecurityTx tx = findSecurityTx(booking);
+            mainHandler.post(() -> callback.onResult(tx));
+        });
+    }
+
+    /**
+     * Löscht eine Wertpapier-Buchung samt ihrer Depot-Bewegung – beides in <b>einer</b> Transaktion,
+     * damit nie eine Bewegung ohne Buchung (oder umgekehrt) übrig bleibt.
+     *
+     * <p>Steht die Buchung bereits in der KMyMoney-Datei, wird die Löschung über
+     * {@link #queueKmyDeleteIfNeeded} vorgemerkt: der nächste Export entfernt dort die <b>ganze</b>
+     * Transaktion, also Geld-, Wertpapier- und Gebühren-Split zusammen. Anders als beim Ändern kann dabei
+     * nichts halb stehenbleiben – deshalb ist Löschen erlaubt, wo Ändern gesperrt ist.</p>
+     *
+     * <p>Anders als {@link #deleteManualSecurityTx} fasst dieser Weg auch eine bereits exportierte
+     * Bewegung an. Das ist gewollt und die einzige Stelle, an der das geschieht.</p>
+     */
+    public void deleteSecurityBooking(final Booking booking, final Runnable onDone) {
+        executor.execute(() -> {
+            deleteSecurityBookingNow(booking);
+            if (onDone != null) {
+                mainHandler.post(onDone);
+            }
+        });
+    }
+
+    /**
+     * Dieselbe Arbeit auf dem rufenden Faden – für den Test, wie {@code applyMembershipNow}. Darf aus der
+     * App heraus <b>nicht</b> gerufen werden: der Hauptfaden fasst die Datenbank nicht an.
+     */
+    void deleteSecurityBookingNow(final Booking booking) {
+        db.runInTransaction(() -> {
+            SecurityTx tx = findSecurityTx(booking);
+            if (tx != null) {
+                securityDao.deleteTxById(tx.id);
+            }
+            queueKmyDeleteIfNeeded(bookingDao.getById(booking.id));
+            bookingDao.delete(booking.id);
+        });
+    }
+
+    /** Vorsieben in SQL, entscheiden in {@link SecurityTxMatch} – auf dem Hintergrund-Faden zu rufen. */
+    private SecurityTx findSecurityTx(Booking booking) {
+        if (booking == null || !booking.isTransfer || booking.transferAccount == null) {
+            return null;
+        }
+        java.util.Calendar day = java.util.Calendar.getInstance();
+        day.setTimeInMillis(booking.createdAt);
+        day.set(java.util.Calendar.HOUR_OF_DAY, 0);
+        day.set(java.util.Calendar.MINUTE, 0);
+        day.set(java.util.Calendar.SECOND, 0);
+        day.set(java.util.Calendar.MILLISECOND, 0);
+        long from = day.getTimeInMillis();
+        day.add(java.util.Calendar.DAY_OF_MONTH, 1);
+        return SecurityTxMatch.forBooking(booking, securityDao.getTxForBooking(
+                booking.id, booking.transferAccount, booking.account, from, day.getTimeInMillis()));
+    }
+
     /** Beide Seiten einer Umbuchung (für die Ort-Vorbelegung im Editor). */
     public void getTransferGroup(final String group, final Callback<List<Booking>> callback) {
         executor.execute(() -> {

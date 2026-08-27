@@ -779,9 +779,15 @@
     <string name="statement_rules_delete">Vorlage löschen</string>
     <string name="statement_rules_delete_title">Vorlage löschen?</string>
     <string name="statement_rules_delete_message">Abrechnungen dieser Bank werden dann nicht mehr vorbelegt.</string>
-    <string name="statement_rules_try">Probe mit einer Abrechnung…</string>
-    <string name="statement_rules_try_title">Was die Regeln lesen</string>
+    <string name="statement_rules_pick_test">Testabrechnung wählen…</string>
+    <string name="statement_rules_show_pdf">PDF anschauen</string>
     <string name="statement_rules_show_text">Text mit Zeilennummern</string>
+    <string name="statement_rules_test_file">Gemessen an: %1$s</string>
+    <string name="statement_rules_found">Gefundene Wert(e): %1$s</string>
+    <string name="statement_rules_pick_value">Werte in der Abrechnung</string>
+    <string name="statement_rules_type_own">Selbst eintippen…</string>
+    <string name="statement_rules_discard_title">Änderungen verwerfen?</string>
+    <string name="statement_rules_discard_message">Zu dieser Abrechnung passt eine andere Vorlage. Beim Umschalten gehen die ungespeicherten Änderungen an der jetzigen verloren.</string>
     <string name="statement_rules_try_nomatch">Die Vorlage greift bei dieser Abrechnung nicht.</string>
     <string name="statement_rules_nothing">—</string>
     <string name="statement_learn_conflict">Eine bereits gemerkte Beschriftung würde ersetzt. Die neue als weiteren Rückfall hinzufügen oder die alte ersetzen?</string>

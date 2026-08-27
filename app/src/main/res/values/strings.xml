@@ -784,9 +784,15 @@
     <string name="statement_rules_delete">Delete template</string>
     <string name="statement_rules_delete_title">Delete template?</string>
     <string name="statement_rules_delete_message">Statements of this bank will no longer be filled in.</string>
-    <string name="statement_rules_try">Try with a statement…</string>
-    <string name="statement_rules_try_title">What the rules read</string>
+    <string name="statement_rules_pick_test">Choose a test statement…</string>
+    <string name="statement_rules_show_pdf">View PDF</string>
     <string name="statement_rules_show_text">Text with line numbers</string>
+    <string name="statement_rules_test_file">Measured against: %1$s</string>
+    <string name="statement_rules_found">Value(s) found: %1$s</string>
+    <string name="statement_rules_pick_value">Values in the statement</string>
+    <string name="statement_rules_type_own">Type it myself…</string>
+    <string name="statement_rules_discard_title">Discard changes?</string>
+    <string name="statement_rules_discard_message">Another template applies to this statement. Switching discards the unsaved changes to the current one.</string>
     <string name="statement_rules_try_nomatch">The template does not apply to this statement.</string>
     <string name="statement_rules_nothing">—</string>
     <string name="statement_learn_conflict">A label already stored would be replaced. Add the new one as a further fallback, or replace the old one?</string>

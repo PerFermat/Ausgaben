@@ -19,6 +19,18 @@
         android:textSize="20sp"
         android:textStyle="bold" />
 
+    <!-- Was die Regel dieses Bereichs in der Testabrechnung liest - direkt unter der Ueberschrift,
+         damit man beim Tippen einer Beschriftung sofort sieht, ob sie greift. -->
+    <TextView
+        android:id="@+id/textFieldFound"
+        android:layout_width="match_parent"
+        android:layout_height="wrap_content"
+        android:layout_marginBottom="8dp"
+        android:gravity="center_horizontal"
+        android:textColor="?android:attr/textColorSecondary"
+        android:textSize="13sp"
+        android:visibility="gone" />
+
     <TextView
         android:id="@+id/textFieldHint"
         android:layout_width="match_parent"
@@ -163,7 +175,7 @@
     <!-- Schlussstrich des Bereichs: er trennt vom naechsten, ohne eine eigene Ueberschrift zu brauchen. -->
     <View
         android:layout_width="match_parent"
-        android:layout_height="1dp"
+        android:layout_height="3dp"
         android:layout_marginTop="20dp"
         android:background="@color/list_divider" />
 

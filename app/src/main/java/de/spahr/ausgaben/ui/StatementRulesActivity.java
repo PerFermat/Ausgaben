@@ -19,7 +19,6 @@ import com.google.android.material.textfield.TextInputLayout;
 
 import java.text.SimpleDateFormat;
 import java.util.ArrayList;
-import java.util.Arrays;
 import java.util.Date;
 import java.util.EnumMap;
 import java.util.List;
@@ -47,6 +46,11 @@ import de.spahr.ausgaben.statement.StatementTemplate.Field;
  * <p>Dieselbe Kette löst den Währungsfall: das Brutto steht bei einem dollarnotierten Papier in der
  * Umrechnungszeile und bei einem euronotierten in der Bruttozeile.</p>
  *
+ * <p>Gearbeitet wird an einer <b>Testabrechnung</b>: eine einmal gewählte PDF-Datei hängt an der Seite,
+ * stellt die zu ihr passende Vorlage ein und lässt jeden Bereich unter seiner Überschrift zeigen, was
+ * seine Regel darin liest. Die Beschriftungsfelder legen dann die im Dokument gefundenen Werte zur
+ * Auswahl vor, statt sie erraten zu lassen — buchstabengenau so, wie die App sie sieht.</p>
+ *
  * <p>Neue Vorlagen entstehen hier nicht — die entstehen beim ersten Erfassen einer Abrechnung und sind
  * dann vollständig. Von Hand wird nachgebessert, nicht angefangen.</p>
  */
@@ -54,11 +58,22 @@ public class StatementRulesActivity extends LocalizedActivity {
 
     public static final String EXTRA_DEPOT = "depot";
 
-    /** Die Felder in der Reihenfolge, in der man sie in einer Abrechnung sucht. */
-    private static final Field[] ORDER = {
-            Field.NET, Field.FEE, Field.GROSS, Field.SHARES, Field.PRICE, Field.DATE};
-
     private static final String DIVIDEND = "dividend";
+
+    /**
+     * Die Felder dieser Art in der Reihenfolge, in der sie auf der Seite stehen.
+     *
+     * <p>Das Datum ganz oben, weil es das einzige Feld ist, das jede Abrechnung trägt — die Geldfelder
+     * folgen von der Endsumme abwärts. Bei einer Dividende fehlen Anzahl und Kurs: eine
+     * Ertragsgutschrift bucht keine Stücke, und ein Kurs je Stück ist dort die Dividende selbst, die
+     * schon als Brutto dasteht.</p>
+     */
+    private static Field[] fieldsFor(String action) {
+        if (DIVIDEND.equals(action)) {
+            return new Field[]{Field.DATE, Field.NET, Field.FEE, Field.GROSS};
+        }
+        return new Field[]{Field.DATE, Field.NET, Field.FEE, Field.GROSS, Field.SHARES, Field.PRICE};
+    }
 
     private final SimpleDateFormat dateFormat = new SimpleDateFormat("dd.MM.yyyy", Locale.GERMANY);
 
@@ -75,6 +90,18 @@ public class StatementRulesActivity extends LocalizedActivity {
     private View btnTry;
     private View btnSave;
     private View btnDelete;
+    private View testButtons;
+    private TextView textTestFile;
+
+    /**
+     * Die Testabrechnung, an der die Regeln gemessen werden — sie hält die ganze Sitzung über und wird
+     * nicht gespeichert.
+     *
+     * <p>Sie ist der Unterschied zwischen Raten und Sehen: ohne sie tippt man Beschriftungen ein und
+     * erfährt erst beim nächsten Import, ob sie greifen.</p>
+     */
+    private Uri testUri;
+    private PdfText testText;
     /** Die eigene Rechentastatur; sie bedient das Feld für die feste Gebühr. */
     private CalcKeyboardView calcKeyboard;
 
@@ -111,17 +138,25 @@ public class StatementRulesActivity extends LocalizedActivity {
         btnTry = findViewById(R.id.btnTry);
         btnSave = findViewById(R.id.btnSave);
         btnDelete = findViewById(R.id.btnDelete);
+        testButtons = findViewById(R.id.testButtons);
+        textTestFile = findViewById(R.id.textTestFile);
         calcKeyboard = findViewById(R.id.calcKeyboard);
         calcKeyboard.reserveSpaceWith(findViewById(R.id.calcSpacer));
 
         btnTry.setOnClickListener(v -> tryLauncher.launch(new String[]{"application/pdf"}));
         btnSave.setOnClickListener(v -> save());
         btnDelete.setOnClickListener(v -> confirmDelete());
+        findViewById(R.id.btnShowPdf).setOnClickListener(v -> showPdf());
+        findViewById(R.id.btnShowText).setOnClickListener(v -> {
+            if (testText != null) {
+                showText(testText);
+            }
+        });
 
         tryLauncher = registerForActivityResult(
                 new ActivityResultContracts.OpenDocument(), uri -> {
                     if (uri != null) {
-                        runTry(uri);
+                        useTestStatement(uri);
                     }
                 });
 
@@ -189,10 +224,18 @@ public class StatementRulesActivity extends LocalizedActivity {
         editTemplate.setText(labelOf(t), false);
         fieldContainer.removeAllViews();
         forms.clear();
-        for (Field field : ORDER) {
+        for (Field field : fieldsFor(t.action)) {
             FieldForm form = new FieldForm(field, t);
             forms.put(field, form);
             fieldContainer.addView(form.view);
+        }
+        updateAllFound();
+    }
+
+    /** Nach jedem Wechsel der Vorlage oder der Testabrechnung: alle Bereiche neu ausrechnen. */
+    private void updateAllFound() {
+        for (FieldForm form : forms.values()) {
+            form.updateFound();
         }
     }
 
@@ -212,6 +255,8 @@ public class StatementRulesActivity extends LocalizedActivity {
         private final PickerTextView fixedFeeCategory;
         /** Nur beim Gesamtbetrag sichtbar: steckt die feste Gebühr schon darin? */
         private final MaterialSwitch fixedFeeInTotal;
+        /** Was die Regel dieses Bereichs in der Testabrechnung liest. */
+        private final TextView found;
         private final List<String> anchors = new ArrayList<>();
 
         FieldForm(Field field, StatementTemplate template) {
@@ -227,6 +272,7 @@ public class StatementRulesActivity extends LocalizedActivity {
             fixedFee = view.findViewById(R.id.editFixedFee);
             fixedFeeCategory = view.findViewById(R.id.editFixedFeeCategory);
             fixedFeeInTotal = view.findViewById(R.id.switchFixedFeeInTotal);
+            found = view.findViewById(R.id.textFieldFound);
             // Der feste Betrag gehört zur Gebühr, die Frage nach dem Gesamtbetrag zu diesem – jede an
             // ihren Platz, statt beide in einen Kasten für sich.
             view.findViewById(R.id.fixedFeeBox)
@@ -268,6 +314,16 @@ public class StatementRulesActivity extends LocalizedActivity {
                 anchors.add("");
                 renderRows();
             });
+            // Jede Einstellung, die das Lesen ändert, rechnet die Fundstelle sofort neu: sonst müsste
+            // man raten, ob eine Änderung etwas gebracht hat.
+            direction.setOnItemClickListener((p, v, at, id) -> updateFound());
+            position.setOnItemClickListener((p, v, at, id) -> updateFound());
+            currency.addTextChangedListener(new SimpleWatcher(this::updateFound));
+            sum.setOnCheckedChangeListener((b, checked) -> {
+                readBack();     // sonst gingen gerade getippte Beschriftungen beim Neuaufbau verloren
+                renderRows();
+                updateFound();
+            });
             renderRows();
         }
 
@@ -281,7 +337,16 @@ public class StatementRulesActivity extends LocalizedActivity {
             for (int i = 0; i < anchors.size(); i++) {
                 final int at = i;
                 View row = inflater.inflate(R.layout.item_statement_anchor, container, false);
-                ((TextInputEditText) row.findViewById(R.id.editAnchor)).setText(anchors.get(i));
+                TextInputEditText edit = row.findViewById(R.id.editAnchor);
+                edit.setText(anchors.get(i));
+                edit.addTextChangedListener(new SimpleWatcher(this::updateFound));
+                if (testText != null) {
+                    // Mit einer Testabrechnung ist das Feld zuerst eine Auswahl und erst auf Wunsch ein
+                    // Eingabefeld: die Beschriftung muss buchstabengenau so dastehen, wie die App sie
+                    // sieht, und das trifft man tippend selten auf Anhieb.
+                    edit.setShowSoftInputOnFocus(false);
+                    edit.setOnClickListener(v -> pickAnchor(edit));
+                }
                 ImageButton up = row.findViewById(R.id.btnAnchorUp);
                 ImageButton down = row.findViewById(R.id.btnAnchorDown);
                 // An den Enden führt der Pfeil nirgendwohin; abgeblendet sagt das, ohne ihn zu verstecken.
@@ -322,38 +387,156 @@ public class StatementRulesActivity extends LocalizedActivity {
         /** Die Regel, wie sie jetzt dasteht; {@code null}, wenn keine Beschriftung übrig blieb. */
         AnchorRule toRule() {
             readBack();
+            List<String> kept = keptAnchors();
+            return kept.isEmpty() ? null : ruleFor(kept, sum.isChecked());
+        }
+
+        /** Die eingetragenen Beschriftungen ohne die leeren Zeilen. */
+        private List<String> keptAnchors() {
             List<String> kept = new ArrayList<>();
             for (String anchor : anchors) {
                 if (!anchor.trim().isEmpty()) {
                     kept.add(anchor.trim());
                 }
             }
-            if (kept.isEmpty()) {
-                return null;
-            }
-            String gewaehlteRichtung = direction.getText() == null ? "" : direction.getText().toString();
-            boolean below = !getString(R.string.statement_rules_same_line).equals(gewaehlteRichtung);
-            int abstand = 0;
+            return kept;
+        }
+
+        /**
+         * Eine Regel aus den gerade eingestellten Angaben. Der Anker kommt von aussen, damit sich
+         * damit auch ein einzelner prüfen lässt — für die Anzeige der Einzelwerte beim Summieren und
+         * für die Auswahlliste, die ja nur zeigen darf, was die fertige Regel auch findet.
+         */
+        private AnchorRule ruleFor(List<String> anchorList, boolean summed) {
+            return new AnchorRule(anchorList, chosenDirection(), summed, chosenCurrency(),
+                    chosenPosition(), chosenNth(), chosenLinesBelow());
+        }
+
+        private AnchorRule.Direction chosenDirection() {
+            String gewaehlt = direction.getText() == null ? "" : direction.getText().toString();
+            return getString(R.string.statement_rules_same_line).equals(gewaehlt)
+                    ? AnchorRule.Direction.SAME_LINE : AnchorRule.Direction.LINE_BELOW;
+        }
+
+        /** 0 heisst «suchend» – siehe {@link AnchorRule#linesBelow}. */
+        private int chosenLinesBelow() {
+            String gewaehlt = direction.getText() == null ? "" : direction.getText().toString();
             for (int i = 1; i <= AnchorRule.MAX_BELOW; i++) {
-                if (richtung(AnchorRule.Direction.LINE_BELOW, i).equals(gewaehlteRichtung)) {
-                    abstand = i;
+                if (richtung(AnchorRule.Direction.LINE_BELOW, i).equals(gewaehlt)) {
+                    return i;
                 }
             }
-            String code = currency.getText() == null ? "" : currency.getText().toString().trim();
+            return 0;
+        }
+
+        private AnchorRule.Position chosenPosition() {
             String gewaehlt = position.getText() == null ? "" : position.getText().toString();
-            AnchorRule.Position wo = AnchorRule.Position.LAST;
-            int nth = 1;
             for (int i = 1; i <= MAX_STELLE; i++) {
                 if (stelle(AnchorRule.Position.FIRST, i).equals(gewaehlt)) {
-                    wo = AnchorRule.Position.FIRST;
-                    nth = i;
-                } else if (stelle(AnchorRule.Position.LAST, i).equals(gewaehlt)) {
-                    nth = i;
+                    return AnchorRule.Position.FIRST;
                 }
             }
-            return new AnchorRule(kept,
-                    below ? AnchorRule.Direction.LINE_BELOW : AnchorRule.Direction.SAME_LINE,
-                    sum.isChecked(), code, wo, nth, abstand);
+            return AnchorRule.Position.LAST;
+        }
+
+        private int chosenNth() {
+            String gewaehlt = position.getText() == null ? "" : position.getText().toString();
+            for (int i = 1; i <= MAX_STELLE; i++) {
+                if (stelle(AnchorRule.Position.FIRST, i).equals(gewaehlt)
+                        || stelle(AnchorRule.Position.LAST, i).equals(gewaehlt)) {
+                    return i;
+                }
+            }
+            return 1;
+        }
+
+        private String chosenCurrency() {
+            return currency.getText() == null ? "" : currency.getText().toString().trim();
+        }
+
+        /**
+         * Schreibt unter die Überschrift, was die Regel in der Testabrechnung liest.
+         *
+         * <p>Beim Summieren stehen die Einzelwerte da und dahinter ihre Summe — sonst sähe man einer
+         * zu hohen Steuer nicht an, welche Zeile zu viel mitgezählt hat.</p>
+         */
+        void updateFound() {
+            if (testText == null) {
+                found.setVisibility(View.GONE);
+                return;
+            }
+            found.setVisibility(View.VISIBLE);
+            readBack();
+            List<String> kept = keptAnchors();
+            AnchorRule rule = kept.isEmpty() ? null : ruleFor(kept, sum.isChecked());
+            String value = rule == null ? null : valueOf(field, rule, testText);
+            if (value == null) {
+                found.setText(getString(R.string.statement_rules_found,
+                        getString(R.string.statement_rules_nothing)));
+                return;
+            }
+            StringBuilder was = new StringBuilder();
+            if (sum.isChecked() && kept.size() > 1) {
+                for (String anchor : kept) {
+                    String part = valueOf(field,
+                            ruleFor(java.util.Collections.singletonList(anchor), false), testText);
+                    if (part != null) {
+                        was.append(was.length() > 0 ? " + " : "").append(anchor).append(' ').append(part);
+                    }
+                }
+                was.append(was.length() > 0 ? "  =  " : "").append(value);
+            } else {
+                was.append(value);
+                String anchor = rule.matchedAnchor(testText);
+                if (anchor != null && kept.size() > 1) {
+                    was.append("   (").append(anchor).append(')');
+                }
+            }
+            found.setText(getString(R.string.statement_rules_found, was.toString()));
+        }
+
+        /**
+         * Legt die Werte der Testabrechnung zur Auswahl vor — beim Datum die gefundenen Datumsangaben,
+         * sonst die Zahlen, jeweils mit ihrer Beschriftung.
+         *
+         * <p>Gelesen wird mit den Einstellungen, die im Bereich gerade stehen: wer „eine Zeile tiefer"
+         * und „die 2. von rechts" gewählt hat, bekommt die Zahlen zu sehen, die <b>so</b> erreichbar
+         * sind. Alles andere wäre eine Liste voller Werte, die die fertige Regel nie fände.</p>
+         */
+        private void pickAnchor(TextInputEditText edit) {
+            readBack();
+            List<String> labels = new ArrayList<>();
+            List<CharSequence> shown = new ArrayList<>();
+            if (field == Field.DATE) {
+                for (de.spahr.ausgaben.statement.StatementScan.DateCandidate c
+                        : de.spahr.ausgaben.statement.StatementScan.dates(testText)) {
+                    labels.add(c.label);
+                    shown.add(c.label + ":  " + dateFormat.format(new Date(c.millis)));
+                }
+            } else {
+                for (de.spahr.ausgaben.statement.StatementScan.ValueCandidate c
+                        : de.spahr.ausgaben.statement.StatementScan.values(testText, chosenDirection(),
+                        chosenLinesBelow(), chosenPosition(), chosenNth(), chosenCurrency())) {
+                    labels.add(c.label);
+                    shown.add(c.label + ":  " + formatValue(field, c.value));
+                }
+            }
+            shown.add(getString(R.string.statement_rules_type_own));
+            new AppDialog(StatementRulesActivity.this)
+                    .setTitle(R.string.statement_rules_pick_value)
+                    .setItems(shown.toArray(new CharSequence[0]), (d, which) -> {
+                        if (which >= labels.size()) {
+                            // Von Hand: ab jetzt ist das Feld ein gewöhnliches Eingabefeld.
+                            edit.setOnClickListener(null);
+                            edit.setShowSoftInputOnFocus(true);
+                            edit.requestFocus();
+                            return;
+                        }
+                        edit.setText(labels.get(which));
+                        readBack();
+                        updateFound();
+                    })
+                    .show();
         }
 
         /** Die Kategorienliste nachreichen – sie trifft später ein als das Formular. */
@@ -579,14 +762,10 @@ public class StatementRulesActivity extends LocalizedActivity {
     // ---- Probe ----
 
     /**
-     * Wendet die <b>gerade bearbeiteten</b> Regeln auf eine echte Abrechnung an und zeigt, was dabei
-     * herauskommt. Ohne das wäre das Eintippen von Beschriftungen raten; gebucht wird nichts.
+     * Nimmt eine echte Abrechnung als Messlatte an: ab dann zeigt jeder Bereich, was seine Regel darin
+     * liest, und die Beschriftungsfelder legen die gefundenen Werte zur Auswahl vor.
      */
-    private void runTry(Uri uri) {
-        if (current < 0) {
-            return;
-        }
-        final StatementTemplate built = edited();
+    private void useTestStatement(Uri uri) {
         Toast.makeText(this, R.string.statement_reading, Toast.LENGTH_SHORT).show();
         repository.executor().execute(() -> {
             final PdfText text;
@@ -602,36 +781,77 @@ public class StatementRulesActivity extends LocalizedActivity {
                         Toast.makeText(this, R.string.statement_no_text, Toast.LENGTH_LONG).show());
                 return;
             }
-            runOnUiThread(() -> showTryResult(built, text));
+            runOnUiThread(() -> {
+                testUri = uri;
+                testText = text;
+                testButtons.setVisibility(View.VISIBLE);
+                textTestFile.setVisibility(View.VISIBLE);
+                textTestFile.setText(getString(R.string.statement_rules_test_file, fileName(uri)));
+                switchToMatching();
+            });
         });
     }
 
-    private void showTryResult(StatementTemplate built, PdfText text) {
-        StringBuilder message = new StringBuilder();
-        if (built.score(text) == 0) {
-            message.append(getString(R.string.statement_rules_try_nomatch)).append("\n\n");
+    /**
+     * Stellt die Vorlage ein, die zur Testabrechnung passt.
+     *
+     * <p>Ohne das müsste man selbst wissen, ob die Abrechnung ein Kauf, ein Verkauf oder eine
+     * Ertragsgutschrift ist — und säße sonst still vor einer Vorlage, die nichts findet, weil sie gar
+     * nicht gemeint war. Passt keine, bleibt die offene stehen: die Werte darunter sind trotzdem zu
+     * gebrauchen, denn genau daran bessert man die Regeln nach.</p>
+     */
+    private void switchToMatching() {
+        StatementTemplate passend = StatementTemplates.best(templates, testText);
+        int index = passend == null ? -1 : templates.indexOf(passend);
+        if (index < 0) {
+            Toast.makeText(this, R.string.statement_rules_try_nomatch, Toast.LENGTH_LONG).show();
+            updateAllFound();
+            return;
         }
-        for (Field field : ORDER) {
-            AnchorRule rule = built.rule(field);
-            String value = rule == null ? null : valueOf(field, rule, text);
-            String anchor = rule == null ? null : rule.matchedAnchor(text);
-            message.append(nameOf(field, built.action)).append(":  ");
-            if (value == null) {
-                message.append(getString(R.string.statement_rules_nothing));
-            } else {
-                message.append(value);
-                if (anchor != null) {
-                    message.append("   (").append(anchor).append(')');
-                }
+        if (index == current) {
+            updateAllFound();
+            return;
+        }
+        if (current >= 0 && !edited().sameAs(templates.get(current))) {
+            AppDialog.destructive(this)
+                    .setTitle(R.string.statement_rules_discard_title)
+                    .setMessage(R.string.statement_rules_discard_message)
+                    .setPositiveButton(R.string.statement_rules_discard_title, (d, w) -> show(index))
+                    .setNegativeButton(R.string.cancel, (d, w) -> updateAllFound())
+                    .show();
+            return;
+        }
+        show(index);
+    }
+
+    /** Die Testabrechnung im PDF-Betrachter des Geräts – man liest daneben, was man hier einträgt. */
+    private void showPdf() {
+        if (testUri == null) {
+            return;
+        }
+        try {
+            startActivity(new android.content.Intent(android.content.Intent.ACTION_VIEW)
+                    .setDataAndType(testUri, "application/pdf")
+                    .addFlags(android.content.Intent.FLAG_GRANT_READ_URI_PERMISSION));
+        } catch (android.content.ActivityNotFoundException e) {
+            Toast.makeText(this, R.string.receipt_pdf_no_viewer, Toast.LENGTH_LONG).show();
+        } catch (Exception e) {
+            Toast.makeText(this, R.string.receipt_error, Toast.LENGTH_SHORT).show();
+        }
+    }
+
+    /** Der Anzeigename der gewählten Datei; im Zweifel das letzte Stück des Uri. */
+    private String fileName(Uri uri) {
+        try (android.database.Cursor c = getContentResolver().query(uri, null, null, null, null)) {
+            int at = c == null ? -1
+                    : c.getColumnIndex(android.provider.OpenableColumns.DISPLAY_NAME);
+            if (c != null && at >= 0 && c.moveToFirst()) {
+                return c.getString(at);
             }
-            message.append('\n');
+        } catch (Exception ignored) {
+            // Der Name ist nur eine Erinnerungshilfe – dafür bricht nichts ab.
         }
-        new AppDialog(this)
-                .setTitle(R.string.statement_rules_try_title)
-                .setMessage(message.toString().trim())
-                .setPositiveButton(android.R.string.ok, null)
-                .setNeutralButton(R.string.statement_rules_show_text, (d, w) -> showText(text))
-                .show();
+        return uri.getLastPathSegment() == null ? uri.toString() : uri.getLastPathSegment();
     }
 
     /**
@@ -663,9 +883,11 @@ public class StatementRulesActivity extends LocalizedActivity {
             return millis > 0 ? dateFormat.format(new Date(millis)) : null;
         }
         Double raw = rule.read(text);
-        if (raw == null) {
-            return null;
-        }
+        return raw == null ? null : formatValue(field, raw);
+    }
+
+    /** Eine gelesene Zahl so geschrieben, wie das Feld sie später zeigt. */
+    private String formatValue(Field field, double raw) {
         if (field == Field.SHARES) {
             return MoneyFormat.shares(raw);
         }

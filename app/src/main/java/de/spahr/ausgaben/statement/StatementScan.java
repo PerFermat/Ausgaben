@@ -153,6 +153,63 @@ public final class StatementScan {
         return out;
     }
 
+    /** Eine im Dokument gefundene Zahl samt der Beschriftung, über die sie erreichbar ist. */
+    public static final class ValueCandidate {
+        public final String label;
+        public final double value;
+
+        ValueCandidate(String label, double value) {
+            this.label = label;
+            this.value = value;
+        }
+    }
+
+    /**
+     * Alle Zahlen, die sich mit den <b>gerade eingestellten</b> Angaben lesen lassen — je mit der
+     * Beschriftung, über die man sie erreicht.
+     *
+     * <p>Das Gegenstück zu {@link #dates}: dort legt die App die gefundenen Datumsangaben vor, statt zu
+     * raten, welche gemeint ist. Bei den Zahlen ist die Auswahl noch nötiger, weil eine Abrechnung ein
+     * Dutzend davon trägt und die Beschriftung daneben von Bank zu Bank anders lautet.</p>
+     *
+     * <p>Gelesen wird dabei nicht anders als später auch: zu jeder Zeile wird ihre Beschriftung
+     * bestimmt, daraus eine Regel mit genau diesem einen Anker und den übergebenen Einstellungen
+     * gebaut, und die liest den Wert. Damit ist zugesichert, was eine Auswahlliste zusichern muss —
+     * was hier draufsteht, findet die Regel hinterher wieder. Eine Liste, die aus eigener Anschauung
+     * Zahlen sammelt, könnte das nicht.</p>
+     */
+    public static java.util.List<ValueCandidate> values(PdfText text, AnchorRule.Direction direction,
+                                                       int linesBelow, AnchorRule.Position position,
+                                                       int nth, String currency) {
+        java.util.List<ValueCandidate> out = new java.util.ArrayList<>();
+        if (text == null) {
+            return out;
+        }
+        for (PdfText.Line line : text.lines()) {
+            String label = TemplateLearner.labelOf(line.text()).trim();
+            if (label.length() < 3) {
+                continue;   // ohne Beschriftung wäre die Auswahl nicht zu unterscheiden
+            }
+            boolean known = false;
+            for (ValueCandidate c : out) {
+                if (c.label.equalsIgnoreCase(label)) {
+                    known = true;
+                    break;
+                }
+            }
+            if (known) {
+                continue;   // dieselbe Beschriftung liest zweimal dasselbe – einmal genügt
+            }
+            AnchorRule probe = new AnchorRule(java.util.Collections.singletonList(label), direction,
+                    false, currency, position, nth, linesBelow);
+            Double value = probe.read(text);
+            if (value != null) {
+                out.add(new ValueCandidate(label, value));
+            }
+        }
+        return out;
+    }
+
     /** Die ISIN der Abrechnung, oder {@code null} (siehe {@link Isin#single}). */
     public static String isin(PdfText text) {
         return Isin.single(text);

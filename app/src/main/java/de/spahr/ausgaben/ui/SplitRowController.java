@@ -31,15 +31,26 @@ class SplitRowController {
         final long cents;
         /** Typ der Kategorie (true=Einnahme, false=Ausgabe, null=unbekannt/frei getippt). */
         final Boolean categoryIsIncome;
+        /**
+         * Die Beschriftung, unter der dieser Betrag in einer Abrechnung stand; leer, wenn die Zeile
+         * nicht von dort stammt. Nur bei Depotbewegungen benutzt (siehe {@code SecurityTxSplit}), bei
+         * Geldbuchungen bleibt sie immer leer.
+         */
+        final String label;
 
         Part(String category, long cents) {
             this(category, cents, null);
         }
 
         Part(String category, long cents, Boolean categoryIsIncome) {
+            this(category, cents, categoryIsIncome, "");
+        }
+
+        Part(String category, long cents, Boolean categoryIsIncome, String label) {
             this.category = category;
             this.cents = cents;
             this.categoryIsIncome = categoryIsIncome;
+            this.label = label == null ? "" : label;
         }
     }
 
@@ -120,9 +131,22 @@ class SplitRowController {
      * Nutzer die Kategorie erneut in der Auswahlliste antippen müsste.
      */
     void addRow(String category, String amountText, Boolean categoryIsIncome) {
+        addRow(category, amountText, categoryIsIncome, null);
+    }
+
+    /**
+     * Wie oben, merkt sich zusätzlich die Beschriftung, aus der der Betrag stammt.
+     *
+     * <p>Sie hängt am Betragsfeld, so wie der Kategorietyp am Kategoriefeld hängt: die Zeile ist
+     * nichts weiter als ein aufgeblasenes Layout, und ein eigenes Modell dafür wäre mehr Buchhaltung
+     * als Nutzen. Wechselt der Nutzer die Kategorie, bleibt die Beschriftung stehen — sie sagt ja
+     * nicht, wohin gebucht wird, sondern woher der Betrag kommt.</p>
+     */
+    void addRow(String category, String amountText, Boolean categoryIsIncome, String label) {
         View row = inflater.inflate(R.layout.item_split_row, container, false);
         MaterialAutoCompleteTextView cat = row.findViewById(R.id.splitCategory);
         TextInputEditText amt = row.findViewById(R.id.splitAmount);
+        amt.setTag(label == null || label.trim().isEmpty() ? null : label.trim());
         View remove = row.findViewById(R.id.btnRemoveSplit);
         if (categoryAdapter != null) {
             PickerAdapters.categories(cat, categoryAdapter);
@@ -406,10 +430,17 @@ class SplitRowController {
             }
             Long cents = parseCents(amtText(r));
             if (cents != null) {
-                parts.add(new Part(c, cents, categoryIsIncomeTag(r)));
+                parts.add(new Part(c, cents, categoryIsIncomeTag(r), labelTag(r)));
             }
         }
         return parts;
+    }
+
+    /** Die gemerkte Herkunftsbeschriftung der Zeile; leer, wenn sie nicht aus einer Abrechnung kam. */
+    private String labelTag(View row) {
+        TextInputEditText amt = row.findViewById(R.id.splitAmount);
+        Object tag = amt.getTag();
+        return tag instanceof String ? (String) tag : "";
     }
 
     /** Gemerkter Kategorietyp der Zeile (aus der Auswahlliste angetippt oder vorbelegt), sonst {@code null}. */

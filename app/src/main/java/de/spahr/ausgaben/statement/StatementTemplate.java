@@ -1,7 +1,9 @@
 package de.spahr.ausgaben.statement;
 
+import java.util.ArrayList;
 import java.util.EnumMap;
 import java.util.LinkedHashMap;
+import java.util.List;
 import java.util.Map;
 
 import de.spahr.ausgaben.pdf.PdfText;
@@ -40,9 +42,86 @@ public final class StatementTemplate {
         GROSS
     }
 
+    /**
+     * Eine Regel für einen <b>Teilbetrag</b> — eine einzelne Steuer- oder Gebührenzeile unterhalb des
+     * Gesamtbetrags, den {@link Field#FEE} liest, bzw. ein Teil des Ertrags.
+     *
+     * <p>Zusammengehalten wird das Ganze von der <b>Beschriftung</b>: über sie findet ein Betrag beim
+     * nächsten Mal wieder zu seiner Kategorie, gleich in welcher Reihenfolge die Zeilen stehen und
+     * auch dann, wenn eine davon einmal fehlt.</p>
+     */
+    public static final class PartRule {
+        public final String label;
+        public final AnchorRule rule;
+        /**
+         * Die Kategorie, unter der dieser Teilbetrag gebucht wird; leer, wenn keine festgelegt ist.
+         *
+         * <p>Sie gehört zur Bank und nicht zum Wertpapier — deshalb steht sie hier und nicht nur in
+         * der letzten Buchung. Ist sie gesetzt, gewinnt sie: was auf der Regelseite eingetragen oder
+         * beim Buchen gelernt wurde, ist eine Festlegung, die Historie nur ein Schluss daraus.</p>
+         */
+        public final String category;
+
+        public PartRule(String label, AnchorRule rule) {
+            this(label, rule, "");
+        }
+
+        public PartRule(String label, AnchorRule rule, String category) {
+            this.label = label == null ? "" : label.trim();
+            this.rule = rule;
+            this.category = category == null ? "" : category.trim();
+        }
+
+        @Override
+        public boolean equals(Object o) {
+            if (!(o instanceof PartRule)) {
+                return false;
+            }
+            PartRule other = (PartRule) o;
+            return label.equals(other.label) && rule.equals(other.rule)
+                    && category.equals(other.category);
+        }
+
+        @Override
+        public int hashCode() {
+            return (label.hashCode() * 31 + rule.hashCode()) * 31 + category.hashCode();
+        }
+    }
+
+    /**
+     * Ein ausgelesener Teilbetrag: was in der Abrechnung stand, unter welcher Beschriftung — und,
+     * wenn die Vorlage es weiß, unter welcher Kategorie es gebucht gehört.
+     */
+    public static final class Part {
+        public final String label;
+        public final long cents;
+        public final String category;
+
+        public Part(String label, long cents) {
+            this(label, cents, "");
+        }
+
+        public Part(String label, long cents, String category) {
+            this.label = label == null ? "" : label;
+            this.cents = cents;
+            this.category = category == null ? "" : category;
+        }
+    }
+
     /** Eine der Aktionen {@code buy}, {@code sell}, {@code dividend}. */
     public final String action;
     private final Map<Field, AnchorRule> rules;
+    /** Aufschlüsselung der Steuer bzw. Gebühr in einzelne Zeilen; leer, wenn nichts gelernt wurde. */
+    public final List<PartRule> feeParts;
+    /** Dasselbe für den Ertrag einer Dividende. */
+    public final List<PartRule> incomeParts;
+    /**
+     * Die Kategorie des <b>ganzen</b> Gebühren- bzw. Steuerbetrags — für die Banken, bei denen es
+     * nichts aufzuteilen gibt. Bei aufgeteilten Beträgen tragen die Teile ihre eigene.
+     */
+    public final String feeCategory;
+    /** Dasselbe für den Ertrag einer Dividende. */
+    public final String incomeCategory;
 
     /**
      * Eine Gebühr, die die Bank <b>nicht</b> ausdruckt — 0, wenn es keine gibt.
@@ -68,17 +147,39 @@ public final class StatementTemplate {
 
     public StatementTemplate(String action, Map<Field, AnchorRule> rules, long fixedFeeCents,
                              String fixedFeeCategory, boolean fixedFeeInTotal) {
+        this(action, rules, fixedFeeCents, fixedFeeCategory, fixedFeeInTotal, null, null, "", "");
+    }
+
+    public StatementTemplate(String action, Map<Field, AnchorRule> rules, long fixedFeeCents,
+                             String fixedFeeCategory, boolean fixedFeeInTotal,
+                             List<PartRule> feeParts, List<PartRule> incomeParts,
+                             String feeCategory, String incomeCategory) {
         this.action = action;
+        this.feeCategory = feeCategory == null ? "" : feeCategory.trim();
+        this.incomeCategory = incomeCategory == null ? "" : incomeCategory.trim();
         this.rules = new EnumMap<>(Field.class);
         this.rules.putAll(rules);
         this.fixedFeeCents = Math.max(0, fixedFeeCents);
         this.fixedFeeCategory = fixedFeeCategory == null ? "" : fixedFeeCategory.trim();
         this.fixedFeeInTotal = fixedFeeInTotal;
+        this.feeParts = feeParts == null
+                ? java.util.Collections.emptyList()
+                : java.util.Collections.unmodifiableList(new ArrayList<>(feeParts));
+        this.incomeParts = incomeParts == null
+                ? java.util.Collections.emptyList()
+                : java.util.Collections.unmodifiableList(new ArrayList<>(incomeParts));
     }
 
     /** Dieselbe Vorlage mit anderer fester Gebühr – für die Regelseite. */
     public StatementTemplate withFixedFee(long cents, String category, boolean inTotal) {
-        return new StatementTemplate(action, rules, cents, category, inTotal);
+        return new StatementTemplate(action, rules, cents, category, inTotal, feeParts, incomeParts,
+                feeCategory, incomeCategory);
+    }
+
+    /** Dieselbe Vorlage mit anderen Teilbetragsregeln – für die Regelseite. */
+    public StatementTemplate withParts(List<PartRule> newFeeParts, List<PartRule> newIncomeParts) {
+        return new StatementTemplate(action, rules, fixedFeeCents, fixedFeeCategory, fixedFeeInTotal,
+                newFeeParts, newIncomeParts, feeCategory, incomeCategory);
     }
 
     public Map<Field, AnchorRule> rules() {
@@ -157,7 +258,41 @@ public final class StatementTemplate {
             }
         }
         return new StatementTemplate(action, merged, keptFixedFee(older),
-                keptFixedCategory(older), keptFixedInTotal(older));
+                keptFixedCategory(older), keptFixedInTotal(older),
+                keptParts(feeParts, older.feeParts), keptParts(incomeParts, older.incomeParts),
+                keptCategory(feeCategory, older.feeCategory),
+                keptCategory(incomeCategory, older.incomeCategory));
+    }
+
+    /**
+     * Teilbetragsregeln beider Vorlagen, nach Beschriftung zusammengeführt — die neue gewinnt, die
+     * alten Beschriftungen bleiben stehen.
+     *
+     * <p>Dass nichts wegfällt, ist hier wichtiger als bei den Feldern: eine Ausschüttung ohne
+     * Solidaritätszuschlag lernte sonst dessen Zeile weg, und die nächste vollständige Abrechnung
+     * verteilte die Steuer auf zu wenige Kategorien — ohne dass die Summe es verriete, denn die liest
+     * ja eine eigene Regel.</p>
+     */
+    /** Eine einmal festgelegte Kategorie geht beim Lernen nicht verloren. */
+    private static String keptCategory(String newer, String older) {
+        return newer.isEmpty() ? older : newer;
+    }
+
+    private static List<PartRule> keptParts(List<PartRule> newer, List<PartRule> older) {
+        List<PartRule> merged = new ArrayList<>(newer);
+        for (PartRule old : older) {
+            boolean bekannt = false;
+            for (PartRule mine : newer) {
+                if (mine.label.equalsIgnoreCase(old.label)) {
+                    bekannt = true;
+                    break;
+                }
+            }
+            if (!bekannt) {
+                merged.add(old);
+            }
+        }
+        return merged;
     }
 
     /**
@@ -240,7 +375,10 @@ public final class StatementTemplate {
                     : new AnchorRule(anchors, old.direction, old.sum, old.currency));
         }
         return new StatementTemplate(action, merged, keptFixedFee(older),
-                keptFixedCategory(older), keptFixedInTotal(older));
+                keptFixedCategory(older), keptFixedInTotal(older),
+                keptParts(feeParts, older.feeParts), keptParts(incomeParts, older.incomeParts),
+                keptCategory(feeCategory, older.feeCategory),
+                keptCategory(incomeCategory, older.incomeCategory));
     }
 
     private static boolean isExcerptOf(AnchorRule newer, AnchorRule older) {
@@ -267,9 +405,20 @@ public final class StatementTemplate {
         e.grossCents = gross == null ? null : gross.readCents(text);
         e.shares = shares == null ? null : shares.read(text);
         e.price = price == null ? null : price.read(text);
+        // Die Aufteilung zuerst: findet die Regel für den Gesamtbetrag nichts, tragen die Teilzeilen
+        // die Summe. So liest sich eine Abrechnung, deren Steuerzeilen einzeln ausgewiesen sind, auch
+        // dann vollständig, wenn die Bank keine Summenzeile druckt.
+        List<Part> teile = readParts(feeParts, text);
         Long geleseneGebuehr = fee == null ? null : fee.readCents(text);
-        e.feeCents = withFixedFee(geleseneGebuehr, fee);
-        e.feeCategory = angesetzt(geleseneGebuehr, fee) ? fixedFeeCategory : "";
+        boolean fest = angesetzt(geleseneGebuehr, fee);
+        Long ausTeilen = teile.isEmpty() ? null : sumOf(teile);
+        e.feeCents = withFixedFee(geleseneGebuehr == null ? ausTeilen : geleseneGebuehr, fest);
+        // Stehen Teilzeilen daneben, ist die feste Gebühr eine weitere davon und keine Kategorie für
+        // das Ganze — sonst ergäben die Zeilen zusammen nicht mehr den Betrag darüber.
+        if (fest && !teile.isEmpty()) {
+            teile.add(new Part("", fixedFeeCents, fixedFeeCategory));
+        }
+        e.feeCategory = fest && teile.isEmpty() ? fixedFeeCategory : "";
         // Eine Regel, die gesucht und nichts gefunden hat, sagt etwas anderes als eine fehlende Regel:
         // „stand nicht drin" statt „weiß ich nicht". Bei einer Dividende macht das den Unterschied — sonst
         // gilt die Steuer als unbekannt, und der Steuersatz aus den Einstellungen erfindet eine, obwohl
@@ -284,11 +433,48 @@ public final class StatementTemplate {
         // Steckt die feste Gebühr nicht im ausgedruckten Gesamtbetrag, ist der abgebuchte Betrag um sie
         // höher – beim Verkauf die Gutschrift um sie niedriger. Nachgetragen wird nur, was oben auch
         // wirklich angesetzt wurde.
-        if (e.netCents != null && !fixedFeeInTotal && angesetzt(geleseneGebuehr, fee)) {
+        if (e.netCents != null && !fixedFeeInTotal && fest) {
             e.netCents += ("sell".equals(action) ? -1 : 1) * fixedFeeCents;
         }
         e.dateMillis = date == null ? -1 : date.readDate(text);
+        e.feeParts = orWhole(teile, feeCategory, e.feeCents);
+        e.incomeParts = orWhole(readParts(incomeParts, text), incomeCategory, e.grossCents);
         return e;
+    }
+
+    /**
+     * Die Teilbeträge, die in dieser Abrechnung stehen. Zeilen, die es hier nicht gibt, fallen still
+     * weg — eine Ausschüttung ohne Kirchensteuer hat eben nur zwei Steuerzeilen, und die dritte als 0
+     * zu buchen brächte eine Kategorie ins Spiel, die gar nichts abbekommen hat.
+     */
+    private static List<Part> readParts(List<PartRule> parts, PdfText text) {
+        List<Part> out = new ArrayList<>();
+        for (PartRule part : parts) {
+            Long cents = part.rule.readCents(text);
+            if (cents != null) {
+                out.add(new Part(part.label, Math.abs(cents), part.category));
+            }
+        }
+        return out;
+    }
+
+    /**
+     * Nichts aufzuteilen, aber eine Kategorie für das Ganze: dann ist der ganze Betrag die eine Zeile.
+     * So gilt für Banken ohne Aufteilung dieselbe Mechanik wie für die mit.
+     */
+    private static List<Part> orWhole(List<Part> parts, String wholeCategory, Long wholeCents) {
+        if (parts.isEmpty() && !wholeCategory.isEmpty() && wholeCents != null && wholeCents != 0) {
+            parts.add(new Part("", Math.abs(wholeCents), wholeCategory));
+        }
+        return parts;
+    }
+
+    private static long sumOf(List<Part> parts) {
+        long total = 0;
+        for (Part part : parts) {
+            total += part.cents;
+        }
+        return total;
     }
 
     /**
@@ -306,9 +492,9 @@ public final class StatementTemplate {
         return gelesen == null || (fee != null && fee.sum);
     }
 
-    /** Die Gebühr, wie sie nach der Regel oben gilt. */
-    private Long withFixedFee(Long gelesen, AnchorRule fee) {
-        if (!angesetzt(gelesen, fee)) {
+    /** Die Gebühr, wie sie nach der Regel oben gilt — der gelesene Betrag zuzüglich der festen. */
+    private Long withFixedFee(Long gelesen, boolean fest) {
+        if (!fest) {
             return gelesen;
         }
         return (gelesen == null ? 0L : gelesen) + fixedFeeCents;
@@ -331,7 +517,10 @@ public final class StatementTemplate {
                 || !fixedFeeCategory.equals(other.fixedFeeCategory)) {
             return false;
         }
-        return rules.equals(other.rules);
+        return rules.equals(other.rules) && feeParts.equals(other.feeParts)
+                && incomeParts.equals(other.incomeParts)
+                && feeCategory.equals(other.feeCategory)
+                && incomeCategory.equals(other.incomeCategory);
     }
 
     /** Das Ergebnis einer Auslese. Nicht Erkanntes ist {@code null} bzw. -1. */
@@ -347,6 +536,15 @@ public final class StatementTemplate {
         public Long netCents;
         /** Nur gesetzt, wenn von Hand eine Brutto-Regel angelegt wurde (siehe {@link Field#GROSS}). */
         public Long grossCents;
+        /**
+         * Aufschlüsselung der Steuer bzw. Gebühr in einzelne Zeilen; leer, wenn nichts aufzuschlüsseln
+         * war. Ob die Teile eine Beschriftung tragen, entscheidet später über ihre Zuordnung: eine
+         * gelernte Vorlage kennt sie, ein fest programmierter Leser gibt seine Teile nur der Reihe
+         * nach.
+         */
+        public java.util.List<Part> feeParts = new ArrayList<>();
+        /** Dasselbe für den Ertrag. */
+        public java.util.List<Part> incomeParts = new ArrayList<>();
 
         /** Ob überhaupt etwas herauskam, das die Maske vorbelegen kann. */
         public boolean hasAnything() {

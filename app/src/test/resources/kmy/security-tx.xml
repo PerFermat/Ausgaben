@@ -14,8 +14,10 @@
   <TAGS count="1">
     <TAG id="G000001" name="Depot" tagcolor="#00ff00" closed="0" notes=""/>
   </TAGS>
-  <ACCOUNTS count="5">
-    <ACCOUNT id="A000001" parentaccount="AStd::Asset" lastreconciled="" lastmodified="2026-01-01" institution="" opened="2026-01-01" number="" type="9" name="Verrechnungskonto" description="" currency="EUR"/>
+  <ACCOUNTS count="7">
+    <ACCOUNT id="A000006" parentaccount="AStd::Expense" lastreconciled="" lastmodified="2026-01-01" institution="" opened="2026-01-01" number="" type="13" name="Kapitalertragsteuer" description="" currency="EUR"/>
+    <ACCOUNT id="A000007" parentaccount="AStd::Expense" lastreconciled="" lastmodified="2026-01-01" institution="" opened="2026-01-01" number="" type="13" name="Solidaritätszuschlag" description="" currency="EUR"/>
+    <ACCOUNT id="A000001"parentaccount="AStd::Asset" lastreconciled="" lastmodified="2026-01-01" institution="" opened="2026-01-01" number="" type="9" name="Verrechnungskonto" description="" currency="EUR"/>
     <ACCOUNT id="A000002" parentaccount="AStd::Asset" lastreconciled="" lastmodified="2026-01-01" institution="" opened="2026-01-01" number="" type="7" name="Depot" description="" currency="EUR"/>
     <ACCOUNT id="A000003" parentaccount="A000002" lastreconciled="" lastmodified="2026-01-01" institution="" opened="2026-01-01" number="" type="15" name="Musterfonds" description="" currency="E000001"/>
     <ACCOUNT id="A000004" parentaccount="AStd::Expense" lastreconciled="" lastmodified="2026-01-01" institution="" opened="2026-01-01" number="" type="13" name="Bankgebühren" description="" currency="EUR"/>

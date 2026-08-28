@@ -57,6 +57,7 @@ class DepotRepository {
                     + (prices == null ? 0 : prices.size());
             final int[] done = new int[1];
             db.runInTransaction(() -> {
+                securityDao.deleteSplitsOf(depot);
                 securityDao.deleteTx(depot);
                 securityDao.deleteSecurities(depot);
                 securityDao.deletePrices(depot);
@@ -65,7 +66,8 @@ class DepotRepository {
                     report(listener, done, total);
                 }
                 for (SecurityTx t : transactions) {
-                    securityDao.insertTx(t);
+                    // Die Kategoriesplits der Datei kommen mit: sie belegen die Erfassungsmaske vor.
+                    writeParts(t, securityDao.insertTx(t));
                     report(listener, done, total);
                 }
                 if (prices != null) {
@@ -169,7 +171,7 @@ class DepotRepository {
                     db.accountDao().insertIfAbsent(new Account(booking.account));
                     tx.bookingId = db.bookingDao().insert(booking);
                 }
-                securityDao.insertTx(tx);
+                writeParts(tx, securityDao.insertTx(tx));
             });
             if (onDone != null) {
                 mainHandler.post(onDone);
@@ -195,7 +197,7 @@ class DepotRepository {
                         db.accountDao().insertIfAbsent(new Account(booking.account));
                         tx.bookingId = db.bookingDao().insert(booking);
                     }
-                    securityDao.insertTx(tx);
+                    writeParts(tx, securityDao.insertTx(tx));
                 }
             });
             if (onDone != null) {
@@ -217,6 +219,8 @@ class DepotRepository {
                     db.bookingDao().update(booking);
                 }
                 securityDao.updateTx(tx);
+                securityDao.deleteSplits(tx.id);
+                writeParts(tx, tx.id);
             });
             if (onDone != null) {
                 mainHandler.post(onDone);
@@ -235,6 +239,7 @@ class DepotRepository {
                 if (tx.bookingId > 0) {
                     db.bookingDao().delete(tx.bookingId);
                 }
+                securityDao.deleteSplits(txId);
                 securityDao.deleteTxById(txId);
             });
             if (onDone != null) {
@@ -243,10 +248,28 @@ class DepotRepository {
         });
     }
 
+    /**
+     * Schreibt die Kategoriezeilen einer gerade gespeicherten Bewegung. Die Reihenfolge in der Maske
+     * wird dabei festgehalten: bei einer fest programmierten Bank ist sie der einzige Schlüssel, über
+     * den die Kategorien beim nächsten Mal wieder zu ihren Beträgen finden.
+     */
+    private void writeParts(SecurityTx tx, long txId) {
+        tx.id = txId;
+        int sort = 0;
+        for (SecurityTxSplit part : tx.parts) {
+            part.txId = txId;
+            part.sort = sort++;
+            securityDao.insertSplit(part);
+        }
+    }
+
     /** Eine einzelne Bewegung (Erfassungsmaske im Ansehen-/Ändern-Modus). */
     void getSecurityTx(final long id, final Callback<SecurityTx> callback) {
         executor.execute(() -> {
             final SecurityTx tx = securityDao.getTxById(id);
+            if (tx != null) {
+                tx.parts = securityDao.getSplits(id);
+            }
             mainHandler.post(() -> callback.onResult(tx));
         });
     }
@@ -334,19 +357,32 @@ class DepotRepository {
         return result;
     }
 
-    /** Ergänzt nur, was noch leer ist – die speziellere Quelle kommt zuerst und behält damit Vorrang. */
-    private static void fillFrom(SecurityTx target, SecurityTx source) {
+    /**
+     * Ergänzt nur, was noch leer ist – die speziellere Quelle kommt zuerst und behält damit Vorrang.
+     *
+     * <p>Die beiden Kategoriearten werden getrennt betrachtet: eine importierte Dividende kann ihre
+     * Steuerzeilen mitbringen, aber keine Ertragskategorie, und dann soll die allgemeinere Quelle
+     * genau diese eine Lücke füllen. Übernommen werden Kategorie, Herkunftsbeschriftung und
+     * Reihenfolge – <b>nicht</b> die Beträge; die stammen aus der Abrechnung, die gerade vorliegt.</p>
+     */
+    private void fillFrom(SecurityTx target, SecurityTx source) {
         if (source == null) {
             return;
         }
         if (target.moneyAccount.isEmpty()) {
             target.moneyAccount = source.moneyAccount;
         }
-        if (target.feeCategory.isEmpty()) {
-            target.feeCategory = source.feeCategory;
+        boolean brauchtErtrag = target.partsOf(true).isEmpty();
+        boolean brauchtGebuehr = target.partsOf(false).isEmpty();
+        if (!brauchtErtrag && !brauchtGebuehr) {
+            return;
         }
-        if (target.incomeCategory.isEmpty()) {
-            target.incomeCategory = source.incomeCategory;
+        for (SecurityTxSplit part : securityDao.getSplits(source.id)) {
+            if (part.income ? !brauchtErtrag : !brauchtGebuehr) {
+                continue;
+            }
+            target.parts.add(new SecurityTxSplit(0, part.income, part.category, 0,
+                    part.label, part.sort));
         }
     }
 

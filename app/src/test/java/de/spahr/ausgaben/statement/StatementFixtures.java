@@ -194,4 +194,27 @@ final class StatementFixtures {
                 "Kirchensteuer               8,90 EUR",
                 "Anfallende Steuern        126,26 EUR");
     }
+
+    /**
+     * Ein <b>Verkauf</b> von Scalable Capital, nachgebaut aus einem echten Beleg ohne die persönlichen
+     * Angaben.
+     *
+     * <p>Der Prüfstein für die feste Ordergebühr neben ausgewiesenen Steuern: die drei Steuerzeilen
+     * stehen einzeln da (zusammen 772,59), eine Summenzeile für sie gibt es nicht, und die Gebühr von
+     * 0,99, die Scalable nimmt, druckt der Beleg nirgends aus. Wer die Gutschrift 20.805,03 einträgt,
+     * findet im Dokument nur die 20.806,02 „zu Gunsten Konto" — die Differenz ist die feste Gebühr,
+     * und <b>nur</b> sie.</p>
+     */
+    static PdfText scalableVerkauf() {
+        return of(
+                "Wertpapierabrechnung: Verkauf",
+                "Auftragsdatum: 29.07.2024        Ausführungsplatz: GETTEX - MM Munich",
+                "Nominale                         ISIN: DE0009779611     WKN: 977961      Kurs",
+                "STK 170                          First Priv. Euro Div.STAUFER            EUR    126,933",
+                "Kurswert                                                                 EUR  21.578,61",
+                "Kapitalertragsteuer                                                      EUR     680,71 -",
+                "Kirchensteuer                                                            EUR      54,45 -",
+                "Solidaritätszuschlag                                                     EUR      37,43 -",
+                "Zu Gunsten Konto 1234567890      Valuta: 02.08.2024                      EUR  20.806,02");
+    }
 }

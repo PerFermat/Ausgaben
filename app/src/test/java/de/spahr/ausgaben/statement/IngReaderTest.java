@@ -83,6 +83,36 @@ public class IngReaderTest {
         assertEquals(e.netCents.longValue(), e.grossCents - e.feeCents);
     }
 
+    /**
+     * Die Steuerzeilen kommen zusätzlich <b>einzeln</b> zurück, in der Reihenfolge des Dokuments und
+     * ohne Beschriftung.
+     *
+     * <p>Ohne Beschriftung mit Absicht: welche Kategorie zu welcher Steuerart gehört, weiß nur der
+     * Nutzer, und für diese Bank gibt es keine Vorlage, in der es stehen könnte. Zugeordnet wird
+     * deshalb der Reihe nach — und die Reihe ist die des Belegs.</p>
+     */
+    @Test
+    public void dieSteuerzeilenKommenEinzelnUndInDerReihenfolgeDesBelegs() {
+        StatementTemplate.Extraction e = lies(StatementFixtures.ingDividende());
+
+        assertEquals(2, e.feeParts.size());
+        assertEquals(15_873L, e.feeParts.get(0).cents);   // Kapitalertragsteuer steht oben
+        assertEquals(873L, e.feeParts.get(1).cents);      // Solidaritätszuschlag darunter
+        assertEquals("", e.feeParts.get(0).label);
+        long summe = 0;
+        for (StatementTemplate.Part part : e.feeParts) {
+            summe += part.cents;
+        }
+        assertEquals("die Aufteilung ergibt zusammen die alte Steuersumme",
+                e.feeCents.longValue(), summe);
+    }
+
+    /** Ohne abgezogene Steuer gibt es auch nichts aufzuteilen. */
+    @Test
+    public void ohneSteuerGibtEsKeineTeile() {
+        assertEquals(0, lies(StatementFixtures.ingDividendeOhneSteuer()).feeParts.size());
+    }
+
     /** Fällt die Valuta mit dem Zahltag zusammen, druckt die Bank die Zeile nicht. */
     @Test
     public void dividendeOhneValutaNimmtDenZahltag() {

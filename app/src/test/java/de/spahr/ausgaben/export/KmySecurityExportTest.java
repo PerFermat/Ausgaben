@@ -59,7 +59,10 @@ public class KmySecurityExportTest {
         tx.feeCents = fee;
         tx.pending = true;
         tx.moneyAccount = "Verrechnungskonto";
-        tx.feeCategory = "Bankgebühren";
+        if (fee != 0) {
+            tx.parts.add(new de.spahr.ausgaben.db.SecurityTxSplit(
+                    0, false, "Bankgebühren", fee, "", 0));
+        }
         return tx;
     }
 
@@ -166,7 +169,12 @@ public class KmySecurityExportTest {
     public void dividendeKommtMitBruttoUndNettoZurück() throws IOException {
         // 100,00 € brutto, 26,38 € Steuer → 73,62 € werden gutgeschrieben.
         SecurityTx div = pending("dividend", 0, 10000L, 7362L, 0L);
-        div.incomeCategory = "Dividenden";
+        div.parts.add(new de.spahr.ausgaben.db.SecurityTxSplit(
+                0, true, "Dividenden", div.amountCents, "", 0));
+        if (div.amountCents != div.netCents) {
+            div.parts.add(new de.spahr.ausgaben.db.SecurityTxSplit(
+                    0, false, "Bankgebühren", div.amountCents - div.netCents, "", 1));
+        }
         List<SecurityTx> back = roundtrip(div);
         SecurityTx tx = findWritten(back);
         assertNotNull(tx);
@@ -180,11 +188,87 @@ public class KmySecurityExportTest {
     @Test
     public void dividendeOhneSteuerBleibtAusgeglichen() throws IOException {
         SecurityTx div = pending("dividend", 0, 5000L, 5000L, 0L);
-        div.incomeCategory = "Dividenden";
+        div.parts.add(new de.spahr.ausgaben.db.SecurityTxSplit(
+                0, true, "Dividenden", div.amountCents, "", 0));
+        if (div.amountCents != div.netCents) {
+            div.parts.add(new de.spahr.ausgaben.db.SecurityTxSplit(
+                    0, false, "Bankgebühren", div.amountCents - div.netCents, "", 1));
+        }
         SecurityTx tx = findWritten(roundtrip(div));
         assertNotNull(tx);
         assertEquals(5000L, tx.amountCents);
         assertEquals(5000L, tx.netCents);
+    }
+
+    /**
+     * Die aufgeteilte Steuer: je Kategoriezeile ein eigener Split, so wie KMyMoney es führt.
+     *
+     * <p>Das ist der Grund für die ganze Aufteilung — vorher mussten Kapitalertragsteuer und
+     * Solidaritätszuschlag zu einer Zahl addiert und einer der beiden Kategorien zugeschlagen werden,
+     * die damit in KMyMoney den falschen Wert trug.</p>
+     */
+    @Test
+    public void dieAufgeteilteSteuerWirdZuMehrerenSplits() throws IOException {
+        SecurityTx div = pending("dividend", 0, 90699L, 73953L, 0L);
+        div.parts.clear();
+        div.parts.add(new de.spahr.ausgaben.db.SecurityTxSplit(
+                0, true, "Dividenden", 90699L, "", 0));
+        div.parts.add(new de.spahr.ausgaben.db.SecurityTxSplit(
+                0, false, "Kapitalertragsteuer", 15873L, "Kapitalertragsteuer", 1));
+        div.parts.add(new de.spahr.ausgaben.db.SecurityTxSplit(
+                0, false, "Solidaritätszuschlag", 873L, "Solidaritätszuschlag", 2));
+
+        KmyDocument original = doc();
+        KmyExporter.SecurityResult res = new KmyExporter(original, ctx)
+                .buildSecurityTransactions(original.xml(), Collections.singletonList(div));
+        assertEquals("Bewegung wurde übersprungen: " + res.skipped, 1, res.writtenIds.size());
+        // Die Transaktion muss sich weiterhin auf 0 summieren – daran hängt, ob KMyMoney sie annimmt.
+        assertBalanced(res.xml);
+
+        String geschrieben = neueTransaktion(res.xml);
+        assertTrue("Kapitalertragsteuer als eigener Split",
+                geschrieben.contains("account=\"A000006\"") && geschrieben.contains("15873/100"));
+        assertTrue("Solidaritätszuschlag als eigener Split",
+                geschrieben.contains("account=\"A000007\"") && geschrieben.contains("873/100"));
+    }
+
+    /** Fehlt eine der Kategorien in der Datei, wird die ganze Bewegung ausgelassen und gemeldet. */
+    @Test
+    public void eineUnbekannteKategorieLaesstDieBewegungAus() throws IOException {
+        SecurityTx buy = pending("buy", 10.0, 25000L, 25000L, 500L);
+        buy.parts.clear();
+        buy.parts.add(new de.spahr.ausgaben.db.SecurityTxSplit(
+                0, false, "Gibt es nicht", 500L, "", 0));
+        assertEquals(0, exportieren(buy).writtenIds.size());
+    }
+
+    /**
+     * Ein Betrag ganz ohne Kategoriezeile ebenso: ihm fehlt die Gegenseite, und die Transaktion ginge
+     * nicht auf. Lieber ausgelassen und gemeldet als eine Datei, die KMyMoney zurückweist.
+     */
+    @Test
+    public void einBetragOhneKategoriezeileLaesstDieBewegungAus() throws IOException {
+        SecurityTx buy = pending("buy", 10.0, 25000L, 25000L, 500L);
+        buy.parts.clear();
+        KmyExporter.SecurityResult res = exportieren(buy);
+        assertEquals(0, res.writtenIds.size());
+        assertEquals(1, res.skipped.size());
+    }
+
+    private KmyExporter.SecurityResult exportieren(SecurityTx tx) throws IOException {
+        KmyDocument original = doc();
+        return new KmyExporter(original, ctx)
+                .buildSecurityTransactions(original.xml(), Collections.singletonList(tx));
+    }
+
+    /** Die zuletzt angehängte Transaktion – die aus der Testdatei steht davor. */
+    private static String neueTransaktion(String xml) {
+        Matcher tx = TX_BLOCK.matcher(xml);
+        String last = "";
+        while (tx.find()) {
+            last = tx.group();
+        }
+        return last;
     }
 
     @Test

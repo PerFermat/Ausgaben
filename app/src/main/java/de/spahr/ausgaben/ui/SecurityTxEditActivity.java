@@ -16,6 +16,7 @@ import com.google.android.material.textfield.TextInputEditText;
 import com.google.android.material.textfield.TextInputLayout;
 
 import java.text.SimpleDateFormat;
+import java.util.ArrayList;
 import java.util.Calendar;
 import java.util.Date;
 import java.util.EnumMap;
@@ -29,6 +30,7 @@ import de.spahr.ausgaben.R;
 import de.spahr.ausgaben.db.Booking;
 import de.spahr.ausgaben.db.Repository;
 import de.spahr.ausgaben.db.SecurityTx;
+import de.spahr.ausgaben.db.SecurityTxSplit;
 import de.spahr.ausgaben.settings.AmountExpression;
 import de.spahr.ausgaben.settings.MoneyFormat;
 import de.spahr.ausgaben.settings.SettingsStore;
@@ -36,6 +38,7 @@ import de.spahr.ausgaben.settings.StatementTemplates;
 import de.spahr.ausgaben.statement.StatementTemplate;
 import de.spahr.ausgaben.statement.TemplateCheck;
 import de.spahr.ausgaben.statement.TemplateLearner;
+import de.spahr.ausgaben.util.CategorySplits;
 import de.spahr.ausgaben.util.SecurityAmounts;
 import de.spahr.ausgaben.util.SecurityAmounts.Field;
 
@@ -67,8 +70,17 @@ public class SecurityTxEditActivity extends LocalizedActivity {
     public static final String EXTRA_PREFILL_NET = "prefillNet";
     public static final String EXTRA_PREFILL_GROSS = "prefillGross";
     public static final String EXTRA_PREFILL_ACCOUNT = "prefillAccount";
-    public static final String EXTRA_PREFILL_FEE_CATEGORY = "prefillFeeCategory";
-    public static final String EXTRA_PREFILL_INCOME_CATEGORY = "prefillIncomeCategory";
+    /**
+     * Die Kategoriezeilen als drei gleich lange Reihen (Kategorie, Betrag, Herkunftsbeschriftung);
+     * der Name ist das Vorsilbe, an die {@link #putParts} die drei Endungen hängt.
+     */
+    public static final String EXTRA_PREFILL_FEE_PARTS = "prefillFeeParts";
+    public static final String EXTRA_PREFILL_INCOME_PARTS = "prefillIncomeParts";
+    /**
+     * Kategorie einer festen Gebühr aus der Erkennungsregel. Sie steht dort von Hand und schlägt
+     * deshalb die aus der letzten Bewegung erschlossene.
+     */
+    public static final String EXTRA_PREFILL_FIXED_FEE_CATEGORY = "prefillFixedFeeCategory";
     /**
      * Die Maske gehört zu einem Eintrag der Erkennungsliste ({@link StatementBatchActivity}): dort wird
      * nicht gespeichert, sondern berichtigt. Gebucht wird der ganze Stapel erst am Ende.
@@ -156,11 +168,28 @@ public class SecurityTxEditActivity extends LocalizedActivity {
     private TextInputLayout priceLayout;
     private View sharesRow;
     private TextInputLayout accountLayout;
-    private TextInputLayout feeCategoryLayout;
-    private TextInputLayout incomeCategoryLayout;
+    private View feeSplitBox;
+    private View incomeSplitBox;
+    private TextView feeSplitHeading;
     private PickerTextView editAccount;
-    private PickerTextView editFeeCategory;
-    private PickerTextView editIncomeCategory;
+    /**
+     * Die Kategoriezeilen der beiden Rollen — bedient wie die Splitbuchung einer Geldbuchung, nur je
+     * Rolle eine eigene Liste mit ihrem eigenen Gesamtbetrag darüber.
+     *
+     * <p>Vorher trug die Maske je Rolle ein einzelnes Kategoriefeld, und Kapitalertragsteuer,
+     * Solidaritätszuschlag und Gebühren mussten zu einer Zahl addiert werden — die dann unter einer
+     * dieser Kategorien stand und dort falsch war.</p>
+     */
+    private SplitRowController feeSplits;
+    private SplitRowController incomeSplits;
+    /** Was die Abrechnung an Teilbeträgen hergab — Beträge und, wenn gelernt, ihre Beschriftungen. */
+    private final List<CategorySplits.Part> foundFeeParts = new ArrayList<>();
+    private final List<CategorySplits.Part> foundIncomeParts = new ArrayList<>();
+    /** Die Kategorien der letzten Buchung derselben Art; sie sagen, wohin die Beträge gehören. */
+    private final List<CategorySplits.Part> knownFeeParts = new ArrayList<>();
+    private final List<CategorySplits.Part> knownIncomeParts = new ArrayList<>();
+    /** Kategorie einer festen Gebühr aus der Regel; sie schlägt die erschlossene (siehe Extra). */
+    private String fixedFeeCategory = "";
     /** Kategorieliste nach Ausgabe/Einnahme gruppiert – dieselbe wie in der Buchungsmaske. */
     private CategoryFilterAdapter categoryAdapter;
     private MaterialButton btnSave;
@@ -238,11 +267,10 @@ public class SecurityTxEditActivity extends LocalizedActivity {
         netLayout = findViewById(R.id.netLayout);
         priceLayout = findViewById(R.id.priceLayout);
         accountLayout = findViewById(R.id.accountLayout);
-        feeCategoryLayout = findViewById(R.id.feeCategoryLayout);
-        incomeCategoryLayout = findViewById(R.id.incomeCategoryLayout);
+        feeSplitBox = findViewById(R.id.feeSplitBox);
+        incomeSplitBox = findViewById(R.id.incomeSplitBox);
+        feeSplitHeading = findViewById(R.id.feeSplitHeading);
         editAccount = findViewById(R.id.editAccount);
-        editFeeCategory = findViewById(R.id.editFeeCategory);
-        editIncomeCategory = findViewById(R.id.editIncomeCategory);
         btnSave = findViewById(R.id.btnSave);
         btnDelete = findViewById(R.id.btnDelete);
         sharesRow = findViewById(R.id.sharesRow);
@@ -307,6 +335,90 @@ public class SecurityTxEditActivity extends LocalizedActivity {
         }
     }
 
+    /**
+     * Legt die beiden Kategorielisten an. Erst hier und nicht schon beim Aufbau der Maske: ob nur
+     * angesehen oder bearbeitet wird, steht erst fest, wenn die Bewegung geladen ist.
+     */
+    private void buildSplitControllers() {
+        feeSplits = new SplitRowController(findViewById(R.id.feeSplitContainer),
+                numberFields.get(Field.FEE), getLayoutInflater(), readOnly, this::updateSaveEnabled);
+        incomeSplits = new SplitRowController(findViewById(R.id.incomeSplitContainer),
+                numberFields.get(Field.GROSS), getLayoutInflater(), readOnly, this::updateSaveEnabled);
+        for (SplitRowController ctl : splitControllers()) {
+            ctl.setAmountBinder(this::bindCalcField);
+            if (categoryAdapter != null) {
+                ctl.setAdapter(categoryAdapter);
+            }
+            ctl.ensureTrailingRow();
+        }
+        // Ändert sich der Betrag darüber — getippt oder von der Rechnung der Maske eingesetzt —, zieht
+        // die Rest-Zeile nach. Ohne das stünde nach einer berichtigten Steuer eine Aufteilung da, die
+        // nicht mehr aufgeht, und der Speichern-Knopf bliebe grau, ohne dass man wüsste warum.
+        watchTotal(Field.FEE, feeSplits);
+        watchTotal(Field.GROSS, incomeSplits);
+    }
+
+    private void watchTotal(Field field, SplitRowController ctl) {
+        numberFields.get(field).addTextChangedListener(new SimpleWatcher(() -> {
+            ctl.onTotalChanged();
+            updateSaveEnabled();
+        }));
+    }
+
+    private java.util.List<SplitRowController> splitControllers() {
+        java.util.List<SplitRowController> out = new java.util.ArrayList<>();
+        if (feeSplits != null) {
+            out.add(feeSplits);
+        }
+        if (incomeSplits != null) {
+            out.add(incomeSplits);
+        }
+        return out;
+    }
+
+    /**
+     * Hängt ein Teilbetragsfeld an die Rechentastatur — ohne die Rechnung der Maske: ein Teilbetrag
+     * ist keine der Größen, aus denen sie Brutto, Gebühr und Netto auseinander ableitet.
+     */
+    private void bindCalcField(TextInputEditText input) {
+        AmountField.prepareCalc(input);
+        input.setShowSoftInputOnFocus(false);
+        input.setOnFocusChangeListener((v, hasFocus) -> {
+            if (hasFocus) {
+                calcKeyboard.attachTo(input);
+                calcKeyboard.setOnOk(valid -> {
+                    if (valid) {
+                        input.clearFocus();
+                    }
+                });
+                calcKeyboard.setVisibility(View.VISIBLE);
+                CalcKeyboardView.hideSystemKeyboard(input);
+            } else {
+                calcKeyboard.setVisibility(View.GONE);
+            }
+        });
+    }
+
+    /**
+     * Der Speichern-Knopf hängt daran, dass beide Kategorielisten aufgehen — die Summe der Teile muss
+     * den Betrag darüber ergeben, sonst stünde in KMyMoney eine Buchung, die sich nicht ausgleicht.
+     */
+    private void updateSaveEnabled() {
+        btnSave.setEnabled(splitsOk(feeSplits, Field.FEE) && splitsOk(incomeSplits, Field.GROSS));
+    }
+
+    /**
+     * Ohne Betrag darüber gibt es nichts aufzuteilen — bei einem Kauf ohne Gebühr bleibt die Liste
+     * eben leer. Erst wenn ein Betrag dasteht, muss die Aufteilung ihn treffen.
+     */
+    private boolean splitsOk(SplitRowController ctl, Field total) {
+        if (ctl == null) {
+            return true;
+        }
+        Long value = money(total);
+        return value == null || value == 0 || ctl.isValid();
+    }
+
     // ---- Modi ----
 
     private void setupNewMode() {
@@ -328,6 +440,7 @@ public class SecurityTxEditActivity extends LocalizedActivity {
         }
         applyAction();
         wireNumberFields();
+        buildSplitControllers();
         applyPrefill();
     }
 
@@ -369,13 +482,101 @@ public class SecurityTxEditActivity extends LocalizedActivity {
         listHint = in.getIntExtra(EXTRA_DUPLICATE, 0);
         dupBooked = listHint == R.string.statement_dup_booked;
         prefillPicker(editAccount, in.getStringExtra(EXTRA_PREFILL_ACCOUNT));
-        prefillPicker(editFeeCategory, in.getStringExtra(EXTRA_PREFILL_FEE_CATEGORY));
-        prefillPicker(editIncomeCategory, in.getStringExtra(EXTRA_PREFILL_INCOME_CATEGORY));
+        fixedFeeCategory = orEmptyText(in.getStringExtra(EXTRA_PREFILL_FIXED_FEE_CATEGORY));
+        foundFeeParts.clear();
+        foundFeeParts.addAll(readParts(in, EXTRA_PREFILL_FEE_PARTS));
+        foundIncomeParts.clear();
+        foundIncomeParts.addAll(readParts(in, EXTRA_PREFILL_INCOME_PARTS));
+        // Aus der Erkennungsliste kommen die Kategorien schon zugeordnet zurück; dann sind die Teile
+        // selbst die Vorbelegung und es gibt nichts mehr zuzuordnen.
+        if (batchMode) {
+            knownFeeParts.addAll(foundFeeParts);
+            knownIncomeParts.addAll(foundIncomeParts);
+        }
         // Die Werte stammen aus dem Dokument und stehen fest – der Stückpreis der Bank ist genauer als
         // einer, den die Maske aus Summe und Stückzahl zurückrechnet.
         prefilling = true;
         recompute(null);
         prefilling = false;
+        applySplitRows();
+    }
+
+    /**
+     * Schreibt die Kategoriezeilen als drei gleich lange Reihen in einen Intent — Kategorie, Betrag
+     * und Herkunftsbeschriftung. Drei einfache Reihen statt eines eigenen Parcelable: die Maske und
+     * die Erkennungsliste reichen sie nur durch.
+     */
+    static void putParts(android.content.Intent out, String key, List<CategorySplits.Part> parts) {
+        String[] categories = new String[parts.size()];
+        long[] cents = new long[parts.size()];
+        String[] labels = new String[parts.size()];
+        for (int i = 0; i < parts.size(); i++) {
+            categories[i] = parts.get(i).category;
+            cents[i] = parts.get(i).cents;
+            labels[i] = parts.get(i).label;
+        }
+        out.putExtra(key + "Cat", categories);
+        out.putExtra(key + "Cents", cents);
+        out.putExtra(key + "Label", labels);
+    }
+
+    /** Die Gegenrichtung zu {@link #putParts}; leere Liste, wenn nichts mitgegeben wurde. */
+    static List<CategorySplits.Part> readParts(android.content.Intent in, String key) {
+        List<CategorySplits.Part> out = new ArrayList<>();
+        String[] categories = in.getStringArrayExtra(key + "Cat");
+        long[] cents = in.getLongArrayExtra(key + "Cents");
+        String[] labels = in.getStringArrayExtra(key + "Label");
+        if (categories == null || cents == null || labels == null
+                || categories.length != cents.length || labels.length != cents.length) {
+            return out;
+        }
+        for (int i = 0; i < cents.length; i++) {
+            out.add(new CategorySplits.Part(categories[i], cents[i], labels[i]));
+        }
+        return out;
+    }
+
+    /**
+     * Legt die Kategoriezeilen neu aus: die Beträge der Abrechnung treffen auf die Kategorien der
+     * letzten Buchung (siehe {@link CategorySplits}).
+     */
+    private void applySplitRows() {
+        if (feeSplits == null) {
+            return;
+        }
+        boolean dividend = DIVIDEND.equals(currentAction());
+        List<CategorySplits.Part> gebuehr =
+                CategorySplits.rows(foundFeeParts, orZero(money(Field.FEE)), knownFeeParts);
+        if (!fixedFeeCategory.isEmpty() && !gebuehr.isEmpty()) {
+            CategorySplits.Part erste = gebuehr.get(0);
+            gebuehr.set(0, new CategorySplits.Part(fixedFeeCategory, erste.cents, erste.label));
+        }
+        fillMatched(feeSplits, gebuehr);
+        fillMatched(incomeSplits, dividend
+                ? CategorySplits.rows(foundIncomeParts, orZero(money(Field.GROSS)), knownIncomeParts)
+                : new ArrayList<>());
+        updateSaveEnabled();
+    }
+
+    private static long orZero(Long value) {
+        return value == null ? 0 : Math.abs(value);
+    }
+
+    private static String orEmptyText(String value) {
+        return value == null ? "" : value.trim();
+    }
+
+    private void fillMatched(SplitRowController ctl, List<CategorySplits.Part> parts) {
+        ctl.setSuppressEvents(true);
+        ctl.clear();
+        for (CategorySplits.Part part : parts) {
+            // Ohne Betrag bleibt das Feld leer statt „0,00": die Zeile wartet auf ihren Betrag, und
+            // eine geschriebene Null sähe aus wie eine Angabe.
+            ctl.addRow(part.category, part.cents == 0 ? null : MoneyFormat.plain(part.cents),
+                    null, part.label);
+        }
+        ctl.ensureTrailingRow();
+        ctl.setSuppressEvents(false);
     }
 
     /**
@@ -448,8 +649,9 @@ public class SecurityTxEditActivity extends LocalizedActivity {
         writingBack = false;
 
         editAccount.setText(tx.moneyAccount, false);
-        editFeeCategory.setText(tx.feeCategory, false);
-        editIncomeCategory.setText(tx.incomeCategory, false);
+        buildSplitControllers();
+        fillSplitRows(feeSplits, tx.partsOf(false));
+        fillSplitRows(incomeSplits, tx.partsOf(true));
         loadSavedStatement(tx.bookingId);
 
         if (readOnly) {
@@ -461,6 +663,18 @@ public class SecurityTxEditActivity extends LocalizedActivity {
             userSet.addAll(numberFields.keySet());
             wireNumberFields();
         }
+        updateSaveEnabled();
+    }
+
+    /** Die gespeicherten Kategoriezeilen in die Liste schreiben, ohne dabei etwas nachzurechnen. */
+    private void fillSplitRows(SplitRowController ctl, List<SecurityTxSplit> parts) {
+        ctl.setSuppressEvents(true);
+        ctl.clear();
+        for (SecurityTxSplit part : parts) {
+            ctl.addRow(part.category, MoneyFormat.plain(part.amountCents), null, part.label);
+        }
+        ctl.ensureTrailingRow();
+        ctl.setSuppressEvents(false);
     }
 
     /** Belastung bzw. Gutschrift einer Kauf-/Verkaufsbuchung (Betrag plus/minus Gebühr). */
@@ -479,12 +693,15 @@ public class SecurityTxEditActivity extends LocalizedActivity {
         lockField(editDate);
         dateLayout.setEndIconMode(TextInputLayout.END_ICON_NONE);
         lockDropdown(editAccount, accountLayout);
-        lockDropdown(editFeeCategory, feeCategoryLayout);
-        lockDropdown(editIncomeCategory, incomeCategoryLayout);
         hideIfEmpty(accountLayout, editAccount);
-        hideIfEmpty(feeCategoryLayout, editFeeCategory);
-        hideIfEmpty(incomeCategoryLayout, editIncomeCategory);
         hideIfEmpty(feeLayout, numberFields.get(Field.FEE));
+        // Ohne Kategoriezeilen bliebe nur eine Überschrift über einer leeren Fläche stehen.
+        if (loaded.partsOf(false).isEmpty()) {
+            feeSplitBox.setVisibility(View.GONE);
+        }
+        if (loaded.partsOf(true).isEmpty()) {
+            incomeSplitBox.setVisibility(View.GONE);
+        }
         // Ein-/Ausbuchungen tragen in KMyMoney keinen Geldwert – dort bliebe nur die Stückzahl übrig.
         if (loaded.amountCents == 0) {
             grossLayout.setVisibility(View.GONE);
@@ -541,14 +758,15 @@ public class SecurityTxEditActivity extends LocalizedActivity {
         boolean dividend = DIVIDEND.equals(currentAction());
         priceLayout.setHint(getString(dividend
                 ? R.string.security_tx_price_dividend : R.string.security_tx_price));
-        feeLayout.setHint(getString(dividend ? R.string.security_tx_tax : R.string.security_tx_fee));
-        netLayout.setHint(getString(dividend ? R.string.security_tx_net : R.string.security_tx_total));
-        feeCategoryLayout.setHint(getString(dividend
-                ? R.string.security_tx_tax_category : R.string.security_tx_fee_category));
+        // Die Namen der beiden Geldfelder hängen an der Art und stehen deshalb nur an einer Stelle
+        // (siehe StatementFieldNames): die Regelseite muss dieselben Wörter benutzen wie die Maske.
+        feeLayout.setHint(StatementFieldNames.of(this, StatementTemplate.Field.FEE, currentAction()));
+        netLayout.setHint(StatementFieldNames.of(this, StatementTemplate.Field.NET, currentAction()));
+        feeSplitHeading.setText(StatementFieldNames.feeCategoryHeading(this, currentAction()));
         // Der Bruttobetrag ist nur bei einer Dividende ein eigenes Feld – bei Kauf/Verkauf steckt er
         // zwischen Anzahl × Stückpreis und der Gesamtsumme und wäre eine dritte Zahl für dieselbe Sache.
         grossLayout.setVisibility(dividend ? View.VISIBLE : View.GONE);
-        incomeCategoryLayout.setVisibility(dividend ? View.VISIBLE : View.GONE);
+        incomeSplitBox.setVisibility(dividend ? View.VISIBLE : View.GONE);
         // Umgekehrt bei Anzahl und Dividende je Stück: die Stückzahl, auf die eine Ausschüttung entfällt,
         // ist der Bestand am Ex-Tag – und der steht in der Abrechnung nicht. Beides wäre hier geraten,
         // deshalb gibt es die Felder bei einer Dividende gar nicht erst.
@@ -854,8 +1072,9 @@ public class SecurityTxEditActivity extends LocalizedActivity {
             categoryAdapter = new CategoryFilterAdapter(this, null,
                     getString(R.string.category_group_expense), g.expense,
                     getString(R.string.category_group_income), g.income);
-            PickerAdapters.categories(editFeeCategory, categoryAdapter);
-            PickerAdapters.categories(editIncomeCategory, categoryAdapter);
+            for (SplitRowController ctl : splitControllers()) {
+                ctl.setAdapter(categoryAdapter);
+            }
             loadCategoryFavorites();
         });
     }
@@ -877,6 +1096,9 @@ public class SecurityTxEditActivity extends LocalizedActivity {
             }
             List<String> used = DIVIDEND.equals(currentAction()) ? lists.get(1) : lists.get(0);
             categoryAdapter.setFavorites(getString(R.string.category_group_security), used);
+            for (SplitRowController ctl : splitControllers()) {
+                ctl.applyAdapterToRows();
+            }
         });
     }
 
@@ -896,8 +1118,15 @@ public class SecurityTxEditActivity extends LocalizedActivity {
                 return;
             }
             setDefault(editAccount, last.moneyAccount, overwrite);
-            setDefault(editFeeCategory, last.feeCategory, overwrite);
-            setDefault(editIncomeCategory, last.incomeCategory, overwrite);
+            if (overwrite || (knownFeeParts.isEmpty() && knownIncomeParts.isEmpty())) {
+                knownFeeParts.clear();
+                knownIncomeParts.clear();
+                for (SecurityTxSplit part : last.parts) {
+                    (part.income ? knownIncomeParts : knownFeeParts)
+                            .add(new CategorySplits.Part(part.category, 0, part.label));
+                }
+                applySplitRows();
+            }
         });
     }
 
@@ -959,8 +1188,11 @@ public class SecurityTxEditActivity extends LocalizedActivity {
         tx.netCents = dividend ? net : gross;
         tx.feeCents = dividend ? 0 : feeCents;
         tx.moneyAccount = account;
-        tx.feeCategory = textOf(editFeeCategory).trim();
-        tx.incomeCategory = dividend ? textOf(editIncomeCategory).trim() : "";
+        tx.parts.clear();
+        tx.parts.addAll(splitsOf(feeSplits, false));
+        if (dividend) {
+            tx.parts.addAll(splitsOf(incomeSplits, true));
+        }
 
         Booking booking = buildBooking(action, account, net);
         // Die Abrechnung wird zum Beleg der Gegenbuchung – dauerhaft und über denselben Weg wie die
@@ -1010,13 +1242,66 @@ public class SecurityTxEditActivity extends LocalizedActivity {
         putMoney(out, EXTRA_PREFILL_FEE, money(Field.FEE));
         putMoney(out, EXTRA_PREFILL_NET, money(Field.NET));
         out.putExtra(EXTRA_PREFILL_ACCOUNT, textOf(editAccount).trim());
-        out.putExtra(EXTRA_PREFILL_FEE_CATEGORY, textOf(editFeeCategory).trim());
-        out.putExtra(EXTRA_PREFILL_INCOME_CATEGORY,
-                DIVIDEND.equals(action) ? textOf(editIncomeCategory).trim() : "");
+        putParts(out, EXTRA_PREFILL_FEE_PARTS, collectedParts(feeSplits));
+        putParts(out, EXTRA_PREFILL_INCOME_PARTS,
+                DIVIDEND.equals(action) ? collectedParts(incomeSplits)
+                        : new ArrayList<>());
         out.putExtra(EXTRA_CONFLICT, conflict);
         out.putExtra(EXTRA_DUP_BOOKED, dupBooked);
         setResult(RESULT_OK, out);
         finish();
+    }
+
+    /** Die Kategoriezeilen einer Liste als Bewegungsteile. */
+    private List<SecurityTxSplit> splitsOf(SplitRowController ctl, boolean income) {
+        List<SecurityTxSplit> out = new ArrayList<>();
+        int sort = 0;
+        for (SplitRowController.Part part : ctl.collectParts()) {
+            out.add(new SecurityTxSplit(0, income, part.category, Math.abs(part.cents),
+                    part.label, sort++));
+        }
+        return out;
+    }
+
+    /**
+     * Die Kategoriezeilen für den Lerner: Betrag und Kategorie.
+     *
+     * <p>Gelernt wird beides — wo der Betrag in der Abrechnung steht und wohin er gebucht gehört. Die
+     * Beschriftung fehlt hier mit Absicht: die leitet der Lerner aus der gefundenen Zeile ab, und was
+     * in der Maske steht, kann von einer fest programmierten Bank stammen, die gar keine kennt.</p>
+     */
+    private List<StatementTemplate.Part> lernbareTeile(SplitRowController ctl) {
+        List<StatementTemplate.Part> out = new ArrayList<>();
+        for (SplitRowController.Part part : ctl.collectParts()) {
+            out.add(new StatementTemplate.Part("", Math.abs(part.cents), part.category));
+        }
+        return out;
+    }
+
+    /** Die Beträge der Kategoriezeilen — was der Lerner in der Abrechnung wiederfinden soll. */
+    private List<Long> partAmounts(SplitRowController ctl) {
+        List<Long> out = new ArrayList<>();
+        for (SplitRowController.Part part : ctl.collectParts()) {
+            out.add(Math.abs(part.cents));
+        }
+        return out;
+    }
+
+    /** Die erste Kategorie einer Liste; leer, wenn keine dasteht. */
+    private String firstCategory(SplitRowController ctl) {
+        for (SplitRowController.Part part : ctl.collectParts()) {
+            return part.category;
+        }
+        return "";
+    }
+
+    /** Dieselben Zeilen für den Weg zurück in die Erkennungsliste. */
+    private List<CategorySplits.Part> collectedParts(SplitRowController ctl) {
+        List<CategorySplits.Part> out = new ArrayList<>();
+        for (SplitRowController.Part part : ctl.collectParts()) {
+            out.add(new CategorySplits.Part(part.category, Math.abs(part.cents), part.label));
+        }
+        return out;
     }
 
     private static void putNumber(android.content.Intent out, String key, Double value) {
@@ -1094,7 +1379,11 @@ public class SecurityTxEditActivity extends LocalizedActivity {
         known.feeCents = lernen(ersteVorlage, Field.FEE) ? feeCents : null;
         known.netCents = lernen(ersteVorlage, Field.NET) ? netCents : null;
         // Wird aus der Gebühr eine feste Ordergebühr, braucht sie eine Kategorie – und die steht hier.
-        known.feeCategory = textOf(editFeeCategory).trim();
+        known.feeCategory = firstCategory(feeSplits);
+        // Die Aufteilung wird immer gelernt, gleich ob es schon eine Vorlage gibt: sie steht nur dann
+        // in der Maske, wenn der Nutzer sie selbst so eingetragen hat.
+        known.feeParts = lernbareTeile(feeSplits);
+        known.incomeParts = DIVIDEND.equals(action) ? lernbareTeile(incomeSplits) : new ArrayList<>();
         // Beim Datum zählt die eigene Wahl: hat der Nutzer sie nicht getroffen, bleibt die schon gelernte
         // Beschriftung gültig. Ohne das würde bei zwei Zeilen mit demselben Datum („Zahltag" und
         // „Valuta") jedes Mal die unterste neu gelernt.
@@ -1215,6 +1504,10 @@ public class SecurityTxEditActivity extends LocalizedActivity {
         soll.feeCents = money(Field.FEE);
         soll.netCents = money(Field.NET);
         soll.grossCents = money(Field.GROSS);
+        soll.feeParts.addAll(partAmounts(feeSplits));
+        if (DIVIDEND.equals(action)) {
+            soll.incomeParts.addAll(partAmounts(incomeSplits));
+        }
         for (Field field : typedFields) {
             soll.typed.add(StatementTemplate.Field.valueOf(field.name()));
         }
@@ -1233,6 +1526,9 @@ public class SecurityTxEditActivity extends LocalizedActivity {
                 return getString(R.string.statement_check_norule, name, soll);
             case NOT_FOUND:
                 return getString(R.string.statement_check_missing, name, soll);
+            case PARTS:
+                return getString(R.string.statement_check_parts, name, soll,
+                        valueText(c.field, c.actual));
             default:
                 return getString(R.string.statement_check_wrong, name, soll,
                         valueText(c.field, c.actual));

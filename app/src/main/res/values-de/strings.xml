@@ -691,13 +691,16 @@
     <string name="security_tx_price_dividend">Dividende je Stück</string>
     <string name="security_tx_gross">Brutto</string>
     <string name="security_tx_fee">Gebühren</string>
+    <string name="security_tx_fee_sell">Gebühren/Steuern</string>
     <string name="security_tx_tax">Steuer</string>
     <string name="security_tx_total">Gesamtsumme</string>
+    <string name="security_tx_total_sell">Gutschrift</string>
     <string name="security_tx_net">Netto</string>
     <string name="security_tx_account">Gegenkonto</string>
-    <string name="security_tx_fee_category">Gebührenkategorie</string>
-    <string name="security_tx_tax_category">Steuerkategorie</string>
-    <string name="security_tx_income_category">Ertragskategorie</string>
+    <string name="security_tx_fee_category">Gebührenkategorien</string>
+    <string name="security_tx_fee_category_sell">Steuer- und Gebührenkategorien</string>
+    <string name="security_tx_tax_category">Steuerkategorien</string>
+    <string name="security_tx_income_category">Ertragskategorien</string>
     <string name="security_tx_save">Bewegung speichern</string>
     <string name="security_tx_delete">Bewegung löschen</string>
     <string name="security_tx_delete_title">Bewegung löschen?</string>
@@ -760,6 +763,9 @@
     <string name="statement_rules_template">Vorlage</string>
     <string name="statement_rules_anchor">Beschriftung in der Abrechnung</string>
     <string name="statement_rules_add_anchor">Rückfall-Beschriftung hinzufügen</string>
+    <string name="statement_rules_add_part">Teilbetrag hinzufügen</string>
+    <string name="statement_rules_category">Kategorie</string>
+    <string name="statement_rules_part_new">Neuer Teilbetrag</string>
     <string name="statement_rules_up">Nach oben</string>
     <string name="statement_rules_down">Nach unten</string>
     <string name="statement_rules_remove">Beschriftung entfernen</string>
@@ -802,6 +808,7 @@
     <string name="statement_check_wrong">%1$s: erwartet %2$s, gelesen %3$s</string>
     <string name="statement_check_missing">%1$s: erwartet %2$s, nichts gefunden</string>
     <string name="statement_check_norule">%1$s: erwartet %2$s, dafür ist keine Regel entstanden</string>
+    <string name="statement_check_parts">%1$s: die Aufteilung ergibt zusammen %3$s statt %2$s</string>
     <string name="statement_check_hint">Auf der Regelseite lässt sich das von Hand einstellen — die Abrechnung hängt dort schon als Probe.</string>
     <string name="statement_check_rules">Erkennungsregeln</string>
     <string name="statement_rules_position">Welche Zahl der Zeile</string>

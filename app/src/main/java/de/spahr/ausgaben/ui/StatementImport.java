@@ -269,8 +269,14 @@ final class StatementImport {
         // Die Kategorie einer festen Gebühr steht in der Regel und nicht im Beleg; sie kommt nur mit,
         // wenn die Gebühr auch wirklich angesetzt wurde.
         if (e.feeCategory != null && !e.feeCategory.isEmpty()) {
-            i.putExtra(SecurityTxEditActivity.EXTRA_PREFILL_FEE_CATEGORY, e.feeCategory);
+            i.putExtra(SecurityTxEditActivity.EXTRA_PREFILL_FIXED_FEE_CATEGORY, e.feeCategory);
         }
+        // Die Aufteilung von Steuer und Ertrag, soweit die Abrechnung sie hergab — noch ohne
+        // Kategorien: die schlägt die Maske in der letzten Bewegung derselben Art nach.
+        SecurityTxEditActivity.putParts(i, SecurityTxEditActivity.EXTRA_PREFILL_FEE_PARTS,
+                asParts(e.feeParts));
+        SecurityTxEditActivity.putParts(i, SecurityTxEditActivity.EXTRA_PREFILL_INCOME_PARTS,
+                asParts(e.incomeParts));
         // Die Abrechnung wandert schon jetzt in die Belegablage – beim Speichern wird sie dort zum Beleg
         // der Gegenbuchung, und bis dahin lässt sie sich in der Maske ansehen.
         java.io.File staged = de.spahr.ausgaben.receipt.SingleReceipt.stage(activity, source);
@@ -352,6 +358,9 @@ final class StatementImport {
         // Die Kategorie einer festen Gebühr steht in der Regel und schlägt die aus der letzten Bewegung
         // geratene; sie wird deshalb erst nach fillDefaults gesetzt (siehe dort).
         d.fixedFeeCategory = e.feeCategory == null ? "" : e.feeCategory;
+        // Vorerst nur die Beträge: welche Kategorie dazugehört, sagt erst die letzte Buchung.
+        d.feeParts = asParts(e.feeParts);
+        d.incomeParts = asParts(e.incomeParts);
 
         File staged = de.spahr.ausgaben.receipt.SingleReceipt.stage(activity, uri);
         if (staged != null) {
@@ -361,6 +370,20 @@ final class StatementImport {
         // gemeinsamer Name zeigte dort auf die zuletzt gelesene Datei statt auf die bearbeitete.
         d.textPath = cache(activity, text, "statement_" + index + ".txt");
         return d;
+    }
+
+    /**
+     * Die gelesenen Teilbeträge als Kategoriezeilen. Die Kategorie kommt mit, wenn die Vorlage eine
+     * kennt; sonst bleibt sie leer und wird aus der letzten Buchung erschlossen.
+     */
+    private static java.util.List<de.spahr.ausgaben.util.CategorySplits.Part> asParts(
+            java.util.List<StatementTemplate.Part> parts) {
+        java.util.List<de.spahr.ausgaben.util.CategorySplits.Part> out = new java.util.ArrayList<>();
+        for (StatementTemplate.Part part : parts) {
+            out.add(new de.spahr.ausgaben.util.CategorySplits.Part(
+                    part.category, part.cents, part.label));
+        }
+        return out;
     }
 
     /** Wertpapier über die ISIN, das Gelernte oder eine im Text genannte eigene Kennung. */
@@ -407,18 +430,45 @@ final class StatementImport {
                 de.spahr.ausgaben.db.SecurityTx last = defaults.get(i);
                 if (last != null) {
                     d.moneyAccount = last.moneyAccount;
-                    d.feeCategory = last.feeCategory;
-                    d.incomeCategory = last.incomeCategory;
                 }
-                // Zuletzt, damit sie sich durchsetzt: die Kategorie einer festen Gebühr ist von Hand
-                // festgelegt, die aus der letzten Bewegung nur erschlossen.
-                if (!d.fixedFeeCategory.isEmpty()) {
-                    d.feeCategory = d.fixedFeeCategory;
-                }
+                // Erst rechnen, dann zuordnen: die Summen, auf die sich die Teile summieren müssen,
+                // stehen erst nach {@code resolve()} fest.
                 d.resolve();
+                assignCategories(d, last);
             }
             markBooked(activity, repository, drafts);
         });
+    }
+
+    /**
+     * Bringt die gelesenen Teilbeträge mit den Kategorien der letzten Bewegung zusammen (siehe
+     * {@link de.spahr.ausgaben.util.CategorySplits}).
+     *
+     * <p>Zuletzt setzt sich die Kategorie einer festen Gebühr durch: sie ist auf der Regelseite von
+     * Hand festgelegt, die aus der letzten Bewegung nur erschlossen.</p>
+     */
+    private static void assignCategories(StatementDraft d, de.spahr.ausgaben.db.SecurityTx last) {
+        java.util.List<de.spahr.ausgaben.util.CategorySplits.Part> feeKnown = new java.util.ArrayList<>();
+        java.util.List<de.spahr.ausgaben.util.CategorySplits.Part> incomeKnown = new java.util.ArrayList<>();
+        if (last != null) {
+            for (de.spahr.ausgaben.db.SecurityTxSplit part : last.parts) {
+                (part.income ? incomeKnown : feeKnown).add(
+                        new de.spahr.ausgaben.util.CategorySplits.Part(part.category, 0, part.label));
+            }
+        }
+        long fee = d.isDividend()
+                ? (d.grossCents == null || d.netCents == null ? 0 : d.grossCents - d.netCents)
+                : Math.abs(d.feeCents == null ? 0 : d.feeCents);
+        d.feeParts = de.spahr.ausgaben.util.CategorySplits.match(d.feeParts, fee, feeKnown);
+        d.incomeParts = d.isDividend()
+                ? de.spahr.ausgaben.util.CategorySplits.match(d.incomeParts,
+                        d.grossCents == null ? 0 : d.grossCents, incomeKnown)
+                : new java.util.ArrayList<>();
+        if (!d.fixedFeeCategory.isEmpty() && !d.feeParts.isEmpty()) {
+            de.spahr.ausgaben.util.CategorySplits.Part erste = d.feeParts.get(0);
+            d.feeParts.set(0, new de.spahr.ausgaben.util.CategorySplits.Part(
+                    d.fixedFeeCategory, erste.cents, erste.label));
+        }
     }
 
     /**

@@ -78,12 +78,18 @@ public class SecurityTx {
     @ColumnInfo(name = "money_account")
     public String moneyAccount = "";
 
-    /** Kategorie der Gebühren (Kauf/Verkauf) bzw. der Steuer (Dividende). */
+    /**
+     * Stillgelegt: die Kategorie der Gebühren bzw. der Steuer stand hier, solange es je Bewegung nur
+     * eine geben konnte. Seit v48 führen das die {@link SecurityTxSplit}-Zeilen; die Migration hat
+     * den Bestand dorthin umgezogen und diese Spalte geleert. Sie bleibt allein deshalb stehen, weil
+     * SQLite sie nur mit einem vollständigen Neuaufbau der Tabelle hergäbe — beim nächsten Neuaufbau
+     * fällt sie weg.
+     */
     @NonNull
     @ColumnInfo(name = "fee_category")
     public String feeCategory = "";
 
-    /** Ertragskategorie einer Dividende; der Bruttobetrag hängt in KMyMoney daran. */
+    /** Stillgelegt wie {@link #feeCategory} – die Ertragskategorie einer Dividende. */
     @NonNull
     @ColumnInfo(name = "income_category")
     public String incomeCategory = "";
@@ -91,6 +97,25 @@ public class SecurityTx {
     /** Zugehörige Geldbuchung ({@code Booking.id}); 0 = keine (alle importierten Bewegungen). */
     @ColumnInfo(name = "booking_id")
     public long bookingId;
+
+    /**
+     * Die Kategoriezeilen dieser Bewegung – Ertrag und Steuer/Gebühr, siehe {@link SecurityTxSplit}.
+     * Wie {@code Booking.parts} nicht in dieser Tabelle gespeichert, sondern in ihrer eigenen; das
+     * Repository füllt sie beim Laden und schreibt sie beim Speichern mit.
+     */
+    @Ignore
+    public java.util.List<SecurityTxSplit> parts = new java.util.ArrayList<>();
+
+    /** Die Kategoriezeilen einer der beiden Rollen, in ihrer Reihenfolge. */
+    public java.util.List<SecurityTxSplit> partsOf(boolean income) {
+        java.util.List<SecurityTxSplit> out = new java.util.ArrayList<>();
+        for (SecurityTxSplit p : parts) {
+            if (p.income == income) {
+                out.add(p);
+            }
+        }
+        return out;
+    }
 
     public SecurityTx() {
     }

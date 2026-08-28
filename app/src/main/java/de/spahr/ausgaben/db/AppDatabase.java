@@ -14,8 +14,8 @@ import androidx.sqlite.db.SupportSQLiteDatabase;
         Budget.class, CategoryType.class, ScheduledTransaction.class, ScheduledSplit.class,
         AnalysisExtra.class, SecurityTxValueOverride.class, KmyPendingDelete.class, SecurityPrice.class,
         ScheduledAdvance.class, AccountGroup.class, AccountGroupMember.class, AccountKindOrder.class,
-        Tag.class},
-        version = 47, exportSchema = false)
+        Tag.class, SecurityTxSplit.class},
+        version = 48, exportSchema = false)
 public abstract class AppDatabase extends RoomDatabase {
 
     /** v1 → v2: Notiz-Spalte ergänzen (bestehende Buchungen bleiben erhalten). */
@@ -610,6 +610,44 @@ public abstract class AppDatabase extends RoomDatabase {
         }
     };
 
+    /**
+     * v47 → v48: Kategoriezeilen an der Depotbewegung. Bisher trug jede Bewegung genau eine
+     * Gebühren- und eine Ertragskategorie; Kapitalertragsteuer, Solidaritätszuschlag und Gebühren
+     * mussten deshalb zu einer Zahl addiert und einer von ihnen zugeschlagen werden.
+     *
+     * <p>Der Bestand zieht in die neue Tabelle um, damit es nur eine Quelle gibt: aus jeder
+     * gepflegten Kategorie wird eine Zeile über den vollen Betrag — bei der Dividende ist die Steuer
+     * die Differenz von Brutto und Netto, sonst steht sie in {@code fee_cents}. Danach werden die
+     * beiden alten Spalten geleert; sie bleiben nur deshalb in der Tabelle, weil SQLite sie ohne
+     * einen vollständigen Neuaufbau nicht hergibt, und den ist der Bestand nicht wert.</p>
+     */
+    static final Migration MIGRATION_47_48 = new Migration(47, 48) {
+        @Override
+        public void migrate(@NonNull SupportSQLiteDatabase db) {
+            db.execSQL("CREATE TABLE IF NOT EXISTS security_tx_split ("
+                    + "id INTEGER PRIMARY KEY AUTOINCREMENT NOT NULL, "
+                    + "tx_id INTEGER NOT NULL, "
+                    + "income INTEGER NOT NULL, "
+                    + "category TEXT NOT NULL, "
+                    + "amount_cents INTEGER NOT NULL, "
+                    + "label TEXT NOT NULL, "
+                    + "sort INTEGER NOT NULL)");
+            db.execSQL("CREATE INDEX IF NOT EXISTS index_security_tx_split_tx_id "
+                    + "ON security_tx_split (tx_id)");
+            db.execSQL("INSERT INTO security_tx_split "
+                    + "(tx_id, income, category, amount_cents, label, sort) "
+                    + "SELECT id, 0, fee_category, "
+                    + "CASE WHEN action = 'dividend' THEN amount_cents - net_cents "
+                    + "ELSE fee_cents END, '', 0 "
+                    + "FROM security_tx WHERE fee_category <> ''");
+            db.execSQL("INSERT INTO security_tx_split "
+                    + "(tx_id, income, category, amount_cents, label, sort) "
+                    + "SELECT id, 1, income_category, amount_cents, '', 0 "
+                    + "FROM security_tx WHERE income_category <> ''");
+            db.execSQL("UPDATE security_tx SET fee_category = '', income_category = ''");
+        }
+    };
+
     public abstract BookingDao bookingDao();
 
     public abstract AccountDao accountDao();
@@ -665,7 +703,8 @@ public abstract class AppDatabase extends RoomDatabase {
                                     MIGRATION_35_36, MIGRATION_36_37, MIGRATION_37_38,
                                     MIGRATION_38_39, MIGRATION_39_40, MIGRATION_40_41,
                                     MIGRATION_41_42, MIGRATION_42_43, MIGRATION_43_44,
-                                    MIGRATION_44_45, MIGRATION_45_46, MIGRATION_46_47)
+                                    MIGRATION_44_45, MIGRATION_45_46, MIGRATION_46_47,
+                                    MIGRATION_47_48)
                             .build();
                 }
             }

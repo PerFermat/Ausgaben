@@ -250,10 +250,16 @@ public class KmyImporter {
             if (type == 15 || type == 16) {
                 continue;   // das Wertpapier selbst und Eigenkapital sind kein Gegenkonto
             }
-            if (type == 12) {
-                tx.incomeCategory = orEmpty(doc.categoryPath(s[0]));
-            } else if (type == 13) {
-                tx.feeCategory = orEmpty(doc.categoryPath(s[0]));
+            if (type == 12 || type == 13) {
+                // Je Kategoriesplit eine eigene Zeile: in KMyMoney hängen an einer Dividende oft
+                // mehrere (Kapitalertragsteuer, Solidaritätszuschlag, Kirchensteuer), und sie zu einer
+                // zusammenzuziehen wäre genau der Verlust, den die Aufteilung beheben soll. Eine
+                // Herkunftsbeschriftung gibt es hier nicht – die Datei nennt Konten, keine Belegzeilen.
+                String category = orEmpty(doc.categoryPath(s[0]));
+                if (!category.isEmpty()) {
+                    tx.parts.add(new de.spahr.ausgaben.db.SecurityTxSplit(0, type == 12, category,
+                            Math.abs(valueToCents(s[1])), "", tx.parts.size()));
+                }
             } else if (tx.moneyAccount.isEmpty()) {
                 tx.moneyAccount = orEmpty(doc.accountNameById(s[0])).trim();
             }

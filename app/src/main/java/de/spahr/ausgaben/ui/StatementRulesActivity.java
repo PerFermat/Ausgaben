@@ -107,6 +107,13 @@ public class StatementRulesActivity extends LocalizedActivity {
 
     /** Der Arbeitsstand je Feld; er lebt in den Eingabefeldern und wird erst beim Speichern eingesammelt. */
     private final Map<Field, FieldForm> forms = new EnumMap<>(Field.class);
+    /**
+     * Die Bereiche der einzelnen Steuer- bzw. Gebührenzeilen unter dem Gesamtbetrag — und dasselbe
+     * für den Ertrag. Sie stehen unter ihrem Oberbereich und sind so gebaut wie er; was sie von den
+     * festen Bereichen unterscheidet, ist allein, dass es beliebig viele davon geben darf.
+     */
+    private final List<FieldForm> feePartForms = new ArrayList<>();
+    private final List<FieldForm> incomePartForms = new ArrayList<>();
 
     /**
      * Die Kategorienliste für die feste Gebühr; {@code null}, solange sie noch lädt.
@@ -164,9 +171,8 @@ public class StatementRulesActivity extends LocalizedActivity {
             categoryAdapter = new CategoryFilterAdapter(this, null,
                     getString(R.string.category_group_expense), g.expense,
                     getString(R.string.category_group_income), g.income);
-            FieldForm fee = forms.get(Field.FEE);
-            if (fee != null) {
-                fee.attachCategories(categoryAdapter);
+            for (FieldForm form : alleFormulare()) {
+                form.attachCategories(categoryAdapter);
             }
         });
 
@@ -231,17 +237,74 @@ public class StatementRulesActivity extends LocalizedActivity {
         editTemplate.setText(labelOf(t), false);
         fieldContainer.removeAllViews();
         forms.clear();
+        feePartForms.clear();
+        incomePartForms.clear();
         for (Field field : fieldsFor(t.action)) {
             FieldForm form = new FieldForm(field, t);
             forms.put(field, form);
             fieldContainer.addView(form.view);
+            if (field == Field.FEE) {
+                addPartSection(Field.FEE, t.feeParts, feePartForms);
+            } else if (field == Field.GROSS && DIVIDEND.equals(t.action)) {
+                addPartSection(Field.GROSS, t.incomeParts, incomePartForms);
+            }
         }
         updateAllFound();
     }
 
+    /**
+     * Die Teilbeträge eines Bereichs, gleich unter ihm, und darunter der Knopf für einen weiteren.
+     *
+     * <p>Unter dem Oberbereich und nicht in einem eigenen Abschnitt am Ende: geprüft wird immer im
+     * Zusammenhang — gehen die drei Steuerzeilen zusammen auf die Summe darüber auf?</p>
+     */
+    private void addPartSection(Field field, List<StatementTemplate.PartRule> parts,
+                                List<FieldForm> into) {
+        for (StatementTemplate.PartRule part : parts) {
+            into.add(addPartForm(field, part, into));
+        }
+        View add = LayoutInflater.from(this)
+                .inflate(R.layout.item_statement_add_part, fieldContainer, false);
+        add.setOnClickListener(v -> {
+            FieldForm form = addPartForm(field, null, into);
+            into.add(form);
+            // Vor den Knopf, damit er unten bleibt und der neue Bereich bei den anderen steht.
+            fieldContainer.addView(form.view, fieldContainer.indexOfChild(add));
+            form.updateFound();
+        });
+        fieldContainer.addView(add);
+    }
+
+    private FieldForm addPartForm(Field field, StatementTemplate.PartRule part,
+                                  List<FieldForm> into) {
+        FieldForm form = new FieldForm(field, templates.get(current), part);
+        form.view.findViewById(R.id.btnRemoveField).setOnClickListener(v -> {
+            into.remove(form);
+            fieldContainer.removeView(form.view);
+        });
+        if (part != null) {
+            fieldContainer.addView(form.view);
+        }
+        return form;
+    }
+
+    /** Der Name eines Teilbetrags in der Überschrift; solange keiner feststeht, ein Platzhalter. */
+    private String partName(String label) {
+        return label == null || label.trim().isEmpty()
+                ? getString(R.string.statement_rules_part_new) : label.trim();
+    }
+
+    /** Alle Bereiche der Seite: die festen Felder und die Teilbeträge darunter. */
+    private List<FieldForm> alleFormulare() {
+        List<FieldForm> out = new ArrayList<>(forms.values());
+        out.addAll(feePartForms);
+        out.addAll(incomePartForms);
+        return out;
+    }
+
     /** Nach jedem Wechsel der Vorlage oder der Testabrechnung: alle Bereiche neu ausrechnen. */
     private void updateAllFound() {
-        for (FieldForm form : forms.values()) {
+        for (FieldForm form : alleFormulare()) {
             form.updateFound();
         }
     }
@@ -265,12 +328,54 @@ public class StatementRulesActivity extends LocalizedActivity {
         /** Was die Regel dieses Bereichs in der Testabrechnung liest. */
         private final TextView found;
         private final List<String> anchors = new ArrayList<>();
+        /**
+         * Die Überschrift; sie ist bei einem Teilbetrag zugleich sein Name.
+         *
+         * <p>Und der ist die erste Beschriftung — dieselbe, unter der der Betrag in der Abrechnung
+         * steht. Ein eigenes Namensfeld gäbe es nur her, dass Name und Beschriftung auseinanderlaufen,
+         * und der Name ist genau der Schlüssel, über den die gebuchte Kategorie ihren Betrag
+         * wiederfindet.</p>
+         */
+        private final TextView heading;
+        /** {@code true}, wenn dieser Bereich einen Teilbetrag beschreibt und keinen der festen Werte. */
+        private final boolean isPart;
+        /** Wohin dieser Betrag gebucht wird — nur bei Steuer/Gebühr und Ertrag. */
+        private final PickerTextView fieldCategory;
+        private final View fieldCategoryLayout;
 
         FieldForm(Field field, StatementTemplate template) {
+            this(field, template, null, false);
+        }
+
+        FieldForm(Field field, StatementTemplate template, StatementTemplate.PartRule part) {
+            this(field, template, part, true);
+        }
+
+        private FieldForm(Field field, StatementTemplate template, StatementTemplate.PartRule part,
+                          boolean isPart) {
             this.field = field;
+            this.isPart = isPart;
             LayoutInflater inflater = LayoutInflater.from(StatementRulesActivity.this);
             view = inflater.inflate(R.layout.item_statement_field, fieldContainer, false);
-            ((TextView) view.findViewById(R.id.textFieldName)).setText(nameOf(field, template.action));
+            heading = view.findViewById(R.id.textFieldName);
+            heading.setText(isPart
+                    ? partName(part == null ? "" : part.label)
+                    : nameOf(field, template.action));
+            view.findViewById(R.id.btnRemoveField)
+                    .setVisibility(isPart ? View.VISIBLE : View.GONE);
+            fieldCategory = view.findViewById(R.id.editFieldCategory);
+            fieldCategoryLayout = view.findViewById(R.id.fieldCategoryLayout);
+            // Eine Kategorie hat nur, was auch gebucht wird: die Steuer bzw. Gebühr und – bei einer
+            // Dividende – der Ertrag. Anzahl, Kurs, Datum und Gesamtbetrag haben keine.
+            boolean mitKategorie = field == Field.FEE
+                    || (field == Field.GROSS && DIVIDEND.equals(template.action));
+            fieldCategoryLayout.setVisibility(mitKategorie ? View.VISIBLE : View.GONE);
+            if (mitKategorie) {
+                fieldCategory.setText(isPart
+                        ? (part == null ? "" : part.category)
+                        : (field == Field.FEE ? template.feeCategory : template.incomeCategory),
+                        false);
+            }
             container = view.findViewById(R.id.anchorContainer);
             direction = view.findViewById(R.id.editDirection);
             position = view.findViewById(R.id.editPosition);
@@ -281,11 +386,13 @@ public class StatementRulesActivity extends LocalizedActivity {
             fixedFeeInTotal = view.findViewById(R.id.switchFixedFeeInTotal);
             found = view.findViewById(R.id.textFieldFound);
             // Der feste Betrag gehört zur Gebühr, die Frage nach dem Gesamtbetrag zu diesem – jede an
-            // ihren Platz, statt beide in einen Kasten für sich.
+            // ihren Platz, statt beide in einen Kasten für sich. Ein Teilbetrag hat mit beidem nichts
+            // zu tun: die feste Gebühr steht ja gerade nicht in der Abrechnung.
             view.findViewById(R.id.fixedFeeBox)
-                    .setVisibility(field == Field.FEE ? View.VISIBLE : View.GONE);
-            fixedFeeInTotal.setVisibility(field == Field.NET ? View.VISIBLE : View.GONE);
-            if (field == Field.FEE) {
+                    .setVisibility(field == Field.FEE && !isPart ? View.VISIBLE : View.GONE);
+            fixedFeeInTotal.setVisibility(field == Field.NET && !isPart ? View.VISIBLE : View.GONE);
+            attachCategories(categoryAdapter);
+            if (field == Field.FEE && !isPart) {
                 wireCalcField(fixedFee);
                 if (template.fixedFeeCents > 0) {
                     fixedFee.setText(MoneyFormat.plain(template.fixedFeeCents));
@@ -296,7 +403,7 @@ public class StatementRulesActivity extends LocalizedActivity {
                 fixedFee.addTextChangedListener(new SimpleWatcher(
                         StatementRulesActivity.this::updateFixedFeeSwitch));
             }
-            if (field == Field.NET) {
+            if (field == Field.NET && !isPart) {
                 fixedFeeInTotal.setChecked(template.fixedFeeInTotal);
                 // Ohne festen Betrag hat die Frage keinen Gegenstand.
                 dim(fixedFeeInTotal, template.fixedFeeCents > 0);
@@ -304,7 +411,7 @@ public class StatementRulesActivity extends LocalizedActivity {
 
             PickerAdapters.plain(direction, richtungen());
 
-            AnchorRule rule = template.rule(field);
+            AnchorRule rule = isPart ? (part == null ? null : part.rule) : template.rule(field);
             if (rule != null) {
                 anchors.addAll(rule.anchors);
                 direction.setText(richtung(rule.direction, rule.lineDistance), false);
@@ -314,6 +421,11 @@ public class StatementRulesActivity extends LocalizedActivity {
             } else {
                 direction.setText(getString(R.string.statement_rules_same_line), false);
                 position.setText(stelle(AnchorRule.Position.LAST, 1), false);
+            }
+            if (isPart && anchors.isEmpty()) {
+                // Ein frischer Teilbetrag beginnt mit einer leeren Zeile: sie ist der Griff, mit dem
+                // sich die Werteliste der Testabrechnung öffnen lässt.
+                anchors.add("");
             }
             updateStellen();
             view.findViewById(R.id.btnAddAnchor).setOnClickListener(v -> {
@@ -399,6 +511,29 @@ public class StatementRulesActivity extends LocalizedActivity {
             readBack();
             List<String> kept = keptAnchors();
             return kept.isEmpty() ? null : ruleFor(kept, sum.isChecked());
+        }
+
+        /**
+         * Die Überschrift eines Teilbetrags folgt seiner ersten Beschriftung — sie ist sein Name.
+         * Die festen Bereiche behalten ihren.
+         */
+        private void updateHeading() {
+            if (isPart) {
+                heading.setText(partName(partLabel()));
+            }
+        }
+
+        /** Der Name dieses Teilbetrags: die erste eingetragene Beschriftung. */
+        String partLabel() {
+            List<String> kept = keptAnchors();
+            return kept.isEmpty() ? "" : kept.get(0);
+        }
+
+        /** Die Teilbetragsregel, wie sie jetzt dasteht; {@code null}, wenn noch nichts eingetragen ist. */
+        StatementTemplate.PartRule toPartRule() {
+            AnchorRule rule = toRule();
+            return rule == null ? null
+                    : new StatementTemplate.PartRule(partLabel(), rule, category());
         }
 
         /** Die eingetragenen Beschriftungen ohne die leeren Zeilen. */
@@ -499,10 +634,13 @@ public class StatementRulesActivity extends LocalizedActivity {
         void updateFound() {
             if (testText == null) {
                 found.setVisibility(View.GONE);
+                readBack();
+                updateHeading();
                 return;
             }
             found.setVisibility(View.VISIBLE);
             readBack();
+            updateHeading();
             List<String> kept = keptAnchors();
             AnchorRule rule = kept.isEmpty() ? null : ruleFor(kept, sum.isChecked());
             String value = rule == null ? null : valueOf(field, rule, testText);
@@ -605,13 +743,27 @@ public class StatementRulesActivity extends LocalizedActivity {
 
         /** Die Kategorienliste nachreichen – sie trifft später ein als das Formular. */
         void attachCategories(CategoryFilterAdapter adapter) {
-            if (adapter != null && field == Field.FEE) {
-                String stand = fixedFeeCategory.getText() == null
-                        ? "" : fixedFeeCategory.getText().toString();
-                PickerAdapters.categories(fixedFeeCategory, adapter);
-                // Das Anhängen des Adapters leert das Feld – der Stand von vorhin gehört zurück.
-                fixedFeeCategory.setText(stand, false);
+            if (adapter == null) {
+                return;
             }
+            if (field == Field.FEE && !isPart) {
+                anhaengen(fixedFeeCategory, adapter);
+            }
+            if (fieldCategoryLayout.getVisibility() == View.VISIBLE) {
+                anhaengen(fieldCategory, adapter);
+            }
+        }
+
+        /** Das Anhängen des Adapters leert das Feld – der Stand von vorhin gehört zurück. */
+        private void anhaengen(PickerTextView field, CategoryFilterAdapter adapter) {
+            String stand = field.getText() == null ? "" : field.getText().toString();
+            PickerAdapters.categories(field, adapter);
+            field.setText(stand, false);
+        }
+
+        /** Die eingetragene Kategorie dieses Bereichs. */
+        String category() {
+            return fieldCategory.getText() == null ? "" : fieldCategory.getText().toString().trim();
         }
 
         /** Der feste Betrag in Cent; 0, wenn keiner eingetragen ist. */
@@ -783,16 +935,35 @@ public class StatementRulesActivity extends LocalizedActivity {
         long fixedFee = 0;
         String fixedCategory = "";
         boolean inTotal = false;
+        String feeCategory = "";
+        String incomeCategory = "";
         for (FieldForm form : forms.values()) {
             if (form.field() == Field.FEE) {
                 fixedFee = form.fixedFeeCents();
                 fixedCategory = form.fixedFeeCategory();
+                feeCategory = form.category();
             } else if (form.field() == Field.NET) {
                 inTotal = form.fixedFeeInTotal();
+            } else if (form.field() == Field.GROSS) {
+                incomeCategory = form.category();
             }
         }
         return new StatementTemplate(templates.get(current).action, rules,
-                fixedFee, fixedCategory, inTotal);
+                fixedFee, fixedCategory, inTotal,
+                partRules(feePartForms), partRules(incomePartForms),
+                feeCategory, incomeCategory);
+    }
+
+    /** Die Teilbetragsregeln eines Abschnitts; unfertige Bereiche fallen dabei weg. */
+    private List<StatementTemplate.PartRule> partRules(List<FieldForm> forms) {
+        List<StatementTemplate.PartRule> out = new ArrayList<>();
+        for (FieldForm form : forms) {
+            StatementTemplate.PartRule part = form.toPartRule();
+            if (part != null && !part.label.isEmpty()) {
+                out.add(part);
+            }
+        }
+        return out;
     }
 
     private void save() {

@@ -692,13 +692,16 @@
     <string name="security_tx_price_dividend">Dividend per share</string>
     <string name="security_tx_gross">Gross</string>
     <string name="security_tx_fee">Fees</string>
+    <string name="security_tx_fee_sell">Fees/taxes</string>
     <string name="security_tx_tax">Tax</string>
     <string name="security_tx_total">Total</string>
+    <string name="security_tx_total_sell">Credit</string>
     <string name="security_tx_net">Net</string>
     <string name="security_tx_account">Counter account</string>
-    <string name="security_tx_fee_category">Fee category</string>
-    <string name="security_tx_tax_category">Tax category</string>
-    <string name="security_tx_income_category">Income category</string>
+    <string name="security_tx_fee_category">Fee categories</string>
+    <string name="security_tx_fee_category_sell">Tax and fee categories</string>
+    <string name="security_tx_tax_category">Tax categories</string>
+    <string name="security_tx_income_category">Income categories</string>
     <string name="security_tx_save">Save movement</string>
     <string name="security_tx_delete">Delete movement</string>
     <string name="security_tx_delete_title">Delete movement?</string>
@@ -765,6 +768,9 @@
     <string name="statement_rules_template">Template</string>
     <string name="statement_rules_anchor">Label in the statement</string>
     <string name="statement_rules_add_anchor">Add fallback label</string>
+    <string name="statement_rules_add_part">Add part amount</string>
+    <string name="statement_rules_category">Category</string>
+    <string name="statement_rules_part_new">New part amount</string>
     <string name="statement_rules_up">Move up</string>
     <string name="statement_rules_down">Move down</string>
     <string name="statement_rules_remove">Remove label</string>
@@ -807,6 +813,7 @@
     <string name="statement_check_wrong">%1$s: expected %2$s, read %3$s</string>
     <string name="statement_check_missing">%1$s: expected %2$s, nothing found</string>
     <string name="statement_check_norule">%1$s: expected %2$s, no rule was derived for it</string>
+    <string name="statement_check_parts">%1$s: the parts add up to %3$s instead of %2$s</string>
     <string name="statement_check_hint">You can set this by hand on the rules page — the statement is already attached there as a test.</string>
     <string name="statement_check_rules">Detection rules</string>
     <string name="statement_rules_position">Which number on the line</string>

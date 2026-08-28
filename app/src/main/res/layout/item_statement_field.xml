@@ -9,15 +9,41 @@
 
     <!-- Gross und mittig: die Seite reiht sechs gleich gebaute Bereiche untereinander, und ohne eine
          Ueberschrift, die sich vom Formular abhebt, verschwimmen sie ineinander. -->
-    <TextView
-        android:id="@+id/textFieldName"
+    <FrameLayout
         android:layout_width="match_parent"
         android:layout_height="wrap_content"
-        android:layout_marginBottom="8dp"
-        android:gravity="center_horizontal"
-        android:textColor="@color/green_primary"
-        android:textSize="20sp"
-        android:textStyle="bold" />
+        android:layout_marginBottom="8dp">
+
+        <TextView
+            android:id="@+id/textFieldName"
+            android:layout_width="match_parent"
+            android:layout_height="wrap_content"
+            android:gravity="center_horizontal"
+            android:textColor="@color/green_primary"
+            android:textSize="20sp"
+            android:textStyle="bold" />
+
+        <!-- Nur bei einem Teilbetrag: der laesst sich wieder wegnehmen. Die festen Bereiche gehoeren
+             zur Vorlage und haben deshalb keinen Loeschknopf. -->
+        <com.google.android.material.button.MaterialButton
+            android:id="@+id/btnRemoveField"
+            style="?attr/materialButtonOutlinedStyle"
+            android:layout_width="40dp"
+            android:layout_height="40dp"
+            android:layout_gravity="end|center_vertical"
+            android:insetTop="0dp"
+            android:insetBottom="0dp"
+            android:minWidth="0dp"
+            android:minHeight="0dp"
+            android:paddingHorizontal="0dp"
+            android:paddingVertical="0dp"
+            android:text="@string/split_remove"
+            android:textColor="@color/expense_red"
+            android:textSize="16sp"
+            android:visibility="gone"
+            app:cornerRadius="20dp"
+            app:strokeColor="@color/expense_red" />
+    </FrameLayout>
 
     <!-- Was die Regel dieses Bereichs in der Testabrechnung liest - direkt unter der Ueberschrift,
          damit man beim Tippen einer Beschriftung sofort sieht, ob sie greift. -->
@@ -106,6 +132,25 @@
             android:layout_width="match_parent"
             android:layout_height="wrap_content"
             android:inputType="none" />
+    </com.google.android.material.textfield.TextInputLayout>
+
+    <!-- Nur bei Steuer/Gebuehr und Ertrag: wohin dieser Betrag gebucht wird. Sie gehoert zur Bank und
+         setzt sich gegen die aus der letzten Buchung erschlossene durch. -->
+    <com.google.android.material.textfield.TextInputLayout
+        android:id="@+id/fieldCategoryLayout"
+        style="@style/Widget.Material3.TextInputLayout.OutlinedBox.ExposedDropdownMenu"
+        android:layout_width="match_parent"
+        android:layout_height="wrap_content"
+        android:layout_marginTop="8dp"
+        android:hint="@string/statement_rules_category"
+        android:visibility="gone">
+
+        <de.spahr.ausgaben.ui.PickerTextView
+            android:id="@+id/editFieldCategory"
+            android:layout_width="match_parent"
+            android:layout_height="wrap_content"
+            android:completionThreshold="1"
+            android:inputType="text" />
     </com.google.android.material.textfield.TextInputLayout>
 
     <com.google.android.material.materialswitch.MaterialSwitch

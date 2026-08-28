@@ -181,30 +181,58 @@ public interface SecurityDao {
      * Die zuletzt an diesem Wertpapier verwendeten Gebühren-/Steuerkategorien, neueste zuerst – sie
      * stehen in der Auswahlliste als Vorspann ganz oben, wie die Kategorien eines Empfängers.
      */
-    @Query("SELECT fee_category FROM security_tx WHERE depot = :depot AND security_kmy_id = :kmyId "
-            + "AND fee_category <> '' GROUP BY fee_category ORDER BY MAX(date) DESC LIMIT 5")
+    @Query("SELECT s.category FROM security_tx_split s JOIN security_tx t ON s.tx_id = t.id "
+            + "WHERE t.depot = :depot AND t.security_kmy_id = :kmyId AND s.income = 0 "
+            + "AND s.category <> '' GROUP BY s.category ORDER BY MAX(t.date) DESC LIMIT 5")
     List<String> getUsedFeeCategories(String depot, String kmyId);
 
     /** Wie oben für die Ertragskategorien der Dividenden. */
-    @Query("SELECT income_category FROM security_tx WHERE depot = :depot AND security_kmy_id = :kmyId "
-            + "AND income_category <> '' GROUP BY income_category ORDER BY MAX(date) DESC LIMIT 5")
+    @Query("SELECT s.category FROM security_tx_split s JOIN security_tx t ON s.tx_id = t.id "
+            + "WHERE t.depot = :depot AND t.security_kmy_id = :kmyId AND s.income = 1 "
+            + "AND s.category <> '' GROUP BY s.category ORDER BY MAX(t.date) DESC LIMIT 5")
     List<String> getUsedIncomeCategories(String depot, String kmyId);
 
     /**
      * Jüngste Bewegung derselben Art an einem <b>beliebigen</b> Wertpapier des Depots — der Rückfall,
      * wenn es diese Art an diesem Wertpapier noch nie gab. Eine Dividende wird über dieselbe
      * Ertragskategorie gebucht, gleich welches Papier sie ausgeschüttet hat.
+     *
+     * <p>Verlangt wird, dass die Bewegung überhaupt etwas zu vererben hat: ein Gegenkonto oder
+     * wenigstens eine Kategoriezeile. Sonst gewänne eine importierte Bewegung ohne beides das Rennen
+     * und die Maske bliebe leer, obwohl weiter hinten eine brauchbare Vorlage steht.</p>
      */
     @Query("SELECT * FROM security_tx WHERE depot = :depot AND action = :action "
-            + "AND (money_account <> '' OR fee_category <> '' OR income_category <> '') "
+            + "AND (money_account <> '' "
+            + "OR EXISTS (SELECT 1 FROM security_tx_split s WHERE s.tx_id = security_tx.id)) "
             + "ORDER BY date DESC, id DESC LIMIT 1")
     SecurityTx getLastByActionInDepot(String depot, String action);
 
     /** Wie oben, aber über alle Depots — letzter Rückfall bei einem frisch angelegten Depot. */
     @Query("SELECT * FROM security_tx WHERE action = :action "
-            + "AND (money_account <> '' OR fee_category <> '' OR income_category <> '') "
+            + "AND (money_account <> '' "
+            + "OR EXISTS (SELECT 1 FROM security_tx_split s WHERE s.tx_id = security_tx.id)) "
             + "ORDER BY date DESC, id DESC LIMIT 1")
     SecurityTx getLastByActionAnywhere(String action);
+
+    /** Die Kategoriezeilen einer Bewegung, in ihrer Reihenfolge. */
+    @Query("SELECT * FROM security_tx_split WHERE tx_id = :txId ORDER BY income ASC, sort ASC, id ASC")
+    List<SecurityTxSplit> getSplits(long txId);
+
+    /** Die Kategoriezeilen mehrerer Bewegungen auf einmal – für Listen und den Export. */
+    @Query("SELECT * FROM security_tx_split WHERE tx_id IN (:txIds) "
+            + "ORDER BY tx_id ASC, income ASC, sort ASC, id ASC")
+    List<SecurityTxSplit> getSplitsFor(List<Long> txIds);
+
+    @Insert
+    void insertSplit(SecurityTxSplit split);
+
+    @Query("DELETE FROM security_tx_split WHERE tx_id = :txId")
+    void deleteSplits(long txId);
+
+    /** Vor dem Neuaufbau eines Depots: die Kategoriezeilen seiner Bewegungen mit weglöschen. */
+    @Query("DELETE FROM security_tx_split WHERE tx_id IN "
+            + "(SELECT id FROM security_tx WHERE depot = :depot)")
+    void deleteSplitsOf(String depot);
 
     /** Setzt/überschreibt den manuellen Wert einer Ein-/Ausbuchung (übersteht einen Depot-Reimport). */
     @Insert(onConflict = OnConflictStrategy.REPLACE)

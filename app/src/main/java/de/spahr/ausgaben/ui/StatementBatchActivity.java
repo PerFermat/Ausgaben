@@ -27,6 +27,7 @@ import de.spahr.ausgaben.db.Repository;
 import de.spahr.ausgaben.db.SecurityTx;
 import de.spahr.ausgaben.settings.Currencies;
 import de.spahr.ausgaben.settings.MoneyFormat;
+import de.spahr.ausgaben.statement.StatementTemplate;
 
 /**
  * Die Durchsicht nach dem Einlesen mehrerer Abrechnungen: was die App aus jeder Datei herausgelesen hat,
@@ -199,15 +200,31 @@ public class StatementBatchActivity extends LocalizedActivity {
             append(b, getString(R.string.security_tx_gross) + " " + MoneyFormat.plain(d.grossCents));
         }
         if (d.feeCents != null && d.feeCents != 0) {
-            append(b, getString(d.isDividend() ? R.string.security_tx_tax : R.string.security_tx_fee)
+            append(b, StatementFieldNames.of(this, StatementTemplate.Field.FEE, d.action)
                     + " " + MoneyFormat.plain(d.feeCents));
         }
         if (!d.moneyAccount.trim().isEmpty()) {
             append(b, d.moneyAccount.trim());
         }
-        String category = d.isDividend() ? d.incomeCategory : d.feeCategory;
-        if (!category.trim().isEmpty()) {
-            append(b, category.trim());
+        // Die Kategorien der Zeile, durch Komma getrennt: bei einer Dividende die des Ertrags, sonst
+        // die der Gebühr. Mehrere sind der Regelfall, seit sich Steuern aufteilen lassen.
+        String category = categories(d.isDividend() ? d.incomeParts : d.feeParts);
+        if (!category.isEmpty()) {
+            append(b, category);
+        }
+        return b.toString();
+    }
+
+    private static String categories(java.util.List<de.spahr.ausgaben.util.CategorySplits.Part> parts) {
+        StringBuilder b = new StringBuilder();
+        for (de.spahr.ausgaben.util.CategorySplits.Part part : parts) {
+            if (part.category.trim().isEmpty()) {
+                continue;
+            }
+            if (b.length() > 0) {
+                b.append(", ");
+            }
+            b.append(part.category.trim());
         }
         return b.toString();
     }
@@ -263,11 +280,26 @@ public class StatementBatchActivity extends LocalizedActivity {
         repository.getSecurityTxDefaults(d.depot, d.kmyId, d.action, last -> {
             if (last != null) {
                 d.moneyAccount = last.moneyAccount;
-                d.feeCategory = last.feeCategory;
-                d.incomeCategory = last.incomeCategory;
+                // Nur füllen, was noch leer ist: was in der Liste steht, hat der Nutzer berichtigt.
+                if (d.feeParts.isEmpty()) {
+                    d.feeParts = knownOf(last, false);
+                }
+                if (d.incomeParts.isEmpty()) {
+                    d.incomeParts = knownOf(last, true);
+                }
             }
             openEditor(index);
         });
+    }
+
+    /** Die Kategoriezeilen einer Rolle aus der letzten Bewegung — Kategorie und Beschriftung, ohne Betrag. */
+    private static java.util.List<de.spahr.ausgaben.util.CategorySplits.Part> knownOf(
+            de.spahr.ausgaben.db.SecurityTx last, boolean income) {
+        java.util.List<de.spahr.ausgaben.util.CategorySplits.Part> out = new java.util.ArrayList<>();
+        for (de.spahr.ausgaben.db.SecurityTxSplit part : last.partsOf(income)) {
+            out.add(new de.spahr.ausgaben.util.CategorySplits.Part(part.category, 0, part.label));
+        }
+        return out;
     }
 
     private void openEditor(int index) {
@@ -302,8 +334,9 @@ public class StatementBatchActivity extends LocalizedActivity {
             i.putExtra(SecurityTxEditActivity.EXTRA_PREFILL_GROSS, (long) d.grossCents);
         }
         i.putExtra(SecurityTxEditActivity.EXTRA_PREFILL_ACCOUNT, d.moneyAccount);
-        i.putExtra(SecurityTxEditActivity.EXTRA_PREFILL_FEE_CATEGORY, d.feeCategory);
-        i.putExtra(SecurityTxEditActivity.EXTRA_PREFILL_INCOME_CATEGORY, d.incomeCategory);
+        SecurityTxEditActivity.putParts(i, SecurityTxEditActivity.EXTRA_PREFILL_FEE_PARTS, d.feeParts);
+        SecurityTxEditActivity.putParts(i, SecurityTxEditActivity.EXTRA_PREFILL_INCOME_PARTS,
+                d.incomeParts);
         if (d.stagedPath != null) {
             i.putExtra(SecurityTxEditActivity.EXTRA_STATEMENT_FILE, d.stagedPath);
         }
@@ -331,9 +364,10 @@ public class StatementBatchActivity extends LocalizedActivity {
         d.feeCents = optLong(data, SecurityTxEditActivity.EXTRA_PREFILL_FEE);
         d.netCents = optLong(data, SecurityTxEditActivity.EXTRA_PREFILL_NET);
         d.moneyAccount = orEmpty(data.getStringExtra(SecurityTxEditActivity.EXTRA_PREFILL_ACCOUNT));
-        d.feeCategory = orEmpty(data.getStringExtra(SecurityTxEditActivity.EXTRA_PREFILL_FEE_CATEGORY));
-        d.incomeCategory = orEmpty(
-                data.getStringExtra(SecurityTxEditActivity.EXTRA_PREFILL_INCOME_CATEGORY));
+        d.feeParts = SecurityTxEditActivity.readParts(
+                data, SecurityTxEditActivity.EXTRA_PREFILL_FEE_PARTS);
+        d.incomeParts = SecurityTxEditActivity.readParts(
+                data, SecurityTxEditActivity.EXTRA_PREFILL_INCOME_PARTS);
         d.conflict = data.getBooleanExtra(SecurityTxEditActivity.EXTRA_CONFLICT, false);
         d.dupBooked = data.getBooleanExtra(SecurityTxEditActivity.EXTRA_DUP_BOOKED, d.dupBooked);
         // Die Maske hat schon gerechnet; hier wird nur ergänzt, was sie offen gelassen hat.

@@ -231,47 +231,57 @@
                         android:inputType="textCapWords" />
                 </com.google.android.material.textfield.TextInputLayout>
 
-                <!-- Nur bei einer Dividende: der Bruttobetrag hängt in KMyMoney an einer Ertragskategorie. -->
-                <com.google.android.material.textfield.TextInputLayout
-                    android:id="@+id/incomeCategoryLayout"
+                <!-- Nur bei einer Dividende: der Bruttobetrag hängt in KMyMoney an Ertragskategorien.
+                     Mehrere sind erlaubt, wie bei einer Splitbuchung; die Zeilen kommen aus
+                     item_split_row.xml und werden vom SplitRowController verwaltet. -->
+                <LinearLayout
+                    android:id="@+id/incomeSplitBox"
                     android:layout_width="match_parent"
                     android:layout_height="wrap_content"
                     android:layout_marginTop="12dp"
-                    android:visibility="gone"
-                    android:hint="@string/security_tx_income_category">
+                    android:orientation="vertical"
+                    android:visibility="gone">
 
-                    <de.spahr.ausgaben.ui.PickerTextView
-                        android:id="@+id/editIncomeCategory"
+                    <TextView
+                        android:id="@+id/incomeSplitHeading"
                         android:layout_width="match_parent"
                         android:layout_height="wrap_content"
-                        android:minHeight="64dp"
-                        android:paddingVertical="14dp"
-                        android:paddingStart="16dp"
-                        android:paddingEnd="16dp"
-                        android:textSize="18sp"
-                        android:completionThreshold="1"
-                        android:inputType="textCapWords" />
-                </com.google.android.material.textfield.TextInputLayout>
+                        android:text="@string/security_tx_income_category"
+                        android:textColor="@color/green_primary"
+                        android:textSize="15sp"
+                        android:textStyle="bold" />
 
-                <com.google.android.material.textfield.TextInputLayout
-                    android:id="@+id/feeCategoryLayout"
+                    <LinearLayout
+                        android:id="@+id/incomeSplitContainer"
+                        android:layout_width="match_parent"
+                        android:layout_height="wrap_content"
+                        android:orientation="vertical" />
+                </LinearLayout>
+
+                <!-- Steuern und Gebühren, ebenso aufteilbar: Kapitalertragsteuer, Solidaritäts-
+                     zuschlag und Kirchensteuer sind drei Kategorien, nicht eine. -->
+                <LinearLayout
+                    android:id="@+id/feeSplitBox"
                     android:layout_width="match_parent"
                     android:layout_height="wrap_content"
                     android:layout_marginTop="12dp"
-                    android:hint="@string/security_tx_fee_category">
+                    android:orientation="vertical">
 
-                    <de.spahr.ausgaben.ui.PickerTextView
-                        android:id="@+id/editFeeCategory"
+                    <TextView
+                        android:id="@+id/feeSplitHeading"
                         android:layout_width="match_parent"
                         android:layout_height="wrap_content"
-                        android:minHeight="64dp"
-                        android:paddingVertical="14dp"
-                        android:paddingStart="16dp"
-                        android:paddingEnd="16dp"
-                        android:textSize="18sp"
-                        android:completionThreshold="1"
-                        android:inputType="textCapWords" />
-                </com.google.android.material.textfield.TextInputLayout>
+                        android:text="@string/security_tx_fee_category"
+                        android:textColor="@color/green_primary"
+                        android:textSize="15sp"
+                        android:textStyle="bold" />
+
+                    <LinearLayout
+                        android:id="@+id/feeSplitContainer"
+                        android:layout_width="match_parent"
+                        android:layout_height="wrap_content"
+                        android:orientation="vertical" />
+                </LinearLayout>
 
                 <!-- Nur wenn eine Abrechnung angehängt ist: sie beim Eintippen nebenher ansehen. -->
                 <com.google.android.material.button.MaterialButton

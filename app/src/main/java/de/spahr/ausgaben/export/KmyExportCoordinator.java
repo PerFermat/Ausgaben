@@ -76,6 +76,10 @@ public class KmyExportCoordinator {
             // In der App erfasste Depot-Bewegungen: sie werden als eigene Transaktion geschrieben; ihre
             // Geldbuchung hängt daran und ist deshalb aus getUnexported() ausgenommen.
             List<de.spahr.ausgaben.db.SecurityTx> securityTx = repository.securityDao().getPendingTx();
+            // Die Kategoriezeilen kommen mit: aus ihnen entstehen die Splits der Transaktion.
+            for (de.spahr.ausgaben.db.SecurityTx tx : securityTx) {
+                tx.parts = repository.securityDao().getSplits(tx.id);
+            }
             if (bookings.isEmpty() && edited.isEmpty() && pendingDeletes.isEmpty()
                     && advances.isEmpty() && securityTx.isEmpty()) {
                 complete(listener, r.getString(de.spahr.ausgaben.R.string.export_none), false);

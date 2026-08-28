@@ -711,44 +711,66 @@ public class KmyExporter {
         long fee = dividend ? gross - tx.netCents : tx.feeCents;
         long money = dividend ? tx.netCents : (sell ? gross - fee : -(gross + fee));
 
-        String feeCatId = null;
-        if (fee != 0) {
-            feeCatId = tx.feeCategory.trim().isEmpty() ? null : doc.categoryId(tx.feeCategory.trim());
-            if (feeCatId == null) {
-                result.skipped.add(label + ": " + ctx.getString(
-                        de.spahr.ausgaben.R.string.skip_category_not_found, tx.feeCategory));
-                return null;
-            }
-        }
-        String incomeCatId = null;
-        if (dividend) {
-            incomeCatId = tx.incomeCategory.trim().isEmpty()
-                    ? null : doc.categoryId(tx.incomeCategory.trim());
-            if (incomeCatId == null) {
-                result.skipped.add(label + ": " + ctx.getString(
-                        de.spahr.ausgaben.R.string.skip_category_not_found, tx.incomeCategory));
-                return null;
-            }
-        }
-
         List<String> splits = new ArrayList<>();
         splits.add(split("S0001", moneyId, "", fraction(money), "", ""));
+        int[] index = {2};
         if (dividend) {
-            splits.add(securitySplit("S0002", stockId, "0/100", "0/1", "1/1", "Dividend"));
-            splits.add(split("S0003", incomeCatId, "", fraction(-gross), "", ""));
-            if (fee != 0) {
-                splits.add(split("S0004", feeCatId, "", fraction(fee), "", ""));
+            splits.add(securitySplit(splitId(index), stockId, "0/100", "0/1", "1/1", "Dividend"));
+            // Der Ertrag steht in KMyMoney mit umgekehrtem Vorzeichen: er kommt von der Kategorie
+            // und geht aufs Konto.
+            if (!addCategorySplits(splits, index, tx.partsOf(true), -1, gross, label, result)) {
+                return null;
             }
-            return splits;
+            return addCategorySplits(splits, index, tx.partsOf(false), 1, fee, label, result)
+                    ? splits : null;
         }
         long stockValue = sell ? -gross : gross;
         String sharesFraction = decimalFraction(tx.shares, SHARE_SCALE);
-        splits.add(securitySplit("S0002", stockId, fraction(stockValue), sharesFraction,
+        splits.add(securitySplit(splitId(index), stockId, fraction(stockValue), sharesFraction,
                 priceFraction(gross, tx.shares), sell ? "Sell" : "Buy"));
-        if (fee != 0) {
-            splits.add(split("S0003", feeCatId, "", fraction(fee), "", ""));
+        return addCategorySplits(splits, index, tx.partsOf(false), 1, fee, label, result)
+                ? splits : null;
+    }
+
+    /**
+     * Je Kategoriezeile der Bewegung ein eigener Split — so, wie KMyMoney es führt.
+     *
+     * <p>Ein Betrag ohne Kategoriezeilen lässt die ganze Bewegung aus: ihm fehlt die Gegenseite, und
+     * eine Transaktion, die sich nicht auf null summiert, nimmt KMyMoney nicht an. Gibt es Zeilen,
+     * deren Summe den Betrag nicht trifft, wird die letzte auf ihn gezogen — ein verlorener Cent aus
+     * einer Rundung darf die Übergabe nicht scheitern lassen.</p>
+     *
+     * @return {@code false}, wenn eine Kategorie fehlt (dann wird die Bewegung ausgelassen)
+     */
+    private boolean addCategorySplits(List<String> splits, int[] index,
+                                      List<de.spahr.ausgaben.db.SecurityTxSplit> parts, int sign,
+                                      long total, String label, SecurityResult result) {
+        if (total == 0) {
+            return true;
         }
-        return splits;
+        if (parts.isEmpty()) {
+            result.skipped.add(label + ": " + ctx.getString(
+                    de.spahr.ausgaben.R.string.skip_category_not_found, ""));
+            return false;
+        }
+        long rest = total;
+        for (int i = 0; i < parts.size(); i++) {
+            String category = parts.get(i).category.trim();
+            String categoryId = category.isEmpty() ? null : doc.categoryId(category);
+            if (categoryId == null) {
+                result.skipped.add(label + ": " + ctx.getString(
+                        de.spahr.ausgaben.R.string.skip_category_not_found, category));
+                return false;
+            }
+            long value = i == parts.size() - 1 ? rest : Math.abs(parts.get(i).amountCents);
+            rest -= value;
+            splits.add(split(splitId(index), categoryId, "", fraction(sign * value), "", ""));
+        }
+        return true;
+    }
+
+    private static String splitId(int[] index) {
+        return String.format(Locale.US, "S%04d", index[0]++);
     }
 
     /** Konto-Id des Wertpapiers (Typ 15) unterhalb des Depots; {@code null}, wenn es dort keines gibt. */

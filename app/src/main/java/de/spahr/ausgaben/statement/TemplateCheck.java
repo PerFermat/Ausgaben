@@ -50,6 +50,11 @@ public final class TemplateCheck {
          */
         public final Set<StatementTemplate.Field> typed =
                 EnumSet.noneOf(StatementTemplate.Field.class);
+
+        /** Die Teilbeträge, in die der Nutzer die Gebühr bzw. Steuer aufgeteilt hat. */
+        public final List<Long> feeParts = new ArrayList<>();
+        /** Dasselbe für die Aufteilung des Ertrags. */
+        public final List<Long> incomeParts = new ArrayList<>();
     }
 
     /** Woran es liegt. */
@@ -59,7 +64,9 @@ public final class TemplateCheck {
         /** Es gibt eine Regel, sie findet in dieser Abrechnung aber nichts. */
         NOT_FOUND,
         /** Die Regel findet etwas anderes, als in der Maske stand. */
-        WRONG
+        WRONG,
+        /** Die Summe steht richtig da, aber ihre Aufteilung liest zusammen etwas anderes. */
+        PARTS
     }
 
     /** Ein einzelner Mangel. */
@@ -117,7 +124,44 @@ public final class TemplateCheck {
                 out.add(c);
             }
         }
+        Complaint gebuehr = compareParts(soll.feeParts, ist.feeParts, StatementTemplate.Field.FEE);
+        if (gebuehr != null) {
+            out.add(gebuehr);
+        }
+        Complaint ertrag = compareParts(soll.incomeParts, ist.incomeParts,
+                StatementTemplate.Field.GROSS);
+        if (ertrag != null) {
+            out.add(ertrag);
+        }
         return out;
+    }
+
+    /**
+     * Liest die Aufteilung zusammen dasselbe wie die eingetragenen Teilbeträge?
+     *
+     * <p>Verglichen werden Summen, nicht Zeile für Zeile: welche Beschriftung zu welcher Kategorie
+     * gehört, entscheidet der Nutzer erst beim Buchen, und in welcher Reihenfolge die Zeilen stehen,
+     * ist gleichgültig. Wichtig ist, dass die Aufteilung nichts verliert — eine Zeile, die keine Regel
+     * gefunden hat, fiele sonst still weg und ihre Kategorie beim nächsten Mal leer aus.</p>
+     *
+     * <p>Erst ab zwei Teilen: eine einzelne Zeile ist keine Aufteilung, sondern die Summe selbst, und
+     * für die gibt es schon eine eigene Prüfung.</p>
+     */
+    private static Complaint compareParts(List<Long> soll, List<StatementTemplate.Part> ist,
+                                          StatementTemplate.Field field) {
+        if (soll.size() < 2) {
+            return null;
+        }
+        long erwartet = 0;
+        for (Long cents : soll) {
+            erwartet += cents == null ? 0 : cents;
+        }
+        long gelesen = 0;
+        for (StatementTemplate.Part part : ist) {
+            gelesen += part.cents;
+        }
+        return erwartet == gelesen ? null
+                : new Complaint(field, Kind.PARTS, erwartet / 100.0, gelesen / 100.0);
     }
 
     private static Complaint compare(StatementTemplate template, Expected soll,

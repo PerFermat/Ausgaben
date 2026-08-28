@@ -163,6 +163,10 @@ public final class IngReader implements BankReader {
                 Long betrag = letzterBetrag(s);
                 if (betrag != null) {
                     steuer += Math.abs(betrag);
+                    // Ohne Beschriftung: welche Kategorie zu welcher Steuerart gehört, weiß nur der
+                    // Nutzer, und hier gibt es keine Vorlage, in der es stehen könnte. Zugeordnet
+                    // wird deshalb der Reihe nach — und die ist die des Dokuments.
+                    into.feeParts.add(new StatementTemplate.Part("", Math.abs(betrag)));
                 }
             } else if (s.startsWith("Brutto")) {
                 // Bei einem Euro-Papier ist das schon der gesuchte Betrag; bei einem Dollar-Papier

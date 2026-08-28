@@ -66,6 +66,14 @@ public final class TemplateLearner {
          * Beschriftung allein sagt es nicht. Also reicht die Auswahl die fertige Regel durch.</p>
          */
         public AnchorRule dateRule;
+        /**
+         * Die Teilbeträge, in die der Nutzer die Gebühr bzw. Steuer aufgeteilt hat — jeder für sich
+         * eine Zeile der Abrechnung. Gelernt wird daraus je eine eigene Regel, damit beim nächsten
+         * Mal nicht nur die Summe, sondern auch ihre Aufteilung dasteht.
+         */
+        public List<StatementTemplate.Part> feeParts = new ArrayList<>();
+        /** Dasselbe für die Aufteilung des Ertrags. */
+        public List<StatementTemplate.Part> incomeParts = new ArrayList<>();
     }
 
     /**
@@ -81,6 +89,12 @@ public final class TemplateLearner {
         }
         List<String> used = new ArrayList<>();
 
+        // Die Aufteilung zuerst: sie sagt, wieviel von der Gebühr überhaupt im Dokument steht — und
+        // damit, wieviel davon für eine feste Ordergebühr noch übrigbleibt.
+        Teile gebuehrenteile = learnParts(text, known.feeParts);
+        Teile ertragsteile = learnParts(text, known.incomeParts);
+        long rest = gebuehrenteile.rest(known.feeCents);
+
         // Reihenfolge nach Unterscheidungskraft: die Gesamtsumme ist die kennzeichnendste Zahl, die
         // Stückzahl die unscheinbarste – eine glatte 10 findet sich in einer Abrechnung schnell mehrfach.
         // Die Währung wird nur dort festgehalten, wo sie feststeht: Gesamtsumme und Steuer gehen als
@@ -95,12 +109,17 @@ public final class TemplateLearner {
 
         // Weder Gesamtbetrag noch Gebühr gefunden? Dann kann beides denselben Grund haben: die Bank nimmt
         // eine feste Ordergebühr, druckt sie nicht aus – und ihr Gesamtbetrag ist der ohne diese Gebühr.
+        //
+        // Fest ist dabei nur, was <b>nicht</b> im Dokument steht: haben die Teilregeln die Steuerzeilen
+        // gefunden, bleibt als feste Gebühr allein der Rest. Ohne diese Rechnung würde bei Scalable
+        // Capital die ganze Steuer zur Ordergebühr — 773,58 statt der 0,99, die die Bank wirklich nimmt —
+        // und die Gesamtbetrag-Regel landete auf dem Kurswert statt auf der Gutschrift.
         long fixedFee = 0;
         if (net == null && fee == null) {
-            AnchorRule ersatz = forValue(text, cents(printedTotal(known)), MONEY_EPSILON, true, used);
+            AnchorRule ersatz = forValue(text, cents(printedTotal(known, rest)), MONEY_EPSILON, true, used);
             if (ersatz != null) {
                 put(rules, StatementTemplate.Field.NET, ersatz, used);
-                fixedFee = known.feeCents;
+                fixedFee = rest;
             }
         }
 
@@ -113,7 +132,94 @@ public final class TemplateLearner {
                         ? known.dateRule
                         : forDate(text, known.dateMillis, known.dateAnchor, used), used);
         return new StatementTemplate(known.action, rules, fixedFee,
-                fixedFee > 0 ? known.feeCategory : "", false);
+                fixedFee > 0 ? gebuehrenteile.restKategorie(known.feeCategory) : "", false,
+                gebuehrenteile.rules, ertragsteile.rules,
+                wholeCategory(known.feeParts), wholeCategory(known.incomeParts));
+    }
+
+    /**
+     * Das Ergebnis des Teilelernens: die Regeln, und was von der Gebühr <b>nicht</b> im Dokument stand.
+     *
+     * <p>Beides gehört zusammen. Der Rest ist genau das, was eine feste Ordergebühr sein kann — und
+     * seine Kategorie steht in der Zeile, für die keine Regel entstand: der Nutzer hat sie ja
+     * eingetragen, obwohl die Bank sie nicht ausdruckt.</p>
+     */
+    private static final class Teile {
+        final List<StatementTemplate.PartRule> rules = new ArrayList<>();
+        /** Die Teilbeträge, für die sich keine Regel finden ließ — in der Reihenfolge der Maske. */
+        final List<StatementTemplate.Part> ungefunden = new ArrayList<>();
+        long gefunden;
+
+        /** Was von der Gebühr für eine feste Ordergebühr übrigbleibt; ohne Aufteilung ihr ganzer Betrag. */
+        long rest(Long feeCents) {
+            if (feeCents == null) {
+                return 0;
+            }
+            return Math.max(0, Math.abs(feeCents) - gefunden);
+        }
+
+        /** Die Kategorie des nicht gefundenen Teils; sonst die mitgegebene. */
+        String restKategorie(String vorgabe) {
+            for (StatementTemplate.Part part : ungefunden) {
+                if (!part.category.trim().isEmpty()) {
+                    return part.category;
+                }
+            }
+            return vorgabe;
+        }
+    }
+
+    /**
+     * Die Kategorie des ganzen Betrags — nur, wenn er gar nicht aufgeteilt wurde.
+     *
+     * <p>Bei einer Aufteilung tragen die Teile ihre eigene; eine zusätzliche für das Ganze wäre eine
+     * zweite Wahrheit über dieselbe Zahl.</p>
+     */
+    private static String wholeCategory(List<StatementTemplate.Part> parts) {
+        return parts != null && parts.size() == 1 ? parts.get(0).category : "";
+    }
+
+    /**
+     * Je Teilbetrag eine eigene Regel, benannt nach der Beschriftung, die sie trifft.
+     *
+     * <p>Eine einzelne Zeile wird nicht gelernt: sie trägt den ganzen Betrag und wäre nichts weiter
+     * als eine zweite Regel für dieselbe Zahl, die die Summenregel schon liest. Erst ab zwei Zeilen
+     * gibt es eine Aufteilung, die sich zu merken lohnt.</p>
+     *
+     * <p>Die Beschriftungen der Summenregel bleiben hier ausdrücklich frei: die Steuer steht bei der
+     * ING als Summe von Kapitalertragsteuer und Solidaritätszuschlag da, und genau diese beiden
+     * Zeilen sind es, die die Teile suchen. Wären sie schon vergeben, fände kein Teil mehr etwas.</p>
+     */
+    private static Teile learnParts(PdfText text, List<StatementTemplate.Part> parts) {
+        Teile out = new Teile();
+        if (parts == null || parts.size() < 2) {
+            // Eine einzelne Zeile bleibt ungeteilt – und damit ganz „nicht gefunden": ihr Betrag ist
+            // die Summe selbst, und ob er im Dokument steht, entscheidet die Summenregel.
+            if (parts != null) {
+                out.ungefunden.addAll(parts);
+            }
+            return out;
+        }
+        List<String> used = new ArrayList<>();
+        for (StatementTemplate.Part part : parts) {
+            AnchorRule rule = forValue(text, part.cents / 100.0, MONEY_EPSILON, true, used);
+            if (rule == null) {
+                out.ungefunden.add(part);
+                continue;
+            }
+            for (String anchor : rule.anchors) {
+                used.add(taken(anchor, rule.position));
+            }
+            String label = rule.matchedAnchor(text);
+            if (label == null || label.trim().isEmpty()) {
+                label = rule.anchors.get(0);
+            }
+            // Die Kategorie kommt aus der Maske mit: gelernt wird nicht nur, wo der Betrag steht,
+            // sondern auch, wohin er gebucht gehört.
+            out.rules.add(new StatementTemplate.PartRule(label, rule, part.category));
+            out.gefunden += Math.abs(part.cents);
+        }
+        return out;
     }
 
     /**
@@ -127,15 +233,16 @@ public final class TemplateLearner {
      * <p><b>Nur bei Kauf und Verkauf.</b> Bei einer Dividende ist die „Gebühr" die Steuer, und
      * Brutto minus Steuer ergibt das Netto — die Rechnung träfe dort regelmäßig die Bruttozeile und
      * erfände eine Ordergebühr, die es nicht gibt.</p>
+     *
+     * @param rest der Teil der Gebühr, der im Dokument nicht steht — nur er kann fest sein
      */
-    private static Long printedTotal(Known known) {
+    private static Long printedTotal(Known known, long rest) {
         boolean kauf = StatementScan.BUY.equals(known.action);
         boolean verkauf = StatementScan.SELL.equals(known.action);
-        if ((!kauf && !verkauf) || known.netCents == null
-                || known.feeCents == null || known.feeCents == 0) {
+        if ((!kauf && !verkauf) || known.netCents == null || rest == 0) {
             return null;
         }
-        return known.netCents - (kauf ? known.feeCents : -known.feeCents);
+        return known.netCents - (kauf ? rest : -rest);
     }
 
     private static Double cents(Long value) {

@@ -138,7 +138,7 @@ same place) so KMyMoney carries on with the file unchanged; a backup is written 
 
 **Testability.** Everything that computes or decides lives in pure classes **without Android** —
 `PayeeAmounts`, `PayeeCategories`, `AccountScope`, `BudgetMath`, `RadiusFilter`, `EditStatus`,
-`NoteReceipt` and others. They run under JUnit 4 with no emulator and no mocks; **747 unit tests** at
+`NoteReceipt` and others. They run under JUnit 4 with no emulator and no mocks; **766 unit tests** at
 present, among them checks against real `.kmy` files (via Robolectric, which never ships in the APK).
 
 **Receipts.** Photos and PDFs are kept app-private and uploaded in the background into `Belege/<year>/`

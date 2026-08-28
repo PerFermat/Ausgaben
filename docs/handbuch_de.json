@@ -1510,6 +1510,11 @@
       "text": "<b>Abrechnung einlesen:</b> Das Depot kann eine Wertpapierabrechnung als PDF einlesen und daraus eine Buchung vorbereiten. Die Funktion ist ab Werk <b>ausgeschaltet</b> und lässt sich in den Einstellungen einschalten; dort nennt die App auch, an wie vielen Banken die Erkennung gemessen wurde. Sie trägt nicht bei jeder Bank – <b>prüfen Sie die erkannten Werte, bevor Sie buchen</b>."
     },
     {
+      "type": "p",
+      "id": "b-0157m",
+      "text": "<b>Die Probe nach dem Merken:</b> Sagen Sie in der Rückfrage «Merken», wendet die App die eben gemerkten Regeln sofort wieder auf dieselbe Abrechnung an. Kommt dabei heraus, was in der Maske stand, sagt sie nichts weiter. Sonst nennt sie je Feld, was sie erwartet und was sie gelesen hat, und bietet den Knopf <b>«Erkennungsregeln»</b> an: dort hängt die Abrechnung schon als Probe, und die gelernten Regeln stehen so da, wie sie gelernt wurden. Ohne diese Probe zeigte sich ein Fehlgriff erst bei der nächsten Abrechnung dieser Bank."
+    },
+    {
       "type": "h3",
       "id": "b-0157g",
       "text": "Werte in einer Tabelle"

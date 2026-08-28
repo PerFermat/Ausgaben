@@ -167,7 +167,27 @@ public final class TemplateLearner {
         if (single != null && single.direction == AnchorRule.Direction.SAME_LINE) {
             return single;
         }
-        AnchorRule spalte = columnLine(text, value, epsilon, bindCurrency, used);
+        // Steht der Wert in einer Tabellenzeile, gewinnt die Spalte vor jeder abgezählten Stelle: eine
+        // fehlende Spalte verschiebt jede gezählte Stelle, die Position nicht.
+        //
+        // Das setzt echte Wortpositionen voraus. Im zurückgebauten Text ({@link PdfText#fromLines})
+        // hängen die Wörter mit einem Leerzeichen aneinander — eine Tabelle ist darin gar nicht mehr zu
+        // sehen, und die Bedingung schlösse nur aus, ohne je etwas zu finden. Genau das hat die Messung
+        // am fremden Bestand gezeigt, der aus solchen Textdateien besteht: mit der Bedingung auf beiden
+        // Wegen fielen die vollständig gelesenen Banken von 12 auf 10 und die jüngsten Abrechnungen von
+        // 39,6 auf 39,1 Prozent. Über die Tabellenlogik sagt das nichts — dort ist sie gar nicht
+        // messbar; sie greift nur, wo die Koordinaten stehen.
+        if (text.hasWordPositions()) {
+            AnchorRule tabelle = columnLine(text, value, epsilon, bindCurrency, used, true);
+            if (tabelle != null) {
+                return tabelle;
+            }
+            if (single != null) {
+                return single;
+            }
+        }
+        // Ohne Tabellenlage bleibt die Spalte, was sie war: die erste Wahl vor der gezählten Stelle.
+        AnchorRule spalte = columnLine(text, value, epsilon, bindCurrency, used, false);
         if (spalte != null) {
             return spalte;
         }
@@ -178,13 +198,41 @@ public final class TemplateLearner {
         if (summed != null) {
             return summed;
         }
-        // Zuletzt die beiden Formen, die sich nicht abzählen lassen. Sie stehen hinten, damit sich an
-        // allem, was bisher schon gelernt wurde, nichts ändert: sie greifen nur, wo vorher nichts kam.
-        AnchorRule column = columnLine(text, value, epsilon, bindCurrency, used);
-        if (column != null) {
-            return column;
-        }
+        // Zuletzt die Form, die sich nicht abzählen lässt: der Wert über seiner Beschriftung.
         return aboveLine(text, value, epsilon, bindCurrency, used);
+    }
+
+    /**
+     * Ab wievielen Zahlen nebeneinander eine Zeile als <b>Tabellenzeile</b> gilt.
+     *
+     * <p>Zwei. Eine Betragszeile trägt ihre eine Zahl und sonst Text („Kurswert 1.100,00 EUR" — das
+     * Währungskürzel zählt nicht mit); stehen zwei Zahlen nebeneinander, sind es Spalten. Drei wäre zu
+     * streng: eine Anleihe-Zeile führt Nominale und Kurs nebeneinander und ist die Tabelle, um die es
+     * geht — an einem Bestand fremder Belege kommt die Stückzahl in 876 von 2354 Fällen <b>nur</b> so
+     * vor (siehe {@code AnchorFallbackTest#derLernerFindetDieSpalteVonSelbst}).</p>
+     */
+    private static final int TABELLE_AB = 2;
+
+    /** Wieviele Zahlen die Zeile trägt. Währungskennzeichen und Prozentzeichen sind keine. */
+    private static int zahlenIn(PdfText.Line line) {
+        int n = 0;
+        for (PdfText.Word word : line.words) {
+            if (TextValues.toDecimal(word.text) != null) {
+                n++;
+            }
+        }
+        return n;
+    }
+
+    /** Wieviele Datumsangaben die Zeile trägt — das Tabellenmerkmal einer Datumszeile. */
+    private static int datenIn(PdfText.Line line) {
+        int n = 0;
+        for (PdfText.Word word : line.words) {
+            if (TextValues.toUnambiguousDateMillis(word.text) > 0) {
+                n++;
+            }
+        }
+        return n;
     }
 
     /**
@@ -199,10 +247,14 @@ public final class TemplateLearner {
      * selten die gemeinte.</p>
      */
     private static AnchorRule columnLine(PdfText text, double value, double epsilon,
-                                         boolean bindCurrency, List<String> used) {
+                                         boolean bindCurrency, List<String> used,
+                                         boolean nurTabelle) {
         List<PdfText.Line> lines = text.lines();
         AnchorRule found = null;
         for (int i = 0; i < lines.size(); i++) {
+            if (nurTabelle && zahlenIn(lines.get(i)) < TABELLE_AB) {
+                continue;
+            }
             for (PdfText.Word word : lines.get(i).words) {
                 Double zahl = TextValues.toDecimal(word.text);
                 if (zahl == null || Math.abs(Math.abs(zahl) - value) > epsilon) {
@@ -476,6 +528,8 @@ public final class TemplateLearner {
         AnchorRule.Direction direction = AnchorRule.Direction.SAME_LINE;
         AnchorRule.Position position = AnchorRule.Position.LAST;
         int nthFound = 1;
+        // Stand das gefundene Datum in einer Tabellenzeile? Dann gilt die Spalte vor der Stelle.
+        boolean tabelle = false;
         List<PdfText.Line> lines = text.lines();
         for (int i = 0; i < lines.size(); i++) {
             // Irgendwo in der Zeile, nicht nur als erste Angabe: eine Zeile trägt oft mehrere Daten
@@ -509,6 +563,17 @@ public final class TemplateLearner {
                 direction = AnchorRule.Direction.LINE_BELOW;
                 position = where;
                 nthFound = stelle[1];
+                // Zwei Daten nebeneinander unter einer Überschrift: das ist eine Tabellenzeile, und dort
+                // trifft die Spalte auch dann noch, wenn eine Angabe einmal fehlt. Auch das braucht
+                // echte Koordinaten – siehe die Weiche in forValue.
+                tabelle = text.hasWordPositions()
+                        && (datenIn(lines.get(i)) >= 2 || zahlenIn(lines.get(i)) >= TABELLE_AB);
+            }
+        }
+        if (tabelle) {
+            AnchorRule spalte = columnDate(text, dateMillis, used);
+            if (spalte != null) {
+                return spalte;
             }
         }
         if (anchor != null) {

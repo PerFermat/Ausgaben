@@ -1510,6 +1510,11 @@
       "text": "<b>Reading a statement:</b> the portfolio can read a securities statement from a PDF and prepare a booking from it. The feature ships <b>switched off</b> and can be enabled in the settings, where the app also states how many banks the recognition was measured against. It does not work with every bank – <b>check the recognised values before you book</b>."
     },
     {
+      "type": "p",
+      "id": "b-0157m",
+      "text": "<b>The check after storing:</b> If you answer «Store», the app immediately applies the rules it just stored to the same statement again. If the result matches what was in the form, it says nothing further. Otherwise it names, field by field, what it expected and what it read, and offers the button <b>«Detection rules»</b>: the statement is already attached there as a test, and the learned rules appear exactly as they were learned. Without this check a wrong guess would only show up with the next statement from that bank."
+    },
+    {
       "type": "h3",
       "id": "b-0157g",
       "text": "Values inside a table"

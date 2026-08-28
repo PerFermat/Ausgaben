@@ -796,6 +796,14 @@
     <string name="statement_learn_conflict">Eine bereits gemerkte Beschriftung würde ersetzt. Die neue als weiteren Rückfall hinzufügen oder die alte ersetzen?</string>
     <string name="statement_learn_append">Hinzufügen</string>
     <string name="statement_learn_replace">Ersetzen</string>
+    <!-- Die Probe aufs Gemerkte, gleich nach dem Merken an derselben Abrechnung -->
+    <string name="statement_check_title">Die Regeln greifen noch nicht</string>
+    <string name="statement_check_intro">Zur Probe wurde die eben gemerkte Vorlage sogleich wieder auf diese Abrechnung angewandt. Dabei stimmt nicht alles:</string>
+    <string name="statement_check_wrong">%1$s: erwartet %2$s, gelesen %3$s</string>
+    <string name="statement_check_missing">%1$s: erwartet %2$s, nichts gefunden</string>
+    <string name="statement_check_norule">%1$s: erwartet %2$s, dafür ist keine Regel entstanden</string>
+    <string name="statement_check_hint">Auf der Regelseite lässt sich das von Hand einstellen — die Abrechnung hängt dort schon als Probe.</string>
+    <string name="statement_check_rules">Erkennungsregeln</string>
     <string name="statement_rules_position">Welche Zahl der Zeile</string>
     <string name="statement_rules_last_number">die letzte</string>
     <string name="statement_rules_first_number">die erste (Tabellenspalte)</string>

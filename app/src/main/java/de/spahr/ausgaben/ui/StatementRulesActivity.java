@@ -171,6 +171,13 @@ public class StatementRulesActivity extends LocalizedActivity {
         });
 
         load();
+
+        // Kommt die Seite aus der Rückmeldung nach dem Merken, bringt sie die Abrechnung gleich mit:
+        // Ohne sie stünde man vor Regeln, von denen man eben erfahren hat, dass sie nicht greifen – und
+        // müsste die Datei von Hand wieder heraussuchen, um zu sehen, woran es liegt.
+        if (getIntent().getData() != null) {
+            useTestStatement(getIntent().getData());
+        }
     }
 
     // ---- Vorlagen ----
@@ -731,22 +738,7 @@ public class StatementRulesActivity extends LocalizedActivity {
 
     /** Die Feldnamen sind dieselben wie in der Erfassungsmaske – sie richten sich nach der Art. */
     private String nameOf(Field field, String action) {
-        boolean dividend = DIVIDEND.equals(action);
-        switch (field) {
-            case NET:
-                return getString(dividend ? R.string.security_tx_net : R.string.security_tx_total);
-            case FEE:
-                return getString(dividend ? R.string.security_tx_tax : R.string.security_tx_fee);
-            case GROSS:
-                return getString(R.string.security_tx_gross);
-            case SHARES:
-                return getString(R.string.security_tx_shares);
-            case PRICE:
-                return getString(dividend
-                        ? R.string.security_tx_price_dividend : R.string.security_tx_price);
-            default:
-                return getString(R.string.date_hint);
-        }
+        return StatementFieldNames.of(this, field, action);
     }
 
     // ---- Speichern und Löschen ----

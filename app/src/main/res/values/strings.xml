@@ -801,6 +801,14 @@
     <string name="statement_learn_conflict">A label already stored would be replaced. Add the new one as a further fallback, or replace the old one?</string>
     <string name="statement_learn_append">Add</string>
     <string name="statement_learn_replace">Replace</string>
+    <!-- Checking what was just learned, right away and on the same statement -->
+    <string name="statement_check_title">The rules do not work yet</string>
+    <string name="statement_check_intro">The template just stored was applied to this statement again as a test. Not everything matches:</string>
+    <string name="statement_check_wrong">%1$s: expected %2$s, read %3$s</string>
+    <string name="statement_check_missing">%1$s: expected %2$s, nothing found</string>
+    <string name="statement_check_norule">%1$s: expected %2$s, no rule was derived for it</string>
+    <string name="statement_check_hint">You can set this by hand on the rules page — the statement is already attached there as a test.</string>
+    <string name="statement_check_rules">Detection rules</string>
     <string name="statement_rules_position">Which number on the line</string>
     <string name="statement_rules_last_number">the last one</string>
     <string name="statement_rules_first_number">the first one (column)</string>

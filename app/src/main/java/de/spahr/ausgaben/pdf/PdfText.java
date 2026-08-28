@@ -83,11 +83,27 @@ public final class PdfText {
     private final List<Line> lines;
     private final int pageCount;
     private final int wordCount;
+    private final boolean wordPositions;
 
-    private PdfText(List<Line> lines, int pageCount, int wordCount) {
+    private PdfText(List<Line> lines, int pageCount, int wordCount, boolean wordPositions) {
         this.lines = Collections.unmodifiableList(lines);
         this.pageCount = pageCount;
         this.wordCount = wordCount;
+        this.wordPositions = wordPositions;
+    }
+
+    /**
+     * Ob die x-Werte der Wörter <b>echte Positionen auf der Seite</b> sind — oder bloss die
+     * Zeichenspalte einer wieder zusammengesetzten Zeile ({@link #fromLines}).
+     *
+     * <p>Der Unterschied entscheidet, was sich aus dem Dokument überhaupt ablesen lässt. Eine Tabelle
+     * erkennt man daran, dass Zahlen untereinander stehen; im zurückgebauten Text stehen die Wörter mit
+     * genau einem Leerzeichen nebeneinander, und jede Spaltenlage ist dahin. Wer daraus Regeln ableitet,
+     * lernt an einer Lage, die es im Dokument gar nicht gibt — deshalb fragt der Lerner hier nach,
+     * bevor er die Spalte einer Überschrift der abgezählten Stelle vorzieht.</p>
+     */
+    public boolean hasWordPositions() {
+        return wordPositions;
     }
 
     /** Alle Zeilen in Lesereihenfolge: Seite für Seite, innerhalb der Seite von oben nach unten. */
@@ -121,13 +137,14 @@ public final class PdfText {
      * Baut den Text aus fertigen Zeilen wieder auf — für den Zwischenspeicher, aus dem die Maske beim
      * Speichern die Anker ableitet.
      *
-     * <p>Die Wortpositionen gehen dabei verloren. Das ist unschädlich: Anker arbeiten über die
-     * Beschriftung am Zeilenanfang und die letzte Zahl der Zeile, nicht über x-Koordinaten. Behalten
-     * werden die Positionen trotzdem beim Auslesen — für eine Spaltenregel, falls einmal eine Bank ihre
-     * Werte ohne Zeilenbeschriftung setzt.</p>
+     * <p>Die Wortpositionen gehen dabei verloren: als x steht hier die Zeichenspalte, und die Wörter
+     * hängen mit genau einem Leerzeichen aneinander. Für Anker über die Beschriftung am Zeilenanfang und
+     * die letzte Zahl der Zeile ist das unschädlich. Für alles, was die <b>Spaltenlage</b> braucht, ist
+     * es dagegen eine andere Datenlage — deshalb trägt das Ergebnis {@link #hasWordPositions()} als
+     * {@code false}, und der Lerner richtet sich danach.</p>
      */
     public static PdfText fromLines(String text) {
-        Builder b = new Builder();
+        Builder b = new Builder().withoutPositions();
         if (text == null) {
             return b.build();
         }
@@ -159,6 +176,16 @@ public final class PdfText {
         private final List<Word> words = new ArrayList<>();
         private final List<Integer> pages = new ArrayList<>();
         private int maxPage = -1;
+        private boolean positions = true;
+
+        /**
+         * Für Text ohne echte Wortpositionen — siehe {@link PdfText#hasWordPositions()}. Nur der
+         * Rückbau aus fertigen Zeilen ruft das auf; alles, was aus einem PDF kommt, trägt Positionen.
+         */
+        public Builder withoutPositions() {
+            positions = false;
+            return this;
+        }
 
         /**
          * Nimmt ein Wort auf. {@code y} wird von <b>oben</b> gemessen (PdfBox liefert es so), damit
@@ -215,7 +242,7 @@ public final class PdfText {
             if (!current.isEmpty()) {
                 result.add(new Line(currentPage, currentY, sortedByX(current)));
             }
-            return new PdfText(result, maxPage + 1, words.size());
+            return new PdfText(result, maxPage + 1, words.size(), positions);
         }
 
         private static List<Word> sortedByX(List<Word> line) {

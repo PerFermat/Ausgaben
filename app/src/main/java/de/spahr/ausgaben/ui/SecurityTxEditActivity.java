@@ -34,6 +34,7 @@ import de.spahr.ausgaben.settings.MoneyFormat;
 import de.spahr.ausgaben.settings.SettingsStore;
 import de.spahr.ausgaben.settings.StatementTemplates;
 import de.spahr.ausgaben.statement.StatementTemplate;
+import de.spahr.ausgaben.statement.TemplateCheck;
 import de.spahr.ausgaben.statement.TemplateLearner;
 import de.spahr.ausgaben.util.SecurityAmounts;
 import de.spahr.ausgaben.util.SecurityAmounts.Field;
@@ -958,6 +959,9 @@ public class SecurityTxEditActivity extends LocalizedActivity {
             booking.note = de.spahr.ausgaben.receipt.SingleReceipt.attach(
                     this, pendingStatement, booking.note, booking.createdAt);
             pendingStatement = null;
+            // Wohin die Datei gewandert ist, steht jetzt nur noch in der Notiz. Der Tag wird gebraucht:
+            // gleich danach wird aus dieser Abrechnung gelernt und an ihr nachgeprüft.
+            savedStatementTag = de.spahr.ausgaben.receipt.NoteReceipt.pdfName(booking.note);
         }
         final Double sharesGiven = number(Field.SHARES);
         final Double priceGiven = number(Field.PRICE);
@@ -1026,23 +1030,41 @@ public class SecurityTxEditActivity extends LocalizedActivity {
      * kleine Zahlen antippt, wird damit überflüssig.</p>
      */
     private void offerToLearn(String action, Double shares, Double price, Long feeCents, Long netCents) {
-        if (statementTextPath == null) {
+        if (statementTextPath == null && statementPdf() == null) {
             finish();
             return;
         }
-        final de.spahr.ausgaben.pdf.PdfText text = readStatementText();
-        if (text == null) {
-            finish();
-            return;
-        }
-        final StatementTemplates store = new StatementTemplates(this);
-        final StatementTemplate existing = store.match(text, depot);
-
         // Wer nichts angefasst hat, hat der App nichts beizubringen – dann bleibt die Rückfrage aus.
+        // Das steht vor dem Einlesen: sonst läge das PDF umsonst auf dem Tisch.
         if (typedFields.isEmpty() && !dateTyped) {
             finish();
             return;
         }
+        // Das Einlesen ist keine Kleinigkeit mehr, seit es aus dem PDF selbst kommt – also nicht im
+        // Vordergrund. Gelernt wird gleich mit; der Dialog kommt danach auf dem Bedienfaden.
+        repository.executor().execute(() -> {
+            final de.spahr.ausgaben.pdf.PdfText text = readStatementText();
+            runOnUiThread(() -> {
+                // Wer inzwischen weggegangen ist, bekommt keinen Dialog mehr auf ein Fenster, das es
+                // nicht mehr gibt.
+                if (isFinishing() || isDestroyed()) {
+                    return;
+                }
+                if (text == null) {
+                    finish();
+                    return;
+                }
+                learnFrom(text, action, shares, price, feeCents, netCents);
+            });
+        });
+    }
+
+    /** Der zweite Teil von {@link #offerToLearn}: die Abrechnung liegt gelesen vor. */
+    private void learnFrom(de.spahr.ausgaben.pdf.PdfText text, String action, Double shares,
+                           Double price, Long feeCents, Long netCents) {
+        final StatementTemplates store = new StatementTemplates(this);
+        final StatementTemplate existing = store.match(text, depot);
+
         // Wieviel gelernt wird, hängt daran, ob es für diese Bank schon eine Vorlage gibt.
         //
         // <b>Noch keine:</b> dann zählt jeder Wert der Maske, auch ein gerechneter. Bei einer Dividende
@@ -1092,14 +1114,17 @@ public class SecurityTxEditActivity extends LocalizedActivity {
         dialog.setTitle(R.string.statement_learn_title);
         if (appended.sameAs(replaced)) {
             dialog.setMessage(learnMessage(raw, existing));
-            dialog.setPositiveButton(R.string.statement_learn_yes, (d, w) -> keep(store, replaced));
+            dialog.setPositiveButton(R.string.statement_learn_yes,
+                    (d, w) -> keep(store, replaced, text));
         } else {
             // Es gibt einen echten Widerspruch: die neue Beschriftung tritt an die Stelle einer
             // vorhandenen. Das ist nicht zu entscheiden, ohne zu wissen, ob die alte weiter gebraucht
             // wird – also wird gefragt, statt zu raten.
             dialog.setMessage(R.string.statement_learn_conflict);
-            dialog.setPositiveButton(R.string.statement_learn_append, (d, w) -> keep(store, appended));
-            dialog.setNeutralButton(R.string.statement_learn_replace, (d, w) -> keep(store, replaced));
+            dialog.setPositiveButton(R.string.statement_learn_append,
+                    (d, w) -> keep(store, appended, text));
+            dialog.setNeutralButton(R.string.statement_learn_replace,
+                    (d, w) -> keep(store, replaced, text));
         }
         dialog.setNegativeButton(R.string.cancel, (d, w) -> finish());
         dialog.setOnCancelListener(d -> finish());
@@ -1128,18 +1153,145 @@ public class SecurityTxEditActivity extends LocalizedActivity {
                 : getString(R.string.statement_learn_message);
     }
 
-    /** Die gewählte Fassung merken und die Maske schließen. */
-    private void keep(StatementTemplates store, StatementTemplate template) {
+    /** Die gewählte Fassung merken – und sie sogleich an derselben Abrechnung nachprüfen. */
+    private void keep(StatementTemplates store, StatementTemplate template,
+                      de.spahr.ausgaben.pdf.PdfText text) {
         store.save(template, depot);
         // Auch die Zuordnung merken – dann findet die nächste Abrechnung das Wertpapier selbst dann,
         // wenn die ISIN in KMyMoney nicht gepflegt ist.
         store.rememberSecurity(statementIsin, depot, kmyId, securityName);
         Toast.makeText(this, R.string.statement_learned, Toast.LENGTH_SHORT).show();
-        finish();
+        verifyLearned(template, text);
     }
 
-    /** Den zwischengespeicherten Abrechnungstext einlesen; {@code null}, wenn er nicht mehr da ist. */
+    /**
+     * Die Probe aufs Gemerkte: liest die eben gespeicherte Vorlage diese Abrechnung so, wie sie am Ende
+     * in der Maske stand?
+     *
+     * <p>Bisher zeigte sich das erst bei der nächsten Abrechnung dieser Bank – Wochen später, vor einer
+     * wieder leeren Maske und ohne Anhalt, woran es lag. Dabei liegt hier alles vor: die Regeln und das
+     * Dokument. Stimmt es, bleibt die App still; sonst sagt sie, was nicht stimmt, und bietet den Weg
+     * auf die Regelseite an – mit dieser Abrechnung schon als Probe.</p>
+     */
+    private void verifyLearned(StatementTemplate template, de.spahr.ausgaben.pdf.PdfText text) {
+        java.util.List<TemplateCheck.Complaint> maengel =
+                TemplateCheck.check(template, text, expectation(template.action));
+        if (maengel.isEmpty()) {
+            finish();
+            return;
+        }
+        StringBuilder message = new StringBuilder(getString(R.string.statement_check_intro));
+        for (TemplateCheck.Complaint c : maengel) {
+            message.append("\n\n").append(complaintLine(c, template.action));
+        }
+        message.append("\n\n").append(getString(R.string.statement_check_hint));
+        AppDialog dialog = new AppDialog(this);
+        dialog.setTitle(R.string.statement_check_title);
+        dialog.setMessage(message.toString());
+        dialog.setPositiveButton(R.string.statement_check_rules, (d, w) -> openRules());
+        dialog.setNegativeButton(android.R.string.ok, (d, w) -> finish());
+        dialog.setOnCancelListener(d -> finish());
+        dialog.show();
+    }
+
+    /** Was in der Maske stand – der Sollwert der Nachprüfung. */
+    private TemplateCheck.Expected expectation(String action) {
+        TemplateCheck.Expected soll = new TemplateCheck.Expected();
+        soll.action = action;
+        soll.dateMillis = selectedDate.getTimeInMillis();
+        soll.shares = number(Field.SHARES);
+        soll.price = number(Field.PRICE);
+        soll.feeCents = money(Field.FEE);
+        soll.netCents = money(Field.NET);
+        soll.grossCents = money(Field.GROSS);
+        for (Field field : typedFields) {
+            soll.typed.add(StatementTemplate.Field.valueOf(field.name()));
+        }
+        if (dateTyped) {
+            soll.typed.add(StatementTemplate.Field.DATE);
+        }
+        return soll;
+    }
+
+    /** „Gebühr: erwartet 9,90, gelesen 4,95" – Feld, Soll und Ist in einer Zeile. */
+    private String complaintLine(TemplateCheck.Complaint c, String action) {
+        String name = StatementFieldNames.of(this, c.field, action);
+        String soll = valueText(c.field, c.expected);
+        switch (c.kind) {
+            case NO_RULE:
+                return getString(R.string.statement_check_norule, name, soll);
+            case NOT_FOUND:
+                return getString(R.string.statement_check_missing, name, soll);
+            default:
+                return getString(R.string.statement_check_wrong, name, soll,
+                        valueText(c.field, c.actual));
+        }
+    }
+
+    /** Ein Wert der Nachprüfung so geschrieben, wie ihn die Maske zeigt. */
+    private String valueText(StatementTemplate.Field field, double value) {
+        switch (field) {
+            case DATE:
+                return dateFormat.format(new Date((long) value));
+            case SHARES:
+                return MoneyFormat.shares(value);
+            case PRICE:
+                return MoneyFormat.decimal(value, 2, 4);
+            default:
+                return MoneyFormat.plain(Math.round(value * 100.0));
+        }
+    }
+
+    /**
+     * Auf die Regelseite – mit der Abrechnung als Probe.
+     *
+     * <p>Erst schließen, dann öffnen: die Buchung ist gespeichert, die Maske hat ihren Zweck erfüllt und
+     * hat im Rückweg nichts mehr zu suchen.</p>
+     */
+    private void openRules() {
+        android.content.Intent i = new android.content.Intent(this, StatementRulesActivity.class);
+        i.putExtra(StatementRulesActivity.EXTRA_DEPOT, depot);
+        java.io.File pdf = statementPdf();
+        if (pdf != null) {
+            try {
+                i.setData(androidx.core.content.FileProvider.getUriForFile(
+                        this, getPackageName() + ".fileprovider", pdf));
+                i.addFlags(android.content.Intent.FLAG_GRANT_READ_URI_PERMISSION);
+            } catch (Exception ignored) {
+                // Ohne Probe ist die Seite immer noch zu gebrauchen – die Regeln stehen dort so oder so.
+            }
+        }
+        finish();
+        startActivity(i);
+    }
+
+    /**
+     * Die Abrechnung einlesen, aus der gelernt und an der nachgeprüft wird.
+     *
+     * <p>Zuerst aus dem <b>PDF selbst</b>. Der Zwischenspeicher trägt nur den Text, und der wird beim
+     * Zurückbauen Wort für Wort mit einem Leerzeichen zusammengesetzt – die Wortpositionen sind dahin.
+     * Genau daraus lebt aber die Spaltenregel: gelernt würde an einer Lage, die es im Dokument gar nicht
+     * gibt, und beim nächsten Import läse dieselbe Regel etwas anderes. Der Text bleibt der Rückfall für
+     * den Stapelweg, der nur ihn durchreicht.</p>
+     *
+     * @return {@code null}, wenn beides nicht mehr da ist
+     */
     private de.spahr.ausgaben.pdf.PdfText readStatementText() {
+        java.io.File pdf = statementPdf();
+        if (pdf != null) {
+            try {
+                de.spahr.ausgaben.pdf.PdfText text = de.spahr.ausgaben.pdf.PdfTextExtractor.read(
+                        this, android.net.Uri.fromFile(pdf));
+                if (text.hasText()) {
+                    return text;
+                }
+            } catch (Exception e) {
+                // Dann eben aus dem Zwischenspeicher – besser als gar nicht zu lernen.
+            }
+        }
+        if (statementTextPath == null) {
+            return null;
+        }
         try {
             byte[] raw = java.nio.file.Files.readAllBytes(
                     new java.io.File(statementTextPath).toPath());
@@ -1157,11 +1309,8 @@ public class SecurityTxEditActivity extends LocalizedActivity {
      * damit nebenher offen, und später ist sie der Beleg zur Buchung.
      */
     private void showStatement() {
-        java.io.File file = pendingStatement;
-        if (file == null && savedStatementTag != null) {
-            file = statementFile();
-        }
-        if (file == null || !file.exists()) {
+        java.io.File file = statementPdf();
+        if (file == null) {
             Toast.makeText(this, R.string.receipt_error, Toast.LENGTH_SHORT).show();
             return;
         }
@@ -1176,6 +1325,21 @@ public class SecurityTxEditActivity extends LocalizedActivity {
         } catch (Exception e) {
             Toast.makeText(this, R.string.receipt_error, Toast.LENGTH_SHORT).show();
         }
+    }
+
+    /**
+     * Die Abrechnung als Datei – die noch nicht abgelegte oder die schon abgelegte; {@code null}, wenn
+     * es keine (mehr) gibt.
+     */
+    private java.io.File statementPdf() {
+        if (pendingStatement != null && pendingStatement.exists()) {
+            return pendingStatement;
+        }
+        if (savedStatementTag == null) {
+            return null;
+        }
+        java.io.File file = statementFile();
+        return file != null && file.exists() ? file : null;
     }
 
     /** Die gespeicherte Belegdatei zum Tag aus der Notiz; {@code null}, wenn sie nicht (mehr) lokal liegt. */

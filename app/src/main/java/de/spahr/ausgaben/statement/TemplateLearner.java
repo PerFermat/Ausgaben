@@ -164,10 +164,141 @@ public final class TemplateLearner {
             return null;
         }
         AnchorRule single = singleLine(text, value, epsilon, bindCurrency, used);
+        if (single != null && single.direction == AnchorRule.Direction.SAME_LINE) {
+            return single;
+        }
+        AnchorRule spalte = columnLine(text, value, epsilon, bindCurrency, used);
+        if (spalte != null) {
+            return spalte;
+        }
         if (single != null) {
             return single;
         }
-        return summedLines(text, value, epsilon, bindCurrency, used);
+        AnchorRule summed = summedLines(text, value, epsilon, bindCurrency, used);
+        if (summed != null) {
+            return summed;
+        }
+        // Zuletzt die beiden Formen, die sich nicht abzählen lassen. Sie stehen hinten, damit sich an
+        // allem, was bisher schon gelernt wurde, nichts ändert: sie greifen nur, wo vorher nichts kam.
+        AnchorRule column = columnLine(text, value, epsilon, bindCurrency, used);
+        if (column != null) {
+            return column;
+        }
+        return aboveLine(text, value, epsilon, bindCurrency, used);
+    }
+
+    /**
+     * Der Wert steht in der <b>Spalte</b> einer Überschrift, die einige Zeilen darüber steht.
+     *
+     * <p>Hier hilft kein Abzählen: fehlt in einer Zeile eine Spalte oder besteht eine Überschrift aus
+     * zwei Wörtern, zeigt jede gezählte Stelle auf die falsche Zahl. Über die Wortposition ist die Spalte
+     * dagegen eindeutig (siehe {@link AnchorRule.Position#COLUMN}).</p>
+     *
+     * <p>Gelernt wird mit <b>festem</b> Abstand zur Überschrift. Suchend wäre hier untauglich: in der
+     * Spalte einer Überschrift steht fast in jeder Zeile irgendeine Zahl, und die erste beste wäre
+     * selten die gemeinte.</p>
+     */
+    private static AnchorRule columnLine(PdfText text, double value, double epsilon,
+                                         boolean bindCurrency, List<String> used) {
+        List<PdfText.Line> lines = text.lines();
+        AnchorRule found = null;
+        for (int i = 0; i < lines.size(); i++) {
+            for (PdfText.Word word : lines.get(i).words) {
+                Double zahl = TextValues.toDecimal(word.text);
+                if (zahl == null || Math.abs(Math.abs(zahl) - value) > epsilon) {
+                    continue;
+                }
+                for (int j = i - 1; j >= 0 && j >= i - AnchorRule.MAX_DISTANCE; j--) {
+                    String label = columnLabel(lines.get(j), word);
+                    if (!isUsable(label, used, AnchorRule.Position.COLUMN)) {
+                        continue;
+                    }
+                    AnchorRule probe = new AnchorRule(java.util.Collections.singletonList(label),
+                            AnchorRule.Direction.LINE_BELOW, false,
+                            bindCurrency ? AnchorRule.currencyOf(lines.get(i).text()) : "",
+                            AnchorRule.Position.COLUMN, 1, i - j);
+                    Double gelesen = probe.read(text);
+                    if (gelesen != null && Math.abs(gelesen - value) <= epsilon) {
+                        found = probe;   // wie sonst auch: die unterste Fundstelle gewinnt
+                        break;
+                    }
+                }
+            }
+        }
+        return found;
+    }
+
+    /**
+     * Die Überschrift über einem Wert: das Wort der Kopfzeile, das waagerecht über ihm steht.
+     *
+     * <p>Zahlen scheiden aus — in einer Kopfzeile stehen Namen, und eine Zahl darin gehört zu einer
+     * anderen Zeile, die nur ähnlich hoch liegt. Ist das getroffene Wort zu kurz, um als Anker zu taugen
+     * („Stk."), kommt das Wort davor dazu.</p>
+     */
+    private static String columnLabel(PdfText.Line header, PdfText.Word value) {
+        PdfText.Word best = null;
+        int bestIndex = -1;
+        float bestDistance = Float.MAX_VALUE;
+        for (int i = 0; i < header.words.size(); i++) {
+            PdfText.Word word = header.words.get(i);
+            if (TextValues.toDecimal(word.text) != null) {
+                continue;
+            }
+            boolean overlap = word.x <= value.endX && word.endX >= value.x;
+            float distance = Math.abs((word.x + word.endX) / 2f - (value.x + value.endX) / 2f);
+            if (overlap) {
+                return withPrevious(header, i);
+            }
+            if (distance < bestDistance) {
+                bestDistance = distance;
+                bestIndex = i;
+                best = word;
+            }
+        }
+        return best == null ? "" : withPrevious(header, bestIndex);
+    }
+
+    /** Das Wort an dieser Stelle — und, wenn es allein zu kurz wäre, das davor mit dazu. */
+    private static String withPrevious(PdfText.Line line, int index) {
+        String word = line.words.get(index).text;
+        if (word.trim().length() >= 3 || index == 0) {
+            return word;
+        }
+        return line.words.get(index - 1).text + ' ' + word;
+    }
+
+    /**
+     * Der Wert steht <b>über</b> seiner Beschriftung. Spiegelbild zu der Überschrift-Suche in
+     * {@link #singleLine}: manche Belege setzen die Summe nach oben und benennen sie darunter.
+     */
+    private static AnchorRule aboveLine(PdfText text, double value, double epsilon,
+                                        boolean bindCurrency, List<String> used) {
+        List<PdfText.Line> lines = text.lines();
+        AnchorRule found = null;
+        for (int i = 0; i < lines.size(); i++) {
+            int[] stelle = stelleIn(lines.get(i).text(), value, epsilon);
+            if (stelle == null) {
+                continue;
+            }
+            AnchorRule.Position where = stelle[0] == 1
+                    ? AnchorRule.Position.FIRST : AnchorRule.Position.LAST;
+            for (int j = i + 1; j < lines.size() && j <= i + AnchorRule.MAX_DISTANCE; j++) {
+                String label = labelOf(lines.get(j).text());
+                if (!isUsable(label, used, where)) {
+                    continue;
+                }
+                AnchorRule probe = new AnchorRule(java.util.Collections.singletonList(label),
+                        AnchorRule.Direction.LINE_ABOVE, false,
+                        bindCurrency ? AnchorRule.currencyOf(lines.get(i).text()) : "",
+                        where, stelle[1], j - i);
+                Double gelesen = probe.read(text);
+                if (gelesen != null && Math.abs(gelesen - value) <= epsilon) {
+                    found = probe;
+                    break;
+                }
+            }
+        }
+        return found;
     }
 
     /** Der Wert steht als letzte Zahl einer Zeile — der Regelfall. */
@@ -228,7 +359,7 @@ public final class TemplateLearner {
     /**
      * Die Spaltenüberschrift über einer Wertzeile — {@code null}, wenn keine taugt.
      *
-     * <p>Gesucht wird bis zu {@link AnchorRule#MAX_BELOW} Zeilen nach oben, denn zwischen Überschrift und
+     * <p>Gesucht wird bis zu {@link AnchorRule#MAX_DISTANCE} Zeilen nach oben, denn zwischen Überschrift und
      * Daten steht oft noch eine zweite Kopfzeile: Scalable Capital schreibt „Buchung Wertstellung Typ …
      * Gesamt", darunter „Wechselkurs" und erst dann die Zahlen. Eine Zeile weit zu schauen fände dort
      * nur „Wechselkurs" — und das ist die Überschrift einer anderen Spalte.</p>
@@ -239,7 +370,7 @@ public final class TemplateLearner {
      */
     private static String labelAbove(List<PdfText.Line> lines, int i, List<String> used,
                                      AnchorRule.Position where) {
-        for (int j = i - 1; j >= 0 && j >= i - AnchorRule.MAX_BELOW; j--) {
+        for (int j = i - 1; j >= 0 && j >= i - AnchorRule.MAX_DISTANCE; j--) {
             String label = labelOf(lines.get(j).text());
             if (isUsable(label, used, where)) {
                 return label;
@@ -380,8 +511,39 @@ public final class TemplateLearner {
                 nthFound = stelle[1];
             }
         }
-        return anchor == null ? null
-                : AnchorRule.single(anchor, direction, "", position, nthFound);
+        if (anchor != null) {
+            return AnchorRule.single(anchor, direction, "", position, nthFound);
+        }
+        // Wie bei den Zahlen zuletzt die Spalte: „Buchung Wertstellung Typ …" als Überschrift und
+        // darunter zwei Daten nebeneinander – abzählen träfe dort das falsche, sobald eine Spalte fehlt.
+        return columnDate(text, dateMillis, used);
+    }
+
+    /** Das gebuchte Datum steht in der Spalte einer Überschrift darüber. Wie {@link #columnLine}. */
+    private static AnchorRule columnDate(PdfText text, long dateMillis, List<String> used) {
+        List<PdfText.Line> lines = text.lines();
+        AnchorRule found = null;
+        for (int i = 0; i < lines.size(); i++) {
+            for (PdfText.Word word : lines.get(i).words) {
+                if (TextValues.toUnambiguousDateMillis(word.text) != dateMillis) {
+                    continue;
+                }
+                for (int j = i - 1; j >= 0 && j >= i - AnchorRule.MAX_DISTANCE; j--) {
+                    String label = columnLabel(lines.get(j), word);
+                    if (!isUsable(label, used, AnchorRule.Position.COLUMN)) {
+                        continue;
+                    }
+                    AnchorRule probe = new AnchorRule(java.util.Collections.singletonList(label),
+                            AnchorRule.Direction.LINE_BELOW, false, "",
+                            AnchorRule.Position.COLUMN, 1, i - j);
+                    if (probe.readDate(text) == dateMillis) {
+                        found = probe;
+                        break;
+                    }
+                }
+            }
+        }
+        return found;
     }
 
     /**

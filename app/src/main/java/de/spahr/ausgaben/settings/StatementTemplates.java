@@ -308,14 +308,14 @@ public class StatementTemplates {
                 if (r.nth > 1) {
                     ro.put("n", r.nth);
                 }
-                if (r.linesBelow > 0) {
+                if (r.lineDistance > 0) {
                     // Nur bei fester Angabe – ohne sie sucht die Regel, und das ist der Regelfall.
-                    ro.put("b", r.linesBelow);
+                    ro.put("b", r.lineDistance);
                 }
-                if (r.position == AnchorRule.Position.FIRST) {
+                if (r.position != AnchorRule.Position.LAST) {
                     // Nur schreiben, wenn es vom Regelfall abweicht – Bestandsvorlagen bleiben so, wie
                     // sie sind, und beim Lesen gilt ohne Angabe die letzte Zahl.
-                    ro.put("p", "FIRST");
+                    ro.put("p", r.position.name());
                 }
                 rules.put(e.getKey().name(), ro);
             }
@@ -361,8 +361,12 @@ public class StatementTemplates {
                 } catch (IllegalArgumentException e) {
                     dir = AnchorRule.Direction.SAME_LINE;
                 }
-                AnchorRule.Position pos = "FIRST".equals(ro.optString("p", ""))
-                        ? AnchorRule.Position.FIRST : AnchorRule.Position.LAST;
+                AnchorRule.Position pos;
+                try {
+                    pos = AnchorRule.Position.valueOf(ro.optString("p", AnchorRule.Position.LAST.name()));
+                } catch (IllegalArgumentException e) {
+                    pos = AnchorRule.Position.LAST;
+                }
                 rules.put(field, new AnchorRule(anchors, dir, ro.optBoolean("s", false),
                         ro.optString("c", ""), pos, ro.optInt("n", 1), ro.optInt("b", 0)));
             }

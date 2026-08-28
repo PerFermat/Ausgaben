@@ -339,6 +339,54 @@ public class StatementRoundtripTest {
         assertEquals(Long.valueOf(90699L), e.grossCents);
     }
 
+    /**
+     * Die neuen Angaben — Richtung nach oben und die Spalte statt einer gezählten Stelle — überstehen
+     * das Speichern.
+     *
+     * <p>Beides steht im selben Feld wie bisher ({@code "d"} und {@code "p"}); der Test hält fest, dass
+     * dabei kein Wert verlorengeht und keiner in einen anderen umkippt.</p>
+     */
+    @Test
+    public void richtungNachObenUndDieSpalteUeberstehenDasSpeichern() {
+        StatementTemplates store = store();
+        java.util.Map<StatementTemplate.Field, AnchorRule> rules =
+                new java.util.EnumMap<>(StatementTemplate.Field.class);
+        rules.put(StatementTemplate.Field.NET, new AnchorRule(
+                java.util.Collections.singletonList("Gesamt"), AnchorRule.Direction.LINE_BELOW, false,
+                "", AnchorRule.Position.COLUMN, 1, 2));
+        rules.put(StatementTemplate.Field.FEE, new AnchorRule(
+                java.util.Collections.singletonList("Ausmachender Betrag"),
+                AnchorRule.Direction.LINE_ABOVE, false, "EUR", AnchorRule.Position.LAST, 1, 3));
+        store.saveAll(java.util.Collections.singletonList(
+                new StatementTemplate(StatementScan.DIVIDEND, rules)));
+
+        StatementTemplate back = new StatementTemplates(ctx).all().get(0);
+        AnchorRule netto = back.rule(StatementTemplate.Field.NET);
+        assertEquals(AnchorRule.Position.COLUMN, netto.position);
+        assertEquals(AnchorRule.Direction.LINE_BELOW, netto.direction);
+        assertEquals(2, netto.lineDistance);
+        AnchorRule gebuehr = back.rule(StatementTemplate.Field.FEE);
+        assertEquals(AnchorRule.Direction.LINE_ABOVE, gebuehr.direction);
+        assertEquals(AnchorRule.Position.LAST, gebuehr.position);
+        assertEquals(3, gebuehr.lineDistance);
+        assertEquals("EUR", gebuehr.currency);
+    }
+
+    /**
+     * Eine Vorlage aus der Zeit vor diesen Angaben liest sich unverändert: ohne {@code "p"} gilt „die
+     * letzte Zahl", ohne {@code "d"} „in derselben Zeile".
+     */
+    @Test
+    public void alteVorlagenBleibenWieSieWaren() {
+        StatementTemplates store = store();
+        store.save(TemplateLearner.learn(StatementFixtures.ingKauf(), kauf()));
+        AnchorRule netto = new StatementTemplates(ctx).all().get(0)
+                .rule(StatementTemplate.Field.NET);
+        assertEquals(AnchorRule.Position.LAST, netto.position);
+        assertEquals(AnchorRule.Direction.SAME_LINE, netto.direction);
+        assertEquals(0, netto.lineDistance);
+    }
+
     /** saveAll schreibt die Liste, wie sie ist – auch wenn dabei eine Vorlage verschwindet. */
     @Test
     public void saveAllSchreibtDieListeWieSieIst() {

@@ -1526,6 +1526,16 @@
     },
     {
       "type": "p",
+      "id": "b-0157k",
+      "text": "<b>In der Spalte der Beschriftung:</b> Bei einer Tabelle hilft Abzählen nur, solange jede Spalte genau eine Zahl breit ist und keine fehlt. Steht die Beschriftung als Spaltenüberschrift, wählen Sie bei «Welche Zahl der Zeile» stattdessen <b>«die Zahl in der Spalte der Beschriftung»</b>: die App nimmt dann den Wert, der auf der Seite unter (bzw. über) der Beschriftung steht. Das hält auch, wenn in einem späteren Beleg eine Spalte fehlt. Die Auswahl gibt es nur zusammen mit «darunter» oder «darüber» – in derselben Zeile wäre die Spalte der Beschriftung die Beschriftung selbst."
+    },
+    {
+      "type": "p",
+      "id": "b-0157l",
+      "text": "<b>Werte über der Beschriftung:</b> Manche Belege setzen erst die Zahl und benennen sie darunter. Dafür gibt es <b>«in einer der Zeilen darüber»</b> und <b>«genau 1, 2 oder 3 Zeilen darüber»</b> – spiegelbildlich zu «darunter»."
+    },
+    {
+      "type": "p",
       "id": "b-0157j",
       "text": "<b>Hilfe beim Eintippen:</b> Unter «Abrechnung prüfen» steht neben dem Ergebnis der Knopf <b>«Text mit Zeilennummern»</b>. Er zeigt die Abrechnung so, wie die App sie liest. Das ist nötig, weil ihre Zeilen nicht die Zeilen des PDF-Betrachters sind: sie entstehen aus den Wortpositionen, und eine optisch leere Zeile gibt es dort gar nicht. Zum Abzählen des Abstands ist das die einzige verläßliche Quelle."
     },

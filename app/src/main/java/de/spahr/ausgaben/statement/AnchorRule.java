@@ -34,7 +34,21 @@ public final class AnchorRule {
         /** Die letzte Zahl der Zeile — der Regelfall. */
         LAST,
         /** Die erste Zahl der Zeile — Tabellenspalte unter einer Überschrift. */
-        FIRST
+        FIRST,
+        /**
+         * Die Zahl, die <b>waagerecht unter (oder über) der Beschriftung</b> steht — nicht abgezählt,
+         * sondern über die Wortposition getroffen (siehe {@link #inColumn}).
+         *
+         * <p>Der Unterschied zu {@link #FIRST}/{@link #LAST} zeigt sich bei Tabellen: Abzählen stimmt
+         * nur, solange jede Spalte genau eine Zahl breit ist und keine fehlt. Eine zweiwortige
+         * Überschrift, ein Wertpapiername oder eine ausgelassene Spalte verschieben die Zählung — still,
+         * mit einer Zahl aus der Nachbarspalte als Ergebnis. Die Position verschiebt sich nicht.</p>
+         *
+         * <p>{@link AnchorRule#nth} ist dann bedeutungslos, und mit {@link Direction#SAME_LINE} ergibt
+         * die Angabe keinen Sinn: dort ist die Spalte der Beschriftung die Beschriftung selbst. Die
+         * Regelseite lässt die Kombination nicht zu; im Modell liefert sie nichts.</p>
+         */
+        COLUMN
     }
 
     /** Wo der Wert relativ zur Beschriftung steht. Welche Richtung gilt, ermittelt der Lerner. */
@@ -42,7 +56,13 @@ public final class AnchorRule {
         /** In derselben Zeile wie die Beschriftung — der Regelfall. */
         SAME_LINE,
         /** In der Zeile darunter; manche Banken setzen den Wert unter die Überschrift. */
-        LINE_BELOW
+        LINE_BELOW,
+        /**
+         * In der Zeile darüber. Spiegelbild von {@link #LINE_BELOW}, für Belege, die erst die Zahl und
+         * darunter erst die Beschriftung setzen — etwa eine Summenzeile, unter der „Gesamtbetrag" steht,
+         * oder eine Tabelle, deren Spaltennamen unter den Daten stehen.
+         */
+        LINE_ABOVE
     }
 
     /**
@@ -74,7 +94,11 @@ public final class AnchorRule {
      * eine Regel den Dollarbetrag als Euro — still, und um ein Sechstel daneben.</p>
      */
     public final String currency;
-    /** Von welchem Ende der Zeile gezählt wird; der Lerner ermittelt es (siehe {@link Position}). */
+    /**
+     * Von welchem Ende der Zeile gezählt wird — oder {@link Position#COLUMN}, wenn gar nicht gezählt,
+     * sondern die Spalte der Beschriftung getroffen wird. Der Lerner ermittelt es (siehe
+     * {@link Position}).
+     */
     public final Position position;
     /**
      * Die wievielte Zahl von diesem Ende gemeint ist, ab 1.
@@ -85,20 +109,22 @@ public final class AnchorRule {
      */
     public final int nth;
     /**
-     * Wie viele Zeilen unter der Beschriftung der Wert steht — nur bei {@link Direction#LINE_BELOW}.
+     * Wie viele Zeilen von der Beschriftung entfernt der Wert steht — bei {@link Direction#LINE_BELOW}
+     * nach unten, bei {@link Direction#LINE_ABOVE} nach oben. Bei {@link Direction#SAME_LINE} ohne
+     * Bedeutung.
      *
-     * <p><b>0 heißt suchend:</b> die nächste Zeile darunter, die überhaupt einen brauchbaren Wert trägt,
-     * höchstens {@link #MAX_BELOW} weit. Das ist der Regelfall und der nachsichtige: bei einer
-     * Spaltenüberschrift steht zwischen ihr und den Daten oft noch eine zweite Kopfzeile
+     * <p><b>0 heißt suchend:</b> die nächste Zeile in dieser Richtung, die überhaupt einen brauchbaren
+     * Wert trägt, höchstens {@link #MAX_DISTANCE} weit. Das ist der Regelfall und der nachsichtige: bei
+     * einer Spaltenüberschrift steht zwischen ihr und den Daten oft noch eine zweite Kopfzeile
      * („Betrag / Stk." und darunter „Wechselkurs"), und ob sie da ist, hängt vom einzelnen Beleg ab.</p>
      *
-     * <p><b>1 bis 3</b> heißt genau so viele Zeilen tiefer — für den Fall, dass die suchende Fassung an
+     * <p><b>1 bis 3</b> heißt genau so viele Zeilen weiter — für den Fall, dass die suchende Fassung an
      * einer Zwischenzeile hängenbleibt, die zufällig eine Zahl trägt.</p>
      */
-    public final int linesBelow;
+    public final int lineDistance;
 
-    /** So weit sucht die nachsichtige Fassung von {@link #linesBelow} nach unten. */
-    public static final int MAX_BELOW = 3;
+    /** So weit sucht die nachsichtige Fassung von {@link #lineDistance} — nach unten wie nach oben. */
+    public static final int MAX_DISTANCE = 3;
 
     public AnchorRule(List<String> anchors, Direction direction, boolean sum) {
         this(anchors, direction, sum, "");
@@ -119,7 +145,7 @@ public final class AnchorRule {
     }
 
     public AnchorRule(List<String> anchors, Direction direction, boolean sum, String currency,
-                      Position position, int nth, int linesBelow) {
+                      Position position, int nth, int lineDistance) {
         List<String> copy = new ArrayList<>();
         for (String a : anchors) {
             if (a != null && !a.trim().isEmpty()) {
@@ -132,7 +158,7 @@ public final class AnchorRule {
         this.currency = currency == null ? "" : currency.trim();
         this.position = position == null ? Position.LAST : position;
         this.nth = Math.max(1, nth);
-        this.linesBelow = Math.max(0, Math.min(MAX_BELOW, linesBelow));
+        this.lineDistance = Math.max(0, Math.min(MAX_DISTANCE, lineDistance));
     }
 
     public static AnchorRule single(String anchor, Direction direction) {
@@ -197,11 +223,13 @@ public final class AnchorRule {
         List<PdfText.Line> lines = text.lines();
         Double result = null;
         for (int i = 0; i < lines.size(); i++) {
-            for (String valueText : valueTexts(lines, i, anchor)) {
-                if (!currencyFits(valueText)) {
+            for (Target target : targets(lines, i, anchor)) {
+                if (!currencyFits(target.text)) {
                     continue;   // andere Währung als gelernt – dann ist es nicht der gesuchte Betrag
                 }
-                Double value = numberAt(valueText, position, nth);
+                Double value = position == Position.COLUMN
+                        ? inColumn(lines.get(i), anchor, target.line)
+                        : numberAt(target.text, position, nth);
                 if (value != null) {
                     result = value;   // weiter suchen: die unterste Fundstelle gewinnt
                     break;            // je Fundstelle aber nur die erste Zeile mit einem Wert
@@ -221,29 +249,53 @@ public final class AnchorRule {
      * Hausnummer mit. Führt die Beschriftung die Zeile an — der Regelfall —, ist es wie bisher der
      * ganze Rest.</p>
      *
-     * <p>Bei „darunter" ist es eine Zeile tiefer, bei einem festen {@link #linesBelow} genau so viele —
-     * und ohne Angabe die nächsten {@link #MAX_BELOW}, aus denen der Aufrufer die erste mit einem Wert
-     * nimmt. Letzteres macht Spaltenüberschriften erreichbar, unter denen noch eine zweite Kopfzeile
-     * steht.</p>
+     * <p>Bei „darunter" ist es eine Zeile tiefer, bei „darüber" eine höher, bei einem festen
+     * {@link #lineDistance} genau so viele — und ohne Angabe die nächsten {@link #MAX_DISTANCE} in dieser
+     * Richtung, aus denen der Aufrufer die erste mit einem Wert nimmt. Letzteres macht
+     * Spaltenüberschriften erreichbar, unter denen noch eine zweite Kopfzeile steht.</p>
      */
-    private List<String> valueTexts(List<PdfText.Line> lines, int i, String anchor) {
+    private List<Target> targets(List<PdfText.Line> lines, int i, String anchor) {
         int after = afterAnchor(lines.get(i).text(), anchor);
         if (after < 0) {
             return java.util.Collections.emptyList();
         }
-        if (direction != Direction.LINE_BELOW) {
-            return java.util.Collections.singletonList(lines.get(i).text().substring(after));
+        if (direction == Direction.SAME_LINE) {
+            return java.util.Collections.singletonList(
+                    new Target(lines.get(i), lines.get(i).text().substring(after)));
         }
-        if (linesBelow > 0) {
-            int j = i + linesBelow;
-            return j < lines.size() ? java.util.Collections.singletonList(lines.get(j).text())
-                    : java.util.Collections.emptyList();
+        int step = direction == Direction.LINE_ABOVE ? -1 : 1;
+        if (lineDistance > 0) {
+            int j = i + step * lineDistance;
+            return j >= 0 && j < lines.size()
+                    ? java.util.Collections.singletonList(new Target(lines.get(j), lines.get(j).text()))
+                    : java.util.Collections.<Target>emptyList();
         }
-        List<String> out = new ArrayList<>();
-        for (int j = i + 1; j <= i + MAX_BELOW && j < lines.size(); j++) {
-            out.add(lines.get(j).text());
+        List<Target> out = new ArrayList<>();
+        for (int k = 1; k <= MAX_DISTANCE; k++) {
+            int j = i + step * k;
+            if (j < 0 || j >= lines.size()) {
+                break;
+            }
+            out.add(new Target(lines.get(j), lines.get(j).text()));
         }
         return out;
+    }
+
+    /**
+     * Eine Zeile, in der zu suchen ist, samt dem Textausschnitt, der dabei gilt.
+     *
+     * <p>Beides wird gebraucht: die abzählenden Stellen arbeiten auf dem Text — bei
+     * {@link Direction#SAME_LINE} nur auf dem <b>hinter</b> der Beschriftung —, {@link Position#COLUMN}
+     * dagegen auf den Wörtern samt ihrer Position auf der Seite.</p>
+     */
+    private static final class Target {
+        final PdfText.Line line;
+        final String text;
+
+        Target(PdfText.Line line, String text) {
+            this.line = line;
+            this.text = text;
+        }
     }
 
     /**
@@ -302,8 +354,10 @@ public final class AnchorRule {
         List<PdfText.Line> lines = text.lines();
         long result = -1;
         for (int i = 0; i < lines.size(); i++) {
-            for (String valueText : valueTexts(lines, i, anchor)) {
-                long millis = dateAt(valueText, position, nth);
+            for (Target target : targets(lines, i, anchor)) {
+                long millis = position == Position.COLUMN
+                        ? dateInColumn(lines.get(i), anchor, target.line)
+                        : dateAt(target.text, position, nth);
                 if (millis > 0) {
                     result = millis;   // unterste Fundstelle gewinnt, wie bei den Zahlen
                     break;             // je Fundstelle die erste Zeile mit einem Datum
@@ -379,20 +433,44 @@ public final class AnchorRule {
     /** Das Datum, das bei Wort {@code i} beginnt; -1, wenn dort keines steht. */
     private static long dateStartingAt(String[] tokens, int i) {
         for (int len = Math.min(3, tokens.length - i); len >= 1; len--) {
-            StringBuilder joined = new StringBuilder();
-            for (int k = 0; k < len; k++) {
-                if (k > 0) {
-                    joined.append(' ');
-                }
-                joined.append(tokens[i + k]);
-            }
-            // Das Komma in „Dec 5, 2019" gehört zur Schreibweise, nicht zum Datum.
-            long millis = TextValues.toUnambiguousDateMillis(joined.toString().replace(",", ""));
+            long millis = dateStartingAt(tokens, i, len);
             if (millis > 0) {
                 return millis;
             }
         }
         return -1;
+    }
+
+    /**
+     * Wie viele Wörter das Datum <b>wirklich</b> belegt — die kürzeste Gruppe ab {@code i}, die dasselbe
+     * Ergebnis liefert wie die {@code len} Wörter lange.
+     *
+     * <p>Nötig, weil das Einlesen überschüssigen Text stillschweigend übergeht: „30.06.2026 01.07.2026
+     * Gutschrift" ergibt dasselbe Datum wie „30.06.2026" allein. Für die Spaltensuche ist das ein
+     * Unterschied ums Ganze — die Gruppe belegte sonst die halbe Zeile und überschnitte jede Spalte.</p>
+     */
+    private static int shortest(String[] tokens, int i, int len, long millis) {
+        int shortest = len;
+        while (shortest > 1 && dateStartingAt(tokens, i, shortest - 1) == millis) {
+            shortest--;
+        }
+        return shortest;
+    }
+
+    /** Das Datum aus genau {@code len} Wörtern ab {@code i}; -1, wenn die keines ergeben. */
+    private static long dateStartingAt(String[] tokens, int i, int len) {
+        if (i < 0 || len < 1 || i + len > tokens.length) {
+            return -1;
+        }
+        StringBuilder joined = new StringBuilder();
+        for (int k = 0; k < len; k++) {
+            if (k > 0) {
+                joined.append(' ');
+            }
+            joined.append(tokens[i + k]);
+        }
+        // Das Komma in „Dec 5, 2019" gehört zur Schreibweise, nicht zum Datum.
+        return TextValues.toUnambiguousDateMillis(joined.toString().replace(",", ""));
     }
 
     /** Ob die Zeile mit genau dieser Beschriftung beginnt. */
@@ -480,6 +558,169 @@ public final class AnchorRule {
         return "";
     }
 
+    /**
+     * Die Zahl der Zeile {@code valueLine}, die <b>waagerecht unter (oder über) der Beschriftung</b>
+     * steht; {@code null}, wenn keine dafür in Frage kommt.
+     *
+     * <p>Gesucht wird nicht abgezählt, sondern über die Position der Wörter auf der Seite: die
+     * Beschriftung belegt einen waagerechten Bereich, und gesucht ist die Zahl im selben Bereich. Das
+     * hält auch dann, wenn eine Spalte in einem Beleg fehlt oder eine Überschrift aus zwei Wörtern
+     * besteht — beides verschiebt jedes Abzählen.</p>
+     *
+     * <p>Es gewinnt die erste Zahl, deren Bereich den der Beschriftung <b>überschneidet</b>. Gibt es
+     * keine solche, die mit dem geringsten Abstand der Mitten: Zahlenspalten sind rechtsbündig gesetzt,
+     * Überschriften oft linksbündig, und dann überschneidet sich nichts, obwohl es dieselbe Spalte
+     * ist.</p>
+     *
+     * <p>Währungskennzeichen und Prozentzeichen sind keine Kandidaten — sie stehen in Tabellen als
+     * eigene Spalte oder direkt neben dem Wert und wären sonst der nächstliegende Treffer.</p>
+     *
+     * <p>Steht die Beschriftung in derselben Zeile wie der Wert, liefert die Angabe {@code null}: dort
+     * ist die Spalte der Beschriftung die Beschriftung selbst. Die Regelseite lässt die Kombination
+     * gar nicht erst zu.</p>
+     */
+    static Double inColumn(PdfText.Line labelLine, String anchor, PdfText.Line valueLine) {
+        if (labelLine == null || valueLine == null || labelLine == valueLine) {
+            return null;
+        }
+        float[] span = anchorSpan(labelLine, anchor);
+        if (span == null) {
+            return null;
+        }
+        PdfText.Word best = nearest(valueLine, span, true);
+        if (best == null) {
+            best = nearest(valueLine, span, false);
+        }
+        if (best == null) {
+            return null;
+        }
+        Double value = TextValues.toDecimal(best.text);
+        return value == null ? null : Math.abs(value);
+    }
+
+    /**
+     * Das Datum in der Spalte der Beschriftung; -1, wenn keines dort steht. Sonst wie {@link #inColumn}.
+     *
+     * <p>Ein Datum kann über drei Wörter gehen („30 Aug 2023"); es belegt dann den Bereich vom ersten
+     * bis zum letzten davon.</p>
+     */
+    static long dateInColumn(PdfText.Line labelLine, String anchor, PdfText.Line valueLine) {
+        if (labelLine == null || valueLine == null || labelLine == valueLine) {
+            return -1;
+        }
+        float[] span = anchorSpan(labelLine, anchor);
+        if (span == null) {
+            return -1;
+        }
+        List<PdfText.Word> words = valueLine.words;
+        String[] tokens = new String[words.size()];
+        for (int i = 0; i < words.size(); i++) {
+            tokens[i] = words.get(i).text;
+        }
+        long best = -1;
+        float bestDistance = Float.MAX_VALUE;
+        for (int i = 0; i < tokens.length; i++) {
+            for (int len = Math.min(3, tokens.length - i); len >= 1; len--) {
+                long millis = dateStartingAt(tokens, i, len);
+                if (millis <= 0) {
+                    continue;
+                }
+                float x = words.get(i).x;
+                float endX = words.get(i + shortest(tokens, i, len, millis) - 1).endX;
+                if (overlaps(x, endX, span[0], span[1])) {
+                    return millis;
+                }
+                float distance = Math.abs(middle(x, endX) - middle(span[0], span[1]));
+                if (distance < bestDistance) {
+                    bestDistance = distance;
+                    best = millis;
+                }
+                break;   // das längste Datum an dieser Stelle genügt
+            }
+        }
+        return best;
+    }
+
+    /**
+     * Der waagerechte Bereich, den die Beschriftung in ihrer Zeile belegt: {@code {x, endX}}, oder
+     * {@code null}, wenn sie dort nicht steht.
+     *
+     * <p>{@link PdfText.Line#text()} fügt die Wörter mit genau einem Leerzeichen zusammen; aus der
+     * Fundstelle im Text lässt sich deshalb ausrechnen, welche Wörter die Beschriftung ausmacht.</p>
+     */
+    static float[] anchorSpan(PdfText.Line line, String anchor) {
+        int at = afterAnchor(line.text(), anchor);
+        if (at < 0) {
+            return null;
+        }
+        int end = at;                              // Zeichen hinter der Beschriftung
+        int start = end - anchor.trim().length();  // ihr erstes Zeichen
+        PdfText.Word first = null;
+        PdfText.Word last = null;
+        int pos = 0;
+        for (PdfText.Word word : line.words) {
+            int wordEnd = pos + word.text.length();
+            if (wordEnd > start && pos < end) {
+                if (first == null) {
+                    first = word;
+                }
+                last = word;
+            }
+            pos = wordEnd + 1;   // das trennende Leerzeichen
+        }
+        return first == null ? null : new float[]{first.x, last.endX};
+    }
+
+    /**
+     * Die Zahl mit der geringsten Abweichung zur Mitte der Beschriftung — wahlweise nur unter denen, die
+     * ihren Bereich <b>überschneiden</b>.
+     *
+     * <p>Der Vorrang der Überschneidung ist die Absicherung für den Ausnahmefall: eine ungewöhnlich
+     * breite Zahl kann ihre Spalte überdecken und trotzdem eine Mitte weit ab haben, während eine Zahl
+     * aus der Nachbarspalte zufällig näher an der Mitte liegt. Unter mehreren überschneidenden gewinnt
+     * die mittigste — nicht die erste: bei einer breiten Überschrift stünde die erste ganz links, und
+     * die Spalte, die sie meint, weiter rechts.</p>
+     */
+    private static PdfText.Word nearest(PdfText.Line line, float[] span, boolean nurUeberlappende) {
+        PdfText.Word best = null;
+        float bestDistance = Float.MAX_VALUE;
+        for (PdfText.Word word : line.words) {
+            if (!isValue(word.text)) {
+                continue;
+            }
+            if (nurUeberlappende && !overlaps(word.x, word.endX, span[0], span[1])) {
+                continue;
+            }
+            float distance = Math.abs(middle(word.x, word.endX) - middle(span[0], span[1]));
+            if (distance < bestDistance) {
+                bestDistance = distance;
+                best = word;
+            }
+        }
+        return best;
+    }
+
+    /** Ob sich zwei waagerechte Bereiche berühren oder überschneiden. */
+    private static boolean overlaps(float aStart, float aEnd, float bStart, float bEnd) {
+        return aStart <= bEnd && aEnd >= bStart;
+    }
+
+    private static float middle(float start, float end) {
+        return (start + end) / 2f;
+    }
+
+    /**
+     * Ob ein Wort als Wert einer Spalte in Frage kommt: es muss eine Zahl sein.
+     *
+     * <p>Damit fallen Währungskennzeichen und Prozentzeichen von selbst heraus — „EUR" und „%" stehen in
+     * Tabellen als eigene Spalte oder direkt neben dem Wert und wären sonst der nächstliegende Treffer,
+     * aber als Zahl lesen lässt sich keines von beiden. Ein ausdrücklicher Ausschluss dafür wäre toter
+     * Code: er liess sich nicht zum Anschlagen bringen.</p>
+     */
+    private static boolean isValue(String token) {
+        return token != null && !token.isEmpty() && TextValues.toDecimal(token) != null;
+    }
+
     /** Die {@code nth}-te Zahl vom vorderen oder hinteren Ende der Zeile. */
     static Double numberAt(String line, Position position, int nth) {
         List<String> tokens = TextValues.numberTokens(line);
@@ -526,21 +767,22 @@ public final class AnchorRule {
         AnchorRule other = (AnchorRule) o;
         return sum == other.sum && direction == other.direction && anchors.equals(other.anchors)
                 && currency.equals(other.currency) && position == other.position && nth == other.nth
-                && linesBelow == other.linesBelow;
+                && lineDistance == other.lineDistance;
     }
 
     @Override
     public int hashCode() {
         return ((((anchors.hashCode() * 31 + direction.hashCode()) * 31 + currency.hashCode()) * 31
-                + position.hashCode()) * 31 + nth) * 31 + linesBelow + (sum ? 1 : 0);
+                + position.hashCode()) * 31 + nth) * 31 + lineDistance + (sum ? 1 : 0);
     }
 
     @Override
     public String toString() {
         return (sum ? "Summe von " : "") + anchors + " (" + direction
-                + (linesBelow > 0 ? " " + linesBelow : "")
-                + (position == Position.FIRST || nth > 1 ? ", " + nth + ". Zahl von "
-                        + (position == Position.FIRST ? "links" : "rechts") : "")
+                + (lineDistance > 0 ? " " + lineDistance : "")
+                + (position == Position.COLUMN ? ", in der Spalte der Beschriftung"
+                        : position == Position.FIRST || nth > 1 ? ", " + nth + ". Zahl von "
+                                + (position == Position.FIRST ? "links" : "rechts") : "")
                 + (currency.isEmpty() ? "" : ", " + currency) + ")";
     }
 }

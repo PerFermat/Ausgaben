@@ -773,6 +773,9 @@
     <string name="statement_rules_line_below">on one of the lines below</string>
     <string name="statement_rules_below_one">exactly 1 line below</string>
     <string name="statement_rules_below_n">exactly %1$d lines below</string>
+    <string name="statement_rules_line_above">on one of the lines above</string>
+    <string name="statement_rules_above_one">exactly 1 line above</string>
+    <string name="statement_rules_above_n">exactly %1$d lines above</string>
     <string name="statement_rules_sum">Add up several lines</string>
     <string name="statement_rules_fixed_fee">Fixed fee per order</string>
     <string name="statement_rules_fixed_fee_category">Category of the fixed fee</string>
@@ -803,4 +806,5 @@
     <string name="statement_rules_first_number">the first one (column)</string>
     <string name="statement_rules_nth_right">the %1$d. from the right</string>
     <string name="statement_rules_nth_left">the %1$d. from the left</string>
+    <string name="statement_rules_column">the number in the label\'s column</string>
 </resources>

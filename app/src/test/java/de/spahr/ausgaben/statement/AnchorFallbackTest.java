@@ -175,8 +175,13 @@ public class AnchorFallbackTest {
         assertEquals(Long.valueOf(203066L), t.apply(tabelle()).netCents);
         // Und die Beschriftung ist die Überschrift, nicht das Währungskürzel, mit dem die Wertzeile
         // beginnt — „EUR" wäre als Anker wertlos, es steht in jeder zweiten Zeile.
-        assertEquals("Nominale Wertpapierbezeichnung ISIN (WKN)",
-                t.rule(StatementTemplate.Field.SHARES).anchors.get(0));
+        //
+        // Es ist das einzelne Wort der Spalte, nicht mehr die ganze Kopfzeile: seit der Lerner die
+        // Spalte bevorzugt, hängt die Regel an der Position von „Nominale" statt an einer abgezählten
+        // Stelle. Das hält auch, wenn in einem anderen Beleg eine Spalte fehlt.
+        AnchorRule stueck = t.rule(StatementTemplate.Field.SHARES);
+        assertEquals("Nominale", stueck.anchors.get(0));
+        assertEquals(AnchorRule.Position.COLUMN, stueck.position);
     }
 
     /**

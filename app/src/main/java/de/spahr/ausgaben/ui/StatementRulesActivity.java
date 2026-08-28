@@ -296,12 +296,11 @@ public class StatementRulesActivity extends LocalizedActivity {
             }
 
             PickerAdapters.plain(direction, richtungen());
-            PickerAdapters.plain(position, stellen());
 
             AnchorRule rule = template.rule(field);
             if (rule != null) {
                 anchors.addAll(rule.anchors);
-                direction.setText(richtung(rule.direction, rule.linesBelow), false);
+                direction.setText(richtung(rule.direction, rule.lineDistance), false);
                 currency.setText(rule.currency);
                 sum.setChecked(rule.sum);
                 position.setText(stelle(rule.position, rule.nth), false);
@@ -309,6 +308,7 @@ public class StatementRulesActivity extends LocalizedActivity {
                 direction.setText(getString(R.string.statement_rules_same_line), false);
                 position.setText(stelle(AnchorRule.Position.LAST, 1), false);
             }
+            updateStellen();
             view.findViewById(R.id.btnAddAnchor).setOnClickListener(v -> {
                 readBack();
                 anchors.add("");
@@ -316,7 +316,10 @@ public class StatementRulesActivity extends LocalizedActivity {
             });
             // Jede Einstellung, die das Lesen ändert, rechnet die Fundstelle sofort neu: sonst müsste
             // man raten, ob eine Änderung etwas gebracht hat.
-            direction.setOnItemClickListener((p, v, at, id) -> updateFound());
+            direction.setOnItemClickListener((p, v, at, id) -> {
+                updateStellen();   // «in der Spalte» gibt es nur, wenn der Wert nicht hier steht
+                updateFound();
+            });
             position.setOnItemClickListener((p, v, at, id) -> updateFound());
             currency.addTextChangedListener(new SimpleWatcher(this::updateFound));
             sum.setOnCheckedChangeListener((b, checked) -> {
@@ -403,26 +406,49 @@ public class StatementRulesActivity extends LocalizedActivity {
         }
 
         /**
+         * Setzt die Auswahl „welche Zahl" passend zur Richtung.
+         *
+         * <p>Bei „in derselben Zeile" fehlt die Spaltenwahl — sie fände dort nie etwas. Stand sie
+         * vorher, fällt die Einstellung auf den Regelfall zurück, statt stumm eine Regel zu
+         * hinterlassen, die nichts liest.</p>
+         */
+        private void updateStellen() {
+            boolean mitSpalte = chosenDirection() != AnchorRule.Direction.SAME_LINE;
+            if (!mitSpalte && chosenPosition() == AnchorRule.Position.COLUMN) {
+                position.setText(stelle(AnchorRule.Position.LAST, 1), false);
+            }
+            PickerAdapters.plain(position, stellen(mitSpalte));
+        }
+
+        /**
          * Eine Regel aus den gerade eingestellten Angaben. Der Anker kommt von aussen, damit sich
          * damit auch ein einzelner prüfen lässt — für die Anzeige der Einzelwerte beim Summieren und
          * für die Auswahlliste, die ja nur zeigen darf, was die fertige Regel auch findet.
          */
         private AnchorRule ruleFor(List<String> anchorList, boolean summed) {
             return new AnchorRule(anchorList, chosenDirection(), summed, chosenCurrency(),
-                    chosenPosition(), chosenNth(), chosenLinesBelow());
+                    chosenPosition(), chosenNth(), chosenLineDistance());
         }
 
         private AnchorRule.Direction chosenDirection() {
             String gewaehlt = direction.getText() == null ? "" : direction.getText().toString();
-            return getString(R.string.statement_rules_same_line).equals(gewaehlt)
-                    ? AnchorRule.Direction.SAME_LINE : AnchorRule.Direction.LINE_BELOW;
+            if (getString(R.string.statement_rules_same_line).equals(gewaehlt)) {
+                return AnchorRule.Direction.SAME_LINE;
+            }
+            for (int i = 0; i <= AnchorRule.MAX_DISTANCE; i++) {
+                if (richtung(AnchorRule.Direction.LINE_ABOVE, i).equals(gewaehlt)) {
+                    return AnchorRule.Direction.LINE_ABOVE;
+                }
+            }
+            return AnchorRule.Direction.LINE_BELOW;
         }
 
-        /** 0 heisst «suchend» – siehe {@link AnchorRule#linesBelow}. */
-        private int chosenLinesBelow() {
+        /** 0 heisst «suchend» – siehe {@link AnchorRule#lineDistance}. */
+        private int chosenLineDistance() {
             String gewaehlt = direction.getText() == null ? "" : direction.getText().toString();
-            for (int i = 1; i <= AnchorRule.MAX_BELOW; i++) {
-                if (richtung(AnchorRule.Direction.LINE_BELOW, i).equals(gewaehlt)) {
+            for (int i = 1; i <= AnchorRule.MAX_DISTANCE; i++) {
+                if (richtung(AnchorRule.Direction.LINE_BELOW, i).equals(gewaehlt)
+                        || richtung(AnchorRule.Direction.LINE_ABOVE, i).equals(gewaehlt)) {
                     return i;
                 }
             }
@@ -431,6 +457,9 @@ public class StatementRulesActivity extends LocalizedActivity {
 
         private AnchorRule.Position chosenPosition() {
             String gewaehlt = position.getText() == null ? "" : position.getText().toString();
+            if (stelle(AnchorRule.Position.COLUMN, 1).equals(gewaehlt)) {
+                return AnchorRule.Position.COLUMN;
+            }
             for (int i = 1; i <= MAX_STELLE; i++) {
                 if (stelle(AnchorRule.Position.FIRST, i).equals(gewaehlt)) {
                     return AnchorRule.Position.FIRST;
@@ -516,7 +545,7 @@ public class StatementRulesActivity extends LocalizedActivity {
             } else {
                 for (de.spahr.ausgaben.statement.StatementScan.ValueCandidate c
                         : de.spahr.ausgaben.statement.StatementScan.values(testText, chosenDirection(),
-                        chosenLinesBelow(), chosenPosition(), chosenNth(), chosenCurrency())) {
+                        chosenLineDistance(), chosenPosition(), chosenNth(), chosenCurrency())) {
                     labels.add(c.label);
                     shown.add(c.label + ":  " + formatValue(field, c.value));
                 }
@@ -584,7 +613,7 @@ public class StatementRulesActivity extends LocalizedActivity {
     }
 
     /** Bis zu dieser Stelle lässt sich von Hand wählen — so weit sucht auch der Lerner. */
-    private static final int MAX_STELLE = 3;
+    private static final int MAX_STELLE = 6;
 
     /**
      * Die Auswahl „wo steht der Wert": in derselben Zeile, irgendwo darunter, oder genau eine, zwei,
@@ -597,27 +626,39 @@ public class StatementRulesActivity extends LocalizedActivity {
     private List<String> richtungen() {
         List<String> out = new ArrayList<>();
         out.add(getString(R.string.statement_rules_same_line));
-        out.add(getString(R.string.statement_rules_line_below));
-        for (int i = 1; i <= AnchorRule.MAX_BELOW; i++) {
+        for (int i = 0; i <= AnchorRule.MAX_DISTANCE; i++) {
             out.add(richtung(AnchorRule.Direction.LINE_BELOW, i));
+            out.add(richtung(AnchorRule.Direction.LINE_ABOVE, i));
         }
         return out;
     }
 
     /** Die Beschriftung zu einer Richtung samt Abstand. */
-    private String richtung(AnchorRule.Direction dir, int linesBelow) {
-        if (dir != AnchorRule.Direction.LINE_BELOW) {
+    private String richtung(AnchorRule.Direction dir, int lineDistance) {
+        if (dir == AnchorRule.Direction.SAME_LINE) {
             return getString(R.string.statement_rules_same_line);
         }
-        if (linesBelow <= 0) {
-            return getString(R.string.statement_rules_line_below);
+        boolean above = dir == AnchorRule.Direction.LINE_ABOVE;
+        if (lineDistance <= 0) {
+            return getString(above ? R.string.statement_rules_line_above
+                    : R.string.statement_rules_line_below);
         }
-        return getString(linesBelow == 1 ? R.string.statement_rules_below_one
-                : R.string.statement_rules_below_n, linesBelow);
+        if (lineDistance == 1) {
+            return getString(above ? R.string.statement_rules_above_one
+                    : R.string.statement_rules_below_one);
+        }
+        return getString(above ? R.string.statement_rules_above_n : R.string.statement_rules_below_n,
+                lineDistance);
     }
 
-    /** Die Auswahl „welche Zahl der Zeile", von aussen nach innen. */
-    private List<String> stellen() {
+    /**
+     * Die Auswahl „welche Zahl der Zeile", von aussen nach innen — und zuletzt die Spalte.
+     *
+     * <p>Die Spaltenwahl steht nur zur Verfügung, wenn der Wert nicht in derselben Zeile steht: dort
+     * wäre die Spalte der Beschriftung die Beschriftung selbst, die Einstellung fände also nie
+     * etwas.</p>
+     */
+    private List<String> stellen(boolean mitSpalte) {
         List<String> out = new ArrayList<>();
         for (int i = 1; i <= MAX_STELLE; i++) {
             out.add(stelle(AnchorRule.Position.LAST, i));
@@ -625,11 +666,17 @@ public class StatementRulesActivity extends LocalizedActivity {
         for (int i = 1; i <= MAX_STELLE; i++) {
             out.add(stelle(AnchorRule.Position.FIRST, i));
         }
+        if (mitSpalte) {
+            out.add(stelle(AnchorRule.Position.COLUMN, 1));
+        }
         return out;
     }
 
     /** Die Beschriftung zu einer Stelle: „die letzte", „die 2. von rechts", „die erste (Spalte)" … */
     private String stelle(AnchorRule.Position wo, int nth) {
+        if (wo == AnchorRule.Position.COLUMN) {
+            return getString(R.string.statement_rules_column);
+        }
         if (nth == 1) {
             return getString(wo == AnchorRule.Position.FIRST
                     ? R.string.statement_rules_first_number : R.string.statement_rules_last_number);

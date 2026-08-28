@@ -1526,6 +1526,16 @@
     },
     {
       "type": "p",
+      "id": "b-0157k",
+      "text": "<b>In the label\u2019s column:</b> In a table, counting only works as long as every column is exactly one number wide and none is missing. When the label is a column heading, pick <b>«the number in the label\u2019s column»</b> under «Which number on the line» instead: the app then takes the value that sits below (or above) the label on the page. That holds even when a later statement omits a column. The choice is offered only together with «below» or «above» \u2013 on the same line the label\u2019s column would be the label itself."
+    },
+    {
+      "type": "p",
+      "id": "b-0157l",
+      "text": "<b>Values above the label:</b> Some statements print the number first and name it underneath. For those there are <b>«on one of the lines above»</b> and <b>«exactly 1, 2 or 3 lines above»</b> \u2013 the mirror image of «below»."
+    },
+    {
+      "type": "p",
       "id": "b-0157j",
       "text": "<b>Help while typing:</b> under «Check statement», next to the result, sits the button <b>«Text with line numbers»</b>. It shows the statement the way the app reads it. That is necessary because its lines are not the lines of a PDF viewer: they come from the word positions, and a visually empty line does not exist there at all. For counting the distance it is the only reliable source."
     },

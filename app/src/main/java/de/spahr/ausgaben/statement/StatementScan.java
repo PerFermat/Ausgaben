@@ -179,7 +179,7 @@ public final class StatementScan {
      * Zahlen sammelt, könnte das nicht.</p>
      */
     public static java.util.List<ValueCandidate> values(PdfText text, AnchorRule.Direction direction,
-                                                       int linesBelow, AnchorRule.Position position,
+                                                       int lineDistance, AnchorRule.Position position,
                                                        int nth, String currency) {
         java.util.List<ValueCandidate> out = new java.util.ArrayList<>();
         if (text == null) {
@@ -201,7 +201,7 @@ public final class StatementScan {
                 continue;   // dieselbe Beschriftung liest zweimal dasselbe – einmal genügt
             }
             AnchorRule probe = new AnchorRule(java.util.Collections.singletonList(label), direction,
-                    false, currency, position, nth, linesBelow);
+                    false, currency, position, nth, lineDistance);
             Double value = probe.read(text);
             if (value != null) {
                 out.add(new ValueCandidate(label, value));

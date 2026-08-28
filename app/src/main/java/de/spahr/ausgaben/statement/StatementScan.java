@@ -3,6 +3,7 @@ package de.spahr.ausgaben.statement;
 import java.util.Locale;
 
 import de.spahr.ausgaben.pdf.PdfText;
+import de.spahr.ausgaben.util.TextValues;
 
 /**
  * Was sich an einer Depotabrechnung <b>ohne</b> gelernte Vorlage erkennen lässt.
@@ -107,14 +108,24 @@ public final class StatementScan {
         return Character.isLetter(c);
     }
 
-    /** Ein im Dokument gefundenes Datum samt der Beschriftung seiner Zeile. */
+    /**
+     * Ein im Dokument gefundenes Datum samt der Beschriftung, über die es erreichbar ist — <b>und</b>
+     * der Regel, die genau das tut.
+     *
+     * <p>Die Regel gehört dazu, weil dasselbe Datum auf zwei Arten zu erreichen sein kann: über eine
+     * Beschriftung daneben oder über eine Spaltenüberschrift darüber. Die Liste legt beide vor; welche
+     * der Nutzer antippt, entscheidet, welche Regel geschrieben wird. Ohne die mitgelieferte Regel
+     * müsste die App aus der Beschriftung allein erraten, welche der beiden gemeint war.</p>
+     */
     public static final class DateCandidate {
         public final String label;
         public final long millis;
+        public final AnchorRule rule;
 
-        DateCandidate(String label, long millis) {
+        DateCandidate(String label, long millis, AnchorRule rule) {
             this.label = label;
             this.millis = millis;
+            this.rule = rule;
         }
     }
 
@@ -130,37 +141,64 @@ public final class StatementScan {
         if (text == null) {
             return out;
         }
-        for (PdfText.Line line : text.lines()) {
+        java.util.List<PdfText.Line> lines = text.lines();
+        for (int i = 0; i < lines.size(); i++) {
+            PdfText.Line line = lines.get(i);
+            // Die Beschriftung daneben: „Valuta 19.08.2026".
             long millis = AnchorRule.firstDate(line.text());
-            if (millis <= 0) {
-                continue;
-            }
-            String label = TemplateLearner.labelOf(line.text());
-            if (label.trim().length() < 3) {
-                continue;   // ohne Beschriftung wäre die Auswahl nicht zu unterscheiden
-            }
-            boolean known = false;
-            for (DateCandidate c : out) {
-                if (c.millis == millis && c.label.equalsIgnoreCase(label)) {
-                    known = true;
-                    break;
+            String label = TemplateLearner.labelOf(line.text()).trim();
+            if (millis > 0 && label.length() >= 3) {
+                AnchorRule rule = AnchorRule.single(label, AnchorRule.Direction.SAME_LINE);
+                if (rule.readDate(text) == millis) {
+                    add(out, new DateCandidate(label, millis, rule));
                 }
             }
-            if (!known) {
-                out.add(new DateCandidate(label, millis));
+            // Und die Spaltenüberschrift darüber, für Datumsangaben in einer Tabelle. Beides, nicht
+            // entweder oder: welche der beiden Beschriftungen die Bank im nächsten Beleg behält, weiß
+            // nur der Nutzer. Nur in einer Tabellenzeile allerdings – sonst fände sich über jedem
+            // Datum irgendein Wort, das sich als Überschrift anbietet.
+            if (!TemplateLearner.istTabellenzeile(line)) {
+                continue;
+            }
+            for (PdfText.Word word : line.words) {
+                final long amWort = TextValues.toUnambiguousDateMillis(word.text);
+                if (amWort <= 0) {
+                    continue;
+                }
+                AnchorRule rule = TemplateLearner.columnRuleFor(text, i, word,
+                        java.util.Collections.<String>emptyList(), "", null, m -> m == amWort);
+                if (rule != null) {
+                    add(out, new DateCandidate(rule.anchors.get(0), amWort, rule));
+                }
             }
         }
         return out;
     }
 
-    /** Eine im Dokument gefundene Zahl samt der Beschriftung, über die sie erreichbar ist. */
+    /** Nimmt den Kandidaten auf, wenn nicht schon einer dasselbe auf demselben Weg liest. */
+    private static void add(java.util.List<DateCandidate> out, DateCandidate c) {
+        for (DateCandidate da : out) {
+            if (da.millis == c.millis && da.label.equalsIgnoreCase(c.label)
+                    && da.rule.position == c.rule.position) {
+                return;
+            }
+        }
+        out.add(c);
+    }
+
+    /**
+     * Eine im Dokument gefundene Zahl samt der Beschriftung, über die sie erreichbar ist — und der
+     * Regel, die sie liest (wie bei {@link DateCandidate}).
+     */
     public static final class ValueCandidate {
         public final String label;
         public final double value;
+        public final AnchorRule rule;
 
-        ValueCandidate(String label, double value) {
+        ValueCandidate(String label, double value, AnchorRule rule) {
             this.label = label;
             this.value = value;
+            this.rule = rule;
         }
     }
 
@@ -185,29 +223,51 @@ public final class StatementScan {
         if (text == null) {
             return out;
         }
-        for (PdfText.Line line : text.lines()) {
+        java.util.List<PdfText.Line> lines = text.lines();
+        for (int i = 0; i < lines.size(); i++) {
+            PdfText.Line line = lines.get(i);
             String label = TemplateLearner.labelOf(line.text()).trim();
-            if (label.length() < 3) {
-                continue;   // ohne Beschriftung wäre die Auswahl nicht zu unterscheiden
-            }
-            boolean known = false;
-            for (ValueCandidate c : out) {
-                if (c.label.equalsIgnoreCase(label)) {
-                    known = true;
-                    break;
+            if (label.length() >= 3 && !kennt(out, label, position)) {
+                AnchorRule probe = new AnchorRule(java.util.Collections.singletonList(label),
+                        direction, false, currency, position, nth, lineDistance);
+                Double value = probe.read(text);
+                if (value != null) {
+                    out.add(new ValueCandidate(label, value, probe));
                 }
             }
-            if (known) {
-                continue;   // dieselbe Beschriftung liest zweimal dasselbe – einmal genügt
+            // Dazu die Spaltenüberschriften: in einer Tabelle trägt die Zahlenzeile keine eigene
+            // Beschriftung, und die ganze Kopfzeile als Anker meinte alle Spalten auf einmal. Angeboten
+            // wird deshalb das einzelne Wort über der Zahl – neben der Beschriftung daneben, nicht
+            // statt ihrer.
+            if (!TemplateLearner.istTabellenzeile(line)) {
+                continue;
             }
-            AnchorRule probe = new AnchorRule(java.util.Collections.singletonList(label), direction,
-                    false, currency, position, nth, lineDistance);
-            Double value = probe.read(text);
-            if (value != null) {
-                out.add(new ValueCandidate(label, value));
+            for (PdfText.Word word : line.words) {
+                final Double amWort = TextValues.toDecimal(word.text);
+                if (amWort == null) {
+                    continue;
+                }
+                AnchorRule probe = TemplateLearner.columnRuleFor(text, i, word,
+                        java.util.Collections.<String>emptyList(), currency,
+                        gelesen -> gelesen != null
+                                && Math.abs(gelesen - Math.abs(amWort)) < 0.0000005, null);
+                if (probe != null && !kennt(out, probe.anchors.get(0), AnchorRule.Position.COLUMN)) {
+                    out.add(new ValueCandidate(probe.anchors.get(0), Math.abs(amWort), probe));
+                }
             }
         }
         return out;
+    }
+
+    /** Ob dieselbe Beschriftung auf demselben Weg schon in der Liste steht. */
+    private static boolean kennt(java.util.List<ValueCandidate> out, String label,
+                                 AnchorRule.Position position) {
+        for (ValueCandidate c : out) {
+            if (c.label.equalsIgnoreCase(label) && c.rule.position == position) {
+                return true;
+            }
+        }
+        return false;
     }
 
     /** Die ISIN der Abrechnung, oder {@code null} (siehe {@link Isin#single}). */

@@ -542,19 +542,22 @@ public class StatementRulesActivity extends LocalizedActivity {
         private void pickAnchor(TextInputEditText edit) {
             readBack();
             List<String> labels = new ArrayList<>();
+            List<AnchorRule> rules = new ArrayList<>();
             List<CharSequence> shown = new ArrayList<>();
             if (field == Field.DATE) {
                 for (de.spahr.ausgaben.statement.StatementScan.DateCandidate c
                         : de.spahr.ausgaben.statement.StatementScan.dates(testText)) {
                     labels.add(c.label);
-                    shown.add(c.label + ":  " + dateFormat.format(new Date(c.millis)));
+                    rules.add(c.rule);
+                    shown.add(beschreibung(c.label, dateFormat.format(new Date(c.millis)), c.rule));
                 }
             } else {
                 for (de.spahr.ausgaben.statement.StatementScan.ValueCandidate c
                         : de.spahr.ausgaben.statement.StatementScan.values(testText, chosenDirection(),
                         chosenLineDistance(), chosenPosition(), chosenNth(), chosenCurrency())) {
                     labels.add(c.label);
-                    shown.add(c.label + ":  " + formatValue(field, c.value));
+                    rules.add(c.rule);
+                    shown.add(beschreibung(c.label, formatValue(field, c.value), c.rule));
                 }
             }
             shown.add(getString(R.string.statement_rules_type_own));
@@ -569,10 +572,35 @@ public class StatementRulesActivity extends LocalizedActivity {
                             return;
                         }
                         edit.setText(labels.get(which));
+                        // Die Wahl bringt ihre Leseart mit: wer die Spaltenüberschrift antippt, meint
+                        // „in der Spalte, so viele Zeilen tiefer" – und nicht die Einstellung, die
+                        // vorher im Bereich stand. Sonst stünde die Beschriftung da und läse nichts.
+                        uebernimm(rules.get(which));
                         readBack();
                         updateFound();
                     })
                     .show();
+        }
+
+        /**
+         * Ein Eintrag der Auswahlliste. Dasselbe Datum steht oft zweimal darin – einmal über die
+         * Beschriftung daneben, einmal über die Spaltenüberschrift darüber. Ohne den Zusatz wären die
+         * beiden Zeilen nicht auseinanderzuhalten.
+         */
+        private CharSequence beschreibung(String label, String wert, AnchorRule rule) {
+            String zusatz = rule == null || rule.direction == AnchorRule.Direction.SAME_LINE ? ""
+                    : "   (" + richtung(rule.direction, rule.lineDistance) + ")";
+            return label + ":  " + wert + zusatz;
+        }
+
+        /** Richtung, Abstand und Stelle einer angetippten Auswahl in den Bereich übernehmen. */
+        private void uebernimm(AnchorRule rule) {
+            if (rule == null) {
+                return;
+            }
+            direction.setText(richtung(rule.direction, rule.lineDistance), false);
+            updateStellen();
+            position.setText(stelle(rule.position, rule.nth), false);
         }
 
         /** Die Kategorienliste nachreichen – sie trifft später ein als das Formular. */

@@ -1515,6 +1515,11 @@
       "text": "<b>Die Probe nach dem Merken:</b> Sagen Sie in der Rückfrage «Merken», wendet die App die eben gemerkten Regeln sofort wieder auf dieselbe Abrechnung an. Kommt dabei heraus, was in der Maske stand, sagt sie nichts weiter. Sonst nennt sie je Feld, was sie erwartet und was sie gelesen hat, und bietet den Knopf <b>«Erkennungsregeln»</b> an: dort hängt die Abrechnung schon als Probe, und die gelernten Regeln stehen so da, wie sie gelernt wurden. Ohne diese Probe zeigte sich ein Fehlgriff erst bei der nächsten Abrechnung dieser Bank."
     },
     {
+      "type": "p",
+      "id": "b-0157n",
+      "text": "<b>Werte aus einer Tabelle auswählen:</b> Tippen Sie in der Maske auf das Datumsfeld oder auf der Regelseite auf ein Beschriftungsfeld, legt die App die gefundenen Angaben zur Wahl vor – <b>jede auf beiden Wegen, wo es beide gibt</b>: über die Beschriftung daneben und über die Spaltenüberschrift darüber. Steht also «Wertstellung» als Überschrift über dem Datum und «zum» daneben, erscheinen beide Zeilen; hinter der Spaltenlesart steht, wie weit darunter gelesen wird. Was Sie antippen, wird genau so gemerkt – die App entscheidet nicht für Sie, welche Beschriftung die Bank im nächsten Beleg behält."
+    },
+    {
       "type": "h3",
       "id": "b-0157g",
       "text": "Werte in einer Tabelle"

@@ -1515,6 +1515,11 @@
       "text": "<b>The check after storing:</b> If you answer «Store», the app immediately applies the rules it just stored to the same statement again. If the result matches what was in the form, it says nothing further. Otherwise it names, field by field, what it expected and what it read, and offers the button <b>«Detection rules»</b>: the statement is already attached there as a test, and the learned rules appear exactly as they were learned. Without this check a wrong guess would only show up with the next statement from that bank."
     },
     {
+      "type": "p",
+      "id": "b-0157n",
+      "text": "<b>Picking values from a table:</b> tapping the date field in the form, or a label field on the rules page, offers the entries the app found – <b>each by both routes where both exist</b>: via the label beside the value and via the column heading above it. So if «Value date» sits as a heading above the date and «as of» beside it, both lines appear, the column variant stating how many lines below it reads. Whatever you tap is stored exactly like that – the app does not decide for you which label the bank will keep in its next statement."
+    },
+    {
       "type": "h3",
       "id": "b-0157g",
       "text": "Values inside a table"

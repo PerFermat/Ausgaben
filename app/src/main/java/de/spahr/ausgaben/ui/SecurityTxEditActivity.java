@@ -189,6 +189,16 @@ public class SecurityTxEditActivity extends LocalizedActivity {
     /** Beschriftung des aus der Abrechnung gewählten Datums; sie wird zum Anker. */
     private String chosenDateLabel;
     /**
+     * Die Regel hinter der Wahl. Zu einem Datum gibt es zwei Lesarten — die Beschriftung daneben und
+     * die Spaltenüberschrift darüber —, und die Beschriftung allein sagt nicht, welche gemeint war.
+     */
+    private de.spahr.ausgaben.statement.AnchorRule chosenDateRule;
+    /**
+     * Die einmal gelesene Abrechnung. Ohne sie läse jeder Tipp aufs Datumsfeld das PDF neu ein, und
+     * zwar auf dem Bedienfaden.
+     */
+    private de.spahr.ausgaben.pdf.PdfText statementText;
+    /**
      * Die Felder, in die der Nutzer <b>selbst</b> geschrieben hat — nur aus ihnen wird gelernt.
      *
      * <p>Nicht zu verwechseln mit {@code userSet}: dort stehen auch die Werte, welche die Maske aus der
@@ -1090,6 +1100,7 @@ public class SecurityTxEditActivity extends LocalizedActivity {
         // „Valuta") jedes Mal die unterste neu gelernt.
         known.dateMillis = ersteVorlage || dateTyped ? selectedDate.getTimeInMillis() : -1;
         known.dateAnchor = chosenDateLabel;
+        known.dateRule = chosenDateRule;
 
         if (known.dateAnchor == null && existing != null
                 && existing.rule(StatementTemplate.Field.DATE) != null) {
@@ -1277,6 +1288,15 @@ public class SecurityTxEditActivity extends LocalizedActivity {
      * @return {@code null}, wenn beides nicht mehr da ist
      */
     private de.spahr.ausgaben.pdf.PdfText readStatementText() {
+        if (statementText != null) {
+            return statementText;
+        }
+        statementText = liesAbrechnung();
+        return statementText;
+    }
+
+    /** Das eigentliche Einlesen – siehe {@link #readStatementText()}. */
+    private de.spahr.ausgaben.pdf.PdfText liesAbrechnung() {
         java.io.File pdf = statementPdf();
         if (pdf != null) {
             try {
@@ -1449,6 +1469,7 @@ public class SecurityTxEditActivity extends LocalizedActivity {
                     }
                     selectedDate.setTimeInMillis(found.get(which).millis);
                     chosenDateLabel = found.get(which).label;
+                    chosenDateRule = found.get(which).rule;
                     dateTyped = true;
                     updateDateField();
                 })
@@ -1473,6 +1494,9 @@ public class SecurityTxEditActivity extends LocalizedActivity {
             selectedDate.set(Calendar.YEAR, year);
             selectedDate.set(Calendar.MONTH, month);
             selectedDate.set(Calendar.DAY_OF_MONTH, day);
+            // Von Hand gewählt: eine vorher angetippte Beschriftung meint jetzt ein anderes Datum.
+            chosenDateLabel = null;
+            chosenDateRule = null;
             dateTyped = true;
             updateDateField();
         }, selectedDate.get(Calendar.YEAR), selectedDate.get(Calendar.MONTH),

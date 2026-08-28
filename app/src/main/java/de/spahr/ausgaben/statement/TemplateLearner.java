@@ -58,6 +58,14 @@ public final class TemplateLearner {
          * seine Wahl würde die unterste gelernt, und in der nächsten Abrechnung wäre es die falsche.
          */
         public String dateAnchor;
+        /**
+         * Die Regel, die der Nutzer in der Auswahl angetippt hat — sie hat Vorrang vor allem Suchen.
+         *
+         * <p>Die Auswahl legt zu einem Datum beide Lesarten vor: die Beschriftung daneben und die
+         * Spaltenüberschrift darüber. Erratbar ist danach nicht mehr, welche er gemeint hat — die
+         * Beschriftung allein sagt es nicht. Also reicht die Auswahl die fertige Regel durch.</p>
+         */
+        public AnchorRule dateRule;
     }
 
     /**
@@ -101,7 +109,9 @@ public final class TemplateLearner {
         put(rules, StatementTemplate.Field.SHARES,
                 forValue(text, known.shares, SHARE_EPSILON, false, used), used);
         put(rules, StatementTemplate.Field.DATE,
-                forDate(text, known.dateMillis, known.dateAnchor, used), used);
+                known.dateRule != null && known.dateRule.readDate(text) == known.dateMillis
+                        ? known.dateRule
+                        : forDate(text, known.dateMillis, known.dateAnchor, used), used);
         return new StatementTemplate(known.action, rules, fixedFee,
                 fixedFee > 0 ? known.feeCategory : "", false);
     }
@@ -224,6 +234,18 @@ public final class TemplateLearner {
         return n;
     }
 
+    /**
+     * Ob die Zeile wie eine <b>Tabellenzeile</b> aussieht: mehrere Werte nebeneinander.
+     *
+     * <p>Das Merkmal entscheidet zweierlei — ob der Lerner die Spalte der abgezählten Stelle vorzieht,
+     * und ob {@link StatementScan} eine Spaltenüberschrift überhaupt zur Wahl stellt. Ohne die Frage
+     * stünde über jedem beliebigen Datum irgendein Wort, das sich als „Überschrift" anbietet: über dem
+     * Briefdatum am rechten Rand etwa die Anschrift.</p>
+     */
+    static boolean istTabellenzeile(PdfText.Line line) {
+        return zahlenIn(line) >= TABELLE_AB || datenIn(line) >= 2;
+    }
+
     /** Wieviele Datumsangaben die Zeile trägt — das Tabellenmerkmal einer Datumszeile. */
     private static int datenIn(PdfText.Line line) {
         int n = 0;
@@ -260,24 +282,60 @@ public final class TemplateLearner {
                 if (zahl == null || Math.abs(Math.abs(zahl) - value) > epsilon) {
                     continue;
                 }
-                for (int j = i - 1; j >= 0 && j >= i - AnchorRule.MAX_DISTANCE; j--) {
-                    String label = columnLabel(lines.get(j), word);
-                    if (!isUsable(label, used, AnchorRule.Position.COLUMN)) {
-                        continue;
-                    }
-                    AnchorRule probe = new AnchorRule(java.util.Collections.singletonList(label),
-                            AnchorRule.Direction.LINE_BELOW, false,
-                            bindCurrency ? AnchorRule.currencyOf(lines.get(i).text()) : "",
-                            AnchorRule.Position.COLUMN, 1, i - j);
-                    Double gelesen = probe.read(text);
-                    if (gelesen != null && Math.abs(gelesen - value) <= epsilon) {
-                        found = probe;   // wie sonst auch: die unterste Fundstelle gewinnt
-                        break;
-                    }
+                String currency = bindCurrency
+                        ? AnchorRule.currencyOf(lines.get(i).text()) : "";
+                AnchorRule probe = columnRuleFor(text, i, word, used, currency,
+                        gelesen -> gelesen != null && Math.abs(gelesen - value) <= epsilon, null);
+                if (probe != null) {
+                    found = probe;   // wie sonst auch: die unterste Fundstelle gewinnt
                 }
             }
         }
         return found;
+    }
+
+    /** Prüft, was eine Regel gelesen hat — für Zahlen bzw. für Datumsangaben. */
+    interface ValueCheck {
+        boolean stimmt(Double gelesen);
+    }
+
+    interface DateCheck {
+        boolean stimmt(long millis);
+    }
+
+    /**
+     * Die Spaltenregel zu einem Wort: die Überschrift darüber suchen, daraus eine Regel bauen und sie
+     * sich selbst bestätigen lassen.
+     *
+     * <p>Die eine Stelle, an der die Spaltensuche steht — der Lerner benutzt sie für Zahlen wie für
+     * Datumsangaben, und {@link StatementScan} legt damit dem Nutzer die Werte einer Tabelle zur Wahl
+     * vor. Gesucht wird in <b>zwei Durchgängen</b>: erst die Zeilen, in denen ein Wort waagerecht über
+     * dem Wert steht, dann die übrigen (siehe {@link #columnLabel}).</p>
+     *
+     * @param used  Beschriftungen, die andere Felder schon belegt haben; darf leer sein
+     * @param wert  gesetzt für eine Zahl, {@code null} für ein Datum
+     * @param datum gesetzt für ein Datum, {@code null} für eine Zahl
+     */
+    static AnchorRule columnRuleFor(PdfText text, int lineIndex, PdfText.Word word, List<String> used,
+                                    String currency, ValueCheck wert, DateCheck datum) {
+        List<PdfText.Line> lines = text.lines();
+        for (int runde = 0; runde < 2; runde++) {
+            for (int j = lineIndex - 1; j >= 0 && j >= lineIndex - AnchorRule.MAX_DISTANCE; j--) {
+                String label = columnLabel(lines.get(j), word, runde == 0);
+                if (!isUsable(label, used, AnchorRule.Position.COLUMN)) {
+                    continue;
+                }
+                AnchorRule probe = new AnchorRule(java.util.Collections.singletonList(label),
+                        AnchorRule.Direction.LINE_BELOW, false, currency == null ? "" : currency,
+                        AnchorRule.Position.COLUMN, 1, lineIndex - j);
+                boolean stimmt = wert != null ? wert.stimmt(probe.read(text))
+                        : datum.stimmt(probe.readDate(text));
+                if (stimmt) {
+                    return probe;
+                }
+            }
+        }
+        return null;
     }
 
     /**
@@ -286,8 +344,17 @@ public final class TemplateLearner {
      * <p>Zahlen scheiden aus — in einer Kopfzeile stehen Namen, und eine Zahl darin gehört zu einer
      * anderen Zeile, die nur ähnlich hoch liegt. Ist das getroffene Wort zu kurz, um als Anker zu taugen
      * („Stk."), kommt das Wort davor dazu.</p>
+     *
+     * <p>Mit {@code nurUeberlappende} zählt nur, was <b>waagerecht über</b> dem Wert steht. Das ist der
+     * erste Durchgang der Suche, und er ist nötig: über einer Tabellenzeile steht oft nicht die
+     * Kopfzeile, sondern eine einzelne Zelle weit rechts (in einer Dividendenabrechnung etwa
+     * „Wechselkurs"). Ohne diese Vorfahrt gölte die als Spaltenüberschrift, und die Suche bräche dort
+     * ab, statt eine Zeile weiter oben die wirkliche Überschrift zu finden. Erst wenn keine Zeile
+     * darüber ein überschneidendes Wort trägt, entscheidet wie bisher der Abstand — bei rechtsbündigen
+     * Zahlenspalten unter linksbündigen Überschriften überlappt nämlich nichts.</p>
      */
-    private static String columnLabel(PdfText.Line header, PdfText.Word value) {
+    private static String columnLabel(PdfText.Line header, PdfText.Word value,
+                                      boolean nurUeberlappende) {
         PdfText.Word best = null;
         int bestIndex = -1;
         float bestDistance = Float.MAX_VALUE;
@@ -300,6 +367,9 @@ public final class TemplateLearner {
             float distance = Math.abs((word.x + word.endX) / 2f - (value.x + value.endX) / 2f);
             if (overlap) {
                 return withPrevious(header, i);
+            }
+            if (nurUeberlappende) {
+                continue;
             }
             if (distance < bestDistance) {
                 bestDistance = distance;
@@ -566,8 +636,7 @@ public final class TemplateLearner {
                 // Zwei Daten nebeneinander unter einer Überschrift: das ist eine Tabellenzeile, und dort
                 // trifft die Spalte auch dann noch, wenn eine Angabe einmal fehlt. Auch das braucht
                 // echte Koordinaten – siehe die Weiche in forValue.
-                tabelle = text.hasWordPositions()
-                        && (datenIn(lines.get(i)) >= 2 || zahlenIn(lines.get(i)) >= TABELLE_AB);
+                tabelle = text.hasWordPositions() && istTabellenzeile(lines.get(i));
             }
         }
         if (tabelle) {
@@ -593,18 +662,10 @@ public final class TemplateLearner {
                 if (TextValues.toUnambiguousDateMillis(word.text) != dateMillis) {
                     continue;
                 }
-                for (int j = i - 1; j >= 0 && j >= i - AnchorRule.MAX_DISTANCE; j--) {
-                    String label = columnLabel(lines.get(j), word);
-                    if (!isUsable(label, used, AnchorRule.Position.COLUMN)) {
-                        continue;
-                    }
-                    AnchorRule probe = new AnchorRule(java.util.Collections.singletonList(label),
-                            AnchorRule.Direction.LINE_BELOW, false, "",
-                            AnchorRule.Position.COLUMN, 1, i - j);
-                    if (probe.readDate(text) == dateMillis) {
-                        found = probe;
-                        break;
-                    }
+                AnchorRule probe = columnRuleFor(text, i, word, used, "", null,
+                        millis -> millis == dateMillis);
+                if (probe != null) {
+                    found = probe;
                 }
             }
         }

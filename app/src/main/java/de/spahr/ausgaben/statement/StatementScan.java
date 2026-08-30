@@ -270,9 +270,21 @@ public final class StatementScan {
         return false;
     }
 
-    /** Die ISIN der Abrechnung, oder {@code null} (siehe {@link Isin#single}). */
+    /**
+     * Die selbstprüfende Kennung der Abrechnung, oder {@code null}: die ISIN, oder — trägt die
+     * Abrechnung keine — die CUSIP (USA/Kanada) oder die SEDOL (UK/Irland). Alle drei sind an ihrer
+     * Prüfziffer erkennbar und deshalb ohne gelernte Vorlage tragfähig (siehe {@link Isin#single}).
+     */
     public static String isin(PdfText text) {
-        return Isin.single(text);
+        String isin = Isin.single(text);
+        if (isin != null) {
+            return isin;
+        }
+        String cusip = Cusip.single(text);
+        if (cusip != null) {
+            return cusip;
+        }
+        return Sedol.single(text);
     }
 
     private static boolean containsAny(String haystack, String[] needles) {

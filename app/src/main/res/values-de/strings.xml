@@ -715,8 +715,7 @@
     <string name="statement_read">Abrechnung einlesen</string>
     <string name="statement_no_text">Diese Datei enthält keinen Text, nur ein Bild. Eingescannte Abrechnungen lassen sich nicht auslesen.</string>
     <string name="statement_unreadable">Die Datei ließ sich nicht lesen</string>
-    <string name="statement_no_security">Zu dieser Abrechnung ist kein Wertpapier zu finden. ISIN: %1$s</string>
-    <string name="statement_no_isin">In der Abrechnung steht keine eindeutige ISIN</string>
+    <string name="statement_no_security">Zu dieser Abrechnung ist kein Wertpapier zu finden: %1$s</string>
     <string name="statement_reading">Abrechnung wird gelesen…</string>
     <string name="statement_learn_title">Für diese Bank merken?</string>
     <string name="statement_learn_message">Die App hat sich gemerkt, wo die Werte in dieser Abrechnung stehen. Beim nächsten Mal füllt sie die Maske dann selbst aus.</string>

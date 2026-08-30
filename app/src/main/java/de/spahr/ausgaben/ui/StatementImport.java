@@ -26,8 +26,9 @@ import de.spahr.ausgaben.statement.StatementTemplate;
 /**
  * Der Weg von einer PDF-Abrechnung der Bank zur vorbelegten Erfassungsmaske.
  *
- * <p>Ausgelesen wird nur, was sicher erkannt ist: die ISIN (mit Prüfziffer) und — sobald für diese Bank
- * eine Vorlage gelernt ist — die Zahlen an ihren Ankern. <b>Geraten wird nichts</b>; was offen bleibt,
+ * <p>Ausgelesen wird nur, was sicher erkannt ist: die Kennung (ISIN, CUSIP oder SEDOL, jeweils mit
+ * Prüfziffer) und — sobald für diese Bank eine Vorlage gelernt ist — die Zahlen an ihren Ankern.
+ * <b>Geraten wird nichts</b>; was offen bleibt,
  * bleibt leer und wird von Hand ergänzt. Genau diese Ergänzung bringt der App beim Speichern bei, wo die
  * Werte stehen (siehe {@code SecurityTxEditActivity}).</p>
  *
@@ -68,8 +69,9 @@ final class StatementImport {
     }
 
     /**
-     * Das Wertpapier zur Abrechnung suchen — der Reihe nach: ISIN in den importierten Stammdaten, dann
-     * im Gelernten, dann über die Kennnummer oder das Kürzel eines eigenen Wertpapiers im Text.
+     * Das Wertpapier zur Abrechnung suchen — der Reihe nach: die selbstprüfende Kennung (ISIN, CUSIP
+     * oder SEDOL, siehe {@link StatementScan#isin}) in den importierten Stammdaten, dann im Gelernten,
+     * dann über die Kennnummer oder das Kürzel eines eigenen Wertpapiers im Text.
      */
     private static void resolve(AppCompatActivity activity, Repository repository,
                                 PdfText text, Uri source) {
@@ -87,19 +89,16 @@ final class StatementImport {
                     return;
                 }
             }
-            // Ohne ISIN oder mit einer unbekannten: kommt eines der eigenen Wertpapiere im Text vor?
+            // Ohne Kennung oder mit einer unbekannten: kommt eines der eigenen Wertpapiere im Text vor?
             Security named = namedIn(securities, text);
             if (named != null) {
                 start(activity, text, source, isin, named.depot, named.kmyId, named.name);
                 return;
             }
-            if (isin == null) {
-                Toast.makeText(activity, R.string.statement_no_isin, Toast.LENGTH_LONG).show();
-                return;
-            }
-            // Die ISIN ist unbekannt – in KMyMoney ist bei diesem Papier das Feld „Identifikation" nicht
-            // gepflegt. Die App weiß hier nichts, was der Nutzer nicht in zwei Sekunden beantworten
-            // könnte, also fragt sie einmal und merkt sich die Antwort.
+            // Die App weiß hier nichts, was der Nutzer nicht in zwei Sekunden beantworten könnte, also
+            // fragt sie einmal. Trägt die Abrechnung eine Kennung, merkt sie sich die Antwort dafür;
+            // ohne eine (weder ISIN/CUSIP/SEDOL noch ein bekanntes Wertpapier im Text) bleibt nur diese
+            // eine Abrechnung offen, aber sie bucht sich wenigstens nicht in die Röhre.
             askForSecurity(activity, repository, text, source, isin);
         });
     }
@@ -169,13 +168,15 @@ final class StatementImport {
     }
 
     /**
-     * Fragt einmalig, zu welchem Wertpapier die Abrechnung gehört, und merkt sich die Zuordnung zur ISIN.
-     * Ab dann wird sie nicht mehr gefragt — auch dann nicht, wenn die Identifikation in KMyMoney weiterhin
-     * fehlt.
+     * Fragt einmalig, zu welchem Wertpapier die Abrechnung gehört, und merkt sich die Zuordnung zur
+     * Kennung. Ab dann wird sie nicht mehr gefragt — auch dann nicht, wenn die Identifikation in
+     * KMyMoney weiterhin fehlt. Trägt die Abrechnung keine Kennung, steht im Titel stattdessen der
+     * Dateiname, und gemerkt wird nichts — dann fragt die App beim nächsten Beleg wieder.
      */
     private static void askForSecurity(AppCompatActivity activity, Repository repository,
                                        PdfText text, Uri source, String isin) {
-        pickSecurity(activity, repository, isin,
+        String label = isin != null ? isin : displayName(activity, source);
+        pickSecurity(activity, repository, label, isin,
                 s -> start(activity, text, source, isin, s.depot, s.kmyId, s.name));
     }
 

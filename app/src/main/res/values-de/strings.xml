@@ -585,6 +585,8 @@
     <string name="filter_date_from">Datum von</string>
     <string name="filter_date_to">Datum bis</string>
     <string name="depot_filter_name">Wertpapiername</string>
+    <string name="depot_filter_show_active">Aktive Bestände</string>
+    <string name="depot_filter_show_closed">Geschlossene Positionen</string>
     <string name="depot_filter_value_from">Wert von</string>
     <string name="depot_filter_value_to">Wert bis</string>
     <string name="depot_no_match">Keine Wertpapiere für den Filter</string>

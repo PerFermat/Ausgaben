@@ -586,6 +586,8 @@
     <string name="filter_date_from">Date from</string>
     <string name="filter_date_to">Date to</string>
     <string name="depot_filter_name">Security name</string>
+    <string name="depot_filter_show_active">Active holdings</string>
+    <string name="depot_filter_show_closed">Closed positions</string>
     <string name="depot_filter_value_from">Value from</string>
     <string name="depot_filter_value_to">Value to</string>
     <string name="depot_no_match">No securities match the filter</string>

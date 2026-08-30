@@ -88,6 +88,8 @@ public class DepotActivity extends LocalizedActivity {
     private String filterName = "";
     private Long filterFrom;
     private Long filterTo;
+    private boolean filterShowActive = true;
+    private boolean filterShowClosed = false;
     /** Zuletzt gerenderte Bestände – für die Slider-Grenzen des Wertfilters. */
     private List<Repository.DepotHolding> lastHoldings = new ArrayList<>();
 
@@ -331,7 +333,9 @@ public class DepotActivity extends LocalizedActivity {
         container.removeAllViews();
         boolean any = false;
         for (Repository.DepotHolding h : holdings) {
-            if (Math.abs(h.shares) < 1e-6 || !matchesFilter(h)) {
+            boolean closed = Math.abs(h.shares) < 1e-6;
+            boolean visible = closed ? filterShowClosed : filterShowActive;
+            if (!visible || !matchesFilter(h)) {
                 continue;
             }
             any = true;
@@ -359,7 +363,8 @@ public class DepotActivity extends LocalizedActivity {
     }
 
     private boolean isFilterActive() {
-        return !filterName.isEmpty() || filterFrom != null || filterTo != null;
+        return !filterName.isEmpty() || filterFrom != null || filterTo != null
+                || !filterShowActive || filterShowClosed;
     }
 
     // ---- Saldenzeile ----
@@ -651,15 +656,22 @@ public class DepotActivity extends LocalizedActivity {
                 view.findViewById(R.id.depotFilterFrom);
         final com.google.android.material.textfield.TextInputEditText to =
                 view.findViewById(R.id.depotFilterTo);
+        final com.google.android.material.checkbox.MaterialCheckBox showActive =
+                view.findViewById(R.id.depotFilterShowActive);
+        final com.google.android.material.checkbox.MaterialCheckBox showClosed =
+                view.findViewById(R.id.depotFilterShowClosed);
         AmountField.prepareNumber(from);
         AmountField.prepareNumber(to);
         name.setText(filterName);
+        showActive.setChecked(filterShowActive);
+        showClosed.setChecked(filterShowClosed);
 
         // Wert-Range aus den aktuellen Beständen (nur sichtbare Positionen zählen); der Regler läuft
         // über die Ränge, damit ein großer Posten ihn nicht aufzieht (siehe AmountRange).
         java.util.List<Long> werte = new ArrayList<>();
         for (Repository.DepotHolding h : lastHoldings) {
-            if (Math.abs(h.shares) >= 1e-6) {
+            boolean closed = Math.abs(h.shares) < 1e-6;
+            if (closed ? filterShowClosed : filterShowActive) {
                 werte.add(h.valueCents);
             }
         }
@@ -689,10 +701,14 @@ public class DepotActivity extends LocalizedActivity {
                     filterName = "";
                     filterFrom = null;
                     filterTo = null;
+                    filterShowActive = true;
+                    filterShowClosed = false;
                     render();
                 })
                 .setPositiveButton(android.R.string.ok, (d, w) -> {
                     filterName = name.getText() == null ? "" : name.getText().toString().trim();
+                    filterShowActive = showActive.isChecked();
+                    filterShowClosed = showClosed.isChecked();
                     if (amountRange != null) {
                         if (amountRange.isFullRange()) {
                             filterFrom = null;

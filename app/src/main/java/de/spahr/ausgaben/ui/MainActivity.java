@@ -1280,15 +1280,13 @@ public class MainActivity extends LocalizedActivity {
 
     private void showFilterDialog() {
         View view = LayoutInflater.from(this).inflate(R.layout.dialog_filter, null, false);
-        MaterialAutoCompleteTextView fPayee = view.findViewById(R.id.filterPayee);
+        TextInputEditText fPayee = view.findViewById(R.id.filterPayee);
         MaterialAutoCompleteTextView fCategory = view.findViewById(R.id.filterCategory);
         ZeroMarkSlider slider = view.findViewById(R.id.filterAmountSlider);
         TextInputEditText fFrom = view.findViewById(R.id.filterAmountFrom);
         TextInputEditText fTo = view.findViewById(R.id.filterAmountTo);
         AmountField.prepareNumber(fFrom);
         AmountField.prepareNumber(fTo);
-
-        repository.getPayeeNames(names -> PickerAdapters.payees(fPayee, names));
 
         fPayee.setText(filterPayee);
 

@@ -11,13 +11,13 @@
         android:paddingHorizontal="24dp"
         android:paddingTop="8dp">
 
-        <!-- Sucht in Empfänger, Notiz und Kategorie; die Vorschläge bleiben die Empfängernamen. -->
+        <!-- Sucht in Empfänger, Notiz und Kategorie als reine Freitextsuche (kein Auswahlfeld). -->
         <com.google.android.material.textfield.TextInputLayout
             android:layout_width="match_parent"
             android:layout_height="wrap_content"
             android:hint="@string/filter_search_hint">
 
-            <de.spahr.ausgaben.ui.PickerTextView
+            <com.google.android.material.textfield.TextInputEditText
                 android:id="@+id/filterPayee"
                 android:layout_width="match_parent"
                 android:layout_height="wrap_content"
@@ -26,7 +26,6 @@
                 android:paddingStart="16dp"
                 android:paddingEnd="16dp"
                 android:textSize="18sp"
-                android:completionThreshold="1"
                 android:inputType="text" />
         </com.google.android.material.textfield.TextInputLayout>
 

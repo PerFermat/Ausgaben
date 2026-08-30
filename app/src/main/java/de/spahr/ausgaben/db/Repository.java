@@ -1576,8 +1576,8 @@ public class Repository {
             this.dividendCents = dividend;
             this.netInvestedCents = buy - sell - dividend;
             this.gainCents = value - netInvestedCents;
-            this.gainPct = netInvestedCents != 0
-                    ? (double) gainCents / Math.abs(netInvestedCents) * 100.0 : 0.0;
+            this.gainPct = buy != 0
+                    ? (double) gainCents / buy * 100.0 : 0.0;
         }
     }
 

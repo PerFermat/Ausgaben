@@ -663,6 +663,36 @@
       "text": "Stichwörter gibt es bei <b>Ausgaben, Einnahmen und Umbuchungen</b> gleichermaßen; bei einer Umbuchung tragen beide Kontoseiten dieselben, denn in der KMyMoney-Datei ist sie eine einzige Buchung. Bei einer <b>geplanten Buchung</b> sind die Stichwörter der Regel nur zu sehen, nicht zu ändern – legen Sie daraus eine Buchung an, wandern sie mit und lassen sich dann bearbeiten. Kennt die App noch <b>keine</b> Stichwörter – etwa vor dem ersten Abgleich oder im CSV-Betrieb, wo es keine KMyMoney-Datei gibt –, erscheint die ganze Zeile gar nicht."
     },
     {
+      "type": "h2",
+      "id": "b-0062e",
+      "text": "Wertpapier-Buchungen: Käufe, Verkäufe und Dividenden"
+    },
+    {
+      "type": "p",
+      "id": "b-0062f",
+      "text": "Das Depot unterstützt die Erfassung von <b>Käufen, Verkäufen und Dividenden</b> von Wertpapieren – aber nur für <b>Wertpapiere, die Sie bereits in KMyMoney angelegt haben</b>. Die App erstellt keine neuen Wertpapiere."
+    },
+    {
+      "type": "p",
+      "id": "b-0062g",
+      "text": "<b>Zwei Wege:</b> Sie können eine Transaktion entweder <b>manuell</b> im Buchungs-Editor erfassen (Datum, Stückzahl, Kurs, Gebühren, Steuern) oder die App versucht, die Werte aus einer <b>PDF-Abrechnung Ihrer Bank</b> automatisch zu erkennen."
+    },
+    {
+      "type": "p",
+      "id": "b-0062h",
+      "text": "<b>PDF einlesen:</b> Beim <b>ersten Mal</b> für eine neue Bank müssen Sie die erkannten Werte <b>manuell prüfen und bestätigen</b> – genau wie bei der manuellen Erfassung. Dabei <b>lernt die App</b>, wo in den Abrechnungen dieser Bank die einzelnen Felder stehen. Für alle nachfolgenden Abrechnungen derselben Bank werden die Werte dann <b>automatisch vorbelegt</b>; Sie müssen nur noch kurz prüfen und können buchen. Die gelernten Regeln lassen sich jederzeit anpassen."
+    },
+    {
+      "type": "p",
+      "id": "b-0062i",
+      "text": "<b>Einschränkung:</b> Die automatische Erkennung funktioniert <b>nicht bei jeder Bank</b> – eine vollständige Implementierung würde für jede Bank einen eigenen Code erfordern, das leisten nur professionelle Finanzanbieter. Diese App nutzt ein intelligentes, selbstkonfigurierendes System, das mit vielen Banken funktioniert, aber eben nicht allen. <b>Prüfen Sie die erkannten Werte immer, bevor Sie buchen</b>."
+    },
+    {
+      "type": "p",
+      "id": "b-0062j",
+      "text": "Die Schritt-für-Schritt-Erklärung und die Einstellungen zum Lernen von Erkennungsregeln stehen in Kapitel 14 (Depot) und Kapitel 17 (Einstellungen)."
+    },
+    {
       "type": "h1",
       "id": "b-0063",
       "text": "8. Schnell erfassen: Sprache, Standort, Belege"
@@ -1506,18 +1536,8 @@
     },
     {
       "type": "p",
-      "id": "b-0157a",
-      "text": "<b>Abrechnung einlesen:</b> Das Depot kann eine Wertpapierabrechnung als PDF einlesen und daraus eine Buchung vorbereiten. Die Funktion ist ab Werk <b>ausgeschaltet</b> und lässt sich in den Einstellungen einschalten; dort nennt die App auch, an wie vielen Banken die Erkennung gemessen wurde. Sie trägt nicht bei jeder Bank – <b>prüfen Sie die erkannten Werte, bevor Sie buchen</b>."
-    },
-    {
-      "type": "p",
-      "id": "b-0157m",
-      "text": "<b>Die Probe nach dem Merken:</b> Sagen Sie in der Rückfrage «Merken», wendet die App die eben gemerkten Regeln sofort wieder auf dieselbe Abrechnung an. Kommt dabei heraus, was in der Maske stand, sagt sie nichts weiter. Sonst nennt sie je Feld, was sie erwartet und was sie gelesen hat, und bietet den Knopf <b>«Erkennungsregeln»</b> an: dort hängt die Abrechnung schon als Probe, und die gelernten Regeln stehen so da, wie sie gelernt wurden. Ohne diese Probe zeigte sich ein Fehlgriff erst bei der nächsten Abrechnung dieser Bank."
-    },
-    {
-      "type": "p",
-      "id": "b-0157n",
-      "text": "<b>Werte aus einer Tabelle auswählen:</b> Tippen Sie in der Maske auf das Datumsfeld oder auf der Regelseite auf ein Beschriftungsfeld, legt die App die gefundenen Angaben zur Wahl vor – <b>jede auf beiden Wegen, wo es beide gibt</b>: über die Beschriftung daneben und über die Spaltenüberschrift darüber. Steht also «Wertstellung» als Überschrift über dem Datum und «zum» daneben, erscheinen beide Zeilen; hinter der Spaltenlesart steht, wie weit darunter gelesen wird. Was Sie antippen, wird genau so gemerkt – die App entscheidet nicht für Sie, welche Beschriftung die Bank im nächsten Beleg behält."
+      "id": "b-0157z",
+      "text": "<b>PDF-Abrechnungen einlesen:</b> Die Depot-Ansicht kann Wertpapierabrechnungen als PDF einlesen und daraus Transaktionen automatisch vorbereiten. Beim <b>ersten Mal</b> prüfen und bestätigen Sie die Werte manuell – die App <b>lernt</b> dabei die Regeln für diese Bank. Anschließend lädt die App die Werte bei nachfolgenden Abrechnungen dieser Bank automatisch vor. Die ausführliche Dokumentation und die Einstellungen zum Lernen von Erkennungsregeln stehen in Kapitel 17 (Einstellungen)."
     },
     {
       "type": "h3",
@@ -1548,6 +1568,26 @@
       "type": "p",
       "id": "b-0157j",
       "text": "<b>Hilfe beim Eintippen:</b> Unter «Abrechnung prüfen» steht neben dem Ergebnis der Knopf <b>«Text mit Zeilennummern»</b>. Er zeigt die Abrechnung so, wie die App sie liest. Das ist nötig, weil ihre Zeilen nicht die Zeilen des PDF-Betrachters sind: sie entstehen aus den Wortpositionen, und eine optisch leere Zeile gibt es dort gar nicht. Zum Abzählen des Abstands ist das die einzige verläßliche Quelle."
+    },
+    {
+      "type": "h3",
+      "id": "b-0157o",
+      "text": "Mehrere Kategorien bei Gebühr und Ertrag"
+    },
+    {
+      "type": "p",
+      "id": "b-0157p",
+      "text": "Genau wie im Buchungseditor läßt sich «Gebühren/Steuern» – bei einer Dividende auch der «Ertrag» – auf mehrere Kategorien aufteilen. In der Erfassungsmaske fügt der Knopf <b>«+»</b> unter der Zeile eine weitere Kategorie hinzu; die Summe aller Zeilen muß den Betrag darüber ergeben."
+    },
+    {
+      "type": "p",
+      "id": "b-0157q",
+      "text": "Auf der Regelseite steht derselbe Knopf: Jede Teilzeile bekommt eine eigene Erkennungsregel – Beschriftung, Richtung, Stelle, genau wie ein normales Feld. Sagen Sie beim Merken «Für diese Bank merken», legt die App für jede Kategoriezeile, deren Beschriftung sie im Beleg findet, automatisch eine solche Teilregel an."
+    },
+    {
+      "type": "p",
+      "id": "b-0157r",
+      "text": "Bleibt danach ein Rest übrig, der auf dem Beleg gar nicht steht – etwa eine Bankgebühr, die manche Institute nicht ausdrucken –, merkt sich die App <b>nur diesen Rest</b> als feste Gebühr, nicht die ganze Summe. Beim erneuten Einlesen erscheint er dann als eigene, letzte Kategoriezeile neben den erkannten."
     },
     {
       "type": "h3",
@@ -1789,7 +1829,7 @@
         "<b>Währung</b>: Standard-Währungskennzeichen für Konten ohne eigene Währung (beim .kmy-Import je Konto aus der Datei übernommen).",
         "<b>Zahlenformat</b>: «1.234,56», «1,234.56» oder «1234,56»/«1234.56» ohne Tausendertrennung; dazu der Schalter <b>«Währungskennzeichen anzeigen»</b>. Gilt für alle Beträge in App und Uhr; der Export bleibt formatstabil.",
         "<b>Dividenden brutto/netto</b>: ob Depot-Dividenden brutto (deklariert) oder netto verrechnet werden.",
-        "<b>Abrechnungen einlesen</b>: erlaubt im Depot das Einlesen von PDF-Abrechnungen der Bank (Standard: aus). Beim Einschalten nennt die App, an wie vielen Banken die Erkennung gemessen wurde (siehe Kapitel 14).",
+        "<b>Abrechnungen einlesen</b>: erlaubt im Depot das Einlesen von PDF-Abrechnungen der Bank (Standard: aus). Beim Einschalten nennt die App, an wie vielen Banken die Erkennung gemessen wurde. Die ausführliche Dokumentation steht im Abschnitt «Erkennungsregeln für PDF-Abrechnungen: Lernen und Verwalten» weiter unten.",
         "<b>Budget app-intern</b>: das Budget-Ist aus dem Verlauf berechnen statt aus KMyMoney importieren (siehe Kapitel 12).",
         "<b>Offline-Sprachpaket auf der Uhr installieren</b> (nur GitHub-Variante mit Wear-Anbindung): erlaubt der Uhr, das Offline-Sprachmodell der gewählten Sprache zu laden, damit die Sprachaufnahme auch offline funktioniert (siehe Kapitel 16). Aus → offline greift der Zahlenblock-Fallback."
       ]
@@ -2039,6 +2079,116 @@
       "type": "p",
       "id": "b-0218",
       "text": "Diese App wird ohne Gewähr bereitgestellt. Insbesondere gibt es keine Garantie, dass die .kmy-Datei nach einem Export vollständig gültig bleibt. Dank der automatischen Sicherung vor jedem Export haben Sie jedoch stets einen Fallback. Bewahren Sie zusätzlich eigene, regelmäßige Backups auf."
+    },
+    {
+      "type": "h2",
+      "id": "b-0212a",
+      "text": "Erkennungsregeln für PDF-Abrechnungen: Lernen und Verwalten"
+    },
+    {
+      "type": "p",
+      "id": "b-0212b",
+      "text": "Die PDF-Erkennungsfunktion (aktivierbar unter <b>Abrechnungen einlesen</b>) arbeitet nach einem simplen Prinzip: Sie zeigen der App beim <b>ersten Mal</b>, wo die Werte stehen, und die App <b>merkt sich die Regel</b> für alle nachfolgenden Abrechnungen derselben Bank – bis zur Änderung durch Sie."
+    },
+    {
+      "type": "p",
+      "id": "b-0212c",
+      "text": "<b>Die erste Abrechnung einer Bank:</b> Sie laden ein PDF herunter, öffnen das Depot und tippen «PDF einlesen». Die App versucht, die Werte (Datum, Stückzahl, Kurs, Gebühren, Steuern etc.) automatisch zu erkennen. Das Ergebnis zeigt sie zur <b>Prüfung</b> vor – genau wie eine manuelle Erfassung. Jeder Wert, den Sie eingeben oder korrigieren, wird dabei gelernt: Die App notiert sich, <b>wo in diesem PDF die Werte standen</b> (welche Beschriftung, in welcher Zeile) und wie Sie die Werte genannt haben (welche Kategorie, welche Beschriftung bei der Bank). Nach Ihrer Bestätigung («Merken») wendet die App die Regeln sofort auf das gleiche PDF an – als <b>Probe</b>. Passt das Ergebnis, speichert sie die Regeln und Sie können buchen. Passt es nicht, öffnet sie gleich die <b>Regelseite</b>, wo Sie die gerade gelernten Regeln sehen und korrigieren können."
+    },
+    {
+      "type": "p",
+      "id": "b-0212d",
+      "text": "<b>Nachfolgende Abrechnungen:</b> Beim nächsten PDF derselben Bank lädt die App alle Werte <b>automatisch vor</b> – Sie müssen nur noch prüfen und können direkt buchen. Sollte sich das Format der Bank ändern (neue Spalten, andere Beschriftungen), prüfen Sie die Werte und bestätigen mit «Merken» – die App passt die Regeln automatisch an."
+    },
+    {
+      "type": "p",
+      "id": "b-0212e",
+      "text": "<b>Erkennungsregeln anpassen:</b> Sollte eine gelernte Regel nicht mehr passen oder Sie möchten sie manuell korrigieren, öffnen Sie das Depot und tippen <b>⋮ → Erkennungsregeln</b>. Dort sehen Sie alle bisher gelernten Regeln nach Bank sortiert. Ein Tipp auf eine Bank zeigt ihre Regeln: zu jedem Feld (Datum, Betrag, Gebühren etc.) steht die <b>gelernte Beschriftung</b> (wie die Bank die Zeile nennt), die <b>Position</b> (welche Zeile, welche Spalte), ob es eine <b>feste Gebühr</b> je Order gibt und weitere Details. Sie können jede Regel einzeln <b>löschen</b>, damit die App sie beim nächsten PDF dieser Bank neu lernt – oder Sie bearbeiten die Regel und passen die Beschriftung, Position und Optionen manuell an."
+    },
+    {
+      "type": "h3",
+      "id": "b-0212f",
+      "text": "Werte aus einer Tabelle auswählen"
+    },
+    {
+      "type": "p",
+      "id": "b-0212g",
+      "text": "Tippen Sie in der Maske auf das Datumsfeld oder auf der Regelseite auf ein Beschriftungsfeld, legt die App die gefundenen Angaben zur Wahl vor – <b>jede auf beiden Wegen, wo es beide gibt</b>: über die Beschriftung daneben und über die Spaltenüberschrift darüber. Steht also «Wertstellung» als Überschrift über dem Datum und «zum» daneben, erscheinen beide Zeilen; hinter der Spaltenlesart steht, wie weit darunter gelesen wird. Was Sie antippen, wird genau so gemerkt – die App entscheidet nicht für Sie, welche Beschriftung die Bank im nächsten Beleg behält."
+    },
+    {
+      "type": "h3",
+      "id": "b-0212h",
+      "text": "Werte in einer Tabelle"
+    },
+    {
+      "type": "p",
+      "id": "b-0212i",
+      "text": "Manche Banken stellen die Zahlen nicht hinter eine Beschriftung, sondern <b>unter eine Spaltenüberschrift</b>. Die Datenzeile beginnt dann mit einer Zahl und trägt selbst gar keine Beschriftung. Für solche Belege heißt <b>«in einer der Zeilen darunter»</b>: die nächste Zeile, die überhaupt einen Wert trägt – bis zu drei Zeilen weit. Das überspringt eine zweite Kopfzeile, die manche Banken einschieben. Wenn diese Suche an einer Zwischenzeile hängenbleibt, die zufällig eine Zahl trägt, wählen Sie stattdessen <b>«genau 1, 2 oder 3 Zeilen darunter»</b>."
+    },
+    {
+      "type": "p",
+      "id": "b-0212j",
+      "text": "Eine Tabellenzeile trägt oft mehrere Angaben derselben Art – vorn den Buchungstag, daneben die Wertstellung. Welche gemeint ist, sagt die Auswahl <b>«Welche Zahl der Zeile»</b>; sie gilt auch für Datumsangaben. Beim Datum bedeutet die Vorgabe «die letzte» aus Rücksicht auf ältere Regeln weiterhin <b>die erste</b> Angabe hinter der Beschriftung – wer eine andere will, wählt ausdrücklich «die erste (Tabellenspalte)» oder «die 2. von links»."
+    },
+    {
+      "type": "p",
+      "id": "b-0212k",
+      "text": "<b>In der Spalte der Beschriftung:</b> Bei einer Tabelle hilft Abzählen nur, solange jede Spalte genau eine Zahl breit ist und keine fehlt. Steht die Beschriftung als Spaltenüberschrift, wählen Sie bei «Welche Zahl der Zeile» stattdessen <b>«die Zahl in der Spalte der Beschriftung»</b>: die App nimmt dann den Wert, der auf der Seite unter (bzw. über) der Beschriftung steht. Das hält auch, wenn in einem späteren Beleg eine Spalte fehlt. Die Auswahl gibt es nur zusammen mit «darunter» oder «darüber» – in derselben Zeile wäre die Spalte der Beschriftung die Beschriftung selbst."
+    },
+    {
+      "type": "p",
+      "id": "b-0212l",
+      "text": "<b>Werte über der Beschriftung:</b> Manche Belege setzen erst die Zahl und benennen sie darunter. Dafür gibt es <b>«in einer der Zeilen darüber»</b> und <b>«genau 1, 2 oder 3 Zeilen darüber»</b> – spiegelbildlich zu «darunter»."
+    },
+    {
+      "type": "p",
+      "id": "b-0212m",
+      "text": "<b>Hilfe beim Eintippen:</b> Unter «Abrechnung prüfen» steht neben dem Ergebnis der Knopf <b>«Text mit Zeilennummern»</b>. Er zeigt die Abrechnung so, wie die App sie liest. Das ist nötig, weil ihre Zeilen nicht die Zeilen des PDF-Betrachters sind: sie entstehen aus den Wortpositionen, und eine optisch leere Zeile gibt es dort gar nicht. Zum Abzählen des Abstands ist das die einzige verläßliche Quelle."
+    },
+    {
+      "type": "h3",
+      "id": "b-0212n",
+      "text": "Mehrere Kategorien bei Gebühr und Ertrag"
+    },
+    {
+      "type": "p",
+      "id": "b-0212o",
+      "text": "Genau wie im Buchungseditor läßt sich «Gebühren/Steuern» – bei einer Dividende auch der «Ertrag» – auf mehrere Kategorien aufteilen. In der Erfassungsmaske fügt der Knopf <b>«+»</b> unter der Zeile eine weitere Kategorie hinzu; die Summe aller Zeilen muß den Betrag darüber ergeben."
+    },
+    {
+      "type": "p",
+      "id": "b-0212p",
+      "text": "Auf der Regelseite steht derselbe Knopf: Jede Teilzeile bekommt eine eigene Erkennungsregel – Beschriftung, Richtung, Stelle, genau wie ein normales Feld. Sagen Sie beim Merken «Für diese Bank merken», legt die App für jede Kategoriezeile, deren Beschriftung sie im Beleg findet, automatisch eine solche Teilregel an."
+    },
+    {
+      "type": "p",
+      "id": "b-0212q",
+      "text": "Bleibt danach ein Rest übrig, der auf dem Beleg gar nicht steht – etwa eine Bankgebühr, die manche Institute nicht ausdrucken –, merkt sich die App <b>nur diesen Rest</b> als feste Gebühr, nicht die ganze Summe. Beim erneuten Einlesen erscheint er dann als eigene, letzte Kategoriezeile neben den erkannten."
+    },
+    {
+      "type": "h3",
+      "id": "b-0212r",
+      "text": "Eine Gebühr, die nicht auf der Abrechnung steht"
+    },
+    {
+      "type": "p",
+      "id": "b-0212s",
+      "text": "Manche Banken nehmen je Order einen festen Betrag, ohne ihn auf der Abrechnung auszuweisen. Eine Regel kann ihn nicht finden – sie sucht nach einer Beschriftung, und es gibt keine. Auf der Regelseite steht deshalb bei der <b>Gebühr</b> ein Feld <b>«Feste Gebühr je Order»</b> samt Kategorie."
+    },
+    {
+      "type": "p",
+      "id": "b-0212t",
+      "text": "Ob dieser Betrag zum Zuge kommt, entscheidet der Schalter <b>«Mehrere Zeilen zusammenzählen»</b> darüber. Findet die Regel im Beleg keine Gebühr, gilt der feste Wert. Findet sie eine und der Schalter steht <b>an</b>, kommt der feste Wert hinzu. Steht er <b>aus</b>, gewinnt die gefundene Gebühr und der feste Wert bleibt außen vor."
+    },
+    {
+      "type": "p",
+      "id": "b-0212u",
+      "text": "Beim <b>Gesamtbetrag</b> steht dazu der Schalter <b>«Feste Gebühr steckt schon im Gesamtbetrag»</b>. Steht er aus, ist der abgebuchte Betrag um die Gebühr höher als die Zahl auf dem Beleg – beim Verkauf die Gutschrift um sie niedriger –, und die App rechnet das hinzu. Steht er an, bleibt der Gesamtbetrag, wie er dasteht."
+    },
+    {
+      "type": "p",
+      "id": "b-0212v",
+      "text": "<b>Von selbst erkannt:</b> Tragen Sie beim Erfassen einen Gesamtbetrag und eine Gebühr ein, die <b>beide</b> nicht in der Abrechnung stehen, probiert die App die Differenz – also den Betrag ohne die Gebühr. Findet sie den, lernt sie dessen Beschriftung und trägt die Gebühr gleich als feste Ordergebühr ein. Das ist der einzige Wert, den die App nicht abliest, sondern erschließt; die Rückfrage nennt ihn deshalb ausdrücklich mit Betrag."
     },
     {
       "type": "h1",

@@ -663,6 +663,36 @@
       "text": "Tags work the same for <b>expenses, income and transfers</b>; on a transfer both account sides carry the same ones, since in the KMyMoney file it is a single booking. On a <b>scheduled booking</b> the rule's tags can only be viewed, not changed – book it and they come along and can then be edited. If the app does not know <b>any</b> tags yet – before the first sync, say, or in CSV mode where there is no KMyMoney file – the whole row does not appear at all."
     },
     {
+      "type": "h2",
+      "id": "b-0062e",
+      "text": "Securities bookings: buys, sells and dividends"
+    },
+    {
+      "type": "p",
+      "id": "b-0062f",
+      "text": "The portfolio supports recording <b>buys, sells and dividends</b> for securities – but only for <b>securities you have already set up in KMyMoney</b>. The app does not create new securities."
+    },
+    {
+      "type": "p",
+      "id": "b-0062g",
+      "text": "<b>Two ways:</b> You can either <b>record a transaction manually</b> in the booking editor (date, shares, price, fees, taxes) or let the app try to recognize the values automatically from a <b>PDF statement from your bank</b>."
+    },
+    {
+      "type": "p",
+      "id": "b-0062h",
+      "text": "<b>Read PDF:</b> the <b>first time</b> for a new bank you must <b>manually check and confirm</b> the recognised values – just like manual entry. While doing this the <b>app learns</b> where in that bank's statements each field is located. For all subsequent statements from the same bank the values are then <b>automatically filled in</b>; you only need to check briefly and can then book. The learned rules can be adjusted at any time."
+    },
+    {
+      "type": "p",
+      "id": "b-0062i",
+      "text": "<b>Limitation:</b> automatic recognition does <b>not work for every bank</b> – a complete implementation would require custom code for each bank, only professional financial vendors can afford that. This app uses an intelligent, self-configuring system that works with many banks, but not all. <b>Always check the recognised values before you book</b>."
+    },
+    {
+      "type": "p",
+      "id": "b-0062j",
+      "text": "The step-by-step explanation and the settings for learning recognition rules are in Chapter 14 (Portfolio) and Chapter 17 (Settings)."
+    },
+    {
       "type": "h1",
       "id": "b-0063",
       "text": "8. Recording quickly: voice, location, receipts"
@@ -1506,18 +1536,8 @@
     },
     {
       "type": "p",
-      "id": "b-0157a",
-      "text": "<b>Reading a statement:</b> the portfolio can read a securities statement from a PDF and prepare a booking from it. The feature ships <b>switched off</b> and can be enabled in the settings, where the app also states how many banks the recognition was measured against. It does not work with every bank – <b>check the recognised values before you book</b>."
-    },
-    {
-      "type": "p",
-      "id": "b-0157m",
-      "text": "<b>The check after storing:</b> If you answer «Store», the app immediately applies the rules it just stored to the same statement again. If the result matches what was in the form, it says nothing further. Otherwise it names, field by field, what it expected and what it read, and offers the button <b>«Detection rules»</b>: the statement is already attached there as a test, and the learned rules appear exactly as they were learned. Without this check a wrong guess would only show up with the next statement from that bank."
-    },
-    {
-      "type": "p",
-      "id": "b-0157n",
-      "text": "<b>Picking values from a table:</b> tapping the date field in the form, or a label field on the rules page, offers the entries the app found – <b>each by both routes where both exist</b>: via the label beside the value and via the column heading above it. So if «Value date» sits as a heading above the date and «as of» beside it, both lines appear, the column variant stating how many lines below it reads. Whatever you tap is stored exactly like that – the app does not decide for you which label the bank will keep in its next statement."
+      "id": "b-0157z",
+      "text": "<b>Read PDF statements:</b> the portfolio view can read securities statements as a PDF and automatically prepare transactions from them. The <b>first time</b> you manually check and confirm the values – the app <b>learns</b> the rules for that bank while you do. Then on subsequent statements from the same bank the app automatically fills in the values. The complete documentation and the settings for learning recognition rules are in Chapter 17 (Settings)."
     },
     {
       "type": "h3",
@@ -1548,6 +1568,26 @@
       "type": "p",
       "id": "b-0157j",
       "text": "<b>Help while typing:</b> under «Check statement», next to the result, sits the button <b>«Text with line numbers»</b>. It shows the statement the way the app reads it. That is necessary because its lines are not the lines of a PDF viewer: they come from the word positions, and a visually empty line does not exist there at all. For counting the distance it is the only reliable source."
+    },
+    {
+      "type": "h3",
+      "id": "b-0157o",
+      "text": "Several categories for fee and income"
+    },
+    {
+      "type": "p",
+      "id": "b-0157p",
+      "text": "Just as in the transaction editor, «Fees/taxes» – and, for a dividend, the «income» too – can be split across several categories. In the entry screen, the <b>«+»</b> button below the row adds another category; the sum of all rows must match the amount above."
+    },
+    {
+      "type": "p",
+      "id": "b-0157q",
+      "text": "The rules screen has the same button: each row gets its own recognition rule – label, direction, position, just like a regular field. When you confirm «Remember for this bank», the app automatically creates such a rule for every category row whose label it finds on the statement."
+    },
+    {
+      "type": "p",
+      "id": "b-0157r",
+      "text": "If a remainder is left over that doesn't appear on the statement at all – say, a bank fee some institutions never print –, the app remembers <b>only that remainder</b> as the fixed fee, not the whole sum. On the next import it then shows up as its own, final category row alongside the recognized ones."
     },
     {
       "type": "h3",
@@ -1789,7 +1829,7 @@
         "<b>Currency</b>: default currency symbol for accounts without their own currency (taken per account from the file on .kmy import).",
         "<b>Number format</b>: «1.234,56», «1,234.56» or «1234,56»/«1234.56» without grouping; plus the <b>«Show currency symbol»</b> toggle. Applies to all amounts in the app and on the watch; the export keeps a stable format.",
         "<b>Dividends gross/net</b>: whether portfolio dividends are settled gross (declared) or net.",
-        "<b>Read statements</b>: allows reading the bank's PDF statements in the portfolio (default: off). When switched on the app states how many banks the recognition was measured against (see Chapter 14).",
+        "<b>Read statements</b>: allows reading the bank's PDF statements in the portfolio (default: off). When switched on the app states how many banks the recognition was measured against. The complete documentation is in the section «Recognition rules for PDF statements: learning and managing» below.",
         "<b>Budget in-app</b>: compute the budget actuals from history instead of importing from KMyMoney (see Chapter 12).",
         "<b>Install offline speech package on the watch</b> (GitHub build with the Wear bridge only): lets the watch download the offline speech model of the chosen language so voice recording works offline too (see Chapter 16). Off → the number-pad fallback applies offline."
       ]
@@ -2039,6 +2079,116 @@
       "type": "p",
       "id": "b-0218",
       "text": "This app is provided as-is, with no warranty. In particular, there is no guarantee that the .kmy file remains fully valid after an export. Thanks to the automatic backup before every export, however, you always have a fallback. Keep your own regular backups as well."
+    },
+    {
+      "type": "h2",
+      "id": "b-0212a",
+      "text": "Recognition rules for PDF statements: learning and managing"
+    },
+    {
+      "type": "p",
+      "id": "b-0212b",
+      "text": "The PDF recognition feature (enabling under <b>Read PDF statements</b>) works on a simple principle: you show the app <b>the first time</b> where the values are located, and the app <b>remembers the rule</b> for all subsequent statements from the same bank – until you change it."
+    },
+    {
+      "type": "p",
+      "id": "b-0212c",
+      "text": "<b>The first statement from a bank:</b> You download a PDF, open the portfolio and tap «Read PDF». The app tries to recognize the values (date, shares, price, fees, taxes etc.) automatically. It shows you the result for <b>review</b> – just like manual entry. Each value you enter or correct is learned: the app records <b>where in this PDF the values were</b> (which label, which line) and how you named the values (which category, which label at the bank). After you confirm («Store»), the app applies the rules immediately to the same PDF – as a <b>test</b>. If the result fits, it saves the rules and you can book. If not, it opens the <b>rules page</b> right away, where you can see and correct the just-learned rules."
+    },
+    {
+      "type": "p",
+      "id": "b-0212d",
+      "text": "<b>Subsequent statements:</b> The next PDF from the same bank, the app <b>automatically fills in</b> all values – you only need to review and can book directly. Should the bank's format change (new columns, different labels), review the values and confirm with «Store» – the app updates the rules automatically."
+    },
+    {
+      "type": "p",
+      "id": "b-0212e",
+      "text": "<b>Adjust recognition rules:</b> If a learned rule no longer fits or you want to correct it manually, open the portfolio and tap <b>⋮ → Recognition rules</b>. You see all the rules learned so far, sorted by bank. Tapping a bank shows its rules: for each field (date, amount, fees etc.) there is the <b>learned label</b> (what the bank calls the row), the <b>position</b> (which row, which column), whether there is a <b>fixed fee</b> per trade, and further details. You can <b>delete</b> each rule individually so the app learns it fresh the next time from that bank – or you edit the rule and manually adjust the label, position and options."
+    },
+    {
+      "type": "h3",
+      "id": "b-0212f",
+      "text": "Picking values from a table"
+    },
+    {
+      "type": "p",
+      "id": "b-0212g",
+      "text": "Tapping the date field in the form, or a label field on the rules page, offers the entries the app found – <b>each by both routes where both exist</b>: via the label beside the value and via the column heading above it. So if «Value date» sits as a heading above the date and «as of» beside it, both lines appear, the column variant stating how many lines below it reads. Whatever you tap is stored exactly like that – the app does not decide for you which label the bank will keep in its next statement."
+    },
+    {
+      "type": "h3",
+      "id": "b-0212h",
+      "text": "Values inside a table"
+    },
+    {
+      "type": "p",
+      "id": "b-0212i",
+      "text": "Some banks do not put the figures behind a label but <b>under a column heading</b>. The data row then starts with a number and carries no label of its own. For such statements <b>«on one of the lines below»</b> means: the next line that carries a value at all – up to three lines away. That skips a second header line, which some banks insert. If the search gets stuck on an in-between line that happens to carry a number, pick <b>«exactly 1, 2 or 3 lines below»</b> instead."
+    },
+    {
+      "type": "p",
+      "id": "b-0212j",
+      "text": "A table row often carries several entries of the same kind – the booking day first, the value date next to it. Which one is meant is set by <b>«Which number on the line»</b>; it applies to dates as well. For dates the default «the last one» still means <b>the first</b> entry after the label, out of consideration for older rules – if you want another, pick «the first (table column)» or «the 2nd from the left» explicitly."
+    },
+    {
+      "type": "p",
+      "id": "b-0212k",
+      "text": "<b>In the label's column:</b> In a table, counting only works as long as every column is exactly one number wide and none is missing. When the label is a column heading, pick <b>«the number in the label's column»</b> under «Which number on the line» instead: the app then takes the value that sits below (or above) the label on the page. That holds even when a later statement omits a column. The choice is offered only together with «below» or «above» – on the same line the label's column would be the label itself."
+    },
+    {
+      "type": "p",
+      "id": "b-0212l",
+      "text": "<b>Values above the label:</b> Some statements print the number first and name it underneath. For those there are <b>«on one of the lines above»</b> and <b>«exactly 1, 2 or 3 lines above»</b> – the mirror image of «below»."
+    },
+    {
+      "type": "p",
+      "id": "b-0212m",
+      "text": "<b>Help while typing:</b> under «Check statement», next to the result, sits the button <b>«Text with line numbers»</b>. It shows the statement the way the app reads it. That is necessary because its lines are not the lines of a PDF viewer: they come from the word positions, and a visually empty line does not exist there at all. For counting the distance it is the only reliable source."
+    },
+    {
+      "type": "h3",
+      "id": "b-0212n",
+      "text": "Multiple categories for fees and yield"
+    },
+    {
+      "type": "p",
+      "id": "b-0212o",
+      "text": "Just like in the booking editor, «fees/taxes» – or on a dividend the «yield» – can be split across multiple categories. In the entry form the button <b>«+»</b> below the line adds another category; the sum of all lines must match the amount above."
+    },
+    {
+      "type": "p",
+      "id": "b-0212p",
+      "text": "The same button sits on the rules page: each sub-line gets its own recognition rule – label, direction, position, just like a normal field. When you say «Store», the app automatically creates such a sub-rule for each category line whose label it finds in the statement."
+    },
+    {
+      "type": "p",
+      "id": "b-0212q",
+      "text": "If a remainder is left over that does not appear on the statement – for instance a bank fee that some institutions do not print – the app <b>remembers only this remainder</b> as a fixed fee, not the whole amount. On the next read it appears as its own, last category line alongside the recognized ones."
+    },
+    {
+      "type": "h3",
+      "id": "b-0212r",
+      "text": "A fee not listed on the statement"
+    },
+    {
+      "type": "p",
+      "id": "b-0212s",
+      "text": "Some banks charge a fixed amount per trade without listing it on the statement. A rule cannot find it – it looks for a label and there is none. On the rules page, therefore, under <b>fees</b> sits a field <b>«Fixed fee per trade»</b> with its category."
+    },
+    {
+      "type": "p",
+      "id": "b-0212t",
+      "text": "Whether this amount takes effect is decided by the toggle <b>«Add multiple lines»</b>. If the rule finds no fee in the statement the fixed value applies. If it finds one and the toggle is <b>on</b>, the fixed value is added. If <b>off</b>, the found fee wins and the fixed value is ignored."
+    },
+    {
+      "type": "p",
+      "id": "b-0212u",
+      "text": "The <b>total amount</b> has a corresponding toggle: <b>«Fixed fee is already included in the total amount»</b>. Off = the amount debited is higher by the fee than the number on the statement – on a sale the credit is lower by it – and the app adds it up. On = the total amount stays as it is."
+    },
+    {
+      "type": "p",
+      "id": "b-0212v",
+      "text": "<b>Recognized automatically:</b> If you enter a total amount and a fee during entry, <b>both</b> of which do not appear on the statement, the app tries the difference – i.e. the amount without the fee. If it finds it, it learns the label and enters the fee as a fixed trade fee. This is the only value the app does not read but deduces; the prompt mentions it explicitly with the amount."
     },
     {
       "type": "h1",

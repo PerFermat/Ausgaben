@@ -332,6 +332,10 @@ public class SettingsStore {
         return prefs.getString(KEY_EXPORT_MODE, MODE_CSV);
     }
 
+    public void setExportMode(String exportMode) {
+        prefs.edit().putString(KEY_EXPORT_MODE, MODE_KMY.equals(exportMode) ? MODE_KMY : MODE_CSV).apply();
+    }
+
     public boolean isKmyMode() {
         return MODE_KMY.equals(getExportMode());
     }
@@ -339,6 +343,10 @@ public class SettingsStore {
     /** {@link #SERVER_NEXTCLOUD} (Standard) oder {@link #SERVER_WEBDAV}. */
     public String getServerType() {
         return prefs.getString(KEY_SERVER_TYPE, SERVER_NEXTCLOUD);
+    }
+
+    public void setServerType(String serverType) {
+        prefs.edit().putString(KEY_SERVER_TYPE, normalizeServerType(serverType)).apply();
     }
 
     /** true = Nextcloud-Pfadschema; false = generischer WebDAV-Server oder SMB (Basis-URL = Wurzel). */

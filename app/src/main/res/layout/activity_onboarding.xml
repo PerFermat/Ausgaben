@@ -50,7 +50,8 @@
                     android:id="@+id/editLanguage"
                     android:layout_width="match_parent"
                     android:layout_height="wrap_content"
-                    android:inputType="none" />
+                    android:inputType="none"
+                    android:saveEnabled="false" />
             </com.google.android.material.textfield.TextInputLayout>
 
             <!-- Format -->
@@ -73,7 +74,8 @@
                     android:id="@+id/editExportMode"
                     android:layout_width="match_parent"
                     android:layout_height="wrap_content"
-                    android:inputType="none" />
+                    android:inputType="none"
+                    android:saveEnabled="false" />
             </com.google.android.material.textfield.TextInputLayout>
 
             <!-- Synchronisierung -->
@@ -96,7 +98,8 @@
                     android:id="@+id/editServerType"
                     android:layout_width="match_parent"
                     android:layout_height="wrap_content"
-                    android:inputType="none" />
+                    android:inputType="none"
+                    android:saveEnabled="false" />
             </com.google.android.material.textfield.TextInputLayout>
 
             <!-- Nur bei SMB: Einrichtungsassistent statt URL/Benutzer/Passwort. -->

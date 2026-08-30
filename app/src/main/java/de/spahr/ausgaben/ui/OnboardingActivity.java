@@ -184,6 +184,7 @@ public class OnboardingActivity extends LocalizedActivity implements SmbWizardCo
         applyExportModeVisibility();
         editExportMode.setOnItemClickListener((parent, view, position, id) -> {
             selectedExportMode = position == 1 ? SettingsStore.MODE_KMY : SettingsStore.MODE_CSV;
+            settings.setExportMode(selectedExportMode);
             applyExportModeVisibility();
         });
     }
@@ -205,6 +206,7 @@ public class OnboardingActivity extends LocalizedActivity implements SmbWizardCo
         editServerType.setOnItemClickListener((parent, view, position, id) -> {
             selectedServerType = position == 1 ? SettingsStore.SERVER_WEBDAV
                     : position == 2 ? SettingsStore.SERVER_SMB : SettingsStore.SERVER_NEXTCLOUD;
+            settings.setServerType(selectedServerType);
             applyServerTypeHints();
         });
     }

@@ -97,6 +97,20 @@ public class SecurityHistoryActivity extends LocalizedActivity {
 
         container = findViewById(R.id.historyContainer);
         findViewById(R.id.fabAddTx).setOnClickListener(v -> openEditor(null));
+
+        androidx.core.widget.NestedScrollView historyScroll = findViewById(R.id.historyScroll);
+        com.google.android.material.floatingactionbutton.FloatingActionButton fabScrollTop =
+                findViewById(R.id.fabScrollTop);
+        fabScrollTop.setOnClickListener(v -> historyScroll.smoothScrollTo(0, 0));
+        historyScroll.setOnScrollChangeListener(
+                (androidx.core.widget.NestedScrollView.OnScrollChangeListener) (v, scrollX, scrollY, oldScrollX, oldScrollY) -> {
+                    if (scrollY > 0) {
+                        fabScrollTop.show();
+                    } else {
+                        fabScrollTop.hide();
+                    }
+                });
+
         repository = new Repository(this);
     }
 

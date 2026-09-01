@@ -26,8 +26,13 @@ public final class AmountField {
      * Reihenfolge prüft der {@link CalcInputFilter}.
      */
     public static void prepareCalc(EditText field) {
+        char decimal = MoneyFormat.decimalSeparator();
+        char thousands = decimal == ',' ? '.' : ',';
+        // Das Tausendertrennzeichen muss den KeyListener passieren dürfen, damit aus einer PDF-Rechnung
+        // kopierte Beträge wie „1.000,00" überhaupt beim CalcInputFilter ankommen – der entfernt es dann
+        // wieder (siehe dort).
         field.setKeyListener(DigitsKeyListener.getInstance(
-                DIGITS + MoneyFormat.decimalSeparator() + "+-*"));
+                DIGITS + decimal + thousands + "+-*"));
         field.setFilters(new InputFilter[]{new CalcInputFilter()});
     }
 

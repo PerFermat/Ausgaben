@@ -34,10 +34,22 @@ public class CalcInputFilter implements InputFilter {
     @Override
     public CharSequence filter(CharSequence source, int start, int end, Spanned dest,
                                int dstart, int dend) {
-        String result = dest.subSequence(0, dstart)
-                + source.subSequence(start, end).toString()
-                + dest.subSequence(dend, dest.length());
-        return isTypablePrefix(result, sep) ? null : "";   // null = Änderung übernehmen, "" = ablehnen
+        // Aus einer PDF-Rechnung kopierte Beträge wie „1.000,00" (bzw. „1,000.00" bei Punkt als
+        // Dezimalzeichen) tragen ein Tausendertrennzeichen – das jeweils andere der beiden Zeichen. Es
+        // wird beim Einfügen/Tippen stillschweigend entfernt statt die ganze Eingabe abzulehnen.
+        char thousands = sep == ',' ? '.' : ',';
+        StringBuilder cleaned = new StringBuilder(end - start);
+        for (int i = start; i < end; i++) {
+            char c = source.charAt(i);
+            if (c != thousands) {
+                cleaned.append(c);
+            }
+        }
+        String result = dest.subSequence(0, dstart) + cleaned.toString() + dest.subSequence(dend, dest.length());
+        if (!isTypablePrefix(result, sep)) {
+            return "";   // ablehnen
+        }
+        return cleaned.length() == end - start ? null : cleaned.toString();   // null = unverändert übernehmen
     }
 
     /** {@code true}, wenn {@code s} ein gültiger Anfang einer Rechnung aus Zahlen, {@code + - *} ist. */

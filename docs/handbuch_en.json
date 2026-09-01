@@ -158,7 +158,7 @@
     {
       "type": "p",
       "id": "b-0005f",
-      "text": "<b>Where to go next:</b> the welcome assistant in detail is in the next chapter, recording a booking in Chapter 7, syncing with KMyMoney in Chapter 14, and every single setting in Chapter 16."
+      "text": "<b>Where to go next:</b> the welcome assistant in detail is in the next chapter, recording a booking in Chapter 8, syncing with KMyMoney in Chapter 17, and every single setting in Chapter 19."
     },
     {
       "type": "h1",
@@ -210,7 +210,7 @@
     {
       "type": "p",
       "id": "b-0012",
-      "text": "All settings in detail – language, number format, currency, server connection, export mode, default account, alias names, app lock, backup and more – are explained in the <b>«Settings»</b> chapter at the end of the manual (Chapter 17). They are reachable any time via the <b>⋮ menu</b> at the top right, entry <b>«Settings»</b> at the very bottom."
+      "text": "All settings in detail – language, number format, currency, server connection, export mode, default account, alias names, app lock, backup and more – are explained in the <b>«Settings»</b> chapter at the end of the manual (Chapter 19). They are reachable any time via the <b>⋮ menu</b> at the top right, entry <b>«Settings»</b> at the very bottom."
     },
     {
       "type": "h1",
@@ -542,8 +542,77 @@
     },
     {
       "type": "h1",
+      "id": "b-9100",
+      "text": "7. Multiple Profiles"
+    },
+    {
+      "type": "p",
+      "id": "b-9101",
+      "text": "A <b>profile</b> is a fully separate set of data: its own accounts and bookings, its own server connection, its own currency, number format and accent colour. Handy for keeping personal and business separate, or when several people share the same device. The welcome assistant creates the first profile automatically on first start; further ones are added through the settings. Only <b>one</b> profile is ever active."
+    },
+    {
+      "type": "text_with_single_shot",
+      "id": "b-9102",
+      "content": [
+        {
+          "type": "h3",
+          "id": "b-9102a",
+          "text": "Switching profiles"
+        },
+        {
+          "type": "steps",
+          "id": "b-9102b",
+          "items": [
+            "Menu <b>⋮ → Switch profile</b> opens the list of all profiles; the active one is marked «(active)».",
+            "Tap another profile to switch to it instantly, without restarting the app."
+          ]
+        }
+      ],
+      "shot": {
+        "fname": "Profil wechseln.png",
+        "caption": "List of all profiles – a tap switches instantly",
+        "width": 6.0
+      }
+    },
+    {
+      "type": "h3",
+      "id": "b-9103",
+      "text": "Creating a new profile"
+    },
+    {
+      "type": "p",
+      "id": "b-9104",
+      "text": "In the <b>settings</b>, «<b>Create new profile</b>» adds another profile – the same short assistant as on the very first start (Chapter 3): language, server, done. The new profile becomes active right away."
+    },
+    {
+      "type": "h3",
+      "id": "b-9105",
+      "text": "Editing a profile"
+    },
+    {
+      "type": "p",
+      "id": "b-9106",
+      "text": "A <b>long press</b> on a row in «Switch profile» – or its <b>⋮</b> menu, entry «<b>Edit profile</b>» – opens the full settings screen for that profile: currency, number format, dividends, budget, places, alias names, deleting/closing accounts, backing up and resetting the profile. If the profile is not active yet, the app switches to it first."
+    },
+    {
+      "type": "h3",
+      "id": "b-9107",
+      "text": "Rename, change colour, delete"
+    },
+    {
+      "type": "p",
+      "id": "b-9108",
+      "text": "The same <b>⋮</b> menu also offers «<b>Rename</b>» and «<b>Change colour</b>» (the accent colour of buttons and the toolbar, for this profile only). «<b>Delete</b>» removes the profile along with its bookings and accounts irreversibly – available only from the second profile on, one must always remain."
+    },
+    {
+      "type": "p",
+      "id": "b-9109",
+      "text": "<b>Device-wide instead of per profile</b> are language, dark mode, app lock and the reminder for due bookings – these settings apply to all profiles alike."
+    },
+    {
+      "type": "h1",
       "id": "b-0043",
-      "text": "7. Recording a booking"
+      "text": "8. Recording a booking"
     },
     {
       "type": "text_with_single_shot",
@@ -604,72 +673,22 @@
         {
           "type": "h2",
           "id": "b-0050a0",
-          "text": "What the app fills in for you"
-        },
-        {
-          "type": "h3",
-          "id": "b-0050a1",
-          "text": "Nearby payees first"
+          "text": "What the app suggests for you"
         },
         {
           "type": "p",
           "id": "b-0050a",
-          "text": "The <b>six nearest payees</b> head the payee list with a <b>bearing arrow</b>, the nearest one first. Below them the complete alphabetical list follows unchanged – so those six appear a second time. <b>As soon as you start typing</b> this block disappears; delete what you typed and it is back."
-        },
-        {
-          "type": "p",
-          "id": "b-0050a2",
-          "text": "Distances are measured from the <b>booking's location</b>, that is from whatever the <b>location</b> row shows: in a new booking your current one (only with <b>location (GPS)</b> switched on), while editing the booking's stored mark. If you pick another point there via <b>«Map»</b>, the block follows."
-        },
-        {
-          "type": "p",
-          "id": "b-0050a3",
-          "text": "The distance comes from the same sources as the radius filter: the coordinates in the notes of a payee's bookings and the learned locations of its aliases. The nearest point counts; anything beyond <b>10 km</b> does not appear."
-        },
-        {
-          "type": "p",
-          "id": "b-0050a4",
-          "text": "<b>No block appears</b> when the booking carries no mark – where you stand today says nothing about an old booking. It does not appear when you view a planned booking either."
-        },
-        {
-          "type": "h3",
-          "id": "b-0050b0",
-          "text": "The category follows the payee"
+          "text": "If the location is known, the payee list heads with a few nearby payees marked by a bearing arrow – as soon as you start typing, this suggestion disappears again."
         },
         {
           "type": "p",
           "id": "b-0050b",
-          "text": "Once the payee is set, the app fills in the matching category. It searches in this order, always for the selected booking type: first the <b>preferred aliases</b> (★), then your <b>bookings</b> for that payee (the most recent first, the parts of a split booking count too), finally the <b>remaining aliases</b>. The first find goes into the first category row, and the partial amount jumps to the total."
-        },
-        {
-          "type": "p",
-          "id": "b-0050b1",
-          "text": "The other finds – up to six – head the picker under the heading <b>«FOR THIS PAYEE»</b>, and they do so in <b>every</b> category row, so splitting benefits too. As soon as you start typing, that block disappears and the categories only appear in their usual place under «EXPENSE» or «INCOME»."
-        },
-        {
-          "type": "p",
-          "id": "b-0050b2",
-          "text": "<b>When the preset keeps up:</b> as long as you have not touched the category rows yourself. Change the payee and the category moves along – a second row from an alias gives way to the new payee's category as well. Switch between expense and income and both block and preset switch with it."
-        },
-        {
-          "type": "p",
-          "id": "b-0050b3",
-          "text": "<b>When it stays put:</b> as soon as you have done something in the category rows yourself – picked or typed a category, changed a partial amount, removed a row. From then on nothing is pulled in any more. When <b>editing</b> a saved booking or booking a scheduled one the category is left alone anyway, even if you change the payee there. Transfers have no categories."
-        },
-        {
-          "type": "h3",
-          "id": "b-0050c0",
-          "text": "The amount can guess the payee (off by default)"
+          "text": "Pick a payee and the app fills in the matching category right away. Change a category row yourself and it stays put, no longer overwritten."
         },
         {
           "type": "p",
           "id": "b-0050c",
-          "text": "The other way round, the amount can supply the payee. Leave the amount field, and if within <b>100 m</b> of the location mark there is exactly <b>one</b> payee whose usual amounts match it, that name goes into the <b>empty</b> payee field – bringing its category along. This applies to every booking type; for transfers it is compared against the amounts of your previous transfers to that payee."
-        },
-        {
-          "type": "p",
-          "id": "b-0050c1",
-          "text": "If several match, or none, nothing happens; a payee you entered yourself is never touched. The suggestion list itself is unaffected – it still lists every payee within 10 km. Switch the pre-fill on under <b>«Use amount for payee suggestions»</b> in the settings."
+          "text": "Optionally (switch on in the settings under «Use amount for payee suggestions»), the typed <b>amount</b> alone can suggest a nearby payee, if it clearly matches one."
         }
       ],
       "shot": {
@@ -763,22 +782,22 @@
     {
       "type": "p",
       "id": "b-0062b",
-      "text": "KMyMoney has <b>tags</b>: freely maintained keywords such as «Holiday», «Business trip» or «Tax», any number of which a booking may carry. The app reads them when syncing with the KMyMoney file and writes them back on export – including when you change a booking that has already been transferred. Below the note field there is a <b>«Tags»</b> row for them: it names the tags, and once there are too many for one line, only their number."
+      "text": "KMyMoney has <b>tags</b>: freely maintained keywords such as «Holiday» or «Tax», any number of which a booking may carry. Below the note field there is a <b>«Tags»</b> row for them."
     },
     {
       "type": "p",
       "id": "b-0062c",
-      "text": "The <b>pencil symbol</b> opens a small window listing every tag of this booking, each with its own delete cross; below it a field adds another one. It behaves like the category, account and payee fields – typing shows the matches, tapping one takes it. <b>Only what already exists in KMyMoney can be entered</b>: the app never invents a tag, an unknown name is discarded when you leave the field. The <b>bin symbol</b> on the row clears all tags of the booking in one go. None of this takes effect until you save the booking; leave the screen without saving and everything stays as it was."
+      "text": "The <b>pencil symbol</b> opens a window listing every tag; a field below adds another one, the <b>bin symbol</b> clears all of them at once. Only what already exists in KMyMoney can be entered."
     },
     {
       "type": "p",
       "id": "b-0062d",
-      "text": "Tags work the same for <b>expenses, income and transfers</b>; on a transfer both account sides carry the same ones, since in the KMyMoney file it is a single booking. On a <b>scheduled booking</b> the rule's tags can only be viewed, not changed – book it and they come along and can then be edited. If the app does not know <b>any</b> tags yet – before the first sync, say, or in CSV mode where there is no KMyMoney file – the whole row does not appear at all."
+      "text": "Tags work the same for <b>expenses, income and transfers</b>. If the app does not know any tags yet – in CSV mode without a KMyMoney file, say – the row does not appear at all."
     },
     {
       "type": "h1",
       "id": "b-0062z",
-      "text": "8. Securities - Portfolio"
+      "text": "9. Securities - Portfolio"
     },
     {
       "type": "p",
@@ -815,7 +834,11 @@
           "text": "After importing a KMyMoney investment account, the <b>portfolio</b> appears in the account drawer. The view is structured like a regular account view – same title bar, same drawer, same filter – and shows for each security <b>quantity × price = current value</b>. Fully sold securities are hidden."
         }
       ],
-      "shot": {"fname": "Portfolio.png", "caption": "Portfolio view: securities with quantity, price and current value", "width": 3.0}
+      "shot": {
+        "fname": "Portfolio.png",
+        "caption": "Portfolio view: securities with quantity, price and current value",
+        "width": 3.0
+      }
     },
     {
       "type": "p",
@@ -831,9 +854,36 @@
       "type": "shot_row",
       "id": "b-0062z10",
       "shots": [
-        {"fname": "Portfolio Transactions.png", "caption": "Transactions for a security: buys, sells and dividends"},
-        {"fname": "Portfolio Analysis.png", "caption": "Portfolio analysis: symbol switcher, date range filter and pie chart"}
+        {
+          "fname": "Portfolio Transactions.png",
+          "caption": "Transactions for a security: buys, sells and dividends"
+        },
+        {
+          "fname": "Portfolio Analysis.png",
+          "caption": "Portfolio analysis: symbol switcher, date range filter and pie chart"
+        }
       ]
+    },
+    {
+      "type": "h2",
+      "id": "b-9200",
+      "text": "Filtering positions"
+    },
+    {
+      "type": "text_with_single_shot",
+      "id": "b-9201",
+      "content": [
+        {
+          "type": "p",
+          "id": "b-9201a",
+          "text": "The <b>funnel ▽</b> in the portfolio toolbar filters like in the booking list: by name, by value – and additionally whether <b>active holdings</b> and/or <b>closed positions</b> (zero shares) are shown. Default: active only."
+        }
+      ],
+      "shot": {
+        "fname": "Portfolio Filter.png",
+        "caption": "Filter: name, value range, active and/or closed positions",
+        "width": 6.0
+      }
     },
     {
       "type": "h2",
@@ -841,14 +891,25 @@
       "text": "Opening a securities booking"
     },
     {
-      "type": "p",
+      "type": "text_with_single_shot",
       "id": "b-0062z12",
-      "text": "A securities purchase also appears in the booking list of the settlement account – as a transfer between that account and the security. When you open it, <b>amount, payee, accounts and date are locked</b>. Why: <b>quantity and price</b> belong to this booking but only exist in the KMyMoney file. The app doesn't know them – if it could rewrite the booking like a regular transfer, the securities purchase in your file would become a bare transfer and destroy the portfolio there."
-    },
-    {
-      "type": "p",
-      "id": "b-0062z13",
-      "text": "What can be changed are exactly the three things KMyMoney doesn't need itself for such a booking: the <b>note</b>, the <b>tags</b> and the <b>receipt</b> – your bank's statement as a PDF, for instance. On the next export the app adds them to the existing transaction without rebuilding it: shares, price and type of movement stay untouched. That way you find the statement again even after re-reading the portfolio."
+      "content": [
+        {
+          "type": "p",
+          "id": "b-0062z12",
+          "text": "A securities purchase also appears in the booking list of the settlement account – as a transfer between that account and the security. When you open it, <b>amount, payee, accounts and date are locked</b>. Why: <b>quantity and price</b> belong to this booking but only exist in the KMyMoney file. The app doesn't know them – if it could rewrite the booking like a regular transfer, the securities purchase in your file would become a bare transfer and destroy the portfolio there."
+        },
+        {
+          "type": "p",
+          "id": "b-0062z13",
+          "text": "What can be changed are exactly the three things KMyMoney doesn't need itself for such a booking: the <b>note</b>, the <b>tags</b> and the <b>receipt</b> – your bank's statement as a PDF, for instance. On the next export the app adds them to the existing transaction without rebuilding it: shares, price and type of movement stay untouched. That way you find the statement again even after re-reading the portfolio."
+        }
+      ],
+      "shot": {
+        "fname": "Portfolio Booking Open.png",
+        "caption": "An opened securities booking: only note, tags and receipt can be changed",
+        "width": 6.0
+      }
     },
     {
       "type": "h3",
@@ -858,12 +919,12 @@
     {
       "type": "p",
       "id": "b-0062z15",
-      "text": "<b>«Delete»</b> is available here, and it takes the associated <b>portfolio transaction</b> with it; otherwise a transaction without cash booking would remain in the portfolio. Why this is allowed where editing is locked: when you delete, the <b>entire</b> transaction disappears – cash, securities and fees together. Nothing can remain half-finished, and that is exactly why editing is forbidden."
+      "text": "<b>«Delete»</b> is available here, and it takes the associated <b>portfolio transaction</b> with it; otherwise a transaction without a cash booking would remain in the portfolio. Unlike editing, deleting removes the <b>whole</b> transaction at once, nothing stays half-finished."
     },
     {
       "type": "p",
       "id": "b-0062z16",
-      "text": "If the booking is already in the KMyMoney file, the confirmation makes this explicit: on the next export the transaction will be removed <b>there</b> too, shares and price included. <b>Undo is not available</b> – the booking could be restored, the portfolio transaction could not, and a partial undo would be worse than none."
+      "text": "If the booking is already in the KMyMoney file, it will be removed <b>there</b> too on the next export. <b>Undo is not available.</b>"
     },
     {
       "type": "text_with_single_shot",
@@ -875,7 +936,11 @@
           "text": "A <b>short tap</b> on a transaction shows the numbers behind it: for <b>buy</b> and <b>sell</b> number of shares, share price, amount, fees and the resulting total (charge on buy, credit on sell); for <b>dividends</b> the quantity held, gross dividend per share, gross amount, taxes/levies and net amount; for <b>in-</b> and <b>out-bookings</b> the quantity. <b>Fees</b> only appear after a fresh portfolio import – otherwise the line is missing."
         }
       ],
-      "shot": {"fname": "Security Booking.png", "caption": "Security booking: details on quantity, price and fees", "width": 3.5}
+      "shot": {
+        "fname": "Security Booking.png",
+        "caption": "Security booking: details on quantity, price and fees",
+        "width": 3.5
+      }
     },
     {
       "type": "p",
@@ -890,17 +955,17 @@
     {
       "type": "p",
       "id": "b-0062z21",
-      "text": "The <b>«Analysis»</b> menu opens a <b>pie chart</b> of the securities – styled like the categories page (continuous ring, fixed colour per security, at most half screen height, below it a scrollable list). Segments are unlabeled; a tap shows <b>name and amount</b> in the centre, without selection it says «Total». Chart and list are <b>always</b> sorted descending by the current value of the period."
+      "text": "The <b>«Analysis»</b> menu opens a <b>pie chart</b> of the securities, styled like the categories page. Tapping a segment shows the name and amount of that security."
     },
     {
       "type": "p",
       "id": "b-0062z22",
-      "text": "At the top a <b>symbol switcher</b> chooses the view: <b>Current value</b> (standard, € symbol) · <b>Net invested</b> (arrow) · <b>Dividend total</b> (% symbol) · <b>Gain/loss</b> (trend arrow). Below a <b>date range filter</b> narrows the analysis – a monthly range slider (first portfolio booking to today) plus two date fields <b>From/To</b> for any date. Any change to view or period updates the chart and list immediately."
+      "text": "At the top a <b>symbol switcher</b> chooses the view: current value, net invested, dividend total or gain/loss. Below, a <b>date range filter</b> narrows the analysis."
     },
     {
       "type": "p",
       "id": "b-0062z23",
-      "text": "In the <b>menu bar</b> an icon shows or hides <b>fully sold securities</b> (hidden by default). What counts is the net holding <b>at the end of the selected period</b> – a sale after that does not yet count as «fully sold»."
+      "text": "An icon in the menu bar shows or hides fully sold securities (hidden by default)."
     },
     {
       "type": "h2",
@@ -910,17 +975,138 @@
     {
       "type": "p",
       "id": "b-0062z25",
-      "text": "The portfolio view can read securities statements as a PDF and automatically prepare transactions from them. The <b>first time</b> you manually check and confirm the values – the app <b>learns</b> the rules for that bank while you do. Then on subsequent statements from the same bank the app automatically fills in the values. The complete documentation and the settings for learning recognition rules are in Chapter 16 (Settings)."
+      "text": "The portfolio view can read securities statements as a PDF and automatically prepare transactions from them. The <b>first time</b> you manually check and confirm the values – the app <b>learns</b> the rules for that bank while you do. Then on subsequent statements from the same bank the app automatically fills in the values. How the recognition rules work in detail and how to adjust them is covered in the next chapter."
+    },
+    {
+      "type": "h1",
+      "id": "b-0212a",
+      "text": "10. Recognition rules for PDF statements: learning and managing"
+    },
+    {
+      "type": "text_with_single_shot",
+      "id": "b-0212b",
+      "content": [
+        {
+          "type": "p",
+          "id": "b-0212b",
+          "text": "The PDF recognition feature (enabling under <b>Read PDF statements</b>) works on a simple principle: you show the app <b>the first time</b> where the values are located, and the app <b>remembers the rule</b> for all subsequent statements from the same bank – until you change it."
+        }
+      ],
+      "shot": {
+        "fname": "Recognition Rules.png",
+        "caption": "Managing recognition rules per bank",
+        "width": 6.0
+      }
+    },
+    {
+      "type": "p",
+      "id": "b-0212c",
+      "text": "<b>The first statement from a bank:</b> You download a PDF, open the portfolio and tap «Read PDF». The app tries to recognize the values (date, shares, price, fees, taxes etc.) automatically. It shows you the result for <b>review</b> – just like manual entry. Each value you enter or correct is learned: the app records <b>where in this PDF the values were</b> (which label, which line) and how you named the values (which category, which label at the bank). After you confirm («Store»), the app applies the rules immediately to the same PDF – as a <b>test</b>. If the result fits, it saves the rules and you can book. If not, it opens the <b>rules page</b> right away, where you can see and correct the just-learned rules."
+    },
+    {
+      "type": "p",
+      "id": "b-0212d",
+      "text": "<b>Subsequent statements:</b> The next PDF from the same bank, the app <b>automatically fills in</b> all values – you only need to review and can book directly. Should the bank's format change (new columns, different labels), review the values and confirm with «Store» – the app updates the rules automatically."
+    },
+    {
+      "type": "p",
+      "id": "b-0212e",
+      "text": "<b>Adjust recognition rules:</b> If a learned rule no longer fits or you want to correct it manually, open the portfolio and tap <b>⋮ → Recognition rules</b>. You see all the rules learned so far, sorted by bank. Tapping a bank shows its rules: for each field (date, amount, fees etc.) there is the <b>learned label</b> (what the bank calls the row), the <b>position</b> (which row, which column), whether there is a <b>fixed fee</b> per trade, and further details. You can <b>delete</b> each rule individually so the app learns it fresh the next time from that bank – or you edit the rule and manually adjust the label, position and options."
+    },
+    {
+      "type": "h3",
+      "id": "b-0212f",
+      "text": "Picking values from a table"
+    },
+    {
+      "type": "p",
+      "id": "b-0212g",
+      "text": "Tapping the date field in the form, or a label field on the rules page, offers the entries the app found – <b>each by both routes where both exist</b>: via the label beside the value and via the column heading above it. So if «Value date» sits as a heading above the date and «as of» beside it, both lines appear, the column variant stating how many lines below it reads. Whatever you tap is stored exactly like that – the app does not decide for you which label the bank will keep in its next statement."
+    },
+    {
+      "type": "h3",
+      "id": "b-0212h",
+      "text": "Values inside a table"
+    },
+    {
+      "type": "p",
+      "id": "b-0212i",
+      "text": "Some banks do not put the figures behind a label but <b>under a column heading</b>. The data row then starts with a number and carries no label of its own. For such statements <b>«on one of the lines below»</b> means: the next line that carries a value at all – up to three lines away. That skips a second header line, which some banks insert. If the search gets stuck on an in-between line that happens to carry a number, pick <b>«exactly 1, 2 or 3 lines below»</b> instead."
+    },
+    {
+      "type": "p",
+      "id": "b-0212j",
+      "text": "A table row often carries several entries of the same kind – the booking day first, the value date next to it. Which one is meant is set by <b>«Which number on the line»</b>; it applies to dates as well. For dates the default «the last one» still means <b>the first</b> entry after the label, out of consideration for older rules – if you want another, pick «the first (table column)» or «the 2nd from the left» explicitly."
+    },
+    {
+      "type": "p",
+      "id": "b-0212k",
+      "text": "<b>In the label's column:</b> In a table, counting only works as long as every column is exactly one number wide and none is missing. When the label is a column heading, pick <b>«the number in the label's column»</b> under «Which number on the line» instead: the app then takes the value that sits below (or above) the label on the page. That holds even when a later statement omits a column. The choice is offered only together with «below» or «above» – on the same line the label's column would be the label itself."
+    },
+    {
+      "type": "p",
+      "id": "b-0212l",
+      "text": "<b>Values above the label:</b> Some statements print the number first and name it underneath. For those there are <b>«on one of the lines above»</b> and <b>«exactly 1, 2 or 3 lines above»</b> – the mirror image of «below»."
+    },
+    {
+      "type": "p",
+      "id": "b-0212m",
+      "text": "<b>Help while typing:</b> under «Check statement», next to the result, sits the button <b>«Text with line numbers»</b>. It shows the statement the way the app reads it. That is necessary because its lines are not the lines of a PDF viewer: they come from the word positions, and a visually empty line does not exist there at all. For counting the distance it is the only reliable source."
+    },
+    {
+      "type": "h3",
+      "id": "b-0212n",
+      "text": "Multiple categories for fees and yield"
+    },
+    {
+      "type": "p",
+      "id": "b-0212o",
+      "text": "Just like in the booking editor, «fees/taxes» – or on a dividend the «yield» – can be split across multiple categories. In the entry form the button <b>«+»</b> below the line adds another category; the sum of all lines must match the amount above."
+    },
+    {
+      "type": "p",
+      "id": "b-0212p",
+      "text": "The same button sits on the rules page: each sub-line gets its own recognition rule – label, direction, position, just like a normal field. When you say «Store», the app automatically creates such a sub-rule for each category line whose label it finds in the statement."
+    },
+    {
+      "type": "p",
+      "id": "b-0212q",
+      "text": "If a remainder is left over that does not appear on the statement – for instance a bank fee that some institutions do not print – the app <b>remembers only this remainder</b> as a fixed fee, not the whole amount. On the next read it appears as its own, last category line alongside the recognized ones."
+    },
+    {
+      "type": "h3",
+      "id": "b-0212r",
+      "text": "A fee not listed on the statement"
+    },
+    {
+      "type": "p",
+      "id": "b-0212s",
+      "text": "Some banks charge a fixed amount per trade without listing it on the statement. A rule cannot find it – it looks for a label and there is none. On the rules page, therefore, under <b>fees</b> sits a field <b>«Fixed fee per trade»</b> with its category."
+    },
+    {
+      "type": "p",
+      "id": "b-0212t",
+      "text": "Whether this amount takes effect is decided by the toggle <b>«Add multiple lines»</b>. If the rule finds no fee in the statement the fixed value applies. If it finds one and the toggle is <b>on</b>, the fixed value is added. If <b>off</b>, the found fee wins and the fixed value is ignored."
+    },
+    {
+      "type": "p",
+      "id": "b-0212u",
+      "text": "The <b>total amount</b> has a corresponding toggle: <b>«Fixed fee is already included in the total amount»</b>. Off = the amount debited is higher by the fee than the number on the statement – on a sale the credit is lower by it – and the app adds it up. On = the total amount stays as it is."
+    },
+    {
+      "type": "p",
+      "id": "b-0212v",
+      "text": "<b>Recognized automatically:</b> If you enter a total amount and a fee during entry, <b>both</b> of which do not appear on the statement, the app tries the difference – i.e. the amount without the fee. If it finds it, it learns the label and enters the fee as a fixed trade fee. This is the only value the app does not read but deduces; the prompt mentions it explicitly with the amount."
     },
     {
       "type": "h1",
       "id": "b-0063",
-      "text": "9. Recording quickly: voice, location, receipts"
+      "text": "11. Recording quickly: voice, location, receipts"
     },
     {
       "type": "p",
       "id": "b-0063a",
-      "text": "This chapter gathers the ways a booking comes about in a few moves: <b>speaking</b> it, typing the <b>amount</b> alone and letting the location guess the payee, attaching a <b>receipt</b>, and teaching the app a mapping as an <b>alias</b>."
+      "text": "This chapter collects the ways a booking can be created with just a few taps: <b>speak</b> it, type only the <b>amount</b> and let the app guess the payee from your location, attach a <b>receipt</b>, and teach the app a mapping as an <b>alias</b>."
     },
     {
       "type": "h2",
@@ -930,7 +1116,7 @@
     {
       "type": "p",
       "id": "b-0065",
-      "text": "A <b>long press</b> on the ✚ button opens voice input. Say e.g. «barber 20 €»: the app looks for a matching template (payee, account, category, booking type) and opens it with today's date and the spoken amount. Payee search also finds similarly spelled names."
+      "text": "<b>Long press</b> the ✚ button to open voice input. Say, for instance, \"hairdresser 20 euros\": the app looks for a matching template (payee, account, category, booking type) and opens it with today's date and the spoken amount."
     },
     {
       "type": "h2",
@@ -940,12 +1126,12 @@
     {
       "type": "p",
       "id": "b-0067",
-      "text": "If there are several payees with the same name (e.g. «REWE location 1» and «REWE location 2») and the location is known, the app picks the <b>geographically nearest</b> one – both for existing bookings and for aliases with stored coordinates."
+      "text": "If there are several payees with the same name (e.g. «REWE Location 1» and «REWE Location 2») and the location is known, the app picks the <b>geographically nearest</b> one."
     },
     {
       "type": "h2",
       "id": "b-0068",
-      "text": "Amount-only entry (keypad ⊞)"
+      "text": "Amount only (number pad ⊞)"
     },
     {
       "type": "text_with_single_shot",
@@ -954,67 +1140,17 @@
         {
           "type": "p",
           "id": "b-0070",
-          "text": "With location enabled, the keypad symbol appears at the bottom. Type just an amount: the app looks for a matching template at your current location – among the payees of the accounts on display – and shows the resolved payee before you even save."
-        },
-        {
-          "type": "h3",
-          "id": "b-0070a0",
-          "text": "Several payees at the same place"
+          "text": "With location enabled, a number-pad symbol appears at the bottom. Type just an amount: the app looks for a matching payee at your current location and shows it before you save."
         },
         {
           "type": "p",
           "id": "b-0070a",
-          "text": "Where several known payees share your location (petrol station and car wash, supermarket and bakery), the <b>amount</b> decides as well. Before you type, the field below states how many come into question; while you type, the name matching the amount appears: €8 is the car wash, €80 the petrol station."
-        },
-        {
-          "type": "p",
-          "id": "b-0070a1",
-          "text": "<b>Tap the name</b> to cycle through the remaining candidates and finally through <b>«no payee»</b> – then you fill it in later yourself. Whatever is shown when you confirm is what gets booked."
-        },
-        {
-          "type": "h3",
-          "id": "b-0070a2",
-          "text": "How the order comes about"
-        },
-        {
-          "type": "p",
-          "id": "b-0070a3",
-          "text": "<b>Usual</b> means the range holding nine out of ten of that payee's previous bookings. <b>Nobody is ruled out</b> – the amount only sets the order, you can always cycle through them all."
-        },
-        {
-          "type": "p",
-          "id": "b-0070a4",
-          "text": "If the amount fits none of the ranges, the one closest to it comes first. It is measured as a <b>ratio</b>, so that a payee with small amounts does not always lose against one with large ones: at €15 the range €20–100 beats the range €5–10, at €1 it is the other way round. Anyone with fewer than five bookings is not judged at all and falls in the middle."
-        },
-        {
-          "type": "p",
-          "id": "b-0070a5",
-          "text": "The same order decides when you <b>only speak an amount</b> – on the phone as from the watch; there the first one is taken without asking."
-        },
-        {
-          "type": "h3",
-          "id": "b-0070a6",
-          "text": "Who comes into question at all"
-        },
-        {
-          "type": "p",
-          "id": "b-0070a7",
-          "text": "Only payees of the <b>accounts on display</b>. Once you pick an account in the drawer (or an account group), anyone who so far has only been booked on another account stays out – even standing right next to them. An alias without an account of its own counts everywhere; on the watch the account picked there with the grey key applies."
-        },
-        {
-          "type": "p",
-          "id": "b-0070a8",
-          "text": "If only <b>one</b> payee is nearby, it appears even with an unusual amount – filling the tank once is no reason to leave the booking blank."
-        },
-        {
-          "type": "p",
-          "id": "b-0070a9",
-          "text": "For the amount to have a say here at all, the <b>«Use amount for payee suggestions»</b> switch must be on (<b>off</b> by default). Without it the nearest payee appears at once and stays put while you type – you then choose by tapping alone."
+          "text": "If several known payees are near you (petrol station and car wash), the <b>amount</b> helps guess which one – as you type, the suggested name changes. Tapping the name cycles through the other candidates and finally «no payee». This requires the switch <b>«Use amount for suggestions»</b> (off by default) – without it, only distance counts."
         }
       ],
       "shot": {
         "fname": "Buchung Betrag - Automatischer Empfänger anhand GPS.png",
-        "caption": "Amount-only entry: the payee is resolved via the current location",
+        "caption": "Amount-only entry: the payee is found via location",
         "width": 6.0
       }
     },
@@ -1030,22 +1166,12 @@
         {
           "type": "p",
           "id": "b-0072",
-          "text": "In the booking editor the <b>«Receipt»</b> button lets you <b>take a photo</b> of the receipt or <b>pick one from the gallery</b> (one photo per booking; can be turned off under <i>Settings → Receipt photos</i>). The image is stored privately on the phone and uploaded <b>in the background</b> to a «Belege» folder – with a sub-folder per year – inside your configured sync folder (WebDAV/Nextcloud or SMB); photos taken offline upload on the next app start with a connection. This works for <b>every booking type</b>, transfers included – the bank statement for a wire, say. As both sides of a transfer carry the same note, <b>both accounts</b> show the same receipt; you can attach and change it from either side."
+          "text": "In the booking editor, the <b>«Receipt»</b> button attaches a photo (camera or gallery) or a <b>PDF document</b> – multiple pages if needed, for a long receipt for instance. This works for every booking type, including transfers."
         },
         {
           "type": "p",
           "id": "b-0073",
-          "text": "The reference to the image is stored in the note as a <b>«BELEG: …»</b> tag, just like the GPS coordinates. Because the note survives export/import with KMyMoney, the app finds the photo again <b>even after a re-import</b>. In the editor the note field shows only your free text; <b>GPS and the receipt appear as two separate read-only rows below it</b>, each with an icon – the map icon opens the location, the receipt icon opens the photo (view) or the camera/gallery chooser (edit)."
-        },
-        {
-          "type": "p",
-          "id": "b-0076",
-          "text": "A booking can hold <b>several pages</b> – for the second half of a till roll or an invoice spanning multiple sheets. The camera icon in the receipt row <b>appends another page</b> every time; while editing, each page gets its own line with crop and delete. When merely <b>viewing</b> a booking one line is enough: the page count on the left, a single image icon on the right that opens the viewer."
-        },
-        {
-          "type": "p",
-          "id": "b-0076a",
-          "text": "Instead of a photo you may attach a <b>PDF document</b> – the invoice you downloaded, a bank statement, the confirmation of a transfer. The receipt dialog offers <b>«Choose PDF document»</b> for it and opens the device's file picker. Several documents per booking are possible; each gets its own line with a PDF icon. Tapping it opens the document in your device's <b>usual PDF viewer</b>, with all its pages; a PDF is never cropped, only attached or deleted. A booking carries <b>either</b> photos <b>or</b> documents – the other entry in the dialog stays dimmed until you have deleted the existing pages. A PDF is uploaded just like a photo, into the same year folder; the note records it as <b>«BELEG (PDF): …»</b>."
+          "text": "Images are stored privately and uploaded in the background to the <b>«Receipts»</b> folder of your sync folder; ones taken offline follow once a connection is available again. The reference stays in the note, so the app finds the photo again even after a fresh import."
         }
       ],
       "shot": {
@@ -1061,27 +1187,17 @@
         {
           "type": "p",
           "id": "b-0078",
-          "text": "The <b>viewer</b> is part of the app itself. <b>Swiping</b> pages through the receipt (the header counts along: «Page 2 of 3»), <b>pinching</b> and a <b>double tap</b> zoom in to read the small print; another double tap fits the image back in."
-        },
-        {
-          "type": "p",
-          "id": "b-0079",
-          "text": "The images are uploaded into a <b>«Belege»</b> folder with one subfolder per year. It sits <b>next to the KMyMoney file</b> (in CSV mode inside the configured sync folder) – the same place the «Backup» folder appears in. The year folder follows the <b>booking date</b>; move a booking across new year and its images follow on the server. After switching phones the app fetches each receipt from there when you open the booking."
-        },
-        {
-          "type": "p",
-          "id": "b-0079b",
-          "text": "When a receipt is not yet on the phone, opening it shows <b>«Loading – please wait»</b> while the app fetches it in the background; the phone stays usable. Only when there is <b>no connection</b> does the message «No connection – receipt cannot be loaded» appear; while a connection exists the app keeps waiting patiently. If the receipt cannot be found despite a connection – because the file is missing on the server, say – the app finally asks whether to <b>remove the orphaned reference from the booking</b>; confirm and it is deleted right away, marking an already-exported booking as «edited»."
+          "text": "A built-in <b>viewer</b> shows the pages: swipe to flip through, pinch or double-tap to zoom in on fine print."
         },
         {
           "type": "p",
           "id": "b-0080",
-          "text": "Delete a booking and its images disappear on the <b>next app start</b> – not right away, so that the «Undo» offered straight after deleting still brings the receipt back."
+          "text": "Delete a booking and its receipts disappear only on the <b>next app start</b> – not immediately, so «Undo» right after deleting still brings the receipt back."
         }
       ],
       "shot": {
         "fname": "Beleg Betrachter.png",
-        "caption": "The built-in viewer counts along: «Page 2 of 3»",
+        "caption": "The built-in viewer counts pages too: «Page 1 of 2»",
         "width": 4.0
       }
     },
@@ -1093,17 +1209,7 @@
     {
       "type": "p",
       "id": "b-0080b",
-      "text": "Inside the app receipt files are named after an identifier – enough for the app, useless for a human. Anyone handing a quarter's receipts to their accountant needs speaking names. That is what <b>«Export receipts»</b> in the menu (⋮) of the booking list is for. The entry only appears <b>when a filter is set</b>, because it refers to exactly that filtered selection: date range, payee, category, tag, amount – whatever you have chosen."
-    },
-    {
-      "type": "p",
-      "id": "b-0080c",
-      "text": "The app packs all receipts of those bookings into a <b>ZIP file</b> and then asks where to save it. Every file inside is named <b>«date_payee_amount_bookingnumber_page»</b>, for example «2026-08-16_Bäckerei-Mayer_8_23_1487_p1.jpg». The date comes first so that the file manager sorts correctly by itself; the booking number makes sure that two purchases on the same day at the same shop for the same amount do not end up with the same name. Multi-page receipts keep their page count, PDF receipts their extension. For a <b>transfer</b> the shared receipt is packed only once, named after the outgoing side."
-    },
-    {
-      "type": "p",
-      "id": "b-0080d",
-      "text": "Receipts that are not on this device are fetched from the sync folder while packing – after switching phones that is the normal case. If that fails (no network, file not there), the app packs the rest anyway and tells you at the end <b>how many</b> were missing. If none of the filtered bookings has a receipt, you only get a short note and are not even asked for a location; if <b>not a single</b> receipt could be fetched, no empty file is created either."
+      "text": "In the (⋮) menu of the booking list, <b>«Export receipts»</b> packs all receipts of the currently filtered bookings into a <b>ZIP file</b> with readable file names (date, payee, amount) – handy for a tax advisor, for instance. The entry only appears when a filter is set."
     },
     {
       "type": "h2",
@@ -1117,22 +1223,17 @@
         {
           "type": "p",
           "id": "b-0083",
-          "text": "Right after the shot the app asks whether you want to <b>edit</b> the image. <b>«Keep as is»</b> leaves the photo untouched – so you never have to bother. Later you can reopen the editor at any time via the <b>crop icon</b> in the receipt row."
+          "text": "Right after taking the photo, the app asks whether you want to <b>edit</b> it. With «Keep as is» it stays unchanged; later you can always reach editing via the crop symbol on the receipt row."
         },
         {
           "type": "p",
           "id": "b-0084",
-          "text": "In the editor you drag the <b>four corners</b> onto the bill. There are two modes: <b>«Rectangle»</b> cuts straight, leaving just a section of the image; <b>«Trapezoid»</b> lets you place each corner freely and then <b>straightens</b> a skewed photo into a clean rectangle. Two sliders adjust <b>brightness</b> and <b>contrast</b> – handy for faded till receipts. The preview follows every change immediately, and <b>«Reset»</b> restores the starting state."
+          "text": "Drag the <b>four corners</b> onto the receipt: «Rectangle» crops straight, «Trapezoid» straightens a receipt photographed at an angle. Two sliders adjust brightness and contrast, useful for faded receipts."
         },
         {
           "type": "p",
           "id": "b-0085",
-          "text": "The <b>untouched original</b> is not lost: on «Apply» the app keeps a separate file carrying <b>«_original»</b> in its name and uploads it as well. That backup stays <b>for good</b> – even after several rounds of editing the starting image is still there. Deleting the receipt removes the original too."
-        },
-        {
-          "type": "p",
-          "id": "b-0086",
-          "text": "So when you edit an image <b>a second time</b>, the app asks: <b>«Continue editing»</b> works on the current version – handy to nudge the brightness without losing your crop. <b>«Start from original»</b> brings back the untouched photo when a crop turned out too tight. For an image never edited before, the question does not appear."
+          "text": "The <b>unedited original</b> is always kept – you can start over from it at any time."
         }
       ],
       "shot": {
@@ -1144,7 +1245,7 @@
     {
       "type": "h2",
       "id": "b-0087",
-      "text": "Alias names (learned mappings)"
+      "text": "Aliases (learned mappings)"
     },
     {
       "type": "text_with_single_shot",
@@ -1153,54 +1254,29 @@
         {
           "type": "p",
           "id": "b-0089",
-          "text": "If you change the recognized payee while saving, the app asks whether to remember the mapping as an alias – together with account, category and <b>place</b> (for transfers the from/to accounts and from/to places). So «mom 100 €» is later booked automatically to the real name with the right account/place. The category and place fields in the alias form behave like the booking editor (grouped category picker; a place field only for accounts that have places). Resolution order: <b>preferred aliases (★) → bookings → remaining aliases</b>."
+          "text": "If you change the recognized payee while saving, the app offers to remember the mapping as an <b>alias</b> – including account, category and place. That way «Mum €100» is automatically booked to the real name with the right account in future."
         },
         {
           "type": "p",
           "id": "b-0090",
-          "text": "An alias can hold <b>any number of locations</b> (e.g. several branches). In the alias form, «Add coordinate» adds a row with latitude/longitude and «Open map»; the minus button removes a coordinate. When resolving (amount-only/voice) the alias matches if the current location is near <b>any</b> of its coordinates. Re-learning an alias from a booking at another place <b>appends</b> the coordinate (it does not overwrite)."
+          "text": "An alias can hold <b>several locations</b> (e.g. multiple branches) as well as a <b>«usual amounts»</b> range that helps guess between several payees at the same place. An alias also remembers tags: they are pre-filled for the next booking to that payee automatically."
         },
         {
           "type": "p",
-          "id": "b-0090a",
-          "text": "Below that sits <b>«Usual amounts»</b>: a two-handled slider defining which amounts are typical for this payee – the <b>amount filter</b> used when several payees share a location. Narrow it, and this payee only wins on very typical amounts; widen it to 0–100 %, and every amount it ever had counts."
-        },
-        {
-          "type": "p",
-          "id": "b-0090a1",
-          "text": "The slider does not move in amounts but in <b>ranks</b>: the default 10–90 % drops a tenth of the previous bookings at each end, so a single outlier cannot stretch the range. The corresponding amounts are shown above and on the handle. With fewer than five bookings the slider is greyed out – that few say nothing yet."
-        },
-        {
-          "type": "p",
-          "id": "b-0090a2",
-          "text": "The slider belongs to the <b>booking type</b> selected above: switch to income or transfer and it shows the amounts of that type. For transfers only the outgoing side counts – otherwise every amount would appear twice."
-        },
-        {
-          "type": "p",
-          "id": "b-0090a3",
-          "text": "The range always applies when only an amount was spoken; in the number pad and the booking editor it takes the <b>«Use amount for payee suggestions»</b> switch."
-        },
-        {
-          "type": "p",
-          "id": "b-0090b",
-          "text": "An alias also carries <b>tags</b>: the «Tags» row opens the same window as in the booking screen via the pencil, the bin clears them all. Create a <b>new</b> booking for that payee afterwards and they are there right away – just like the category. Nothing is overwritten: an existing booking you open and a scheduled one keep their own tags. If the app does not know any tags yet (CSV mode, or before the first sync), the row does not appear at all."
-        },
-        {
-          "type": "p",
-          "id": "b-0090c",
-          "text": "Independently of that, the app remembers which tags have <b>already been used</b> with a payee. They sit at the <b>top</b> of the tag window, marked with the tag symbol, and again at their alphabetical place – the same make as the «For this payee» block of the category picker. The ranking is the same too: <b>preferred aliases (★) → bookings (most recent first) → remaining aliases</b>, at most six. As soon as you type, only the matches remain."
+          "id": "b-0090z",
+          "text": "Aliases can be created, changed and deleted at any time under <i>Settings → Aliases</i>."
         }
       ],
       "shot": {
         "fname": "Aliase.png",
-        "caption": "Managing alias names: spoken term → real payee",
+        "caption": "Managing aliases: spoken term → real payee",
         "width": 6.0
       }
     },
     {
       "type": "h1",
       "id": "b-0091",
-      "text": "9. Booking list and filter"
+      "text": "12. Booking list and filter"
     },
     {
       "type": "text_with_single_shot",
@@ -1289,7 +1365,7 @@
     {
       "type": "h1",
       "id": "b-0094",
-      "text": "10. Analysis"
+      "text": "13. Analysis"
     },
     {
       "type": "text_with_single_shot",
@@ -1316,7 +1392,7 @@
     {
       "type": "h1",
       "id": "b-0097",
-      "text": "11. Where does my money go?"
+      "text": "14. Where does my money go?"
     },
     {
       "type": "text_with_single_shot",
@@ -1325,7 +1401,7 @@
         {
           "type": "p",
           "id": "b-0099",
-          "text": "The <b>Categories</b> page (menu <b>⋮ → Categories</b>) shows the <b>expenses per category</b> – as a pie chart and below it as a list, sorted <b>descending</b> by amount. It complements the analysis (chapter 9), which only shows the development over time per account/place."
+          "text": "The <b>Categories</b> page (menu <b>⋮ → Categories</b>) shows the <b>expenses per category</b> – as a pie chart and below it as a list, sorted <b>descending</b> by amount. It complements the analysis (Chapter 13), which only shows the development over time per account/place."
         },
         {
           "type": "bullets",
@@ -1354,7 +1430,7 @@
     {
       "type": "p",
       "id": "b-0102",
-      "text": "The <b>calendar toggle</b> at the top right adds the <b>scheduled expenses due</b> in the period (chapter 12) to the ones already made – including those that sit as a <b>deduction inside a scheduled income</b>, such as the capital gains tax on a dividend. Then:"
+      "text": "The <b>calendar toggle</b> at the top right adds the <b>scheduled expenses due</b> in the period (Chapter 16) to the ones already made – including those that sit as a <b>deduction inside a scheduled income</b>, such as the capital gains tax on a dividend. Then:"
     },
     {
       "type": "bullets",
@@ -1379,7 +1455,7 @@
     {
       "type": "h1",
       "id": "b-0106",
-      "text": "12. Budget"
+      "text": "15. Budget"
     },
     {
       "type": "text_with_single_shot",
@@ -1443,7 +1519,7 @@
     {
       "type": "h1",
       "id": "b-0114",
-      "text": "13. Scheduled transactions"
+      "text": "16. Scheduled transactions"
     },
     {
       "type": "text_with_single_shot",
@@ -1452,14 +1528,14 @@
         {
           "type": "p",
           "id": "b-0116",
-          "text": "The <b>Scheduled transactions</b> page (menu <b>⋮ → Scheduled transactions</b>, shown only in <b>.kmy mode</b>) imports the standing orders / schedules set up in KMyMoney and shows them as <b>one chronological list</b> by due date. The schedules are <b>not</b> refreshed by the normal account import; they update only when you use the <b>pull-to-refresh</b> gesture on this page – with the familiar <b>yellow progress banner</b>."
+          "text": "The <b>Scheduled transactions</b> page (menu <b>⋮ → Scheduled transactions</b>, shown only in .kmy mode) shows your standing orders from KMyMoney as <b>one chronological list</b> by due date. It refreshes only through the <b>pull-to-refresh</b> gesture on this page, not with the normal account import."
         },
         {
           "type": "bullets",
           "id": "b-0117",
           "items": [
-            "<b>Short tap</b> on a row: view the schedule – in the familiar detail view, read-only, including the categories of a split transaction and the balance before and after.",
-            "<b>Long press</b>: book it now. Just like in the booking list."
+            "<b>Short tap</b> on a row: view the schedule.",
+            "<b>Long press</b>: book it now."
           ]
         }
       ],
@@ -1477,17 +1553,7 @@
     {
       "type": "p",
       "id": "b-0117b",
-      "text": "A coloured <b>strip</b> precedes each row: green for a deposit, red for a payment, yellow for a transfer. At the front the <b>date</b> in a column of its own, next to it the <b>name</b> with the payee in smaller grey text behind it, below it the <b>category</b> (with several, «Split transaction»), then an <b>account column</b> and the amount on the right. For a transfer the account column shows both accounts one below the other instead of a category."
-    },
-    {
-      "type": "p",
-      "id": "b-0117c",
-      "text": "Each recurring schedule is <b>expanded into its individual occurrences</b> – a weekly bakery therefore appears several times – from the stored next due date up to <b>two years</b> ahead. Only <b>active</b> schedules are included; entries without a date are skipped, and an end date (or a limited number of payments in KMyMoney) limits the preview."
-    },
-    {
-      "type": "p",
-      "id": "b-0117d",
-      "text": "The <b>type</b> comes from KMyMoney. A stock or ETF purchase from a savings plan is a <b>transfer</b> there, from the cash account into the security – not an expense."
+      "text": "Each recurring schedule is <b>expanded into its individual occurrences</b> – a weekly bakery therefore appears several times, up to <b>two years</b> ahead. A coloured strip shows the type: green for deposit, red for payment, yellow for transfer."
     },
     {
       "type": "h2",
@@ -1497,17 +1563,12 @@
     {
       "type": "p",
       "id": "b-0117f",
-      "text": "A <b>long press</b> on a row opens the booking editor as a <b>new booking</b>, prefilled from the schedule: date equals due date, plus amount, payee, account and categories or from and to. Check it, adjust if needed and save with «New booking» – it lands in the account and, with a place chosen, in the holdings."
-    },
-    {
-      "type": "p",
-      "id": "b-0117g",
-      "text": "The same editor offers a <b>«Skip booking»</b> button (with a confirmation): no transaction is created, but the date still counts as done."
+      "text": "A <b>long press</b> on a row opens the booking editor as a <b>new booking</b>, prefilled from the schedule. Check it, adjust if needed, save with «New booking». Alternatively the editor offers a <b>«Skip booking»</b> button: no transaction is created, but the date still counts as done."
     },
     {
       "type": "p",
       "id": "b-0117h",
-      "text": "<b>The schedule moves on.</b> Booked or skipped, the date disappears from the list right away, and on the next .kmy export the KMyMoney schedule is moved on by <b>one period</b>; for an actual booking the date of the last payment is written as well. The schedule itself – amount, rhythm, splits, start date – stays unchanged, and so do later dates. Cancelling the editor leaves the schedule as it is."
+      "text": "Booked or skipped, the date disappears from the list, and on the next export the KMyMoney schedule moves on to the next due date."
     },
     {
       "type": "h2",
@@ -1517,7 +1578,7 @@
     {
       "type": "p",
       "id": "b-0119",
-      "text": "If you want, the app reports once a day when something is due <b>today</b> («3 scheduled transactions due today»); tapping the notification opens this page. The switch <b>«Remind me of due transactions»</b> is in the settings and is <b>off by default</b>; when switching it on the app asks once for the notification permission. If nothing is due, no notification appears."
+      "text": "The switch <b>«Remind me of due transactions»</b> in the settings (off by default) reports once a day when something is due; tapping the notification opens this page."
     },
     {
       "type": "h2",
@@ -1527,22 +1588,7 @@
     {
       "type": "p",
       "id": "b-0121",
-      "text": "At the top – like in the normal account view – a <b>balance strip</b> (label on the left, amount on the right) that always reflects the <b>currently set filter</b>. Each <b>tap</b> cycles the display:"
-    },
-    {
-      "type": "bullets",
-      "id": "b-0122",
-      "items": [
-        "<b>Surplus</b> or <b>deficit</b> (default) = total deposits − total bills; only the applicable state is shown (green = surplus, red = deficit).",
-        "<b>Total deposits</b> (green).",
-        "<b>Total bills</b> (red).",
-        "<b>Transfers</b> (yellow) = sum of all scheduled transfers."
-      ]
-    },
-    {
-      "type": "p",
-      "id": "b-0123",
-      "text": "Transfers count towards <b>neither</b> deposits nor bills (they only move money between your own accounts) and therefore have their own line."
+      "text": "At the top, a <b>balance strip</b> shows the total for the currently set filter. A tap cycles between surplus/deficit, total deposits, total bills and transfers."
     },
     {
       "type": "h2",
@@ -1552,17 +1598,7 @@
     {
       "type": "p",
       "id": "b-0125",
-      "text": "The <b>filter icon</b> at the top right narrows the list (and thus also the balance strip and the chart) by:"
-    },
-    {
-      "type": "bullets",
-      "id": "b-0126",
-      "items": [
-        "<b>Type</b>: deposits, bills, transfers (each can be toggled on/off).",
-        "<b>Account</b>: single selection from a list of all accounts (or «All accounts»).",
-        "<b>Name</b>: search text matched against <b>name or payee</b>.",
-        "<b>Period</b>: slider (month granularity) or direct, day-precise date entry."
-      ]
+      "text": "The <b>filter icon</b> at the top right narrows the list, balance strip and chart – by type, account, name/payee and period."
     },
     {
       "type": "h2",
@@ -1576,12 +1612,7 @@
         {
           "type": "p",
           "id": "b-0129",
-          "text": "The <b>chart icon</b> at the top right opens an analysis that <b>looks exactly like the account view's chart</b>: green/red <b>bars</b> for deposits and bills and a <b>development line</b> of the selected account or of total wealth. You can pick the <b>view</b> (total or a single account) and the <b>time unit</b> day/week/month. The line starts at the far left at <b>today with 0</b> and runs to the right into the future; like the account chart it can be <b>zoomed and panned</b>. The chart inherits the list filter. For a <b>transfer</b> the amount decreases on the <b>source account</b> (red) and increases on the <b>target account</b> (green) – the direction («pay to» or «from») is taken from KMyMoney."
-        },
-        {
-          "type": "p",
-          "id": "b-0130",
-          "text": "When you scroll far down, the <b>scroll-to-top button</b> (bottom left) jumps straight back to the start of the list."
+          "text": "The <b>chart icon</b> at the top right opens an analysis like the account view's: bars per due date (green deposit, red bill) and a development line that starts today at 0 and runs into the future. It inherits the list filter and can be zoomed and panned like the account chart."
         }
       ],
       "shot": {
@@ -1593,7 +1624,7 @@
     {
       "type": "h1",
       "id": "b-0158",
-      "text": "14. Synchronizing: performing export and import"
+      "text": "17. Synchronizing: performing export and import"
     },
     {
       "type": "text_with_pic",
@@ -1624,17 +1655,7 @@
     {
       "type": "p",
       "id": "b-0162a",
-      "text": "<b>Edited bookings.</b> Change a booking that is already marked «exported» and it carries «edited» afterwards (yellow in the list). The next export does not add a second transaction: the existing one in the .kmy file is <b>changed</b> instead – the same transaction in the same place, no duplicate; the booking then reads «exported» again."
-    },
-    {
-      "type": "p",
-      "id": "b-0162b",
-      "text": "You cannot set this status yourself: it only arises from a change, and the «Marked as exported» switch in the booking editor is locked then. If you switch it off yourself while editing, your choice wins – the booking is «not exported» and will be written as a new transaction on the next export."
-    },
-    {
-      "type": "p",
-      "id": "b-0162c",
-      "text": "A <b>transfer</b> behaves the same way even though it consists of two rows: in the file it is one transaction and is changed once."
+      "text": "<b>Edited bookings.</b> Change a booking that has already been exported and the next export won't add a new one – the existing transaction in the .kmy file is <b>updated</b> instead, no duplicate."
     },
     {
       "type": "h3",
@@ -1644,7 +1665,7 @@
     {
       "type": "p",
       "id": "b-0162e",
-      "text": "If the old transaction is no longer in the file – deleted on the computer, say – the message says so and the booking stays «edited»; nothing is inserted. Re-import the .kmy file in between and the file wins: the edit is gone."
+      "text": "If the old transaction is no longer in the file – deleted on the computer, say – the booking stays «edited»; nothing is inserted."
     },
     {
       "type": "h2",
@@ -1660,21 +1681,21 @@
       "type": "bullets",
       "id": "b-0165",
       "items": [
-        "<b>Long press on an account</b>: imports/updates exactly that account from the .kmy.",
-        "<b>Long press on «All accounts»</b> (or pull down in the «All accounts» view): reloads <b>everything</b> – accounts, portfolios and scheduled transactions, from a single download.",
-        "<b>«Add account»</b>: fetches an account not yet present from the .kmy. In the picker you can tick <b>several accounts (and portfolios) at once</b>; <b>already-imported accounts (including closed) and portfolios are hidden</b>.",
-        "<b>Long press on the portfolio</b> (or pull-to-refresh in the portfolio view): updates securities and prices – also in the background with the yellow progress banner."
+        "<b>Long press on an account</b>: imports/updates exactly that account.",
+        "<b>Long press on «All accounts»</b> (or pull down): reloads <b>everything</b> – accounts, portfolios and scheduled transactions in one go.",
+        "<b>«Add account»</b>: fetches an account not yet present from the .kmy, several at once tickable.",
+        "<b>Long press on the portfolio</b>: updates securities and prices."
       ]
     },
     {
       "type": "p",
       "id": "b-0166",
-      "text": "<b>Securities buys and sells</b> (money from the account into a security or back) are imported as a <b>transfer</b> into/out of the security. The small <b>fee</b> (or tax) inside the transaction does <b>not</b> appear in the booking list and changes no balances – but it is counted as a small expense in the <b>category evaluations</b> (chapter «Where does my money go?» and Budget). <b>Dividends</b> stay normal income."
+      "text": "<b>Securities buys and sells</b> are imported as a <b>transfer</b> into/out of the security. <b>Dividends</b> stay normal income."
     },
     {
       "type": "p",
       "id": "b-0167",
-      "text": "An import replaces the already-exported bookings per account (no duplicates). The import runs <b>in the background</b> – the UI stays usable; a <b>yellow banner</b> at the top of the booking list («Importing account …») with a moving gradient, status text and percentage shows the progress and disappears when done. A message appears <b>only on error</b>. In <b>CSV mode with SMB/WebDAV</b>, adding an account or long-pressing one opens a <b>navigable folder browser</b> (subfolders 📁 + CSV files, «..» to go up); the chosen CSV is imported from the current folder. The drawer stays open on long press."
+      "text": "The import runs <b>in the background</b> – the UI stays usable, a yellow banner shows progress. A message appears only on error."
     },
     {
       "type": "h2",
@@ -1684,7 +1705,7 @@
     {
       "type": "p",
       "id": "b-0169",
-      "text": "Before every write-back the app automatically creates a <b>timestamped backup</b> of the .kmy (e.g. <i>file.kmy.bak-YYYYMMDD-HHMMSS</i>). The backups go into the <b>«Backup» subfolder</b> next to the original; the folder is created automatically the first time. So you always have a fallback in case something is ever wrong with the file, and the actual folder stays tidy."
+      "text": "Before every write-back the app automatically creates a <b>timestamped backup</b> of the .kmy in the «Backup» subfolder next to the original – a fallback in case something is ever wrong with the file."
     },
     {
       "type": "h2",
@@ -1694,17 +1715,12 @@
     {
       "type": "p",
       "id": "b-0171",
-      "text": "A few seconds pass between downloading the .kmy and writing it back. If somebody works in KMyMoney on the computer during that window, their changes must not be lost. The app therefore remembers the <b>state of the file</b> when downloading and only writes if it is unchanged."
-    },
-    {
-      "type": "p",
-      "id": "b-0172",
-      "text": "If the file changed in the meantime, the <b>export aborts and writes nothing</b>; the bookings stay unexported and can be exported again after a fresh import, without any loss. If the server reports no state, the app writes unchecked – the export never fails because of this."
+      "text": "If somebody works in KMyMoney on the computer while the app exports, their changes must not be lost: if the file changed in the meantime, the export aborts and writes nothing – the bookings stay unexported and can be exported again after a fresh import, without any loss."
     },
     {
       "type": "h1",
       "id": "b-0173",
-      "text": "15. Wear OS (watch)"
+      "text": "18. Wear OS (watch)"
     },
     {
       "type": "text_with_single_shot",
@@ -1720,11 +1736,10 @@
           "id": "b-0176",
           "items": [
             "<b>Three type buttons</b>: income (green), transfer (yellow), expense (red). Then voice starts.",
-            "The recognized text is shown briefly with «Cancel» and otherwise processed automatically.",
-            "<b>Silent digit entry</b>: enter an amount silently via the digits symbol (resolved by location on the phone).",
+            "<b>Silent digit entry</b>: enter an amount silently via the digits symbol.",
             "<b>Wear tile</b>: quick access as a tile.",
-            "<b>Default-place balance</b>: below the buttons, the app and tile show the balance of the default place as «Place: balance» (e.g. «Wallet: 70.00 €»). With no default place set, the line stays away.",
-            "<b>Offline</b>: bookings not yet transmitted are shown and delivered automatically once the phone is reachable – without loss and without duplication."
+            "<b>Default-place balance</b>: below the buttons, the app shows the balance of the default place.",
+            "<b>Offline</b>: bookings not yet transmitted are delivered automatically once the phone is reachable."
           ]
         }
       ],
@@ -1742,12 +1757,7 @@
     {
       "type": "p",
       "id": "b-0176b",
-      "text": "Above «Record booking» a grey <b>switch button</b> – in the app as in the tile – cycles through the shown account and its places. The next booking, from the phone widget as from the watch, then targets the chosen account. After a short while the selection reverts to the default place by itself."
-    },
-    {
-      "type": "p",
-      "id": "b-0176c",
-      "text": "For a <b>transfer</b> the chosen account is the from-account and the to-account is the default account. If the chosen account already is the default, the to-account stays empty and is filled in on the phone."
+      "text": "Above «Record booking» a grey <b>switch button</b> cycles through the shown account; the next booking then targets that account. After a short while the selection reverts to the default place by itself."
     },
     {
       "type": "h2",
@@ -1757,7 +1767,7 @@
     {
       "type": "p",
       "id": "b-0176e",
-      "text": "While bookings are <b>not yet transferred</b>, the reason takes the place of the balance: «Waiting for GPS» (the location is still being resolved), «No connection to phone» or «Transferring…». The line below still states the count."
+      "text": "While bookings are <b>not yet transferred</b>, the reason takes the place of the balance, e.g. «Waiting for GPS» or «No connection to phone»."
     },
     {
       "type": "h2",
@@ -1767,12 +1777,7 @@
     {
       "type": "p",
       "id": "b-0178",
-      "text": "Speech recognition uses the <b>language chosen in the settings</b> (including uploaded ones) and <b>prefers offline</b> recognition, so recording works even without the phone/network – provided an offline speech model is present on the watch. If offline speech fails, the watch automatically opens the <b>number pad</b>: you just type the amount, the booking is <b>buffered including GPS</b> and sent automatically once the phone is reachable again (the payee is resolved by location on the phone)."
-    },
-    {
-      "type": "p",
-      "id": "b-0179",
-      "text": "So that <b>voice</b> recording works offline, the <b>offline speech model</b> of the chosen language can be installed on the watch. On the phone, enable the setting <b>«Install offline speech package on the watch»</b> (only in the GitHub build with the Wear bridge). On Wear OS 4+ the watch then triggers the download automatically (once, when a network is reachable); on older watches a hint appears to load the model in the watch's system settings. Without this switch, the number-pad fallback applies."
+      "text": "Speech recognition also works without the phone/network, provided an <b>offline speech model</b> is present on the watch – installed once via the setting «Install offline speech package on the watch». If offline speech fails, the watch automatically opens the <b>number pad</b>: type the amount, the booking is buffered and sent once the phone is reachable again."
     },
     {
       "type": "p",
@@ -1782,7 +1787,7 @@
     {
       "type": "h1",
       "id": "b-0181",
-      "text": "16. Settings (complete reference)"
+      "text": "19. Settings (complete reference)"
     },
     {
       "type": "text_with_shot_row",
@@ -1822,9 +1827,9 @@
         "<b>Currency</b>: default currency symbol for accounts without their own currency (taken per account from the file on .kmy import).",
         "<b>Number format</b>: «1.234,56», «1,234.56» or «1234,56»/«1234.56» without grouping; plus the <b>«Show currency symbol»</b> toggle. Applies to all amounts in the app and on the watch; the export keeps a stable format.",
         "<b>Dividends gross/net</b>: whether portfolio dividends are settled gross (declared) or net.",
-        "<b>Read statements</b>: allows reading the bank's PDF statements in the portfolio (default: off). When switched on the app states how many banks the recognition was measured against. The complete documentation is in the section «Recognition rules for PDF statements: learning and managing» below.",
-        "<b>Budget in-app</b>: compute the budget actuals from history instead of importing from KMyMoney (see Chapter 12).",
-        "<b>Install offline speech package on the watch</b> (GitHub build with the Wear bridge only): lets the watch download the offline speech model of the chosen language so voice recording works offline too (see Chapter 15). Off → the number-pad fallback applies offline."
+        "<b>Read statements</b>: allows reading the bank's PDF statements in the portfolio (default: off). When switched on the app states how many banks the recognition was measured against. The complete documentation is in Chapter 10.",
+        "<b>Budget in-app</b>: compute the budget actuals from history instead of importing from KMyMoney (see Chapter 15).",
+        "<b>Install offline speech package on the watch</b> (GitHub build with the Wear bridge only): lets the watch download the offline speech model of the chosen language so voice recording works offline too (see Chapter 18). Off → the number-pad fallback applies offline."
       ]
     },
     {
@@ -1982,7 +1987,7 @@
     {
       "type": "p",
       "id": "b-0202",
-      "text": "Without a configured sync target, export goes locally into a folder you choose. How the sync runs is in Chapter 15."
+      "text": "Without a configured sync target, export goes locally into a folder you choose. How the sync runs is in Chapter 17."
     },
     {
       "type": "h2",
@@ -1994,7 +1999,7 @@
       "id": "b-0204",
       "items": [
         "<b>Default account</b>: pre-selection for new bookings (also for widget and watch). Selectable only once accounts exist.",
-        "<b>Places per account</b>: per account you can create cash <b>places</b> and set a <b>default place</b> (see Chapter 14)."
+        "<b>Places per account</b>: per account you can create cash <b>places</b> and set a <b>default place</b> (see Chapter 8)."
       ]
     },
     {
@@ -2017,7 +2022,7 @@
       "id": "b-0208",
       "items": [
         "<b>Dark mode</b>: light/dark (takes effect immediately).",
-        "<b>Reminder for scheduled bookings</b>: reminds once a day of scheduled bookings due today (off by default; see Chapter 13)."
+        "<b>Reminder for scheduled bookings</b>: reminds once a day of scheduled bookings due today (off by default; see Chapter 16)."
       ]
     },
     {
@@ -2072,129 +2077,9 @@
       "text": "On <b>«Restore backup»</b> the app first asks for the backup password if needed, and then <b>what</b> should come back: <b>data only</b>, <b>settings only</b> or <b>both</b>. That way a broken configuration can be repaired without touching the recorded bookings. The app restarts afterwards. Receipt photos are not part of the backup – once uploaded they live on the server."
     },
     {
-      "type": "h2",
-      "id": "b-0217",
-      "text": "Disclaimer"
-    },
-    {
-      "type": "p",
-      "id": "b-0218",
-      "text": "This app is provided as-is, with no warranty. In particular, there is no guarantee that the .kmy file remains fully valid after an export. Thanks to the automatic backup before every export, however, you always have a fallback. Keep your own regular backups as well."
-    },
-    {
-      "type": "h2",
-      "id": "b-0212a",
-      "text": "Recognition rules for PDF statements: learning and managing"
-    },
-    {
-      "type": "p",
-      "id": "b-0212b",
-      "text": "The PDF recognition feature (enabling under <b>Read PDF statements</b>) works on a simple principle: you show the app <b>the first time</b> where the values are located, and the app <b>remembers the rule</b> for all subsequent statements from the same bank – until you change it."
-    },
-    {
-      "type": "p",
-      "id": "b-0212c",
-      "text": "<b>The first statement from a bank:</b> You download a PDF, open the portfolio and tap «Read PDF». The app tries to recognize the values (date, shares, price, fees, taxes etc.) automatically. It shows you the result for <b>review</b> – just like manual entry. Each value you enter or correct is learned: the app records <b>where in this PDF the values were</b> (which label, which line) and how you named the values (which category, which label at the bank). After you confirm («Store»), the app applies the rules immediately to the same PDF – as a <b>test</b>. If the result fits, it saves the rules and you can book. If not, it opens the <b>rules page</b> right away, where you can see and correct the just-learned rules."
-    },
-    {
-      "type": "p",
-      "id": "b-0212d",
-      "text": "<b>Subsequent statements:</b> The next PDF from the same bank, the app <b>automatically fills in</b> all values – you only need to review and can book directly. Should the bank's format change (new columns, different labels), review the values and confirm with «Store» – the app updates the rules automatically."
-    },
-    {
-      "type": "p",
-      "id": "b-0212e",
-      "text": "<b>Adjust recognition rules:</b> If a learned rule no longer fits or you want to correct it manually, open the portfolio and tap <b>⋮ → Recognition rules</b>. You see all the rules learned so far, sorted by bank. Tapping a bank shows its rules: for each field (date, amount, fees etc.) there is the <b>learned label</b> (what the bank calls the row), the <b>position</b> (which row, which column), whether there is a <b>fixed fee</b> per trade, and further details. You can <b>delete</b> each rule individually so the app learns it fresh the next time from that bank – or you edit the rule and manually adjust the label, position and options."
-    },
-    {
-      "type": "h3",
-      "id": "b-0212f",
-      "text": "Picking values from a table"
-    },
-    {
-      "type": "p",
-      "id": "b-0212g",
-      "text": "Tapping the date field in the form, or a label field on the rules page, offers the entries the app found – <b>each by both routes where both exist</b>: via the label beside the value and via the column heading above it. So if «Value date» sits as a heading above the date and «as of» beside it, both lines appear, the column variant stating how many lines below it reads. Whatever you tap is stored exactly like that – the app does not decide for you which label the bank will keep in its next statement."
-    },
-    {
-      "type": "h3",
-      "id": "b-0212h",
-      "text": "Values inside a table"
-    },
-    {
-      "type": "p",
-      "id": "b-0212i",
-      "text": "Some banks do not put the figures behind a label but <b>under a column heading</b>. The data row then starts with a number and carries no label of its own. For such statements <b>«on one of the lines below»</b> means: the next line that carries a value at all – up to three lines away. That skips a second header line, which some banks insert. If the search gets stuck on an in-between line that happens to carry a number, pick <b>«exactly 1, 2 or 3 lines below»</b> instead."
-    },
-    {
-      "type": "p",
-      "id": "b-0212j",
-      "text": "A table row often carries several entries of the same kind – the booking day first, the value date next to it. Which one is meant is set by <b>«Which number on the line»</b>; it applies to dates as well. For dates the default «the last one» still means <b>the first</b> entry after the label, out of consideration for older rules – if you want another, pick «the first (table column)» or «the 2nd from the left» explicitly."
-    },
-    {
-      "type": "p",
-      "id": "b-0212k",
-      "text": "<b>In the label's column:</b> In a table, counting only works as long as every column is exactly one number wide and none is missing. When the label is a column heading, pick <b>«the number in the label's column»</b> under «Which number on the line» instead: the app then takes the value that sits below (or above) the label on the page. That holds even when a later statement omits a column. The choice is offered only together with «below» or «above» – on the same line the label's column would be the label itself."
-    },
-    {
-      "type": "p",
-      "id": "b-0212l",
-      "text": "<b>Values above the label:</b> Some statements print the number first and name it underneath. For those there are <b>«on one of the lines above»</b> and <b>«exactly 1, 2 or 3 lines above»</b> – the mirror image of «below»."
-    },
-    {
-      "type": "p",
-      "id": "b-0212m",
-      "text": "<b>Help while typing:</b> under «Check statement», next to the result, sits the button <b>«Text with line numbers»</b>. It shows the statement the way the app reads it. That is necessary because its lines are not the lines of a PDF viewer: they come from the word positions, and a visually empty line does not exist there at all. For counting the distance it is the only reliable source."
-    },
-    {
-      "type": "h3",
-      "id": "b-0212n",
-      "text": "Multiple categories for fees and yield"
-    },
-    {
-      "type": "p",
-      "id": "b-0212o",
-      "text": "Just like in the booking editor, «fees/taxes» – or on a dividend the «yield» – can be split across multiple categories. In the entry form the button <b>«+»</b> below the line adds another category; the sum of all lines must match the amount above."
-    },
-    {
-      "type": "p",
-      "id": "b-0212p",
-      "text": "The same button sits on the rules page: each sub-line gets its own recognition rule – label, direction, position, just like a normal field. When you say «Store», the app automatically creates such a sub-rule for each category line whose label it finds in the statement."
-    },
-    {
-      "type": "p",
-      "id": "b-0212q",
-      "text": "If a remainder is left over that does not appear on the statement – for instance a bank fee that some institutions do not print – the app <b>remembers only this remainder</b> as a fixed fee, not the whole amount. On the next read it appears as its own, last category line alongside the recognized ones."
-    },
-    {
-      "type": "h3",
-      "id": "b-0212r",
-      "text": "A fee not listed on the statement"
-    },
-    {
-      "type": "p",
-      "id": "b-0212s",
-      "text": "Some banks charge a fixed amount per trade without listing it on the statement. A rule cannot find it – it looks for a label and there is none. On the rules page, therefore, under <b>fees</b> sits a field <b>«Fixed fee per trade»</b> with its category."
-    },
-    {
-      "type": "p",
-      "id": "b-0212t",
-      "text": "Whether this amount takes effect is decided by the toggle <b>«Add multiple lines»</b>. If the rule finds no fee in the statement the fixed value applies. If it finds one and the toggle is <b>on</b>, the fixed value is added. If <b>off</b>, the found fee wins and the fixed value is ignored."
-    },
-    {
-      "type": "p",
-      "id": "b-0212u",
-      "text": "The <b>total amount</b> has a corresponding toggle: <b>«Fixed fee is already included in the total amount»</b>. Off = the amount debited is higher by the fee than the number on the statement – on a sale the credit is lower by it – and the app adds it up. On = the total amount stays as it is."
-    },
-    {
-      "type": "p",
-      "id": "b-0212v",
-      "text": "<b>Recognized automatically:</b> If you enter a total amount and a fee during entry, <b>both</b> of which do not appear on the statement, the app tries the difference – i.e. the amount without the fee. If it finds it, it learns the label and enters the fee as a fixed trade fee. This is the only value the app does not read but deduces; the prompt mentions it explicitly with the amount."
-    },
-    {
       "type": "h1",
       "id": "b-0219",
-      "text": "17. CSV format (export)"
+      "text": "20. CSV format (export)"
     },
     {
       "type": "p",
@@ -2204,6 +2089,21 @@
     {
       "type": "code",
       "id": "b-0221"
+    },
+    {
+      "type": "p",
+      "id": "b-0212w",
+      "text": "<b>No guarantee for every bank:</b> this recognition works with general rules rather than code written specifically for each institution – a fully tailored recognition for every bank would need its own code per bank, the way professional payment apps with a dedicated team can offer. As a one-person project, this app cannot provide that. With unusually structured statements the recognition can therefore fail or suggest wrong values – always check the suggested values before saving."
+    },
+    {
+      "type": "h1",
+      "id": "b-0217",
+      "text": "21. Disclaimer"
+    },
+    {
+      "type": "p",
+      "id": "b-0218",
+      "text": "This app is provided as-is, with no warranty. In particular, there is no guarantee that the .kmy file remains fully valid after an export. Thanks to the automatic backup before every export, however, you always have a fallback. Keep your own regular backups as well."
     }
   ]
 }

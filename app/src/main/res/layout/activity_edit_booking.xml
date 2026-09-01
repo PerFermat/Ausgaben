@@ -319,6 +319,14 @@
                         android:background="?attr/selectableItemBackgroundBorderless"
                         android:src="@android:drawable/ic_menu_mylocation"
                         android:contentDescription="@string/alias_map" />
+
+                    <ImageButton
+                        android:id="@+id/btnGpsClear"
+                        android:layout_width="48dp"
+                        android:layout_height="48dp"
+                        android:background="?attr/selectableItemBackgroundBorderless"
+                        android:contentDescription="@string/gps_clear"
+                        android:src="@android:drawable/ic_menu_delete" />
                 </LinearLayout>
 
                 <!-- Stichwörter als Ausgabezeile (Namen bzw. Anzahl + Bearbeiten + Leeren). Bleibt

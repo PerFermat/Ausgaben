@@ -114,6 +114,7 @@ public class BookingEditActivity extends LocalizedActivity {
     private android.widget.TextView textBalanceBefore;
     private android.widget.TextView textBalanceAfter;
     private android.widget.ImageButton btnNoteMap;
+    private android.widget.ImageButton btnGpsClear;
     private TextInputEditText editAmount;
     private TextInputLayout amountLayout;
     private CalcKeyboardView calcKeyboard;
@@ -299,6 +300,7 @@ public class BookingEditActivity extends LocalizedActivity {
         textBalanceBefore = findViewById(R.id.textBalanceBefore);
         textBalanceAfter = findViewById(R.id.textBalanceAfter);
         btnNoteMap = findViewById(R.id.btnNoteMap);
+        btnGpsClear = findViewById(R.id.btnGpsClear);
         editAmount = findViewById(R.id.editAmount);
         amountLayout = findViewById(R.id.amountLayout);
         calcKeyboard = findViewById(R.id.calcKeyboard);
@@ -1736,17 +1738,27 @@ public class BookingEditActivity extends LocalizedActivity {
             textGps.setText(getString(R.string.gps_row_label, gpsDisplay(gpsRowCoords)));
             final double lat = ll[0];
             final double lon = ll[1];
-            // Ansicht: nur Karte zeigen. Bearbeiten/Neu: Standort auf der Karte ändern.
+            // Ansicht: nur Karte zeigen. Bearbeiten/Neu: Standort auf der Karte ändern bzw. löschen.
             if (readOnly) {
                 btnNoteMap.setOnClickListener(v -> openMapAt(lat, lon));
+                btnGpsClear.setVisibility(View.GONE);
             } else {
                 btnNoteMap.setOnClickListener(v -> openMapForEdit(lat, lon));
+                btnGpsClear.setVisibility(View.VISIBLE);
+                btnGpsClear.setOnClickListener(v -> {
+                    // Ohne Rückfrage – wie das Löschkreuz der Stichwörter; rückgängig durch Verlassen
+                    // der Maske, ohne zu speichern.
+                    gpsRowCoords = null;
+                    gpsEditedByUser = true;
+                    updateNoteTagRows();
+                });
             }
             rowGps.setVisibility(View.VISIBLE);
         } else if (!readOnly && settings.isGpsEnabled() && !isTransferType()) {
             // Noch kein Standort: Zeile zum Setzen eines Standorts anbieten.
             textGps.setText(R.string.gps_row_none);
             btnNoteMap.setOnClickListener(v -> openMapForEdit(null, null));
+            btnGpsClear.setVisibility(View.GONE);
             rowGps.setVisibility(View.VISIBLE);
         } else {
             rowGps.setVisibility(View.GONE);

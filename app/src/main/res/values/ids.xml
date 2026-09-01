@@ -5,4 +5,8 @@
     <item name="pickerCommitted" type="id" />
     <item name="pickerUnknown" type="id" />
     <item name="pickerAction" type="id" />
+    <!-- Markiert ein Feld als an eine eigene Rechentastatur gebunden (CalcKeyboardView), damit
+         LocalizedActivity die System-Tastatur dafür beim Zurückkehren aus einer Fremd-App erneut
+         schließen kann. -->
+    <item name="calcKeyboardBound" type="id" />
 </resources>

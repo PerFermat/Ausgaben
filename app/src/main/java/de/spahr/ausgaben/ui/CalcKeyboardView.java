@@ -3,6 +3,7 @@ package de.spahr.ausgaben.ui;
 import android.content.Context;
 import android.text.Editable;
 import android.util.AttributeSet;
+import android.view.HapticFeedbackConstants;
 import android.view.LayoutInflater;
 import android.view.View;
 import android.widget.EditText;
@@ -61,6 +62,7 @@ public class CalcKeyboardView extends LinearLayout {
         // dieselben Tasten-IDs; die Verdrahtung darunter kennt den Unterschied nicht.
         boolean land = isLandscape();
         setOrientation(land ? HORIZONTAL : VERTICAL);
+        setClipChildren(false);   // sonst kappt die Tastatur den Elevation-Schatten der Tasten an ihrem Rand
         LayoutInflater.from(context).inflate(
                 land ? R.layout.view_calc_keyboard_land : R.layout.view_calc_keyboard, this, true);
 
@@ -68,7 +70,7 @@ public class CalcKeyboardView extends LinearLayout {
                 R.id.key5, R.id.key6, R.id.key7, R.id.key8, R.id.key9,
                 R.id.keyAdd, R.id.keyMul, R.id.keyMinus};
         for (int id : valueKeys) {
-            findViewById(id).setOnClickListener(v -> insert(v.getTag().toString()));
+            findViewById(id).setOnClickListener(withHaptic(v -> insert(v.getTag().toString())));
         }
 
         // Dezimaltaste: Beschriftung und eingefügtes Zeichen aus den Einstellungen (Komma / Punkt) –
@@ -76,16 +78,24 @@ public class CalcKeyboardView extends LinearLayout {
         String dec = String.valueOf(MoneyFormat.decimalSeparator());
         MaterialButton keyDot = findViewById(R.id.keyDot);
         keyDot.setText(dec);
-        keyDot.setOnClickListener(v -> insert(dec));
+        keyDot.setOnClickListener(withHaptic(v -> insert(dec)));
 
         View keyDel = findViewById(R.id.keyDel);
-        keyDel.setOnClickListener(v -> deleteOne());
+        keyDel.setOnClickListener(withHaptic(v -> deleteOne()));
         keyDel.setOnLongClickListener(v -> {
             clearAll();
             return true;
         });
 
-        findViewById(R.id.keyOk).setOnClickListener(v -> evaluate());
+        findViewById(R.id.keyOk).setOnClickListener(withHaptic(v -> evaluate()));
+    }
+
+    /** Legt die haptische Rückmeldung eines Tastendrucks über den eigentlichen Klick-Effekt. */
+    private static View.OnClickListener withHaptic(View.OnClickListener inner) {
+        return v -> {
+            v.performHapticFeedback(HapticFeedbackConstants.VIRTUAL_KEY);
+            inner.onClick(v);
+        };
     }
 
     /**
@@ -164,7 +174,15 @@ public class CalcKeyboardView extends LinearLayout {
         this.target = field;
         if (field != null) {
             field.setShowSoftInputOnFocus(false);
+            // Markierung, an der LocalizedActivity dieses Feld wiedererkennt — es gibt keinen
+            // öffentlichen Getter zu setShowSoftInputOnFocus(boolean), an dem sich das sonst ablesen ließe.
+            field.setTag(R.id.calcKeyboardBound, Boolean.TRUE);
         }
+    }
+
+    /** Ist {@code field} an eine eigene Rechentastatur gebunden (System-Tastatur dafür unterdrückt)? */
+    public static boolean isBoundField(View field) {
+        return field != null && Boolean.TRUE.equals(field.getTag(R.id.calcKeyboardBound));
     }
 
     /**

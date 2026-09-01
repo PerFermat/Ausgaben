@@ -90,6 +90,7 @@
         <item name="android:focusable">false</item>
         <item name="android:focusableInTouchMode">false</item>
         <item name="cornerRadius">10dp</item>
+        <item name="android:stateListAnimator">@animator/calc_key_press</item>
     </style>
 
     <!-- Operator-/Löschtasten (⌫ * +): abgesetzt in Grün. -->
@@ -105,6 +106,7 @@
         <item name="android:layout_height">match_parent</item>
         <item name="android:layout_weight">1</item>
         <item name="android:orientation">vertical</item>
+        <item name="android:clipChildren">false</item>
     </style>
 
     <style name="CalcKey.Land" parent="CalcKey">

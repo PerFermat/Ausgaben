@@ -7,10 +7,14 @@ import android.content.res.Configuration;
 import android.content.res.Resources;
 import android.os.Bundle;
 import android.view.LayoutInflater;
+import android.view.View;
+import android.widget.EditText;
 
 import androidx.annotation.Nullable;
 import androidx.appcompat.app.AppCompatActivity;
 import androidx.core.view.LayoutInflaterCompat;
+import androidx.core.view.ViewCompat;
+import androidx.core.view.WindowInsetsCompat;
 
 import de.spahr.ausgaben.AusgabenApp;
 import de.spahr.ausgaben.i18n.I18nViewFactory;
@@ -57,6 +61,35 @@ public class LocalizedActivity extends AppCompatActivity {
         }
         // Akzentfarbe (Profilwechsel/-bearbeitung): ohne Neuaufbau neu einfärben.
         applyAccentColor();
+    }
+
+    /**
+     * Schließt die System-Tastatur, sobald sie sichtbar wird, während ein an die eigene Rechentastatur
+     * (CalcKeyboardView) gebundenes Feld den Fokus hält.
+     *
+     * <p>Zwei einfachere Ansätze scheiterten: {@code onWindowFocusChanged} (Fensterfokus nach Rückkehr aus
+     * einer Fremd-App, z. B. PDF-Anzeige) kommt teils zu früh, weil das System die Tastatur dort erst
+     * <em>danach</em> wieder einblendet. Ein {@code OnApplyWindowInsetsListener} direkt an der
+     * {@code DecorView} verhindert deren eigene interne Einfärbung von Statusleiste/Kamera-Ausschnitt; am
+     * Content-Container ({@code android.R.id.content}) gesetzt, erreichte ihn die Dispatch-Kette in dieser
+     * (nicht auf Edge-to-Edge umgestellten) App gar nicht erst (per Logcat bestätigt: keine einzige
+     * Auslösung trotz mehrfacher Tastatur-Ein-/Ausblendungen).</p>
+     *
+     * <p>Ein {@link android.view.ViewTreeObserver.OnGlobalLayoutListener} läuft unabhängig von dieser
+     * Dispatch-Kette bei jeder Layout-Änderung — auch beim Ein-/Ausblenden der Tastatur — und fragt den
+     * aktuellen Sichtbarkeitsstatus direkt über {@link ViewCompat#getRootWindowInsets} ab.</p>
+     */
+    private void installSystemKeyboardGuard() {
+        View content = getWindow().getDecorView().findViewById(android.R.id.content);
+        content.getViewTreeObserver().addOnGlobalLayoutListener(() -> {
+            WindowInsetsCompat insets = ViewCompat.getRootWindowInsets(content);
+            if (insets != null && insets.isVisible(WindowInsetsCompat.Type.ime())) {
+                View focused = getCurrentFocus();
+                if (focused instanceof EditText && CalcKeyboardView.isBoundField(focused)) {
+                    focused.post(() -> Keyboard.hide(focused));
+                }
+            }
+        });
     }
 
     /** Färbt Toolbar/Statusleiste/Buttons mit der aktuellen Profil-Akzentfarbe ein. */
@@ -109,5 +142,6 @@ public class LocalizedActivity extends AppCompatActivity {
             LayoutInflaterCompat.setFactory2(inflater, new I18nViewFactory(getDelegate(), inflater));
         }
         super.onCreate(savedInstanceState);
+        installSystemKeyboardGuard();
     }
 }

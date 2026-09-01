@@ -400,6 +400,7 @@
     <string name="tags_done">Done</string>
     <string name="gps_row_label">GPS: %1$s</string>
     <string name="gps_row_none">Location: tap the map to set</string>
+    <string name="gps_clear">Remove location</string>
     <string name="compass_n">N</string>
     <string name="compass_s">S</string>
     <string name="compass_e">E</string>
@@ -427,6 +428,7 @@
     <string name="backup_options_message_profile">The backup contains only the active profile\'s data and settings — it can be restored into any profile.</string>
     <string name="backup_profile_db">Back up this profile</string>
     <string name="restore_profile_db">Restore profile backup</string>
+    <string name="restore_full_backup">Restore full backup (all profiles)</string>
     <string name="restore_wrong_scope_use_profile">This backup contains only one profile. Please restore it from that profile\'s settings (menu → Edit profile).</string>
     <string name="restore_pick_profile_title">Which profile from the backup should replace the active one?</string>
     <string name="backup_include_password">Include server password</string>

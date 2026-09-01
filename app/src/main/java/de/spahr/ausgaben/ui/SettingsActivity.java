@@ -68,7 +68,7 @@ public class SettingsActivity extends LocalizedActivity {
 
     private ActivityResultLauncher<String> notificationPermissionLauncher;
     private ActivityResultLauncher<String> backupLauncher;
-    private ActivityResultLauncher<String[]> restoreLauncher;
+    private de.spahr.ausgaben.backup.FullBackupRestoreFlow fullBackupRestoreFlow;
     /** Antworten aus dem Sichern-Dialog – gelten bis der Dateiname gewählt ist. */
     private boolean backupIncludeServerPassword;
     private String backupPassword = "";
@@ -167,14 +167,15 @@ public class SettingsActivity extends LocalizedActivity {
         registerLaunchers();
 
         ((MaterialButton) findViewById(R.id.btnChangeProfile)).setOnClickListener(
-                v -> OnboardingActivity.startForEditing(this, new de.spahr.ausgaben.settings.ProfileManager(this)
+                v -> ProfileSettingsActivity.startForEditing(this, new de.spahr.ausgaben.settings.ProfileManager(this)
                         .getActiveProfileId()));
         ((MaterialButton) findViewById(R.id.btnNewProfile)).setOnClickListener(
                 v -> OnboardingActivity.startForNewProfile(this));
 
         ((MaterialButton) findViewById(R.id.btnExportAll)).setOnClickListener(v -> exportAll());
         ((MaterialButton) findViewById(R.id.btnBackup)).setOnClickListener(v -> askBackupOptions());
-        ((MaterialButton) findViewById(R.id.btnRestore)).setOnClickListener(v -> confirmRestore());
+        ((MaterialButton) findViewById(R.id.btnRestore)).setOnClickListener(
+                v -> fullBackupRestoreFlow.start());
         ((MaterialButton) findViewById(R.id.btnReset)).setOnClickListener(v -> confirmReset());
     }
     /** Schalter „App mit Biometrie schützen": bei Aktivierung Verfügbarkeit prüfen. */
@@ -217,13 +218,7 @@ public class SettingsActivity extends LocalizedActivity {
                         doBackup(uri);
                     }
                 });
-        restoreLauncher = registerForActivityResult(
-                new ActivityResultContracts.OpenDocument(),
-                uri -> {
-                    if (uri != null) {
-                        doRestore(uri);
-                    }
-                });
+        fullBackupRestoreFlow = new de.spahr.ausgaben.backup.FullBackupRestoreFlow(this);
         exportTreeLauncher = registerForActivityResult(
                 new ActivityResultContracts.OpenDocumentTree(),
                 uri -> {
@@ -400,147 +395,6 @@ public class SettingsActivity extends LocalizedActivity {
         }
         finishAffinity();
         Runtime.getRuntime().exit(0);
-    }
-
-    private void confirmRestore() {
-        // Alles anbieten: je nach Gerät meldet der Dateianbieter ZIP mal als application/zip, mal als
-        // octet-stream, und verschlüsselte Sicherungen (.abk) haben gar keinen bekannten Typ. Ob es eine
-        // Sicherung ist, entscheidet ohnehin der Dateiinhalt (Kopf bzw. Manifest).
-        restoreLauncher.launch(new String[]{"*/*"});
-    }
-
-    /**
-     * Sicherung einlesen: bei Bedarf Passwort abfragen, dann fragen, was eingespielt werden soll (Daten,
-     * Einstellungen oder beides) und erst danach die Sicherheitsabfrage stellen.
-     */
-    private void doRestore(Uri uri) {
-        new Thread(() -> {
-            try {
-                byte[] data = readBytes(uri);
-                if (BackupCrypto.isEncrypted(data)) {
-                    runOnUiThread(() -> askBackupPassword(data));
-                    return;
-                }
-                openRestore(data);
-            } catch (Exception e) {
-                postRestoreError(e);
-            }
-        }).start();
-    }
-
-    /** Passwort der verschlüsselten Sicherung erfragen und die Datei damit öffnen. */
-    private void askBackupPassword(byte[] data) {
-        final TextInputEditText field = new TextInputEditText(this);
-        field.setHint(getString(R.string.backup_password_hint));
-        field.setInputType(android.text.InputType.TYPE_CLASS_TEXT
-                | android.text.InputType.TYPE_TEXT_VARIATION_PASSWORD);
-        int pad = Math.round(24 * getResources().getDisplayMetrics().density);
-        LinearLayout box = new LinearLayout(this);
-        box.setOrientation(LinearLayout.VERTICAL);
-        box.setPadding(pad, pad / 2, pad, 0);
-        box.addView(field);
-        new AppDialog(this)
-                .setTitle(R.string.restore_password_title)
-                .setView(box)
-                .setPositiveButton(R.string.restore_db, (d, w) -> {
-                    String pw = field.getText() == null ? "" : field.getText().toString();
-                    new Thread(() -> {
-                        byte[] plain;
-                        try {
-                            plain = BackupCrypto.decrypt(data, pw);
-                        } catch (Exception e) {
-                            runOnUiThread(() -> Toast.makeText(this, R.string.restore_password_wrong,
-                                    Toast.LENGTH_LONG).show());
-                            return;
-                        }
-                        try {
-                            openRestore(plain);
-                        } catch (Exception e) {
-                            postRestoreError(e);
-                        }
-                    }).start();
-                })
-                .show();
-    }
-
-    /** Archiv lesen und die Auswahl anbieten (läuft im Hintergrund-Thread). */
-    private void openRestore(byte[] zip) throws Exception {
-        final BackupArchive.Content content =
-                BackupArchive.read(zip);
-        if (!content.hasData() && !content.hasSettings()) {
-            runOnUiThread(() -> Toast.makeText(this, R.string.restore_invalid, Toast.LENGTH_LONG).show());
-            return;
-        }
-        // Eine Profil-Sicherung (aus der Profil-Maske heraus erstellt) betrifft nur ein Profil – die
-        // gehört dort auch wieder eingespielt, nicht hier in den allgemeinen Einstellungen, die alle
-        // Profile ersetzen. Das Wort „Profil" in der Meldung ist dabei kein Zufall: dort steht der
-        // passende Knopf.
-        if (!content.isAllProfiles()) {
-            runOnUiThread(() -> Toast.makeText(this,
-                    R.string.restore_wrong_scope_use_profile, Toast.LENGTH_LONG).show());
-            return;
-        }
-        runOnUiThread(() -> chooseRestoreScope(content));
-    }
-
-    /** „Daten", „Einstellungen" oder „Beides" – nur was die Sicherung auch enthält. */
-    private void chooseRestoreScope(BackupArchive.Content content) {
-        final List<String> labels = new ArrayList<>();
-        final List<Integer> scopes = new ArrayList<>();   // 0 = Daten, 1 = Einstellungen, 2 = beides
-        if (content.hasData()) {
-            labels.add(getString(R.string.restore_what_data));
-            scopes.add(0);
-        }
-        if (content.hasSettings()) {
-            labels.add(getString(R.string.restore_what_settings));
-            scopes.add(1);
-        }
-        if (content.hasData() && content.hasSettings()) {
-            labels.add(getString(R.string.restore_what_both));
-            scopes.add(2);
-        }
-        final int[] choice = {scopes.size() - 1};   // Vorgabe: der umfassendste Eintrag
-        new AppDialog(this)
-                .setTitle(R.string.restore_what_title)
-                .setSingleChoiceItems(labels.toArray(new String[0]), choice[0], (d, w) -> choice[0] = w)
-                .setPositiveButton(R.string.restore_db, (d, w) ->
-                        confirmAndRestore(content, scopes.get(choice[0])))
-                .show();
-    }
-
-    private void confirmAndRestore(BackupArchive.Content content, int scope) {
-        new AppDialog(this)
-                .setTitle(R.string.restore_confirm_title)
-                .setMessage(R.string.restore_confirm_message)
-                .setPositiveButton(R.string.restore_db, (d, w) -> applyRestore(content, scope))
-                .show();
-    }
-
-    private void applyRestore(BackupArchive.Content content, int scope) {
-        new Thread(() -> {
-            try {
-                if (scope == 0 || scope == 2) {
-                    BackupStore.restoreAllData(this, content);
-                }
-                if (scope == 1 || scope == 2) {
-                    BackupStore.restoreAllSettings(this, content);
-                }
-                runOnUiThread(() -> {
-                    Toast.makeText(this, R.string.restore_done, Toast.LENGTH_LONG).show();
-                    Intent i = new Intent(this, MainActivity.class);
-                    i.setFlags(Intent.FLAG_ACTIVITY_NEW_TASK | Intent.FLAG_ACTIVITY_CLEAR_TASK);
-                    startActivity(i);
-                });
-            } catch (Exception e) {
-                postRestoreError(e);
-            }
-        }).start();
-    }
-
-    private void postRestoreError(Exception e) {
-        String msg = e.getMessage() == null ? e.toString() : e.getMessage();
-        runOnUiThread(() -> Toast.makeText(this,
-                getString(R.string.restore_failed, msg), Toast.LENGTH_LONG).show());
     }
 
     private byte[] readBytes(Uri uri) throws Exception {

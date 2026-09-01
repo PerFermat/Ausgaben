@@ -8,10 +8,14 @@ import java.util.List;
 import java.util.Map;
 
 import de.spahr.ausgaben.db.TranslationDao;
+import de.spahr.ausgaben.settings.SettingsStore;
 
 /**
  * JSON-Struktur für den Export der Sprach-Vorlage und den Import einer manuell befüllten Sprachdatei.
- * Format: {@code {"language":"","displayName":"","strings":{ key:{"de":…,"en":…,"value":""}, … }}}.
+ * Format: {@code {"language":"","displayName":"","defaultCurrency":"","numberFormat":"",
+ * "strings":{ key:{"de":…,"en":…,"value":""}, … }}}. {@code defaultCurrency}/{@code numberFormat} sind
+ * optional (ältere Sprachdateien ohne diese Felder importieren weiterhin klaglos, mit Fallback) – daraus
+ * leitet das Onboarding beim Anlegen eines neuen Profils Währung und Zahlenformat für diese Sprache ab.
  */
 public final class TranslationIo {
 
@@ -36,19 +40,29 @@ public final class TranslationIo {
         JSONObject root = new JSONObject();
         root.put("language", "");
         root.put("displayName", "");
+        root.put("defaultCurrency", "");
+        root.put("numberFormat", "");
         root.put("strings", strings);
         return root.toString(2);
     }
 
-    /** Ergebnis des Imports: Sprachcode, Anzeigename und die befüllten Werte (leere → englischer Fallback). */
+    /**
+     * Ergebnis des Imports: Sprachcode, Anzeigename, Standard-Währung/-Zahlenformat für diese Sprache
+     * und die befüllten Übersetzungswerte (leere → englischer Fallback).
+     */
     public static final class Parsed {
         public final String code;
         public final String name;
+        public final String defaultCurrency;
+        public final String numberFormat;
         public final Map<String, String> values;
 
-        Parsed(String code, String name, Map<String, String> values) {
+        Parsed(String code, String name, String defaultCurrency, String numberFormat,
+               Map<String, String> values) {
             this.code = code;
             this.name = name;
+            this.defaultCurrency = defaultCurrency;
+            this.numberFormat = numberFormat;
             this.values = values;
         }
     }
@@ -62,6 +76,14 @@ public final class TranslationIo {
         }
         if (name.isEmpty()) {
             name = code;
+        }
+        String defaultCurrency = root.optString("defaultCurrency", "").trim();
+        if (defaultCurrency.isEmpty()) {
+            defaultCurrency = "€";
+        }
+        String numberFormat = root.optString("numberFormat", "").trim();
+        if (numberFormat.isEmpty()) {
+            numberFormat = SettingsStore.NUMBER_FORMAT_PLAIN_COMMA;
         }
         Map<String, String> values = new LinkedHashMap<>();
         JSONObject strings = root.optJSONObject("strings");
@@ -81,6 +103,6 @@ public final class TranslationIo {
                 }
             }
         }
-        return new Parsed(code, name, values);
+        return new Parsed(code, name, defaultCurrency, numberFormat, values);
     }
 }

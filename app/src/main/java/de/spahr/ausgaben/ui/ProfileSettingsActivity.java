@@ -4,7 +4,9 @@ import de.spahr.ausgaben.net.RemotePath;
 import android.content.Intent;
 import android.net.Uri;
 import android.os.Bundle;
+import android.view.LayoutInflater;
 import android.view.View;
+import android.widget.Button;
 import android.widget.LinearLayout;
 import android.widget.TextView;
 import android.widget.Toast;
@@ -24,9 +26,14 @@ import org.json.JSONException;
 
 import java.io.ByteArrayOutputStream;
 import java.io.InputStream;
+import java.io.OutputStream;
 import java.nio.charset.StandardCharsets;
+import java.text.SimpleDateFormat;
 import java.util.ArrayList;
+import java.util.Date;
 import java.util.List;
+import java.util.Locale;
+import java.util.Map;
 
 import de.spahr.ausgaben.R;
 import de.spahr.ausgaben.backup.BackupArchive;
@@ -42,27 +49,16 @@ import de.spahr.ausgaben.net.RemoteStorage;
 import de.spahr.ausgaben.settings.SettingsStore;
 
 /**
- * On-Boarding beim ersten Start (noch keine Konten): setzt die Kernpunkte (Sprache, Sync-Verbindung,
- * Import/Export-Format) und importiert direkt Konten – über <b>dieselben</b> Bausteine und denselben
- * Auswahldialog wie „Konto hinzufügen". Erscheint nur automatisch (siehe
- * {@code MainActivity.populateAccountDrawer}); es gibt bewusst keinen Menüaufruf.
- *
- * <p>Die bereits verifizierte Import-Logik in {@code MainActivity} bleibt unangetastet – dieses
- * On-Boarding importiert eigenständig, damit die kritische Bestandslogik nicht angefasst wird. Da beim
- * ersten Start noch keine Konten existieren, entfällt hier die Filterung schon vorhandener Konten.</p>
+ * „Profil ändern": die volle Einstellungsmöglichkeit für ein <b>bestehendes</b> Profil (Sprache,
+ * Sync-Verbindung, Import/Export-Format, Währung/Zahlenformat, Dividenden, Budget, Orte, Alias,
+ * Sicherung/Wiederherstellung, Konto löschen/schließen, Profil zurücksetzen/löschen). Eigenständig von
+ * {@link OnboardingActivity} (Ersteinrichtung/neues Profil, dort bewusst nur das Nötigste) getrennt,
+ * damit eine Änderung an der einen Maske nicht versehentlich die andere mitverändert. Aufrufer:
+ * {@code SettingsActivity} („Profil ändern") und der lange Druck auf eine Zeile in
+ * {@link ProfileSwitchDialog}.
  */
-public class OnboardingActivity extends LocalizedActivity implements SmbWizardController.Host {
+public class ProfileSettingsActivity extends LocalizedActivity implements SmbWizardController.Host {
 
-    /**
-     * Nur gesetzt, wenn dieser Assistent zum Anlegen eines <b>neuen, zusätzlichen</b> Profils gestartet
-     * wurde (statt beim allerersten App-Start). Zusammen mit {@link #EXTRA_NEW_PROFILE_ID} bestimmt das,
-     * auf welches Profil bei einem Abbruch zurückgewechselt wird.
-     */
-    public static final String EXTRA_PREVIOUS_PROFILE_ID = "previous_profile_id";
-    /** Das gerade angelegte, zum Zeitpunkt des Assistenten bereits aktive, noch leere Profil. */
-    public static final String EXTRA_NEW_PROFILE_ID = "new_profile_id";
-    private String previousProfileId;
-    private String newProfileId;
     /**
      * true, solange ein Konten-Import (KMY-Depot oder CSV) im Hintergrund noch läuft. Verlässt man die
      * Maske währenddessen (Fertig/Zurück), lief die Import-Datenbankoperation nach dem Schließen der
@@ -104,44 +100,53 @@ public class OnboardingActivity extends LocalizedActivity implements SmbWizardCo
     private String selectedExportMode = SettingsStore.MODE_CSV;
     private String selectedServerType = SettingsStore.SERVER_NEXTCLOUD;
 
-    // ---- Standardkonto ----
+    // ---- Weitere Profil-Einstellungen (Währung, Dividenden, Budget, Standardkonto, Orte, Alias) ----
     private MaterialAutoCompleteTextView editDefaultAccount;
+    private TextInputEditText editCurrency;
+    private MaterialAutoCompleteTextView editNumberFormat;
+    /** Aktuell gewählter Zahlenformat-Wert (SettingsStore.NUMBER_FORMAT_*). */
+    private String selectedNumberFormat = SettingsStore.NUMBER_FORMAT_PLAIN_COMMA;
+    private static final String[] NUMBER_FORMAT_VALUES = {
+            SettingsStore.NUMBER_FORMAT_DE_GROUP, SettingsStore.NUMBER_FORMAT_EN_GROUP,
+            SettingsStore.NUMBER_FORMAT_PLAIN_COMMA, SettingsStore.NUMBER_FORMAT_PLAIN_DOT};
+    private com.google.android.material.materialswitch.MaterialSwitch switchShowCurrency;
+    private com.google.android.material.materialswitch.MaterialSwitch switchDividendGross;
+    private TextInputEditText editDividendTaxRate;
+    private com.google.android.material.materialswitch.MaterialSwitch switchBudgetInternal;
+    private com.google.android.material.materialswitch.MaterialSwitch switchAliasPrompt;
+
+    private de.spahr.ausgaben.settings.PlacesStore placesStore;
+    private LinearLayout placesContainer;
+    private MaterialAutoCompleteTextView editDefaultPlace;
+    private MaterialAutoCompleteTextView editPlacesAccount;
+    /** Konto, dessen Orte gerade in der Profil-Maske verwaltet werden. */
+    private String placesAccount = "";
 
     private ActivityResultLauncher<String[]> csvLauncher;
+    private ActivityResultLauncher<String> backupLauncher;
     private ActivityResultLauncher<String[]> restoreBackupLauncher;
-    private de.spahr.ausgaben.backup.FullBackupRestoreFlow fullBackupRestoreFlow;
+    /** Antworten aus dem Sichern-Dialog – gelten bis der Dateiname gewählt ist. */
+    private boolean backupIncludeServerPassword;
+    private String backupPassword = "";
 
     @Override
     protected void onCreate(Bundle savedInstanceState) {
         super.onCreate(savedInstanceState);
-        setContentView(R.layout.activity_onboarding);
+        setContentView(R.layout.activity_profile_settings);
         repository = new Repository(this);
         settings = new SettingsStore(this);
         profiles = new de.spahr.ausgaben.settings.ProfileManager(this);
 
-        previousProfileId = getIntent().getStringExtra(EXTRA_PREVIOUS_PROFILE_ID);
-        newProfileId = getIntent().getStringExtra(EXTRA_NEW_PROFILE_ID);
-
         MaterialToolbar toolbar = findViewById(R.id.toolbar);
         toolbar.setNavigationOnClickListener(v -> {
             if (!blockIfImporting()) {
-                abortIfNewProfile();
+                finishToMainActivity();
             }
         });
-        if (newProfileId != null) {
-            toolbar.setTitle(getString(R.string.settings_profile_new));
-        } else {
-            // Allererstes, automatisch gestartetes Onboarding – kein Profil, zu dem „Zurück" führen
-            // könnte. Titel bleibt „Willkommen" aus dem Layout.
-            toolbar.setNavigationIcon(null);
-        }
-
-        fullBackupRestoreFlow = new de.spahr.ausgaben.backup.FullBackupRestoreFlow(this);
-        ((MaterialButton) findViewById(R.id.btnRestoreFullBackup))
-                .setOnClickListener(v -> fullBackupRestoreFlow.start());
+        toolbar.setTitle(getString(R.string.settings_profile_change));
 
         setupProfileColor();
-        setupCopyFromProfile();
+        setupDeleteProfile();
 
         editLanguage = findViewById(R.id.editLanguage);
         editExportMode = findViewById(R.id.editExportMode);
@@ -168,14 +173,66 @@ public class OnboardingActivity extends LocalizedActivity implements SmbWizardCo
         setupServerType();
         prefillSyncFields();
 
+        placesStore = new de.spahr.ausgaben.settings.PlacesStore(this);
         editDefaultAccount = findViewById(R.id.editDefaultAccount);
         editDefaultAccount.setText(settings.getDefaultAccount(), false);
         repository.getAccountNames(names -> PickerAdapters.accounts(repository, editDefaultAccount, names));
+
+        editCurrency = findViewById(R.id.editCurrency);
+        editCurrency.setText(settings.getCurrency());
+        editNumberFormat = findViewById(R.id.editNumberFormat);
+        setupNumberFormat();
+
+        switchShowCurrency = findViewById(R.id.switchShowCurrency);
+        switchShowCurrency.setChecked(settings.isCurrencyShown());
+        switchDividendGross = findViewById(R.id.switchDividendGross);
+        switchDividendGross.setChecked(settings.isDividendGross());
+        editDividendTaxRate = findViewById(R.id.editDividendTaxRate);
+        // Ziffern und das oben eingestellte Dezimalzeichen – android:inputType="numberDecimal" kennt
+        // nur den Punkt und verschluckte ein Komma (siehe AmountField).
+        AmountField.preparePercent(editDividendTaxRate);
+        double taxPercent = settings.getDividendTaxPercent();
+        if (taxPercent > 0) {
+            editDividendTaxRate.setText(de.spahr.ausgaben.settings.MoneyFormat.decimal(taxPercent, 0, 5));
+        }
+
+        switchBudgetInternal = findViewById(R.id.switchBudgetInternal);
+        switchBudgetInternal.setChecked(settings.isBudgetInternal());
+        ((MaterialButton) findViewById(R.id.btnBudgetCompute)).setOnClickListener(v -> {
+            int y = java.util.Calendar.getInstance().get(java.util.Calendar.YEAR);
+            AppDialog.destructive(this)
+                    .setTitle(R.string.budget_compute_confirm_title)
+                    .setMessage(getString(R.string.budget_compute_confirm_message, y))
+                    .setPositiveButton(R.string.budget_compute, (d, w) ->
+                            repository.computeBudgetFromHistory(y, () ->
+                                    Toast.makeText(this, R.string.budget_import_done,
+                                            Toast.LENGTH_LONG).show()))
+                    .setNegativeButton(R.string.cancel, null)
+                    .show();
+        });
+        ((MaterialButton) findViewById(R.id.btnBudgetImport)).setOnClickListener(v -> {
+            int y = java.util.Calendar.getInstance().get(java.util.Calendar.YEAR);
+            BudgetImportFlow.run(this, settings, repository, y, null);
+        });
+
+        switchAliasPrompt = findViewById(R.id.switchAliasPrompt);
+        switchAliasPrompt.setChecked(settings.isAliasPromptEnabled());
+        ((MaterialButton) findViewById(R.id.btnManageAliases)).setOnClickListener(
+                v -> startActivity(new Intent(this, AliasActivity.class)));
+
+        setupPlaces();
 
         csvLauncher = registerForActivityResult(
                 new ActivityResultContracts.OpenDocument(), uri -> {
                     if (uri != null) {
                         importCsvLocal(uri);
+                    }
+                });
+        backupLauncher = registerForActivityResult(
+                new ActivityResultContracts.CreateDocument("application/octet-stream"),
+                uri -> {
+                    if (uri != null) {
+                        doBackup(uri);
                     }
                 });
         restoreBackupLauncher = registerForActivityResult(
@@ -207,10 +264,13 @@ public class OnboardingActivity extends LocalizedActivity implements SmbWizardCo
                 return;
             }
             saveSettings();
-            finishFromProfileMask();
+            finishToMainActivity();
         });
 
+        ((MaterialButton) findViewById(R.id.btnBackupProfile)).setOnClickListener(v -> askBackupOptions());
         ((MaterialButton) findViewById(R.id.btnRestoreProfile)).setOnClickListener(v -> confirmRestore());
+        ((MaterialButton) findViewById(R.id.btnDeleteAccount)).setOnClickListener(v -> manageAccounts());
+        ((MaterialButton) findViewById(R.id.btnResetProfile)).setOnClickListener(v -> confirmResetProfile());
     }
 
     @Override
@@ -218,13 +278,12 @@ public class OnboardingActivity extends LocalizedActivity implements SmbWizardCo
         if (blockIfImporting()) {
             return;
         }
-        abortIfNewProfile();
+        finishToMainActivity();
     }
 
     /**
      * Ein Konten-Import läuft im Hintergrund auf einer eigenen Datenbankverbindung weiter, auch wenn
-     * diese Maske schließt. {@link #abortIfNewProfile()} wechselt dabei ggf. das aktive Profil zurück
-     * und schließt die Datenbank ({@link de.spahr.ausgaben.settings.ProfileManager#switchTo}) – trifft
+     * diese Maske schließt. {@link #finishToMainActivity()} schließt dabei ggf. die Datenbank – trifft
      * das auf einen noch laufenden Import, stürzt die App ab („connection pool has been closed").
      * Deshalb: solange {@link #importRunning}, weder „Fertig" noch Zurück zulassen.
      */
@@ -237,36 +296,19 @@ public class OnboardingActivity extends LocalizedActivity implements SmbWizardCo
     }
 
     /**
-     * Bricht der Nutzer die Einrichtung eines <b>neuen</b> Profils ab (Zurück-Pfeil/Systemtaste), wird
-     * automatisch auf das vorherige Profil zurückgewechselt und das leere neue Profil wieder entfernt –
-     * kein „Geister-Profil" ohne Inhalt. Beim allerersten App-Start (kein {@link #newProfileId}) bleibt es
-     * beim einfachen {@link #finish()}.
+     * Schließt diese Maske und setzt den Activity-Stack auf eine frische {@code MainActivity} zurück –
+     * wie schon {@link ProfileSwitchDialog} es beim Wechseln/Löschen tut. Nötig, weil ein Profilwechsel
+     * unterwegs (z. B. über „Von anderem Profil übernehmen" oder einen Restore) die Datenbankverbindung
+     * schließen kann ({@link de.spahr.ausgaben.settings.ProfileManager#switchTo}): ein einfaches
+     * {@link #finish()} kehrte sonst zu einer darunterliegenden {@code SettingsActivity}/
+     * {@code MainActivity} zurück, deren {@code Repository} noch die alte, jetzt geschlossene
+     * Verbindung hält – das stürzte beim nächsten Datenbankzugriff dort ab
+     * („connection pool has been closed").
      */
-    private void abortIfNewProfile() {
-        if (newProfileId != null && previousProfileId != null) {
-            de.spahr.ausgaben.settings.ProfileManager pm = new de.spahr.ausgaben.settings.ProfileManager(this);
-            pm.switchTo(this, previousProfileId);
-            pm.deleteProfile(this, newProfileId);
-        }
-        finishFromProfileMask();
-    }
-
-    /**
-     * Schließt diese Maske. Wurde sie über „Neues Profil anlegen" geöffnet (statt beim allerersten,
-     * automatischen Onboarding), setzt sie den Activity-Stack auf eine frische {@code MainActivity}
-     * zurück – wie schon {@link ProfileSwitchDialog} es beim Wechseln/Löschen tut. Nötig, weil ein
-     * Profilwechsel unterwegs die Datenbankverbindung schließt
-     * ({@link de.spahr.ausgaben.settings.ProfileManager#switchTo}): ein einfaches {@link #finish()}
-     * kehrte sonst zu einer darunterliegenden {@code SettingsActivity}/{@code MainActivity} zurück,
-     * deren {@code Repository} noch die alte, jetzt geschlossene Verbindung hält – das stürzte beim
-     * nächsten Datenbankzugriff dort ab („connection pool has been closed").
-     */
-    private void finishFromProfileMask() {
-        if (newProfileId != null) {
-            Intent intent = new Intent(this, MainActivity.class);
-            intent.addFlags(Intent.FLAG_ACTIVITY_NEW_TASK | Intent.FLAG_ACTIVITY_CLEAR_TASK);
-            startActivity(intent);
-        }
+    private void finishToMainActivity() {
+        Intent intent = new Intent(this, MainActivity.class);
+        intent.addFlags(Intent.FLAG_ACTIVITY_NEW_TASK | Intent.FLAG_ACTIVITY_CLEAR_TASK);
+        startActivity(intent);
         finish();
     }
 
@@ -365,48 +407,31 @@ public class OnboardingActivity extends LocalizedActivity implements SmbWizardCo
         profileColorSwatch.setBackground(ColorPickerDialog.swatchDrawable(color));
     }
 
-    /**
-     * Beim Anlegen eines <b>weiteren</b> Profils (nicht beim allerersten) lässt sich die ganze
-     * Konfiguration eines bestehenden Profils übernehmen, statt sie neu einzutippen. Nur sichtbar,
-     * solange es mindestens ein anderes Profil gibt.
-     */
-    private void setupCopyFromProfile() {
-        View button = findViewById(R.id.btnCopyFromProfile);
-        List<de.spahr.ausgaben.settings.ProfileManager.Profile> others = new ArrayList<>();
+    /** „Profil löschen" – nur sichtbar, solange mehr als ein Profil existiert (siehe ProfileManager). */
+    private void setupDeleteProfile() {
+        View button = findViewById(R.id.btnDeleteProfile);
         String ownId = profiles.getActiveProfileId();
-        if (newProfileId != null) {
-            for (de.spahr.ausgaben.settings.ProfileManager.Profile p : profiles.getProfiles()) {
-                if (!p.id.equals(ownId)) {
-                    others.add(p);
-                }
-            }
-        }
-        if (others.isEmpty()) {
+        if (profiles.getProfiles().size() <= 1) {
             button.setVisibility(View.GONE);
             return;
         }
         button.setVisibility(View.VISIBLE);
-        String[] labels = new String[others.size()];
-        for (int i = 0; i < others.size(); i++) {
-            labels[i] = others.get(i).name;
-        }
-        button.setOnClickListener(v -> new AppDialog(this)
-                .setTitle(R.string.profile_copy_title)
-                .setItems(labels, (d, w) -> {
-                    profiles.copySettingsFrom(this, others.get(w).id, ownId);
-                    prefillAll();
-                })
-                .show());
-    }
-
-    /** Zieht alle Feldwerte frisch aus den (ggf. gerade übernommenen) Einstellungen nach. */
-    private void prefillAll() {
-        refreshProfileColorSwatch();
-        setupExportMode();
-        setupCsvSeparator();
-        setupServerType();
-        prefillSyncFields();
-        editDefaultAccount.setText(settings.getDefaultAccount(), false);
+        button.setOnClickListener(v -> {
+            if (blockIfImporting()) {
+                return;
+            }
+            AppDialog.destructive(this)
+                    .setTitle(R.string.profile_delete)
+                    .setMessage(R.string.profile_delete_confirm_message)
+                    .setPositiveButton(R.string.profile_delete, (d, w) -> {
+                        profiles.deleteProfile(this, ownId);
+                        Intent intent = new Intent(this, MainActivity.class);
+                        intent.addFlags(Intent.FLAG_ACTIVITY_NEW_TASK | Intent.FLAG_ACTIVITY_CLEAR_TASK);
+                        startActivity(intent);
+                    })
+                    .setNegativeButton(android.R.string.cancel, null)
+                    .show();
+        });
     }
 
     private void setupServerType() {
@@ -511,14 +536,15 @@ public class OnboardingActivity extends LocalizedActivity implements SmbWizardCo
         settings.setCsvSeparator(selectedCsvSeparator);
 
         repository.ensureAccount(defaultAccount);
-        // Währung/Zahlenformat/Währungsanzeige/Dividenden-Modus sind hier (bewusst schlanker
-        // Assistent) keine eigenen Felder – sie kommen aus der gewählten Sprache (siehe „Profil
-        // ändern" für die volle Einstellungsmöglichkeit).
-        Language lang = currentLanguage();
-        settings.setCurrency(lang != null ? lang.defaultCurrency : "€");
-        settings.setNumberFormat(lang != null ? lang.numberFormat : SettingsStore.NUMBER_FORMAT_PLAIN_COMMA);
-        settings.setCurrencyShown(true);
-        settings.setDividendGross(false);
+        settings.setCurrency(textOf(editCurrency));
+        settings.setNumberFormat(selectedNumberFormat);
+        settings.setCurrencyShown(switchShowCurrency.isChecked());
+        settings.setDividendGross(switchDividendGross.isChecked());
+        // Der Steuersatz kommt im eingestellten Zahlenformat herein (Komma oder Punkt); ein unlesbarer
+        // oder unsinniger Wert schaltet die Vorbelegung ab, statt eine falsche Steuer zu erzeugen.
+        settings.setDividendTaxPercent(parsePercent(textOf(editDividendTaxRate)));
+        settings.setBudgetInternal(switchBudgetInternal.isChecked());
+        settings.setAliasPromptEnabled(switchAliasPrompt.isChecked());
         de.spahr.ausgaben.settings.Currencies.refresh(this);
         de.spahr.ausgaben.settings.MoneyFormat.refresh(this);
         // Das Standardkonto bestimmt den Saldo, den die Uhr anzeigt – sonst zeigte sie bis zum
@@ -526,34 +552,167 @@ public class OnboardingActivity extends LocalizedActivity implements SmbWizardCo
         de.spahr.ausgaben.wear.BalanceSync.publish(this);
     }
 
-    /** Die gerade gewählte Sprache aus der (bereits geladenen) Sprachliste, sonst {@code null}. */
-    private Language currentLanguage() {
-        String code = settings.getLanguage();
-        for (Language l : languages) {
-            if (l.code.equals(code)) {
-                return l;
+    /**
+     * Der Steuersatz in Prozent, im eingestellten Zahlenformat eingegeben. Komma wie Punkt werden
+     * angenommen. Leer, unlesbar oder außerhalb von 0 bis unter 100 ergibt 0 – dann belegt die
+     * Wertpapier-Erfassung die Steuer eben nicht vor.
+     */
+    private static double parsePercent(String raw) {
+        String t = raw == null ? "" : raw.trim().replace(',', '.');
+        if (t.isEmpty()) {
+            return 0;
+        }
+        try {
+            double v = Double.parseDouble(t);
+            return v > 0 && v < 100 ? v : 0;
+        } catch (NumberFormatException e) {
+            return 0;
+        }
+    }
+
+    /** Dropdown mit den vier Zahlenformat-Optionen (Beispiel-Labels); Vorauswahl aus den Einstellungen. */
+    private void setupNumberFormat() {
+        selectedNumberFormat = settings.getNumberFormat();
+        String[] labels = {
+                getString(R.string.number_format_de_group),
+                getString(R.string.number_format_en_group),
+                getString(R.string.number_format_plain_comma),
+                getString(R.string.number_format_plain_dot)};
+        PickerAdapters.plain(editNumberFormat, java.util.Arrays.asList(labels));
+        for (int i = 0; i < NUMBER_FORMAT_VALUES.length; i++) {
+            if (NUMBER_FORMAT_VALUES[i].equals(selectedNumberFormat)) {
+                editNumberFormat.setText(labels[i], false);
+                break;
             }
         }
-        return null;
+        editNumberFormat.setOnItemClickListener((parent, view, position, id) ->
+                selectedNumberFormat = NUMBER_FORMAT_VALUES[position]);
+    }
+
+    // ---- Orte (Bargeld-Bestände) ----
+
+    private void setupPlaces() {
+        placesContainer = findViewById(R.id.placesContainer);
+        editDefaultPlace = findViewById(R.id.editDefaultPlace);
+        editPlacesAccount = findViewById(R.id.editPlacesAccount);
+
+        placesAccount = settings.getDefaultAccount();
+        repository.getAccountNames(names -> {
+            if (placesAccount.isEmpty() && !names.isEmpty()) {
+                placesAccount = names.get(0);
+            }
+            PickerAdapters.accounts(repository, editPlacesAccount, names);
+            editPlacesAccount.setText(placesAccount, false);
+            refreshPlaces();
+        });
+        PickerBehaviour.onCommitted(editPlacesAccount, value -> {
+            placesAccount = value;
+            refreshPlaces();
+        });
+
+        android.widget.EditText editNewPlace = findViewById(R.id.editNewPlace);
+        ((MaterialButton) findViewById(R.id.btnAddPlace)).setOnClickListener(v -> {
+            String name = editNewPlace.getText() == null ? "" : editNewPlace.getText().toString().trim();
+            if (!name.isEmpty() && !placesAccount.isEmpty()) {
+                placesStore.addPlace(placesAccount, name);
+                editNewPlace.setText("");
+                refreshPlaces();
+            }
+        });
+
+        PickerBehaviour.onCommitted(editDefaultPlace, value ->
+                placesStore.setDefaultPlace(placesAccount,
+                        de.spahr.ausgaben.settings.PlacesStore.NO_PLACE.equals(value) ? "" : value));
+
+        refreshPlaces();
+    }
+
+    private void refreshPlaces() {
+        List<String> places = placesAccount.isEmpty()
+                ? new ArrayList<>() : placesStore.getPlaces(placesAccount);
+
+        placesContainer.removeAllViews();
+        for (String place : places) {
+            LinearLayout row = new LinearLayout(this);
+            row.setOrientation(LinearLayout.HORIZONTAL);
+            row.setGravity(android.view.Gravity.CENTER_VERTICAL);
+
+            TextView name = new TextView(this);
+            name.setText("✎  " + place);
+            name.setTextSize(16f);
+            name.setPadding(0, 24, 0, 24);
+            LinearLayout.LayoutParams lp = new LinearLayout.LayoutParams(
+                    0, LinearLayout.LayoutParams.WRAP_CONTENT, 1f);
+            name.setLayoutParams(lp);
+            android.util.TypedValue ripple = new android.util.TypedValue();
+            getTheme().resolveAttribute(android.R.attr.selectableItemBackground, ripple, true);
+            name.setBackgroundResource(ripple.resourceId);
+            name.setContentDescription(getString(R.string.place_rename_hint, place));
+            name.setOnClickListener(v -> renamePlaceDialog(place));
+
+            MaterialButton remove = new MaterialButton(this,
+                    null, com.google.android.material.R.attr.materialButtonOutlinedStyle);
+            remove.setText(R.string.remove);
+            remove.setTextColor(getColor(R.color.expense_red));
+            remove.setStrokeColor(android.content.res.ColorStateList.valueOf(getColor(R.color.expense_red)));
+            remove.setOnClickListener(v -> confirmRemovePlace(place));
+
+            row.addView(name);
+            row.addView(remove);
+            placesContainer.addView(row);
+        }
+
+        List<String> options = new ArrayList<>(places);
+        options.add(de.spahr.ausgaben.settings.PlacesStore.NO_PLACE);
+        PickerAdapters.places(editDefaultPlace, options);
+        String def = placesAccount.isEmpty() ? "" : placesStore.getDefaultPlace(placesAccount);
+        editDefaultPlace.setText(def.isEmpty() ? de.spahr.ausgaben.settings.PlacesStore.NO_PLACE : def, false);
+    }
+
+    private void renamePlaceDialog(String oldName) {
+        android.widget.EditText input = new android.widget.EditText(this);
+        input.setText(oldName);
+        input.setSelectAllOnFocus(true);
+        int pad = (int) (20 * getResources().getDisplayMetrics().density);
+        android.widget.FrameLayout frame = new android.widget.FrameLayout(this);
+        frame.setPadding(pad, pad / 2, pad, 0);
+        frame.addView(input);
+        new AppDialog(this)
+                .setTitle(R.string.place_rename_title)
+                .setView(frame)
+                .setPositiveButton(R.string.rename, (d, w) -> {
+                    String newName = input.getText().toString().trim();
+                    if (!newName.isEmpty() && !newName.equals(oldName)) {
+                        placesStore.renamePlace(placesAccount, oldName, newName);
+                        repository.renamePlaceEntries(placesAccount, oldName, newName, this::refreshPlaces);
+                    }
+                })
+                .show();
+    }
+
+    private void confirmRemovePlace(String place) {
+        AppDialog.destructive(this)
+                .setTitle(R.string.place_remove_title)
+                .setMessage(getString(R.string.place_remove_message, place))
+                .setPositiveButton(R.string.remove, (d, w) -> {
+                    placesStore.removePlace(placesAccount, place);
+                    repository.deletePlaceEntries(placesAccount, place, this::refreshPlaces);
+                })
+                .show();
     }
 
     /**
-     * Legt ein neues, leeres Profil an, macht es zum aktiven und öffnet diese Maske dafür – der
-     * Nutzer kommt aus {@code SettingsActivity} ("Neues Profil anlegen") oder aus
-     * {@link ProfileSwitchDialog} ("+"). Bricht der Nutzer ab, wechselt {@link #abortIfNewProfile()}
-     * zurück und entfernt das leere Profil wieder.
+     * Öffnet diese Maske zum Bearbeiten eines (ggf. noch nicht aktiven) Profils – schaltet bei Bedarf
+     * erst dorthin um. Aufrufer: {@code SettingsActivity} ("Profil ändern") und der lange Druck auf
+     * eine Zeile in {@link ProfileSwitchDialog}.
      */
-    public static void startForNewProfile(android.app.Activity activity) {
+    public static void startForEditing(android.app.Activity activity, String profileId) {
         de.spahr.ausgaben.settings.ProfileManager pm =
                 new de.spahr.ausgaben.settings.ProfileManager(activity);
-        String previousProfileId = pm.getActiveProfileId();
-        de.spahr.ausgaben.settings.ProfileManager.Profile newProfile = pm.createProfile(
-                activity.getString(R.string.profile_default_name, pm.getProfiles().size() + 1));
-        pm.switchTo(activity, newProfile.id);
-        Intent intent = new Intent(activity, OnboardingActivity.class);
-        intent.putExtra(EXTRA_PREVIOUS_PROFILE_ID, previousProfileId);
-        intent.putExtra(EXTRA_NEW_PROFILE_ID, newProfile.id);
-        activity.startActivity(intent);
+        if (!profileId.equals(pm.getActiveProfileId())) {
+            pm.switchTo(activity, profileId);
+        }
+        activity.startActivity(new Intent(activity, ProfileSettingsActivity.class));
     }
 
     /**
@@ -841,11 +1000,20 @@ public class OnboardingActivity extends LocalizedActivity implements SmbWizardCo
     }
 
     /**
-     * Nach einem Kontenimport ist das Dropdown für das Standardkonto noch auf dem alten (meist leeren)
-     * Stand – ohne Auffrischen stünden die gerade importierten Konten dort nicht zur Auswahl.
+     * Nach einem Kontenimport sind die Dropdowns für Standardkonto und die Konto-Auswahl der
+     * Orte-Verwaltung noch auf dem alten (meist leeren) Stand – ohne Auffrischen stünden die gerade
+     * importierten Konten dort nicht zur Auswahl.
      */
     private void refreshAccountDependentFields() {
-        repository.getAccountNames(names -> PickerAdapters.accounts(repository, editDefaultAccount, names));
+        repository.getAccountNames(names -> {
+            PickerAdapters.accounts(repository, editDefaultAccount, names);
+            PickerAdapters.accounts(repository, editPlacesAccount, names);
+            if (placesAccount.isEmpty() && !names.isEmpty()) {
+                placesAccount = names.get(0);
+                editPlacesAccount.setText(placesAccount, false);
+                refreshPlaces();
+            }
+        });
     }
 
     // ---- CSV-Import (lokaler Picker; bei Remote-Konfig Ordner durchsuchen) ----
@@ -991,6 +1159,56 @@ public class OnboardingActivity extends LocalizedActivity implements SmbWizardCo
             }
             return bos.toByteArray();
         }
+    }
+
+    /** Vor dem Sichern fragen: Server-Passwort mitsichern? Datei mit eigenem Passwort verschlüsseln? */
+    private void askBackupOptions() {
+        View view = LayoutInflater.from(this).inflate(R.layout.dialog_backup_options, null, false);
+        ((TextView) view.findViewById(R.id.backupOptionsMessage))
+                .setText(R.string.backup_options_message_profile);
+        com.google.android.material.checkbox.MaterialCheckBox include =
+                view.findViewById(R.id.backupIncludePassword);
+        TextInputEditText pw = view.findViewById(R.id.backupPassword);
+        TextInputEditText repeat = view.findViewById(R.id.backupPasswordRepeat);
+        AlertDialog dialog =
+                new AppDialog(this)
+                        .setTitle(R.string.backup_options_title)
+                        .setView(view)
+                        .setPositiveButton(R.string.backup_db, null)   // erst prüfen, dann schließen
+                        .create();
+        dialog.setOnShowListener(d -> dialog.getButton(AlertDialog.BUTTON_POSITIVE)
+                .setOnClickListener(v -> {
+                    String p1 = textOf(pw);
+                    if (!p1.equals(textOf(repeat))) {
+                        Toast.makeText(this, R.string.backup_password_mismatch, Toast.LENGTH_LONG).show();
+                        return;
+                    }
+                    backupIncludeServerPassword = include.isChecked();
+                    backupPassword = p1;
+                    dialog.dismiss();
+                    backupLauncher.launch("ausgaben-profil-" + timestamp() + (p1.isEmpty() ? ".zip" : ".abk"));
+                }));
+        dialog.show();
+    }
+
+    private void doBackup(Uri uri) {
+        new Thread(() -> {
+            try {
+                byte[] file = BackupStore.createProfile(this, backupIncludeServerPassword, backupPassword);
+                try (OutputStream out = getContentResolver().openOutputStream(uri)) {
+                    out.write(file);
+                }
+                runOnUiThread(() -> Toast.makeText(this, R.string.backup_done, Toast.LENGTH_LONG).show());
+            } catch (Exception e) {
+                String msg = e.getMessage() == null ? e.toString() : e.getMessage();
+                runOnUiThread(() -> Toast.makeText(this,
+                        getString(R.string.backup_failed, msg), Toast.LENGTH_LONG).show());
+            }
+        }).start();
+    }
+
+    private String timestamp() {
+        return new SimpleDateFormat("yyyyMMdd-HHmmss", Locale.GERMANY).format(new Date());
     }
 
     private void confirmRestore() {
@@ -1165,6 +1383,181 @@ public class OnboardingActivity extends LocalizedActivity implements SmbWizardCo
         String msg = e.getMessage() == null ? e.toString() : e.getMessage();
         runOnUiThread(() -> Toast.makeText(this,
                 getString(R.string.restore_failed, msg), Toast.LENGTH_LONG).show());
+    }
+
+    // ---- Konto löschen/schließen (nur das aktive Profil, siehe Repository) ----
+
+    /**
+     * Alle Konten <b>und Depots</b> mit Status als Mehrfachauswahl (Depots tragen den Zusatz „(Depot)").
+     * Untere Zeile (vor „Abbrechen"): „Löschen" (immer bei Auswahl) und die kontextabhängige Aktion
+     * „Schließen"/„Öffnen" – die gibt es nur für gewöhnliche Konten, nur wenn <b>alle</b> ausgewählten
+     * Saldo 0 haben bzw. alle geschlossen sind; sobald ein Depot dabei ist, entfällt sie (Depotsaldo
+     * kommt aus Kursen, nicht aus der Buchungssumme).
+     */
+    private void manageAccounts() {
+        repository.getAllAccountsWithStatus(all -> {
+            if (all.isEmpty()) {
+                Toast.makeText(this, R.string.no_accounts, Toast.LENGTH_LONG).show();
+                return;
+            }
+            repository.getAllAccountBalances(balances -> showAccountsDialog(all, balances));
+        });
+    }
+
+    /** Mehrfachauswahl-Dialog; die Aktionsbuttons werden je nach Auswahl dynamisch ein-/ausgeblendet. */
+    private void showAccountsDialog(List<de.spahr.ausgaben.db.Account> accounts, Map<String, Long> balances) {
+        String[] items = new String[accounts.size()];
+        for (int i = 0; i < accounts.size(); i++) {
+            de.spahr.ausgaben.db.Account a = accounts.get(i);
+            String status = getString(a.closed
+                    ? R.string.account_status_closed : R.string.account_status_active);
+            String name = a.isDepot() ? getString(R.string.account_status_depot_marker, a.name) : a.name;
+            items[i] = getString(R.string.account_status_line, name, status);
+        }
+        final boolean[] checked = new boolean[accounts.size()];
+        final Runnable[] updater = new Runnable[1];
+        final AlertDialog dlg = AppDialog.destructive(this)
+                .setTitle(R.string.account_manage_choose)
+                .setMultiChoiceItems(items, checked, (d, which, isChecked) -> {
+                    checked[which] = isChecked;
+                    if (updater[0] != null) {
+                        updater[0].run();
+                    }
+                })
+                .setNeutralButton(R.string.account_close, null)
+                .setPositiveButton(R.string.delete, null)
+                .create();
+        dlg.setOnShowListener(dialog -> {
+            Button delBtn = dlg.getButton(AlertDialog.BUTTON_POSITIVE);
+            Button actBtn = dlg.getButton(AlertDialog.BUTTON_NEUTRAL); // Schließen/Öffnen (dynamisch)
+            updater[0] = () -> {
+                List<de.spahr.ausgaben.db.Account> sel = selectedAccounts(accounts, checked);
+                delBtn.setEnabled(!sel.isEmpty());
+                boolean anyDepot = false;
+                boolean allClosed = !sel.isEmpty();
+                boolean allOpenZero = !sel.isEmpty();
+                for (de.spahr.ausgaben.db.Account a : sel) {
+                    if (a.isDepot()) {
+                        anyDepot = true;
+                    }
+                    long bal = balances.containsKey(a.name) ? balances.get(a.name) : 0L;
+                    if (!a.closed) {
+                        allClosed = false;
+                    }
+                    if (a.closed || bal != 0) {
+                        allOpenZero = false;
+                    }
+                }
+                if (anyDepot) {
+                    actBtn.setVisibility(View.GONE);
+                } else if (allClosed) {
+                    actBtn.setText(R.string.account_reopen);
+                    actBtn.setVisibility(View.VISIBLE);
+                } else if (allOpenZero) {
+                    actBtn.setText(R.string.account_close);
+                    actBtn.setVisibility(View.VISIBLE);
+                } else {
+                    actBtn.setVisibility(View.GONE); // Schließen nur bei Saldo 0 aller Ausgewählten
+                }
+            };
+            delBtn.setOnClickListener(v -> {
+                List<de.spahr.ausgaben.db.Account> sel = selectedAccounts(accounts, checked);
+                if (sel.isEmpty()) {
+                    return;
+                }
+                dlg.dismiss();
+                confirmDeleteAccounts(sel);
+            });
+            actBtn.setOnClickListener(v -> {
+                List<de.spahr.ausgaben.db.Account> sel = selectedAccounts(accounts, checked);
+                if (sel.isEmpty()) {
+                    return;
+                }
+                boolean allClosed = true;
+                for (de.spahr.ausgaben.db.Account a : sel) {
+                    if (!a.closed) {
+                        allClosed = false;
+                        break;
+                    }
+                }
+                final List<String> names = accountNames(sel);
+                final boolean reopen = allClosed;
+                dlg.dismiss();
+                repository.setAccountsClosed(names, !reopen, () ->
+                        Toast.makeText(this, getString(reopen
+                                ? R.string.accounts_reopened_done : R.string.accounts_closed_done,
+                                names.size()), Toast.LENGTH_SHORT).show());
+            });
+            updater[0].run();
+        });
+        dlg.show();
+    }
+
+    private List<de.spahr.ausgaben.db.Account> selectedAccounts(
+            List<de.spahr.ausgaben.db.Account> accounts, boolean[] checked) {
+        List<de.spahr.ausgaben.db.Account> sel = new ArrayList<>();
+        for (int i = 0; i < accounts.size(); i++) {
+            if (checked[i]) {
+                sel.add(accounts.get(i));
+            }
+        }
+        return sel;
+    }
+
+    private List<String> accountNames(List<de.spahr.ausgaben.db.Account> accounts) {
+        List<String> names = new ArrayList<>();
+        for (de.spahr.ausgaben.db.Account a : accounts) {
+            names.add(a.name);
+        }
+        return names;
+    }
+
+    private void confirmDeleteAccounts(List<de.spahr.ausgaben.db.Account> selected) {
+        List<String> accounts = new ArrayList<>();
+        List<String> depots = new ArrayList<>();
+        for (de.spahr.ausgaben.db.Account a : selected) {
+            (a.isDepot() ? depots : accounts).add(a.name);
+        }
+        int total = accounts.size() + depots.size();
+        String message = depots.isEmpty()
+                ? getString(R.string.delete_accounts_confirm_message, total)
+                : getString(R.string.delete_accounts_confirm_message_with_depots, total, depots.size());
+        AppDialog.destructive(this)
+                .setTitle(R.string.delete_account_confirm_title)
+                .setMessage(message)
+                .setPositiveButton(R.string.delete, (d, w) -> repository.deleteAccountsAndDepots(
+                        accounts, depots, () -> {
+                    for (String account : accounts) {
+                        placesStore.removeAccount(account);
+                    }
+                    Toast.makeText(this, getString(R.string.accounts_deleted_done, total),
+                            Toast.LENGTH_LONG).show();
+                    refreshAccountDependentFields();
+                }))
+                .show();
+    }
+
+    // ---- Nur dieses Profil zurücksetzen ----
+
+    /**
+     * Setzt nur das aktive Profil zurück (Datenbank + dessen Server-/kmy-Einstellungen); andere Profile
+     * bleiben unberührt.
+     */
+    private void confirmResetProfile() {
+        AppDialog.destructive(this)
+                .setTitle(R.string.reset_profile_confirm_title)
+                .setMessage(R.string.reset_profile_confirm_message)
+                .setPositiveButton(R.string.reset_profile_db,
+                        (d, w) -> repository.resetAllData(this::finishResetProfile))
+                .show();
+    }
+
+    private void finishResetProfile() {
+        profiles.clearActiveProfileSettings(this);
+        Toast.makeText(this, R.string.reset_done, Toast.LENGTH_LONG).show();
+        Intent i = new Intent(this, MainActivity.class);
+        i.setFlags(Intent.FLAG_ACTIVITY_NEW_TASK | Intent.FLAG_ACTIVITY_CLEAR_TASK);
+        startActivity(i);
     }
 
 }

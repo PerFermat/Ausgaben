@@ -46,6 +46,12 @@
             android:parentActivityName=".ui.MainActivity" />
 
         <activity
+            android:name=".ui.ProfileSettingsActivity"
+            android:exported="false"
+            android:label="@string/settings_profile_change"
+            android:parentActivityName=".ui.MainActivity" />
+
+        <activity
             android:name=".ui.BookingEditActivity"
             android:exported="false"
             android:label="@string/edit_title"

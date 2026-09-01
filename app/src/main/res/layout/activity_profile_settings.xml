@@ -12,7 +12,7 @@
         android:background="@color/green_primary"
         android:theme="@style/ThemeOverlay.Ausgaben.Toolbar"
         app:navigationIcon="@drawable/ic_back"
-        app:title="@string/onboarding_title"
+        app:title="@string/settings_profile_change"
         app:titleTextColor="@color/white" />
 
     <ScrollView
@@ -24,23 +24,6 @@
             android:layout_height="wrap_content"
             android:orientation="vertical"
             android:padding="16dp">
-
-            <!-- Alternative zur Neuanlage: eine vorhandene Komplettsicherung (alle Profile) einspielen. -->
-            <com.google.android.material.button.MaterialButton
-                android:id="@+id/btnRestoreFullBackup"
-                style="?attr/materialButtonOutlinedStyle"
-                android:layout_width="match_parent"
-                android:layout_height="wrap_content"
-                android:textColor="@color/button_accent"
-                app:strokeColor="@color/button_accent"
-                android:text="@string/restore_full_backup" />
-
-            <TextView
-                android:layout_width="match_parent"
-                android:layout_height="wrap_content"
-                android:layout_marginTop="16dp"
-                android:text="@string/onboarding_intro"
-                android:textSize="15sp" />
 
             <!-- Farbe des Profils -->
             <TextView
@@ -86,18 +69,6 @@
                     android:layout_height="wrap_content"
                     android:inputType="textCapWords" />
             </com.google.android.material.textfield.TextInputLayout>
-
-            <!-- Nur beim Anlegen eines weiteren Profils sichtbar. -->
-            <com.google.android.material.button.MaterialButton
-                android:id="@+id/btnCopyFromProfile"
-                style="?attr/materialButtonOutlinedStyle"
-                android:layout_width="match_parent"
-                android:layout_height="wrap_content"
-                android:layout_marginTop="8dp"
-                android:textColor="@color/button_accent"
-                app:strokeColor="@color/button_accent"
-                android:text="@string/profile_copy_from"
-                android:visibility="gone" />
 
             <!-- Sprache -->
             <TextView
@@ -376,6 +347,118 @@
                 android:layout_marginTop="24dp"
                 android:background="?android:attr/listDivider" />
 
+            <!-- Währung/Format -->
+            <TextView
+                android:layout_width="wrap_content"
+                android:layout_height="wrap_content"
+                android:layout_marginTop="16dp"
+                android:text="@string/currency_number_section"
+                android:textSize="16sp"
+                android:textStyle="bold" />
+
+            <com.google.android.material.textfield.TextInputLayout
+                android:layout_width="match_parent"
+                android:layout_height="wrap_content"
+                android:layout_marginTop="8dp"
+                android:hint="@string/currency_hint">
+
+                <com.google.android.material.textfield.TextInputEditText
+                    android:id="@+id/editCurrency"
+                    android:layout_width="match_parent"
+                    android:layout_height="wrap_content"
+                    android:inputType="text"
+                    android:maxLength="5" />
+            </com.google.android.material.textfield.TextInputLayout>
+
+            <com.google.android.material.textfield.TextInputLayout
+                style="@style/Widget.Material3.TextInputLayout.OutlinedBox.ExposedDropdownMenu"
+                android:layout_width="match_parent"
+                android:layout_height="wrap_content"
+                android:layout_marginTop="8dp"
+                android:hint="@string/number_format_hint">
+
+                <com.google.android.material.textfield.MaterialAutoCompleteTextView
+                    android:id="@+id/editNumberFormat"
+                    android:layout_width="match_parent"
+                    android:layout_height="wrap_content"
+                    android:inputType="none"
+                    android:saveEnabled="false" />
+            </com.google.android.material.textfield.TextInputLayout>
+
+            <com.google.android.material.materialswitch.MaterialSwitch
+                android:id="@+id/switchShowCurrency"
+                android:layout_width="match_parent"
+                android:layout_height="wrap_content"
+                android:layout_marginTop="8dp"
+                android:text="@string/show_currency_symbol" />
+
+            <!-- Dividenden -->
+            <TextView
+                android:layout_width="wrap_content"
+                android:layout_height="wrap_content"
+                android:layout_marginTop="20dp"
+                android:text="@string/dividend_section"
+                android:textSize="16sp"
+                android:textStyle="bold" />
+
+            <com.google.android.material.materialswitch.MaterialSwitch
+                android:id="@+id/switchDividendGross"
+                android:layout_width="match_parent"
+                android:layout_height="wrap_content"
+                android:layout_marginTop="8dp"
+                android:text="@string/dividend_gross_switch" />
+
+            <com.google.android.material.textfield.TextInputLayout
+                android:layout_width="match_parent"
+                android:layout_height="wrap_content"
+                android:layout_marginTop="8dp"
+                app:helperText="@string/dividend_tax_rate_helper"
+                android:hint="@string/dividend_tax_rate_hint">
+
+                <com.google.android.material.textfield.TextInputEditText
+                    android:id="@+id/editDividendTaxRate"
+                    android:layout_width="match_parent"
+                    android:layout_height="wrap_content"
+                    android:inputType="numberDecimal"
+                    android:maxLength="9" />
+            </com.google.android.material.textfield.TextInputLayout>
+
+            <!-- Budget -->
+            <TextView
+                android:layout_width="wrap_content"
+                android:layout_height="wrap_content"
+                android:layout_marginTop="20dp"
+                android:text="@string/budget_section"
+                android:textSize="16sp"
+                android:textStyle="bold" />
+
+            <com.google.android.material.materialswitch.MaterialSwitch
+                android:id="@+id/switchBudgetInternal"
+                android:layout_width="match_parent"
+                android:layout_height="wrap_content"
+                android:layout_marginTop="8dp"
+                android:text="@string/budget_internal_switch" />
+
+            <com.google.android.material.button.MaterialButton
+                android:id="@+id/btnBudgetCompute"
+                style="?attr/materialButtonOutlinedStyle"
+                android:layout_width="match_parent"
+                android:layout_height="wrap_content"
+                android:layout_marginTop="8dp"
+                android:textColor="@color/button_accent"
+                app:strokeColor="@color/button_accent"
+                android:text="@string/budget_compute_button" />
+
+            <com.google.android.material.button.MaterialButton
+                android:id="@+id/btnBudgetImport"
+                style="?attr/materialButtonOutlinedStyle"
+                android:layout_width="match_parent"
+                android:layout_height="wrap_content"
+                android:layout_marginTop="8dp"
+                android:textColor="@color/button_accent"
+                app:strokeColor="@color/button_accent"
+                android:text="@string/budget_import_button" />
+
             <!-- Standardkonto -->
             <TextView
                 android:layout_width="wrap_content"
@@ -404,6 +487,117 @@
                     android:inputType="textCapWords" />
             </com.google.android.material.textfield.TextInputLayout>
 
+            <!-- Orte (Bargeld-Bestände) -->
+            <TextView
+                android:layout_width="wrap_content"
+                android:layout_height="wrap_content"
+                android:layout_marginTop="20dp"
+                android:text="@string/places_section"
+                android:textSize="16sp"
+                android:textStyle="bold" />
+
+            <com.google.android.material.textfield.TextInputLayout
+                android:layout_width="match_parent"
+                android:layout_height="wrap_content"
+                android:layout_marginTop="8dp"
+                android:hint="@string/places_account_hint">
+
+                <de.spahr.ausgaben.ui.PickerTextView
+                    android:id="@+id/editPlacesAccount"
+                    android:layout_width="match_parent"
+                    android:layout_height="wrap_content"
+                    android:minHeight="64dp"
+                    android:paddingVertical="14dp"
+                    android:paddingStart="16dp"
+                    android:paddingEnd="16dp"
+                    android:textSize="18sp"
+                    android:completionThreshold="1"
+                    android:inputType="textCapWords" />
+            </com.google.android.material.textfield.TextInputLayout>
+
+            <LinearLayout
+                android:id="@+id/placesContainer"
+                android:layout_width="match_parent"
+                android:layout_height="wrap_content"
+                android:orientation="vertical"
+                android:layout_marginTop="4dp" />
+
+            <LinearLayout
+                android:layout_width="match_parent"
+                android:layout_height="wrap_content"
+                android:orientation="horizontal"
+                android:gravity="center_vertical"
+                android:layout_marginTop="4dp">
+
+                <com.google.android.material.textfield.TextInputLayout
+                    android:layout_width="0dp"
+                    android:layout_height="wrap_content"
+                    android:layout_weight="1"
+                    android:hint="@string/place_add_hint">
+
+                    <com.google.android.material.textfield.TextInputEditText
+                        android:id="@+id/editNewPlace"
+                        android:layout_width="match_parent"
+                        android:layout_height="wrap_content"
+                        android:inputType="textCapWords" />
+                </com.google.android.material.textfield.TextInputLayout>
+
+                <com.google.android.material.button.MaterialButton
+                    android:id="@+id/btnAddPlace"
+                    style="?attr/materialButtonOutlinedStyle"
+                    android:layout_width="wrap_content"
+                    android:layout_height="wrap_content"
+                    android:layout_marginStart="8dp"
+                    android:textColor="@color/button_accent"
+                    app:strokeColor="@color/button_accent"
+                    android:text="@string/place_add" />
+            </LinearLayout>
+
+            <com.google.android.material.textfield.TextInputLayout
+                android:layout_width="match_parent"
+                android:layout_height="wrap_content"
+                android:layout_marginTop="8dp"
+                android:hint="@string/default_place_hint">
+
+                <de.spahr.ausgaben.ui.PickerTextView
+                    android:id="@+id/editDefaultPlace"
+                    android:layout_width="match_parent"
+                    android:layout_height="wrap_content"
+                    android:minHeight="64dp"
+                    android:paddingVertical="14dp"
+                    android:paddingStart="16dp"
+                    android:paddingEnd="16dp"
+                    android:textSize="18sp"
+                    android:completionThreshold="1"
+                    android:inputType="textCapWords" />
+            </com.google.android.material.textfield.TextInputLayout>
+
+            <!-- Alias -->
+            <TextView
+                android:layout_width="wrap_content"
+                android:layout_height="wrap_content"
+                android:layout_marginTop="20dp"
+                android:text="@string/alias_section"
+                android:textSize="16sp"
+                android:textStyle="bold" />
+
+            <com.google.android.material.materialswitch.MaterialSwitch
+                android:id="@+id/switchAliasPrompt"
+                android:layout_width="match_parent"
+                android:layout_height="wrap_content"
+                android:layout_marginTop="8dp"
+                android:text="@string/alias_prompt_switch" />
+
+            <com.google.android.material.button.MaterialButton
+                android:id="@+id/btnManageAliases"
+                style="?attr/materialButtonOutlinedStyle"
+                android:layout_width="match_parent"
+                android:layout_height="wrap_content"
+                android:layout_marginTop="8dp"
+                android:textColor="@color/button_accent"
+                app:strokeColor="@color/button_accent"
+                android:text="@string/alias_manage" />
+
             <View
                 android:layout_width="match_parent"
                 android:layout_height="1dp"
@@ -411,14 +605,45 @@
                 android:background="?android:attr/listDivider" />
 
             <com.google.android.material.button.MaterialButton
-                android:id="@+id/btnRestoreProfile"
+                android:id="@+id/btnBackupProfile"
                 style="?attr/materialButtonOutlinedStyle"
                 android:layout_width="match_parent"
                 android:layout_height="wrap_content"
                 android:layout_marginTop="16dp"
+                android:textColor="@color/button_accent"
+                app:strokeColor="@color/button_accent"
+                android:text="@string/backup_profile_db" />
+
+            <com.google.android.material.button.MaterialButton
+                android:id="@+id/btnRestoreProfile"
+                style="?attr/materialButtonOutlinedStyle"
+                android:layout_width="match_parent"
+                android:layout_height="wrap_content"
+                android:layout_marginTop="8dp"
                 android:textColor="@color/expense_red"
                 app:strokeColor="@color/expense_red"
                 android:text="@string/restore_profile_db" />
+
+            <com.google.android.material.button.MaterialButton
+                android:id="@+id/btnDeleteAccount"
+                style="?attr/materialButtonOutlinedStyle"
+                android:layout_width="match_parent"
+                android:layout_height="wrap_content"
+                android:layout_marginTop="8dp"
+                android:textColor="@color/expense_red"
+                app:strokeColor="@color/expense_red"
+                android:text="@string/account_manage" />
+
+            <com.google.android.material.button.MaterialButton
+                android:id="@+id/btnResetProfile"
+                style="?attr/materialButtonOutlinedStyle"
+                android:layout_width="match_parent"
+                android:layout_height="wrap_content"
+                android:layout_marginTop="8dp"
+                android:textColor="@color/expense_red"
+                app:strokeColor="@color/expense_red"
+                android:text="@string/reset_profile_db" />
+
 
             <com.google.android.material.button.MaterialButton
                 android:id="@+id/btnDone"
@@ -426,6 +651,19 @@
                 android:layout_height="wrap_content"
                 android:layout_marginTop="16dp"
                 android:text="@string/onboarding_done" />
+
+            <!-- Nur sichtbar, solange mehr als ein Profil existiert. -->
+            <com.google.android.material.button.MaterialButton
+                android:id="@+id/btnDeleteProfile"
+                style="?attr/materialButtonOutlinedStyle"
+                android:layout_width="match_parent"
+                android:layout_height="wrap_content"
+                android:layout_marginTop="8dp"
+                android:layout_marginBottom="16dp"
+                android:textColor="@color/expense_red"
+                app:strokeColor="@color/expense_red"
+                android:text="@string/profile_delete"
+                android:visibility="gone" />
 
         </LinearLayout>
     </ScrollView>

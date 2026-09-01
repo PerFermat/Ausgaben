@@ -399,6 +399,7 @@
     <string name="tags_done">Fertig</string>
     <string name="gps_row_label">GPS: %1$s</string>
     <string name="gps_row_none">Standort: zum Setzen die Karte antippen</string>
+    <string name="gps_clear">Standort entfernen</string>
     <string name="compass_n">N</string>
     <string name="compass_s">S</string>
     <string name="compass_e">O</string>
@@ -426,6 +427,7 @@
     <string name="backup_options_message_profile">Gesichert werden nur Daten und Einstellungen des aktiven Profils – lässt sich in ein beliebiges Profil einspielen.</string>
     <string name="backup_profile_db">Dieses Profil sichern</string>
     <string name="restore_profile_db">Profilsicherung einspielen</string>
+    <string name="restore_full_backup">Komplettsicherung wiederherstellen (alle Profile)</string>
     <string name="restore_wrong_scope_use_profile">Diese Sicherung enthält nur ein Profil. Bitte in dessen Profil-Einstellungen einspielen (Menü → Profil ändern).</string>
     <string name="restore_pick_profile_title">Welches Profil aus der Sicherung soll das aktive ersetzen?</string>
     <string name="backup_include_password">Server-Passwort mitsichern</string>

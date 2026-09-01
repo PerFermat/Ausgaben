@@ -436,7 +436,8 @@ public class Repository {
             }
             translationDao.deleteTranslations(parsed.code);
             translationDao.insertAll(rows);
-            translationDao.upsertLanguage(new Language(parsed.code, parsed.name));
+            translationDao.upsertLanguage(
+                    new Language(parsed.code, parsed.name, parsed.defaultCurrency, parsed.numberFormat));
             if (onDone != null) {
                 mainHandler.post(onDone);
             }

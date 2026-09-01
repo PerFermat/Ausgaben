@@ -17,7 +17,7 @@ import de.spahr.ausgaben.settings.ProfileManager;
         AnalysisExtra.class, SecurityTxValueOverride.class, KmyPendingDelete.class, SecurityPrice.class,
         ScheduledAdvance.class, AccountGroup.class, AccountGroupMember.class, AccountKindOrder.class,
         Tag.class, SecurityTxSplit.class},
-        version = 48, exportSchema = false)
+        version = 49, exportSchema = false)
 public abstract class AppDatabase extends RoomDatabase {
 
     /** v1 → v2: Notiz-Spalte ergänzen (bestehende Buchungen bleiben erhalten). */
@@ -650,6 +650,21 @@ public abstract class AppDatabase extends RoomDatabase {
         }
     };
 
+    /**
+     * v48 → v49: Sprachen tragen jetzt eine Standard-Währung und ein Standard-Zahlenformat, aus denen
+     * das (schlanke) Onboarding die Vorbelegung eines neuen Profils ableitet, statt sie fest auf
+     * „de"/„en" zu verdrahten. Die eingebauten Sprachen Deutsch/Englisch bekommen ihre Werte beim
+     * nächsten Start ohnehin frisch über {@code LocaleManager.seed()} (REPLACE); hier reicht der
+     * Default für bereits importierte, eigene Sprachen.
+     */
+    static final Migration MIGRATION_48_49 = new Migration(48, 49) {
+        @Override
+        public void migrate(@NonNull SupportSQLiteDatabase db) {
+            db.execSQL("ALTER TABLE language ADD COLUMN defaultCurrency TEXT NOT NULL DEFAULT '€'");
+            db.execSQL("ALTER TABLE language ADD COLUMN numberFormat TEXT NOT NULL DEFAULT 'plain_comma'");
+        }
+    };
+
     public abstract BookingDao bookingDao();
 
     public abstract AccountDao accountDao();
@@ -717,7 +732,7 @@ public abstract class AppDatabase extends RoomDatabase {
                                 MIGRATION_38_39, MIGRATION_39_40, MIGRATION_40_41,
                                 MIGRATION_41_42, MIGRATION_42_43, MIGRATION_43_44,
                                 MIGRATION_44_45, MIGRATION_45_46, MIGRATION_46_47,
-                                MIGRATION_47_48)
+                                MIGRATION_47_48, MIGRATION_48_49)
                         .build();
             }
             return instance;

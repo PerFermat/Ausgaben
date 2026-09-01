@@ -114,8 +114,8 @@ public final class LocaleManager {
             rows.add(new Translation(LANG_EN, w[0], w[2]));
         }
         dao.insertAll(rows);
-        dao.upsertLanguage(new Language(LANG_DE, "Deutsch"));
-        dao.upsertLanguage(new Language(LANG_EN, "English"));
+        dao.upsertLanguage(new Language(LANG_DE, "Deutsch", "€", SettingsStore.NUMBER_FORMAT_DE_GROUP));
+        dao.upsertLanguage(new Language(LANG_EN, "English", "$", SettingsStore.NUMBER_FORMAT_EN_GROUP));
     }
 
     private static Context localeContext(Context app, Locale locale) {

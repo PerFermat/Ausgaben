@@ -99,7 +99,7 @@ public final class ProfileSwitchDialog {
             if (dialogHolder[0] != null) {
                 dialogHolder[0].dismiss();
             }
-            OnboardingActivity.startForEditing(activity, profile.id);
+            ProfileSettingsActivity.startForEditing(activity, profile.id);
             return true;
         });
         return row;
@@ -126,7 +126,7 @@ public final class ProfileSwitchDialog {
                 if (dialogHolder[0] != null) {
                     dialogHolder[0].dismiss();
                 }
-                OnboardingActivity.startForEditing(activity, profile.id);
+                ProfileSettingsActivity.startForEditing(activity, profile.id);
             }
             return true;
         });

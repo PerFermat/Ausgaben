@@ -109,7 +109,23 @@
     <string name="action_balance">Balances</string>
     <string name="action_budget">Budget</string>
     <string name="action_scheduled">Scheduled transactions</string>
+    <string name="action_switch_profile">Switch profile</string>
     <string name="action_settings">Settings</string>
+
+    <!-- Profiles -->
+    <string name="profile_active_marker">%1$s (active)</string>
+    <string name="profile_rename">Rename</string>
+    <string name="profile_change_color">Change color</string>
+    <string name="profile_delete">Delete</string>
+    <string name="profile_delete_confirm_title">Delete \'%1$s\'?</string>
+    <string name="profile_delete_confirm_message">Bookings, accounts and payees of this profile are deleted. Other profiles stay unchanged.</string>
+    <string name="profile_default_name">Profile %1$d</string>
+    <string name="profile_name_hint">Profile name</string>
+    <string name="profile_copy_from">Copy from another profile</string>
+    <string name="profile_copy_title">Choose profile</string>
+    <string name="profile_section">Profile</string>
+    <string name="settings_profile_change">Change profile</string>
+    <string name="settings_profile_new">Add new profile</string>
 
     <!-- Scheduled transactions -->
     <string name="scheduled_title">Scheduled transactions</string>
@@ -407,7 +423,12 @@
     <string name="restore_failed">Restore failed: %1$s</string>
     <string name="restore_invalid">Not a valid backup file</string>
     <string name="backup_options_title">Create backup</string>
-    <string name="backup_options_message">The backup contains all data and all settings (accounts, places, colours, server).</string>
+    <string name="backup_options_message">The backup contains the data and settings of ALL profiles (accounts, places, colours, server).</string>
+    <string name="backup_options_message_profile">The backup contains only the active profile\'s data and settings — it can be restored into any profile.</string>
+    <string name="backup_profile_db">Back up this profile</string>
+    <string name="restore_profile_db">Restore profile backup</string>
+    <string name="restore_wrong_scope_use_profile">This backup contains only one profile. Please restore it from that profile\'s settings (menu → Edit profile).</string>
+    <string name="restore_pick_profile_title">Which profile from the backup should replace the active one?</string>
     <string name="backup_include_password">Include server password</string>
     <string name="backup_password_optional">Backup password (empty = none)</string>
     <string name="backup_password_hint">Backup password</string>
@@ -420,8 +441,11 @@
     <string name="restore_password_title">Backup is encrypted</string>
     <string name="restore_password_wrong">Wrong password or damaged file</string>
     <string name="reset_confirm_title">Reset database?</string>
-    <string name="reset_confirm_message">All bookings as well as the account and payee lists are deleted. Settings are kept.</string>
+    <string name="reset_confirm_message">All profiles are reset to factory state: bookings, accounts, payees and all settings (including server credentials) are lost.</string>
     <string name="reset_done">Database reset</string>
+    <string name="reset_profile_db">Reset only this profile</string>
+    <string name="reset_profile_confirm_title">Reset only this profile?</string>
+    <string name="reset_profile_confirm_message">Bookings, accounts, payees and this profile\'s server/kmy settings are deleted. Other profiles stay unchanged.</string>
     <string name="delete_account">Delete account</string>
     <string name="delete_account_choose">Choose account to delete</string>
     <string name="delete_account_confirm_title">Delete account?</string>
@@ -433,12 +457,14 @@
     <string name="account_status_active">Active</string>
     <string name="account_status_closed">Closed</string>
     <string name="account_status_line">%1$s — %2$s</string>
+    <string name="account_status_depot_marker">%1$s (portfolio)</string>
     <string name="account_close">Close</string>
     <string name="account_reopen">Reopen</string>
     <string name="account_close_needs_zero">Closing is only possible with a zero balance (currently %1$s).</string>
     <string name="account_closed_done">Account “%1$s” closed</string>
     <string name="account_reopened_done">Account “%1$s” reopened</string>
     <string name="delete_accounts_confirm_message">%1$d account(s) and all their bookings will be permanently deleted.</string>
+    <string name="delete_accounts_confirm_message_with_depots">%1$d account(s) will be permanently deleted, including %2$d portfolio(s) with all securities, transactions and prices.</string>
     <string name="accounts_deleted_done">%1$d account(s) deleted</string>
     <string name="accounts_closed_done">%1$d account(s) closed</string>
     <string name="accounts_reopened_done">%1$d account(s) reopened</string>
@@ -469,6 +495,9 @@
     <!-- Settings -->
     <string name="settings_title">Settings</string>
     <string name="language_section">Language</string>
+    <string name="currency_number_section">Currency/number format</string>
+    <string name="dividend_section">Dividends</string>
+    <string name="budget_section">Budget</string>
     <string name="language_hint">Language</string>
     <string name="language_export">Export template</string>
     <string name="language_upload">Upload language</string>
@@ -494,7 +523,6 @@
     <string name="number_format_en_group">1,234.56 (grouping comma, point)</string>
     <string name="number_format_plain_comma">1234,56 (no grouping, comma)</string>
     <string name="number_format_plain_dot">1234.56 (no grouping, point)</string>
-    <string name="nextcloud_section">Sync (Nextcloud / WebDAV / SMB)</string>
     <string name="server_type_hint">Server type</string>
     <string name="server_type_nextcloud">Nextcloud</string>
     <string name="server_type_webdav">WebDAV (generic)</string>
@@ -547,15 +575,12 @@
     <string name="kmy_browse_none">No .kmy file found</string>
     <string name="nextcloud_password_hint">App password</string>
     <string name="nextcloud_folder_hint">Target folder (optional, e.g. Finances)</string>
-    <string name="export_mode_section">Export/import format</string>
     <string name="export_mode_hint">Format</string>
     <string name="export_mode_csv">CSV (kMyMoney import)</string>
     <string name="export_mode_kmy">KMyMoney file (.kmy)</string>
     <string name="kmy_path_hint">KMyMoney file (path, e.g. KMyMoney/gdyx.kmy)</string>
     <string name="default_account_section">Default account</string>
     <string name="default_account_hint">Default account</string>
-    <string name="settings_save">Save</string>
-    <string name="settings_saved">Settings saved</string>
 
     <!-- KMyMoney export/import -->
     <string name="kmy_path_missing">Please specify the KMyMoney file in the settings</string>
@@ -677,13 +702,14 @@
     <!-- On-boarding (first start, no accounts yet) -->
     <string name="onboarding_title">Welcome</string>
     <string name="onboarding_intro">Set up the essentials to get started. You can change everything later in the settings.</string>
+    <string name="onboarding_color_section">Color</string>
     <string name="onboarding_language_section">Language</string>
     <string name="onboarding_format_section">Import/export format</string>
     <string name="onboarding_sync_section">Sync connection</string>
     <string name="onboarding_import_accounts">Import accounts</string>
     <string name="onboarding_importing">Importing…</string>
+    <string name="onboarding_import_running">Please wait until the import has finished.</string>
     <string name="onboarding_import_done">%1$d account(s) imported</string>
-    <string name="onboarding_more_settings">More settings</string>
     <string name="onboarding_note">You can adjust further settings anytime via the menu (bottom of the overflow menu).</string>
     <string name="onboarding_done">Done</string>
     <string name="security_tx_new_title">New movement</string>

@@ -22,9 +22,9 @@ import de.spahr.ausgaben.statement.StatementTemplate;
  * Die gelernten Erkennungsregeln gehören in die Sicherung.
  *
  * <p>Sie liegen außerhalb der Datenbank, damit „Datenbank zurücksetzen" sie nicht mitnimmt — genau
- * deshalb müssen sie namentlich in {@code BackupStore.PREFS_FILES} stehen. Fehlen sie dort, verliert man
- * beim Einspielen einer Sicherung alles Gelernte, ohne dass es auffällt: die nächste Abrechnung wird
- * einfach wieder nicht vorbelegt.</p>
+ * deshalb müssen sie namentlich in {@code BackupStore.PROFILE_PREFIXED_FILES} stehen. Fehlen sie dort,
+ * verliert man beim Einspielen einer Sicherung alles Gelernte, ohne dass es auffällt: die nächste
+ * Abrechnung wird einfach wieder nicht vorbelegt.</p>
  */
 @RunWith(RobolectricTestRunner.class)
 @Config(sdk = 34)
@@ -49,9 +49,8 @@ public class BackupStatementRulesTest {
         store.save(vorlage());
         store.rememberSecurity("LU1242369327", "Depot", "E000042", "Xtrackers MSCI Europe");
 
-        // Über das Archiv, aber ohne Datenbank: geprüft wird, was an Einstellungen mitgeht.
-        BackupArchive.Content content = BackupArchive.read(BackupArchive.write(
-                new byte[]{1, 2, 3}, BackupStore.prefsSnapshot(ctx, false), 1));
+        // Über eine Profil-Sicherung: geprüft wird, was an Einstellungen mitgeht.
+        BackupArchive.Content content = BackupArchive.read(BackupStore.createProfile(ctx, false, ""));
         assertNotNull("die Regeln müssen in der Sicherung liegen",
                 content.prefs("ausgaben_statements"));
         assertTrue(content.prefs("ausgaben_statements").contains("Gesamtbetrag zu Ihren Gunsten"));
@@ -61,7 +60,7 @@ public class BackupStatementRulesTest {
         assertTrue(new StatementTemplates(ctx).all().isEmpty());
         assertNull(new StatementTemplates(ctx).security("LU1242369327"));
 
-        BackupStore.restoreSettings(ctx, content);
+        BackupStore.restoreProfileSettings(ctx, content);
 
         StatementTemplates back = new StatementTemplates(ctx);
         assertEquals(1, back.all().size());

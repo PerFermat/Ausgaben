@@ -7,25 +7,89 @@
   "footer_text": "Ausgaben · User Manual (Version 1.10)",
   "page_text": "Page %d",
   "placeholder_no_image": "No image",
-  "table_headers": ["Symbol", "Name", "Meaning / function"],
+  "table_headers": [
+    "Symbol",
+    "Name",
+    "Meaning / function"
+  ],
   "table_note": "Note: the title-bar symbols come from the Material Design set; their meaning is described above. Depending on space, some items appear in the «⋮» overflow menu.",
   "code_example": "Datum;Empfänger;Konto;Typ;Betrag;Notiz;Kategorie<br/>29.06.2026;Metzgerei;Bargeld;Ausgabe;-7,30;Mittagessen;Lebensmittel",
   "symbols": [
-    ["☰", "Menu / account drawer", "Top left. Opens the side drawer with all accounts, portfolios and «Add account»."],
-    ["←", "Back", "Top left on sub-screens. Returns to the previous screen."],
-    ["⬇", "Export / synchronize", "Title-bar symbol (down arrow, download style). Starts the sync: writes new bookings into the .kmy or uploads them to the sync target."],
-    ["▽", "Filter", "Funnel symbol. Opens the filter by payee, category and amount."],
-    ["▮▮", "Analysis", "Bar-chart symbol. Opens the graphical analysis."],
-    ["⋮", "More items", "Three dots (overflow). Contains «Categories», «Holdings», «Budget», «Scheduled» and – <b>at the very bottom</b> – «Settings»."],
-    ["✚", "New booking", "Round button at the bottom right. Short tap: record a booking. <b>Long press: voice input.</b>"],
-    ["⊞", "Silent amount entry", "Keypad symbol (only when location is enabled). Type just the amount; the payee is resolved via your location."],
-    ["↑", "To top", "Small arrow. Jumps to the top of the booking list."],
-    ["★", "Preferred alias", "Marks a preferred alias in the alias list (considered before bookings)."],
-    ["→", "Alias mapping", "In the alias list: «spoken term → correct payee»."],
-    ["→ / ←", "Transfer", "In the booking list: → outgoing, ← incoming transfer (shows the counter-account/payee)."],
-    ["Split", "Split booking", "Marks a booking that is split across several categories."],
-    ["exported", "Exported", "Small green hint: this booking has already been exported."],
-    ["● red/green", "Amount colour", "Red amount = expense/negative, green amount = income/positive."]
+    [
+      "☰",
+      "Menu / account drawer",
+      "Top left. Opens the side drawer with all accounts, portfolios and «Add account»."
+    ],
+    [
+      "←",
+      "Back",
+      "Top left on sub-screens. Returns to the previous screen."
+    ],
+    [
+      "⬇",
+      "Export / synchronize",
+      "Title-bar symbol (down arrow, download style). Starts the sync: writes new bookings into the .kmy or uploads them to the sync target."
+    ],
+    [
+      "▽",
+      "Filter",
+      "Funnel symbol. Opens the filter by payee, category and amount."
+    ],
+    [
+      "▮▮",
+      "Analysis",
+      "Bar-chart symbol. Opens the graphical analysis."
+    ],
+    [
+      "⋮",
+      "More items",
+      "Three dots (overflow). Contains «Categories», «Holdings», «Budget», «Scheduled» and – <b>at the very bottom</b> – «Settings»."
+    ],
+    [
+      "✚",
+      "New booking",
+      "Round button at the bottom right. Short tap: record a booking. <b>Long press: voice input.</b>"
+    ],
+    [
+      "⊞",
+      "Silent amount entry",
+      "Keypad symbol (only when location is enabled). Type just the amount; the payee is resolved via your location."
+    ],
+    [
+      "↑",
+      "To top",
+      "Small arrow. Jumps to the top of the booking list."
+    ],
+    [
+      "★",
+      "Preferred alias",
+      "Marks a preferred alias in the alias list (considered before bookings)."
+    ],
+    [
+      "→",
+      "Alias mapping",
+      "In the alias list: «spoken term → correct payee»."
+    ],
+    [
+      "→ / ←",
+      "Transfer",
+      "In the booking list: → outgoing, ← incoming transfer (shows the counter-account/payee)."
+    ],
+    [
+      "Split",
+      "Split booking",
+      "Marks a booking that is split across several categories."
+    ],
+    [
+      "exported",
+      "Exported",
+      "Small green hint: this booking has already been exported."
+    ],
+    [
+      "● red/green",
+      "Amount colour",
+      "Red amount = expense/negative, green amount = income/positive."
+    ]
   ],
   "sections": [
     {
@@ -94,7 +158,7 @@
     {
       "type": "p",
       "id": "b-0005f",
-      "text": "<b>Where to go next:</b> the welcome assistant in detail is in the next chapter, recording a booking in Chapter 7, syncing with KMyMoney in Chapter 15, and every single setting in Chapter 17."
+      "text": "<b>Where to go next:</b> the welcome assistant in detail is in the next chapter, recording a booking in Chapter 7, syncing with KMyMoney in Chapter 14, and every single setting in Chapter 16."
     },
     {
       "type": "h1",
@@ -128,8 +192,14 @@
         }
       ],
       "shots": [
-        {"fname": "Willkommen_1.png", "caption": "Language, format and synchronisation"},
-        {"fname": "Willkommen_2.png", "caption": "«Import accounts», «More settings», «Done»"}
+        {
+          "fname": "Willkommen_1.png",
+          "caption": "Language, format and synchronisation"
+        },
+        {
+          "fname": "Willkommen_2.png",
+          "caption": "«Import accounts», «More settings», «Done»"
+        }
       ]
     },
     {
@@ -157,7 +227,11 @@
           "text": "The main screen shows the green title bar at the top, the <b>balance line</b> below it, and then the list of bookings. The action buttons are at the bottom right."
         }
       ],
-      "shot": {"fname": "Kontobuchungen.png", "caption": "Main screen with title bar, balance line and booking list", "width": 6.0}
+      "shot": {
+        "fname": "Kontobuchungen.png",
+        "caption": "Main screen with title bar, balance line and booking list",
+        "width": 6.0
+      }
     },
     {
       "type": "h2",
@@ -190,7 +264,11 @@
           "text": "A green amount = positive/credit, a red amount = negative."
         }
       ],
-      "shot": {"fname": "Saldenzeile.png", "caption": "Balance line with group total; tapping cycles through", "width": 6.0}
+      "shot": {
+        "fname": "Saldenzeile.png",
+        "caption": "Balance line with group total; tapping cycles through",
+        "width": 6.0
+      }
     },
     {
       "type": "h2",
@@ -237,7 +315,11 @@
           "text": "Refreshing happens when the app is opened and at regular intervals."
         }
       ],
-      "shot": {"fname": "Widget.png", "caption": "All four widget sizes: medium, type, large and small", "width": 6.0}
+      "shot": {
+        "fname": "Widget.png",
+        "caption": "All four widget sizes: medium, type, large and small",
+        "width": 6.0
+      }
     },
     {
       "type": "h1",
@@ -280,7 +362,11 @@
           ]
         }
       ],
-      "shot": {"fname": "Kontenmenü.png", "caption": "Account drawer with accounts, portfolio and «Add account»", "width": 3.5}
+      "shot": {
+        "fname": "Kontenmenü.png",
+        "caption": "Account drawer with accounts, portfolio and «Add account»",
+        "width": 3.5
+      }
     },
     {
       "type": "h2",
@@ -343,8 +429,14 @@
         }
       ],
       "shots": [
-        {"fname": "Kontengruppen Auswahl.png", "caption": "Tapping «Accounts» opens the group selection"},
-        {"fname": "Kontengruppe gewählt.png", "caption": "Afterwards the top row carries the group name"}
+        {
+          "fname": "Kontengruppen Auswahl.png",
+          "caption": "Tapping «Accounts» opens the group selection"
+        },
+        {
+          "fname": "Kontengruppe gewählt.png",
+          "caption": "Afterwards the top row carries the group name"
+        }
       ]
     },
     {
@@ -372,7 +464,11 @@
           "text": "The search stays inside the chosen account group and is never stored. It also ends by itself as soon as you pick an account, close the drawer or leave the app."
         }
       ],
-      "shot": {"fname": "Konten suchen.png", "caption": "The search field takes the place of the «Accounts» heading", "width": 6.0}
+      "shot": {
+        "fname": "Konten suchen.png",
+        "caption": "The search field takes the place of the «Accounts» heading",
+        "width": 6.0
+      }
     },
     {
       "type": "h2",
@@ -430,9 +526,18 @@
         }
       ],
       "shots": [
-        {"fname": "Konten verwalten.png", "caption": "Management also shows closed accounts, greyed out, with balance"},
-        {"fname": "Konten sortieren.png", "caption": "Dragging an account type folds its accounts away"},
-        {"fname": "Konten Kontextmenü.png", "caption": "«⋮»: tick groups, create a new one, close the account"}
+        {
+          "fname": "Konten verwalten.png",
+          "caption": "Management also shows closed accounts, greyed out, with balance"
+        },
+        {
+          "fname": "Konten sortieren.png",
+          "caption": "Dragging an account type folds its accounts away"
+        },
+        {
+          "fname": "Konten Kontextmenü.png",
+          "caption": "«⋮»: tick groups, create a new one, close the account"
+        }
       ]
     },
     {
@@ -567,7 +672,11 @@
           "text": "If several match, or none, nothing happens; a payee you entered yourself is never touched. The suggestion list itself is unaffected – it still lists every payee within 10 km. Switch the pre-fill on under <b>«Use amount for payee suggestions»</b> in the settings."
         }
       ],
-      "shot": {"fname": "Buchung Empfänger.png", "caption": "Booking editor with type switch, amount, payee and account", "width": 6.0}
+      "shot": {
+        "fname": "Buchung Empfänger.png",
+        "caption": "Booking editor with type switch, amount, payee and account",
+        "width": 6.0
+      }
     },
     {
       "type": "h2",
@@ -640,7 +749,11 @@
           "text": "Choose the type «Transfer», then the From and To accounts plus an optional payee. This creates a linked booking in both accounts (marked → or ← in the list). You can also choose a <b>from-place</b> and a <b>to-place</b>; then the respective place journal is updated (from-account −amount, to-account +amount). Both fields are preset with the <b>default place</b> of the respective account; «no place» leaves that side's journal untouched. Editing or deleting the transfer rolls the place movements back."
         }
       ],
-      "shot": {"fname": "Buchung Umbuchung.png", "caption": "Detail view of a transfer with balance before/after", "width": 6.0}
+      "shot": {
+        "fname": "Buchung Umbuchung.png",
+        "caption": "Detail view of a transfer with balance before/after",
+        "width": 6.0
+      }
     },
     {
       "type": "h2",
@@ -663,39 +776,146 @@
       "text": "Tags work the same for <b>expenses, income and transfers</b>; on a transfer both account sides carry the same ones, since in the KMyMoney file it is a single booking. On a <b>scheduled booking</b> the rule's tags can only be viewed, not changed – book it and they come along and can then be edited. If the app does not know <b>any</b> tags yet – before the first sync, say, or in CSV mode where there is no KMyMoney file – the whole row does not appear at all."
     },
     {
+      "type": "h1",
+      "id": "b-0062z",
+      "text": "8. Securities - Portfolio"
+    },
+    {
+      "type": "p",
+      "id": "b-0062z1",
+      "text": "The portfolio displays your securities from KMyMoney and allows you to record buys, sells and dividends – both manually and through automatic PDF recognition of bank statements. This chapter covers the portfolio view and its features."
+    },
+    {
       "type": "h2",
-      "id": "b-0062e",
+      "id": "b-0062z2",
       "text": "Securities bookings: buys, sells and dividends"
     },
     {
       "type": "p",
-      "id": "b-0062f",
+      "id": "b-0062z3",
       "text": "The portfolio supports recording <b>buys, sells and dividends</b> for securities – but only for <b>securities you have already set up in KMyMoney</b>. The app does not create new securities."
     },
     {
       "type": "p",
-      "id": "b-0062g",
-      "text": "<b>Two ways:</b> You can either <b>record a transaction manually</b> in the booking editor (date, shares, price, fees, taxes) or let the app try to recognize the values automatically from a <b>PDF statement from your bank</b>."
+      "id": "b-0062z4",
+      "text": "<b>Two ways:</b> You can either <b>record a transaction manually</b> in the booking editor (date, shares, price, fees, taxes) or let the app try to recognize the values automatically from a <b>PDF statement from your bank</b>. For manual entry, simply fill in all fields as usual and save."
+    },
+    {
+      "type": "h2",
+      "id": "b-0062z5",
+      "text": "The portfolio view"
+    },
+    {
+      "type": "text_with_single_shot",
+      "id": "b-0062z6",
+      "content": [
+        {
+          "type": "p",
+          "id": "b-0062z7",
+          "text": "After importing a KMyMoney investment account, the <b>portfolio</b> appears in the account drawer. The view is structured like a regular account view – same title bar, same drawer, same filter – and shows for each security <b>quantity × price = current value</b>. Fully sold securities are hidden."
+        }
+      ],
+      "shot": {"fname": "Portfolio.png", "caption": "Portfolio view: securities with quantity, price and current value", "width": 3.0}
     },
     {
       "type": "p",
-      "id": "b-0062h",
-      "text": "<b>Read PDF:</b> the <b>first time</b> for a new bank you must <b>manually check and confirm</b> the recognised values – just like manual entry. While doing this the <b>app learns</b> where in that bank's statements each field is located. For all subsequent statements from the same bank the values are then <b>automatically filled in</b>; you only need to check briefly and can then book. The learned rules can be adjusted at any time."
+      "id": "b-0062z8",
+      "text": "The <b>balance line cycles through on each tap</b>: portfolio value → buys → sells → dividends → <b>net invested</b> (buys − sells − dividends) → <b>gain/loss</b> (in colour, with percentage). Sells and dividends only appear if there are any. The portfolio value is tracked separately and also appears as «Total assets» in the balance line of the main screen."
     },
     {
       "type": "p",
-      "id": "b-0062i",
-      "text": "<b>Limitation:</b> automatic recognition does <b>not work for every bank</b> – a complete implementation would require custom code for each bank, only professional financial vendors can afford that. This app uses an intelligent, self-configuring system that works with many banks, but not all. <b>Always check the recognised values before you book</b>."
+      "id": "b-0062z9",
+      "text": "Tapping a security opens its <b>transactions in full screen</b> – buys in green, sells in red, dividends in neutral – with the same figures for that security, a filter for buys, sells and dividends, and a date slider starting from the first purchase."
+    },
+    {
+      "type": "shot_row",
+      "id": "b-0062z10",
+      "shots": [
+        {"fname": "Portfolio Transactions.png", "caption": "Transactions for a security: buys, sells and dividends"},
+        {"fname": "Portfolio Analysis.png", "caption": "Portfolio analysis: symbol switcher, date range filter and pie chart"}
+      ]
+    },
+    {
+      "type": "h2",
+      "id": "b-0062z11",
+      "text": "Opening a securities booking"
     },
     {
       "type": "p",
-      "id": "b-0062j",
-      "text": "The step-by-step explanation and the settings for learning recognition rules are in Chapter 14 (Portfolio) and Chapter 17 (Settings)."
+      "id": "b-0062z12",
+      "text": "A securities purchase also appears in the booking list of the settlement account – as a transfer between that account and the security. When you open it, <b>amount, payee, accounts and date are locked</b>. Why: <b>quantity and price</b> belong to this booking but only exist in the KMyMoney file. The app doesn't know them – if it could rewrite the booking like a regular transfer, the securities purchase in your file would become a bare transfer and destroy the portfolio there."
+    },
+    {
+      "type": "p",
+      "id": "b-0062z13",
+      "text": "What can be changed are exactly the three things KMyMoney doesn't need itself for such a booking: the <b>note</b>, the <b>tags</b> and the <b>receipt</b> – your bank's statement as a PDF, for instance. On the next export the app adds them to the existing transaction without rebuilding it: shares, price and type of movement stay untouched. That way you find the statement again even after re-reading the portfolio."
+    },
+    {
+      "type": "h3",
+      "id": "b-0062z14",
+      "text": "Deleting works – unlike editing"
+    },
+    {
+      "type": "p",
+      "id": "b-0062z15",
+      "text": "<b>«Delete»</b> is available here, and it takes the associated <b>portfolio transaction</b> with it; otherwise a transaction without cash booking would remain in the portfolio. Why this is allowed where editing is locked: when you delete, the <b>entire</b> transaction disappears – cash, securities and fees together. Nothing can remain half-finished, and that is exactly why editing is forbidden."
+    },
+    {
+      "type": "p",
+      "id": "b-0062z16",
+      "text": "If the booking is already in the KMyMoney file, the confirmation makes this explicit: on the next export the transaction will be removed <b>there</b> too, shares and price included. <b>Undo is not available</b> – the booking could be restored, the portfolio transaction could not, and a partial undo would be worse than none."
+    },
+    {
+      "type": "text_with_single_shot",
+      "id": "b-0062z17",
+      "content": [
+        {
+          "type": "p",
+          "id": "b-0062z18",
+          "text": "A <b>short tap</b> on a transaction shows the numbers behind it: for <b>buy</b> and <b>sell</b> number of shares, share price, amount, fees and the resulting total (charge on buy, credit on sell); for <b>dividends</b> the quantity held, gross dividend per share, gross amount, taxes/levies and net amount; for <b>in-</b> and <b>out-bookings</b> the quantity. <b>Fees</b> only appear after a fresh portfolio import – otherwise the line is missing."
+        }
+      ],
+      "shot": {"fname": "Security Booking.png", "caption": "Security booking: details on quantity, price and fees", "width": 3.5}
+    },
+    {
+      "type": "p",
+      "id": "b-0062z19",
+      "text": "For <b>inflows</b> and <b>outflows</b> KMyMoney only knows the quantity, not the cash value. A <b>long tap</b> on such a line opens a dialog to enter the value manually (using the same calculator keyboard as elsewhere in the amount field) – it then counts as a purchase or sale at cost price and gain/loss and survives a fresh portfolio import."
+    },
+    {
+      "type": "h2",
+      "id": "b-0062z20",
+      "text": "Analysis (pie chart)"
+    },
+    {
+      "type": "p",
+      "id": "b-0062z21",
+      "text": "The <b>«Analysis»</b> menu opens a <b>pie chart</b> of the securities – styled like the categories page (continuous ring, fixed colour per security, at most half screen height, below it a scrollable list). Segments are unlabeled; a tap shows <b>name and amount</b> in the centre, without selection it says «Total». Chart and list are <b>always</b> sorted descending by the current value of the period."
+    },
+    {
+      "type": "p",
+      "id": "b-0062z22",
+      "text": "At the top a <b>symbol switcher</b> chooses the view: <b>Current value</b> (standard, € symbol) · <b>Net invested</b> (arrow) · <b>Dividend total</b> (% symbol) · <b>Gain/loss</b> (trend arrow). Below a <b>date range filter</b> narrows the analysis – a monthly range slider (first portfolio booking to today) plus two date fields <b>From/To</b> for any date. Any change to view or period updates the chart and list immediately."
+    },
+    {
+      "type": "p",
+      "id": "b-0062z23",
+      "text": "In the <b>menu bar</b> an icon shows or hides <b>fully sold securities</b> (hidden by default). What counts is the net holding <b>at the end of the selected period</b> – a sale after that does not yet count as «fully sold»."
+    },
+    {
+      "type": "h2",
+      "id": "b-0062z24",
+      "text": "Read PDF statements automatically"
+    },
+    {
+      "type": "p",
+      "id": "b-0062z25",
+      "text": "The portfolio view can read securities statements as a PDF and automatically prepare transactions from them. The <b>first time</b> you manually check and confirm the values – the app <b>learns</b> the rules for that bank while you do. Then on subsequent statements from the same bank the app automatically fills in the values. The complete documentation and the settings for learning recognition rules are in Chapter 16 (Settings)."
     },
     {
       "type": "h1",
       "id": "b-0063",
-      "text": "8. Recording quickly: voice, location, receipts"
+      "text": "9. Recording quickly: voice, location, receipts"
     },
     {
       "type": "p",
@@ -792,7 +1012,11 @@
           "text": "For the amount to have a say here at all, the <b>«Use amount for payee suggestions»</b> switch must be on (<b>off</b> by default). Without it the nearest payee appears at once and stays put while you type – you then choose by tapping alone."
         }
       ],
-      "shot": {"fname": "Buchung Betrag - Automatischer Empfänger anhand GPS.png", "caption": "Amount-only entry: the payee is resolved via the current location", "width": 6.0}
+      "shot": {
+        "fname": "Buchung Betrag - Automatischer Empfänger anhand GPS.png",
+        "caption": "Amount-only entry: the payee is resolved via the current location",
+        "width": 6.0
+      }
     },
     {
       "type": "h2",
@@ -824,7 +1048,11 @@
           "text": "Instead of a photo you may attach a <b>PDF document</b> – the invoice you downloaded, a bank statement, the confirmation of a transfer. The receipt dialog offers <b>«Choose PDF document»</b> for it and opens the device's file picker. Several documents per booking are possible; each gets its own line with a PDF icon. Tapping it opens the document in your device's <b>usual PDF viewer</b>, with all its pages; a PDF is never cropped, only attached or deleted. A booking carries <b>either</b> photos <b>or</b> documents – the other entry in the dialog stays dimmed until you have deleted the existing pages. A PDF is uploaded just like a photo, into the same year folder; the note records it as <b>«BELEG (PDF): …»</b>."
         }
       ],
-      "shot": {"fname": "Beleg Seiten.png", "caption": "While editing, each page gets its own row with crop and delete", "width": 4.0}
+      "shot": {
+        "fname": "Beleg Seiten.png",
+        "caption": "While editing, each page gets its own row with crop and delete",
+        "width": 4.0
+      }
     },
     {
       "type": "text_with_single_shot",
@@ -851,7 +1079,11 @@
           "text": "Delete a booking and its images disappear on the <b>next app start</b> – not right away, so that the «Undo» offered straight after deleting still brings the receipt back."
         }
       ],
-      "shot": {"fname": "Beleg Betrachter.png", "caption": "The built-in viewer counts along: «Page 2 of 3»", "width": 4.0}
+      "shot": {
+        "fname": "Beleg Betrachter.png",
+        "caption": "The built-in viewer counts along: «Page 2 of 3»",
+        "width": 4.0
+      }
     },
     {
       "type": "h2",
@@ -903,7 +1135,11 @@
           "text": "So when you edit an image <b>a second time</b>, the app asks: <b>«Continue editing»</b> works on the current version – handy to nudge the brightness without losing your crop. <b>«Start from original»</b> brings back the untouched photo when a crop turned out too tight. For an image never edited before, the question does not appear."
         }
       ],
-      "shot": {"fname": "Beleg bearbeiten.png", "caption": "Editing: four corner points, «Rectangle»/«Trapezoid», brightness and contrast", "width": 4.5}
+      "shot": {
+        "fname": "Beleg bearbeiten.png",
+        "caption": "Editing: four corner points, «Rectangle»/«Trapezoid», brightness and contrast",
+        "width": 4.5
+      }
     },
     {
       "type": "h2",
@@ -955,7 +1191,11 @@
           "text": "Independently of that, the app remembers which tags have <b>already been used</b> with a payee. They sit at the <b>top</b> of the tag window, marked with the tag symbol, and again at their alphabetical place – the same make as the «For this payee» block of the category picker. The ranking is the same too: <b>preferred aliases (★) → bookings (most recent first) → remaining aliases</b>, at most six. As soon as you type, only the matches remain."
         }
       ],
-      "shot": {"fname": "Aliase.png", "caption": "Managing alias names: spoken term → real payee", "width": 6.0}
+      "shot": {
+        "fname": "Aliase.png",
+        "caption": "Managing alias names: spoken term → real payee",
+        "width": 6.0
+      }
     },
     {
       "type": "h1",
@@ -980,7 +1220,11 @@
           ]
         }
       ],
-      "shot": {"fname": "Buchungen Filtern.png", "caption": "Filter by search text, category, amount and period", "width": 6.0}
+      "shot": {
+        "fname": "Buchungen Filtern.png",
+        "caption": "Filter by search text, category, amount and period",
+        "width": 6.0
+      }
     },
     {
       "type": "h2",
@@ -1063,7 +1307,11 @@
           ]
         }
       ],
-      "shot": {"fname": "Buchungen Auswertung.png", "caption": "Analysis as a bar and line chart", "width": 5.5}
+      "shot": {
+        "fname": "Buchungen Auswertung.png",
+        "caption": "Analysis as a bar and line chart",
+        "width": 5.5
+      }
     },
     {
       "type": "h1",
@@ -1092,7 +1340,11 @@
           ]
         }
       ],
-      "shot": {"fname": "Kategorien Auswertung.png", "caption": "Category pie chart: «Where does my money go?»", "width": 4.0}
+      "shot": {
+        "fname": "Kategorien Auswertung.png",
+        "caption": "Category pie chart: «Where does my money go?»",
+        "width": 4.0
+      }
     },
     {
       "type": "h2",
@@ -1157,7 +1409,11 @@
           "text": "Whether a category is <b>income or expense</b> follows from the .kmy file. A refund therefore reduces the expense category without turning it into income; a computed negative actual is clamped to 0."
         }
       ],
-      "shot": {"fname": "Budget.png", "caption": "Budget page: actual/target per category, with progress bars", "width": 6.0}
+      "shot": {
+        "fname": "Budget.png",
+        "caption": "Budget page: actual/target per category, with progress bars",
+        "width": 6.0
+      }
     },
     {
       "type": "h2",
@@ -1207,7 +1463,11 @@
           ]
         }
       ],
-      "shot": {"fname": "Geplante Buchungen.png", "caption": "Scheduled transactions: chronological list with balance strip", "width": 4.5}
+      "shot": {
+        "fname": "Geplante Buchungen.png",
+        "caption": "Scheduled transactions: chronological list with balance strip",
+        "width": 4.5
+      }
     },
     {
       "type": "h2",
@@ -1324,300 +1584,16 @@
           "text": "When you scroll far down, the <b>scroll-to-top button</b> (bottom left) jumps straight back to the start of the list."
         }
       ],
-      "shot": {"fname": "Geplante Buchungen Grafik.png", "caption": "Chart of the plans: bars per due date and a development line", "width": 6.0}
-    },
-    {
-      "type": "h1",
-      "id": "b-0131",
-      "text": "14. Holdings (places) and portfolio"
-    },
-    {
-      "type": "h2",
-      "id": "b-0132",
-      "text": "Holdings / places – what are they?"
-    },
-    {
-      "type": "text_with_single_shot",
-      "id": "b-0133",
-      "content": [
-        {
-          "type": "p",
-          "id": "b-0134",
-          "text": "A <b>place</b> describes <b>where</b> an account's cash physically is – e.g. wallet, jar, petty cash or an envelope. An account «Cash» can thus be split into several real storage locations. <b>This feature does not exist in KMyMoney</b>; it is an addition of this app for everyday cash handling."
-        },
-        {
-          "type": "p",
-          "id": "b-0135",
-          "text": "Places are <b>not limited to cash accounts</b> – they can be used for <b>any account</b>. In the following examples we stay with cash, though."
-        },
-        {
-          "type": "p",
-          "id": "b-0136",
-          "text": "Reached via <b>⋮ → Holdings</b>. Each place keeps its own <b>movement journal</b>; its balance is the sum of its movements. The sum of all place balances always equals the account balance: <b>«no place»</b> is the automatically computed remainder (account balance − sum of the other places). So the account stays consistent no matter how many places you create."
-        }
-      ],
-      "shot": {"fname": "Bestände.png", "caption": "Holdings: asset/liability accounts and portfolio, with places per account", "width": 4.5}
-    },
-    {
-      "type": "bullets",
-      "id": "b-0137",
-      "items": [
-        "A booking created in the app automatically produces a movement on the account's <b>default place</b>.",
-        "Place movements can be <b>created, edited and deleted</b> individually.",
-        "Money can be <b>transferred between places</b> (e.g. to assign an imported booking to a place, or to move cash from the envelope into the wallet).",
-        "Later amount or deletion changes append dated balancing movements – the history is preserved."
-      ]
-    },
-    {
-      "type": "h2",
-      "id": "b-0138",
-      "text": "Place on old (imported) transactions"
-    },
-    {
-      "type": "p",
-      "id": "b-0139",
-      "text": "A transaction that was <b>exported and imported again</b> loses its place link – that is intended. If you still open such a transaction <b>for editing</b> (long press), the <b>place field is shown</b> as soon as the account has any places, so you can pick one. What happens then depends on the button you press:"
-    },
-    {
-      "type": "bullets",
-      "id": "b-0140",
-      "items": [
-        "<b>«New transaction»</b> (duplicate): a <b>new</b> transaction is created – the chosen place <b>is saved</b> and a movement is added in the holdings. This is the way to give an old transaction a place afterwards.",
-        "<b>«Update transaction»</b> on a transaction that had <b>no place before</b> and is <b>already exported</b>: the entered place is <b>ignored</b>, the place journal stays untouched.",
-        "<b>«Update transaction»</b> on a transaction that <b>had a place before</b>: the new place <b>is saved</b> and followed up with balancing movements (old place −amount, new place +amount)."
-      ]
-    },
-    {
-      "type": "p",
-      "id": "b-0141",
-      "text": "In the plain <b>view</b> (short tap) the place field only shows up if the transaction really <b>sits at a place</b> – a «no place» would tell you nothing, and an imported transaction has none at all. For <b>transfers</b> that holds for the from-place and the to-place <b>each on its own</b>; the movement is created on <b>both accounts</b>."
-    },
-    {
-      "type": "h2",
-      "id": "b-0142",
-      "text": "Cash count at place level"
-    },
-    {
-      "type": "p",
-      "id": "b-0143",
-      "text": "A particular advantage: the <b>cash count</b> (reconciliation) can be done <b>per place</b>. You count only the cash of <i>one</i> place – say the wallet – enter the counted amount, and the app automatically books the difference as a balancing movement. So you don't have to reconcile the whole account at once; this <b>simplifies reconciliation considerably</b>. Imported bookings carry no place link. If an account has <b>no places at all</b>, the place field is missing and the whole account is reconciled."
-    },
-    {
-      "type": "p",
-      "id": "b-0144",
-      "text": "Next to the <b>«Create booking»</b> switch there is a button for the <b>payee and category</b> of that balancing booking. Both are empty at first and the button reads «Set payee/category»; as long as nothing is set, <b>«Apply»</b> stays greyed out. The button opens a small dialog with both fields (with the same suggestion lists as in the editor); <b>«Save»</b> keeps them permanently, so the next cash count already has them prefilled."
-    },
-    {
-      "type": "h2",
-      "id": "b-0145",
-      "text": "Asset and liability accounts"
-    },
-    {
-      "type": "p",
-      "id": "b-0146",
-      "text": "Accounts are grouped by their KMyMoney type into <b>asset accounts</b>, <b>liability accounts</b> (loans, credit cards) and <b>portfolios</b> – with colour-coded section headers (assets green, liabilities red, portfolios blue; light theme → lighter colour/black text, dark theme → darker colour/white text) both in the account drawer and in the holdings view. In holdings each category header shows its <b>category total</b> right-aligned; the portfolio counts as one line (portfolio value) towards the <b>total</b> (in a neutral grey/black). The split comes from the .kmy."
-    },
-    {
-      "type": "h2",
-      "id": "b-0147",
-      "text": "Portfolio (securities)"
-    },
-    {
-      "type": "text_with_single_shot",
-      "id": "b-0148",
-      "content": [
-        {
-          "type": "p",
-          "id": "b-0149",
-          "text": "After importing a KMyMoney investment account, the <b>portfolio</b> appears in the account drawer. The view is laid out like an account view – same title bar, same drawer, same filter – and shows <b>shares × price = current value</b> per security. Fully sold securities are hidden."
-        },
-        {
-          "type": "p",
-          "id": "b-0149a",
-          "text": "The <b>balance line toggles by tap</b> through: portfolio value → buys → sells → dividends → <b>net invested</b> (buys − sells − dividends) → <b>gain/loss</b> (coloured, with percentage). Sells and dividends only appear when there are any. The portfolio value is kept separate and also appears as «Net worth» in the main screen's balance line."
-        },
-        {
-          "type": "p",
-          "id": "b-0149b",
-          "text": "A tap on a security opens its <b>movements full-screen</b> – buys green, sells red, dividends neutral – with the same figures for that security, a filter by buys, sells and dividends, and a date slider starting at the first purchase."
-        },
-        {
-          "type": "p",
-          "id": "b-0149c",
-          "text": "The <b>portfolio filter</b> narrows the securities by name and value; like in the booking filter the slider works in shares, not in amounts. When you scroll far down, the <b>scroll-to-top button</b> at the bottom left jumps straight back to the start."
-        },
-        {
-          "type": "p",
-          "id": "b-0150a",
-          "text": "A <b>short tap</b> on a transaction shows the figures behind it: for <b>Buy</b> and <b>Sell</b> the number of shares, price per share, amount, fees and the resulting total (charged on a buy, credited on a sell); for <b>Dividends</b> the shares held, the gross dividend per share, the gross amount, taxes and charges, and the net amount; for <b>Add</b> and <b>Remove</b> the number of shares. <b>Fees</b> only become available after a fresh portfolio import – until then the row is omitted."
-        },
-        {
-          "type": "p",
-          "id": "b-0150",
-          "text": "For <b>Add</b> and <b>Remove</b> transactions, KMyMoney only ever records a share count, never a monetary value. A <b>long press</b> on such a row opens a dialog to set the value manually (using the same calculator keypad as elsewhere) – it then counts like a buy or sell towards the cost basis and gain/loss, and survives a fresh portfolio import."
-        }
-      ],
-      "shot": {"fname": "Depot.png", "caption": "Portfolio view: securities with shares, price and current value", "width": 3.0}
-    },
-    {
-      "type": "shot_row",
-      "id": "b-0151",
-      "shots": [
-        {"fname": "Depot Buchungen.png", "caption": "Movements of a security: buys, sells and dividends"},
-        {"fname": "Depot Filtern.png", "caption": "Filtering portfolio movements (buys/sells/dividends, period)"}
-      ]
-    },
-    {
-      "type": "h2",
-      "id": "b-0151a",
-      "text": "Opening a securities booking"
-    },
-    {
-      "type": "p",
-      "id": "b-0151b",
-      "text": "A securities purchase also appears in the booking list of the settlement account – as a transfer between that account and the security. Open it and <b>amount, payee, accounts and date are locked</b>. The reason: <b>shares and price</b> belong to this booking but exist only in the KMyMoney file. The app does not know them – were it allowed to write the booking back like an ordinary transfer, the securities purchase in your file would have turned into a bare transfer, wrecking the portfolio there."
-    },
-    {
-      "type": "p",
-      "id": "b-0151c",
-      "text": "What you can change are exactly the three things KMyMoney does not need itself on such a booking: the <b>note</b>, the <b>tags</b> and the <b>receipt</b> – your bank's statement as a PDF, for instance. On the next export the app adds them to the existing transaction without rebuilding it: shares, price and the kind of movement stay untouched. That way you find the statement again even after re-reading the portfolio."
-    },
-    {
-      "type": "h3",
-      "id": "b-0151d",
-      "text": "Deleting works – unlike editing"
-    },
-    {
-      "type": "p",
-      "id": "b-0151e",
-      "text": "<b>«Delete»</b> is available here, and it takes the matching <b>portfolio movement</b> with it; otherwise a movement without a money booking would be left behind. Why this is allowed where editing stays locked: deleting removes the <b>whole</b> transaction – money, security and fee parts together. Nothing can be left half done, and that was exactly the reason for forbidding the edit."
-    },
-    {
-      "type": "p",
-      "id": "b-0151f",
-      "text": "If the booking is already in the KMyMoney file, the confirmation says so plainly: on the next export the transaction is removed <b>there</b> as well, including shares and price. <b>There is no undo</b> – the booking could be restored, the portfolio movement could not, and half a way back would be worse than none."
-    },
-    {
-      "type": "text_with_single_shot",
-      "id": "b-0152",
-      "content": [
-        {
-          "type": "p",
-          "id": "b-0153",
-          "text": "The <b>«Analysis»</b> menu opens a <b>pie chart</b> of the securities – styled like the Categories page (continuous ring, a fixed colour per security, at most half the screen height, with its own scrollable list below). The slices are unlabelled; a tap shows the <b>name and amount</b> of the security in the centre, with nothing selected it reads «Total». Chart and list are <b>always</b> sorted descending by the current value of the period."
-        },
-        {
-          "type": "p",
-          "id": "b-0154",
-          "text": "At the top an <b>icon toggle</b> picks the view: <b>Current value</b> (default, € symbol) · <b>Net deposits</b> (arrow) · <b>Total dividends</b> (% symbol) · <b>Gain/loss</b> (trend arrow). Below it a <b>period filter</b> narrows the analysis – a monthly range slider (first portfolio transaction to today) plus two <b>From/To</b> date fields for any date. Any change to the view or period updates chart and list immediately."
-        }
-      ],
-      "shot": {"fname": "Depot Auswertung.png", "caption": "Portfolio analysis: icon toggle, period filter and pie chart", "width": 4.0}
-    },
-    {
-      "type": "bullets",
-      "id": "b-0155",
-      "items": [
-        "<b>Current value:</b> today's value (current price) of the <b>positions built</b> in the period – i.e. the shares bought within the period that are still held. Over the full period this equals the current portfolio value (shares sold again within the period do not count negative).",
-        "<b>Net deposits:</b> buys − sells − dividends within the period.",
-        "<b>Total dividends:</b> all dividends received within the period (gross/net per the setting).",
-        "<b>Gain/loss:</b> current value − net deposits, per security as a € amount and as a % return on cost basis (buys) – coloured green/red in the list. The pie-chart slices keep the security's normal colour."
-      ]
-    },
-    {
-      "type": "p",
-      "id": "b-0156",
-      "text": "In the <b>toolbar</b> an icon shows or hides <b>fully sold securities</b> (hidden by default). What counts is the net holding <b>at the end of the selected period</b> – a sale after that does not yet count as «fully sold»."
-    },
-    {
-      "type": "p",
-      "id": "b-0157",
-      "text": "<b>Dividends gross/net:</b> the settings let you choose whether dividends are shown gross (declared dividend) or net (cash received after tax) and used in the balance line (dividends, net invested, gain/loss)."
-    },
-    {
-      "type": "p",
-      "id": "b-0157z",
-      "text": "<b>Read PDF statements:</b> the portfolio view can read securities statements as a PDF and automatically prepare transactions from them. The <b>first time</b> you manually check and confirm the values – the app <b>learns</b> the rules for that bank while you do. Then on subsequent statements from the same bank the app automatically fills in the values. The complete documentation and the settings for learning recognition rules are in Chapter 17 (Settings)."
-    },
-    {
-      "type": "h3",
-      "id": "b-0157g",
-      "text": "Values inside a table"
-    },
-    {
-      "type": "p",
-      "id": "b-0157h",
-      "text": "Some banks do not put the figures behind a label but <b>under a column heading</b>. The data row then starts with a number and carries no label of its own. For such statements <b>«on one of the lines below»</b> means: the next line that carries a value at all – up to three lines away. That skips a second header line, which some banks insert. If the search gets stuck on an in-between line that happens to carry a number, pick <b>«exactly 1, 2 or 3 lines below»</b> instead."
-    },
-    {
-      "type": "p",
-      "id": "b-0157i",
-      "text": "A table row often carries several entries of the same kind – the booking day first, the value date next to it. Which one is meant is set by <b>«Which number on the line»</b>; it applies to dates as well. For dates the default «the last one» still means <b>the first</b> entry after the label, out of consideration for older rules – if you want another, pick «the first (table column)» or «the 2nd from the left» explicitly."
-    },
-    {
-      "type": "p",
-      "id": "b-0157k",
-      "text": "<b>In the label\u2019s column:</b> In a table, counting only works as long as every column is exactly one number wide and none is missing. When the label is a column heading, pick <b>«the number in the label\u2019s column»</b> under «Which number on the line» instead: the app then takes the value that sits below (or above) the label on the page. That holds even when a later statement omits a column. The choice is offered only together with «below» or «above» \u2013 on the same line the label\u2019s column would be the label itself."
-    },
-    {
-      "type": "p",
-      "id": "b-0157l",
-      "text": "<b>Values above the label:</b> Some statements print the number first and name it underneath. For those there are <b>«on one of the lines above»</b> and <b>«exactly 1, 2 or 3 lines above»</b> \u2013 the mirror image of «below»."
-    },
-    {
-      "type": "p",
-      "id": "b-0157j",
-      "text": "<b>Help while typing:</b> under «Check statement», next to the result, sits the button <b>«Text with line numbers»</b>. It shows the statement the way the app reads it. That is necessary because its lines are not the lines of a PDF viewer: they come from the word positions, and a visually empty line does not exist there at all. For counting the distance it is the only reliable source."
-    },
-    {
-      "type": "h3",
-      "id": "b-0157o",
-      "text": "Several categories for fee and income"
-    },
-    {
-      "type": "p",
-      "id": "b-0157p",
-      "text": "Just as in the transaction editor, «Fees/taxes» – and, for a dividend, the «income» too – can be split across several categories. In the entry screen, the <b>«+»</b> button below the row adds another category; the sum of all rows must match the amount above."
-    },
-    {
-      "type": "p",
-      "id": "b-0157q",
-      "text": "The rules screen has the same button: each row gets its own recognition rule – label, direction, position, just like a regular field. When you confirm «Remember for this bank», the app automatically creates such a rule for every category row whose label it finds on the statement."
-    },
-    {
-      "type": "p",
-      "id": "b-0157r",
-      "text": "If a remainder is left over that doesn't appear on the statement at all – say, a bank fee some institutions never print –, the app remembers <b>only that remainder</b> as the fixed fee, not the whole sum. On the next import it then shows up as its own, final category row alongside the recognized ones."
-    },
-    {
-      "type": "h3",
-      "id": "b-0157b",
-      "text": "A fee that is not on the statement"
-    },
-    {
-      "type": "p",
-      "id": "b-0157c",
-      "text": "Some banks charge a fixed amount per order without printing it on the statement. A rule cannot find it – it searches for a label, and there is none. On the rules page the <b>fee</b> therefore has a field <b>«Fixed fee per order»</b> together with a category."
-    },
-    {
-      "type": "p",
-      "id": "b-0157d",
-      "text": "Whether that amount applies is decided by the <b>«Add up several lines»</b> switch above it. If the rule finds no fee in the document, the fixed value applies. If it finds one and the switch is <b>on</b>, the fixed value is added. With the switch <b>off</b> the fee found in the document wins and the fixed value stays out."
-    },
-    {
-      "type": "p",
-      "id": "b-0157e",
-      "text": "Next to the <b>total</b> sits the switch <b>«Fixed fee is already in the total»</b>. With it off, the debited amount is higher than the figure on the statement by that fee – for a sale the credit is lower by it – and the app adds it in. With it on, the total stays exactly as printed."
-    },
-    {
-      "type": "p",
-      "id": "b-0157f",
-      "text": "<b>Recognised by itself:</b> if you enter a total and a fee that are <b>both</b> absent from the statement, the app tries the difference – the amount without the fee. If it finds that, it learns its label and records the fee as a fixed order fee right away. This is the only value the app does not read but infers; the confirmation therefore names it explicitly, with the amount."
+      "shot": {
+        "fname": "Geplante Buchungen Grafik.png",
+        "caption": "Chart of the plans: bars per due date and a development line",
+        "width": 6.0
+      }
     },
     {
       "type": "h1",
       "id": "b-0158",
-      "text": "15. Synchronizing: performing export and import"
+      "text": "14. Synchronizing: performing export and import"
     },
     {
       "type": "text_with_pic",
@@ -1629,7 +1605,11 @@
           "text": "The actual sync with KMyMoney runs through <b>a single symbol</b> in the main screen's title bar – the <b>export/sync symbol</b> (down arrow)."
         }
       ],
-      "pic": {"relpath": "screenshots/en/export_button.png", "caption": "The export/sync symbol in the title bar (circled in red)", "width": 14.0}
+      "pic": {
+        "relpath": "screenshots/en/export_button.png",
+        "caption": "The export/sync symbol in the title bar (circled in red)",
+        "width": 14.0
+      }
     },
     {
       "type": "h2",
@@ -1724,7 +1704,7 @@
     {
       "type": "h1",
       "id": "b-0173",
-      "text": "16. Wear OS (watch)"
+      "text": "15. Wear OS (watch)"
     },
     {
       "type": "text_with_single_shot",
@@ -1748,7 +1728,11 @@
           ]
         }
       ],
-      "shot": {"fname": "Promo-UhranlagemitAlias.png", "caption": "Recording on the watch", "width": 4.5}
+      "shot": {
+        "fname": "Promo-UhranlagemitAlias.png",
+        "caption": "Recording on the watch",
+        "width": 4.5
+      }
     },
     {
       "type": "h2",
@@ -1798,7 +1782,7 @@
     {
       "type": "h1",
       "id": "b-0181",
-      "text": "17. Settings (complete reference)"
+      "text": "16. Settings (complete reference)"
     },
     {
       "type": "text_with_shot_row",
@@ -1811,9 +1795,18 @@
         }
       ],
       "shots": [
-        {"fname": "Einstellungen_1.png", "caption": "Language, number format, server connection"},
-        {"fname": "Einstellungen_2.png", "caption": "Export mode, default account, places per account"},
-        {"fname": "Einstellungen_3.png", "caption": "Appearance, security, data"}
+        {
+          "fname": "Einstellungen_1.png",
+          "caption": "Language, number format, server connection"
+        },
+        {
+          "fname": "Einstellungen_2.png",
+          "caption": "Export mode, default account, places per account"
+        },
+        {
+          "fname": "Einstellungen_3.png",
+          "caption": "Appearance, security, data"
+        }
       ]
     },
     {
@@ -1831,7 +1824,7 @@
         "<b>Dividends gross/net</b>: whether portfolio dividends are settled gross (declared) or net.",
         "<b>Read statements</b>: allows reading the bank's PDF statements in the portfolio (default: off). When switched on the app states how many banks the recognition was measured against. The complete documentation is in the section «Recognition rules for PDF statements: learning and managing» below.",
         "<b>Budget in-app</b>: compute the budget actuals from history instead of importing from KMyMoney (see Chapter 12).",
-        "<b>Install offline speech package on the watch</b> (GitHub build with the Wear bridge only): lets the watch download the offline speech model of the chosen language so voice recording works offline too (see Chapter 16). Off → the number-pad fallback applies offline."
+        "<b>Install offline speech package on the watch</b> (GitHub build with the Wear bridge only): lets the watch download the offline speech model of the chosen language so voice recording works offline too (see Chapter 15). Off → the number-pad fallback applies offline."
       ]
     },
     {
@@ -1929,7 +1922,11 @@
           "text": "If something fails, the wizard names the reason: «Server not reachable», «Username or password is invalid», «The selected share is not available» or «Access to the folder was denied» – followed, in brackets, by the server's <b>raw status code</b>, so a report can actually be traced. «Server not reachable» only ever appears while no connection has been established yet. If the port field does not hold a number between 1 and 65535, it says so right away without trying to connect."
         }
       ],
-      "shot": {"fname": "SMB Assistent.png", "caption": "SMB wizard: servers found, sign-in and share selection", "width": 6.0}
+      "shot": {
+        "fname": "SMB Assistent.png",
+        "caption": "SMB wizard: servers found, sign-in and share selection",
+        "width": 6.0
+      }
     },
     {
       "type": "h2",
@@ -1963,7 +1960,11 @@
           "text": "<b>«Copy report»</b> puts the result on the clipboard – meant for sending along with a bug report. The report contains <b>neither the password nor the user name</b> (only «set» or «empty»)."
         }
       ],
-      "shot": {"fname": "SMB Diagnose.png", "caption": "Diagnostics: every step with duration and status code", "width": 6.0}
+      "shot": {
+        "fname": "SMB Diagnose.png",
+        "caption": "Diagnostics: every step with duration and status code",
+        "width": 6.0
+      }
     },
     {
       "type": "h2",
@@ -2193,7 +2194,7 @@
     {
       "type": "h1",
       "id": "b-0219",
-      "text": "18. CSV format (export)"
+      "text": "17. CSV format (export)"
     },
     {
       "type": "p",

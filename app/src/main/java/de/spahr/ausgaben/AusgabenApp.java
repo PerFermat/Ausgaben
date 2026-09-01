@@ -46,6 +46,10 @@ public class AusgabenApp extends Application implements Application.ActivityLife
     @Override
     public void onCreate() {
         super.onCreate();
+        // Vor allem anderen: Bestandsinstallationen bekommen einmalig ein Profil (bestehende DB
+        // bleibt liegen), Neuinstallationen ein leeres Erstprofil. SettingsStore liest ab hier
+        // profilbezogen, muss also erst danach konstruiert werden.
+        de.spahr.ausgaben.settings.ProfileManager.migrateLegacyInstallationIfNeeded(this);
         settings = new SettingsStore(this);
         // Sprache seeden (falls leer) und aktive Sprache laden, bevor die erste Activity Texte anfragt.
         de.spahr.ausgaben.i18n.LocaleManager.init(this);

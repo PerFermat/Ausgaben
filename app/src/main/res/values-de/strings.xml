@@ -109,7 +109,23 @@
     <string name="action_balance">Bestände</string>
     <string name="action_budget">Budget</string>
     <string name="action_scheduled">Geplante Buchungen</string>
+    <string name="action_switch_profile">Profil wechseln</string>
     <string name="action_settings">Einstellungen</string>
+
+    <!-- Profile -->
+    <string name="profile_active_marker">%1$s (aktiv)</string>
+    <string name="profile_rename">Umbenennen</string>
+    <string name="profile_change_color">Farbe ändern</string>
+    <string name="profile_delete">Löschen</string>
+    <string name="profile_delete_confirm_title">„%1$s" löschen?</string>
+    <string name="profile_delete_confirm_message">Buchungen, Konten und Empfänger dieses Profils werden gelöscht. Andere Profile bleiben unverändert.</string>
+    <string name="profile_default_name">Profil %1$d</string>
+    <string name="profile_name_hint">Profilname</string>
+    <string name="profile_copy_from">Von anderem Profil übernehmen</string>
+    <string name="profile_copy_title">Profil wählen</string>
+    <string name="profile_section">Profil</string>
+    <string name="settings_profile_change">Profil ändern</string>
+    <string name="settings_profile_new">Neues Profil anlegen</string>
 
     <!-- Geplante Buchungen -->
     <string name="scheduled_title">Geplante Buchungen</string>
@@ -406,7 +422,12 @@
     <string name="restore_failed">Wiederherstellung fehlgeschlagen: %1$s</string>
     <string name="restore_invalid">Keine gültige Sicherungsdatei</string>
     <string name="backup_options_title">Sicherung erstellen</string>
-    <string name="backup_options_message">Gesichert werden alle Daten und alle Einstellungen (Konten, Orte, Farben, Server).</string>
+    <string name="backup_options_message">Gesichert werden Daten und Einstellungen ALLER Profile (Konten, Orte, Farben, Server).</string>
+    <string name="backup_options_message_profile">Gesichert werden nur Daten und Einstellungen des aktiven Profils – lässt sich in ein beliebiges Profil einspielen.</string>
+    <string name="backup_profile_db">Dieses Profil sichern</string>
+    <string name="restore_profile_db">Profilsicherung einspielen</string>
+    <string name="restore_wrong_scope_use_profile">Diese Sicherung enthält nur ein Profil. Bitte in dessen Profil-Einstellungen einspielen (Menü → Profil ändern).</string>
+    <string name="restore_pick_profile_title">Welches Profil aus der Sicherung soll das aktive ersetzen?</string>
     <string name="backup_include_password">Server-Passwort mitsichern</string>
     <string name="backup_password_optional">Sicherungspasswort (leer = ohne)</string>
     <string name="backup_password_hint">Sicherungspasswort</string>
@@ -419,8 +440,11 @@
     <string name="restore_password_title">Sicherung ist verschlüsselt</string>
     <string name="restore_password_wrong">Passwort falsch oder Datei beschädigt</string>
     <string name="reset_confirm_title">Datenbank zurücksetzen?</string>
-    <string name="reset_confirm_message">Alle Buchungen sowie die Konto- und Empfängerlisten werden gelöscht. Einstellungen bleiben erhalten.</string>
+    <string name="reset_confirm_message">Alle Profile werden auf den Auslieferungszustand zurückgesetzt: Buchungen, Konten, Empfänger und alle Einstellungen (auch Server-Zugangsdaten) gehen verloren.</string>
     <string name="reset_done">Datenbank zurückgesetzt</string>
+    <string name="reset_profile_db">Nur dieses Profil zurücksetzen</string>
+    <string name="reset_profile_confirm_title">Nur dieses Profil zurücksetzen?</string>
+    <string name="reset_profile_confirm_message">Buchungen, Konten, Empfänger und die Server-/kmy-Einstellungen dieses Profils werden gelöscht. Andere Profile bleiben unverändert.</string>
     <string name="delete_account">Konto löschen</string>
     <string name="delete_account_choose">Konto zum Löschen wählen</string>
     <string name="delete_account_confirm_title">Konto löschen?</string>
@@ -432,12 +456,14 @@
     <string name="account_status_active">Aktiv</string>
     <string name="account_status_closed">Geschlossen</string>
     <string name="account_status_line">%1$s — %2$s</string>
+    <string name="account_status_depot_marker">%1$s (Depot)</string>
     <string name="account_close">Schließen</string>
     <string name="account_reopen">Öffnen</string>
     <string name="account_close_needs_zero">Schließen nur bei Saldo 0 möglich (aktuell %1$s).</string>
     <string name="account_closed_done">Konto „%1$s" geschlossen</string>
     <string name="account_reopened_done">Konto „%1$s" geöffnet</string>
     <string name="delete_accounts_confirm_message">%1$d Konto/Konten und alle zugehörigen Buchungen werden endgültig gelöscht.</string>
+    <string name="delete_accounts_confirm_message_with_depots">%1$d Konto/Konten werden endgültig gelöscht, darunter %2$d Depot(s) mit allen Wertpapieren, Bewegungen und Kursen.</string>
     <string name="accounts_deleted_done">%1$d Konto/Konten gelöscht</string>
     <string name="accounts_closed_done">%1$d Konto/Konten geschlossen</string>
     <string name="accounts_reopened_done">%1$d Konto/Konten geöffnet</string>
@@ -468,6 +494,9 @@
     <!-- Einstellungen -->
     <string name="settings_title">Einstellungen</string>
     <string name="language_section">Sprache</string>
+    <string name="currency_number_section">Währung/Zahlenformat</string>
+    <string name="dividend_section">Dividenden</string>
+    <string name="budget_section">Budget</string>
     <string name="language_hint">Sprache</string>
     <string name="language_export">Vorlage exportieren</string>
     <string name="language_upload">Sprache hochladen</string>
@@ -493,7 +522,6 @@
     <string name="number_format_en_group">1,234.56 (Tausenderkomma, Punkt)</string>
     <string name="number_format_plain_comma">1234,56 (ohne Tausender, Komma)</string>
     <string name="number_format_plain_dot">1234.56 (ohne Tausender, Punkt)</string>
-    <string name="nextcloud_section">Synchronisation (Nextcloud / WebDAV / SMB)</string>
     <string name="server_type_hint">Server-Typ</string>
     <string name="server_type_nextcloud">Nextcloud</string>
     <string name="server_type_webdav">WebDAV (generisch)</string>
@@ -546,15 +574,12 @@
     <string name="kmy_browse_none">Keine .kmy-Datei gefunden</string>
     <string name="nextcloud_password_hint">App-Passwort</string>
     <string name="nextcloud_folder_hint">Zielordner (optional, z. B. Finanzen)</string>
-    <string name="export_mode_section">Export-/Import-Format</string>
     <string name="export_mode_hint">Format</string>
     <string name="export_mode_csv">CSV (kMyMoney-Import)</string>
     <string name="export_mode_kmy">KMyMoney-Datei (.kmy)</string>
     <string name="kmy_path_hint">KMyMoney-Datei (Pfad, z. B. KMyMoney/gdyx.kmy)</string>
     <string name="default_account_section">Standardkonto</string>
     <string name="default_account_hint">Standardkonto</string>
-    <string name="settings_save">Speichern</string>
-    <string name="settings_saved">Einstellungen gespeichert</string>
 
     <!-- KMyMoney-Export/Import -->
     <string name="kmy_path_missing">Bitte die KMyMoney-Datei in den Einstellungen angeben</string>
@@ -676,13 +701,14 @@
     <!-- On-Boarding (erster Start, noch keine Konten) -->
     <string name="onboarding_title">Willkommen</string>
     <string name="onboarding_intro">Richte die wichtigsten Punkte für den Start ein. Alles Weitere kannst du später in den Einstellungen ändern.</string>
+    <string name="onboarding_color_section">Farbe</string>
     <string name="onboarding_language_section">Sprache</string>
     <string name="onboarding_format_section">Import-/Export-Format</string>
     <string name="onboarding_sync_section">Synchronisierung</string>
     <string name="onboarding_import_accounts">Konten importieren</string>
     <string name="onboarding_importing">Import läuft…</string>
+    <string name="onboarding_import_running">Bitte warten, bis der Import fertig ist.</string>
     <string name="onboarding_import_done">%1$d Konto/Konten importiert</string>
-    <string name="onboarding_more_settings">Weitere Einstellungen</string>
     <string name="onboarding_note">Weitere Einstellungen kannst du jederzeit über das Menü vornehmen (im Aufklappmenü ganz unten).</string>
     <string name="onboarding_done">Fertig</string>
     <string name="security_tx_new_title">Neue Bewegung</string>

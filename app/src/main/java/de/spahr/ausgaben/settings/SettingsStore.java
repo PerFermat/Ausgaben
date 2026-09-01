@@ -89,15 +89,34 @@ public class SettingsStore {
 
     private final SharedPreferences prefs;
     private final SharedPreferences secret;
+    private final String profilePrefix;
 
     public SettingsStore(Context context) {
         Context app = context.getApplicationContext();
         this.prefs = app.getSharedPreferences(PREFS, Context.MODE_PRIVATE);
-        this.secret = createSecretPrefs(app);
+        this.secret = secretPrefs(app);
+        this.profilePrefix = "p_" + new ProfileManager(app).getActiveProfileId() + "_";
         migratePlaintextPassword();
     }
 
-    private SharedPreferences createSecretPrefs(Context app) {
+    /**
+     * Präfixiert Schlüssel, die zur Datenquelle des aktiven Profils gehören (Server, Zugangsdaten,
+     * kmy-Pfad, Export-Modus, …) oder auf Zeilen der profileigenen Datenbank verweisen
+     * (Standardkonto, Kontengruppe). Alle übrigen Einstellungen bleiben unpräfixiert = global.
+     */
+    private String pk(String baseKey) {
+        return profilePrefix + baseKey;
+    }
+
+    /**
+     * Verschlüsselte Prefs-Datei fürs Server-Passwort – auch für {@link ProfileManager#copySettingsFrom}
+     * und {@code BackupStore} (Alle-Profile-Sicherung).
+     */
+    public static SharedPreferences secretPrefs(Context context) {
+        return createSecretPrefs(context.getApplicationContext());
+    }
+
+    private static SharedPreferences createSecretPrefs(Context app) {
         try {
             MasterKey masterKey = new MasterKey.Builder(app)
                     .setKeyScheme(MasterKey.KeyScheme.AES256_GCM)
@@ -119,27 +138,27 @@ public class SettingsStore {
         if (prefs.contains(KEY_PASSWORD)) {
             String legacy = prefs.getString(KEY_PASSWORD, "");
             if (legacy != null && !legacy.isEmpty() && getPassword().isEmpty()) {
-                secret.edit().putString(KEY_PASSWORD, legacy).apply();
+                secret.edit().putString(pk(KEY_PASSWORD), legacy).apply();
             }
             prefs.edit().remove(KEY_PASSWORD).apply();
         }
     }
 
     public String getUrl() {
-        return prefs.getString(KEY_URL, "").trim();
+        return prefs.getString(pk(KEY_URL), "").trim();
     }
 
     /** Nur die Adresse ändern (z. B. korrigierter SMB-Port); alles andere bleibt stehen. */
     public void setUrl(String url) {
-        prefs.edit().putString(KEY_URL, url == null ? "" : url.trim()).apply();
+        prefs.edit().putString(pk(KEY_URL), url == null ? "" : url.trim()).apply();
     }
 
     public String getUser() {
-        return prefs.getString(KEY_USER, "").trim();
+        return prefs.getString(pk(KEY_USER), "").trim();
     }
 
     public String getPassword() {
-        return secret.getString(KEY_PASSWORD, "");
+        return secret.getString(pk(KEY_PASSWORD), "");
     }
 
     public boolean hasPassword() {
@@ -148,7 +167,7 @@ public class SettingsStore {
 
     /** Nur das Server-Passwort setzen (Wiederherstellen einer Sicherung); alles andere bleibt stehen. */
     public void setPassword(String password) {
-        secret.edit().putString(KEY_PASSWORD, password == null ? "" : password).apply();
+        secret.edit().putString(pk(KEY_PASSWORD), password == null ? "" : password).apply();
     }
 
     /** Empfänger für die Kassensturz-Ausgleichsbuchung (leer = noch nicht festgelegt). */
@@ -169,36 +188,40 @@ public class SettingsStore {
     }
 
     public String getFolder() {
-        return prefs.getString(KEY_FOLDER, "").trim();
+        return prefs.getString(pk(KEY_FOLDER), "").trim();
     }
 
     public String getImportFolder() {
-        return prefs.getString(KEY_IMPORT_FOLDER, "").trim();
+        return prefs.getString(pk(KEY_IMPORT_FOLDER), "").trim();
     }
 
     public String getDefaultAccount() {
-        return prefs.getString(KEY_DEFAULT_ACCOUNT, "").trim();
+        return prefs.getString(pk(KEY_DEFAULT_ACCOUNT), "").trim();
+    }
+
+    public void setDefaultAccount(String account) {
+        prefs.edit().putString(pk(KEY_DEFAULT_ACCOUNT), account == null ? "" : account.trim()).apply();
     }
 
     /**
-     * Gewählte Kontengruppe; 0 = alle Konten. App-weit gültig: Schublade, Depot-Ansicht und Bestände
-     * schauen alle durch dieselbe Brille.
+     * Gewählte Kontengruppe (Zeile in der profileigenen Datenbank); 0 = alle Konten. Je Profil
+     * getrennt, da die Kontengruppen-ID sich auf die Datenbank des jeweiligen Profils bezieht.
      */
     public long getAccountGroup() {
-        return prefs.getLong(KEY_ACCOUNT_GROUP, 0L);
+        return prefs.getLong(pk(KEY_ACCOUNT_GROUP), 0L);
     }
 
     public void setAccountGroup(long groupId) {
-        prefs.edit().putLong(KEY_ACCOUNT_GROUP, groupId <= 0 ? 0L : groupId).apply();
+        prefs.edit().putLong(pk(KEY_ACCOUNT_GROUP), groupId <= 0 ? 0L : groupId).apply();
     }
 
     /** Persistierte SAF-Tree-URI für den lokalen Export (leer = noch nicht gewählt). */
     public String getLocalExportTree() {
-        return prefs.getString(KEY_LOCAL_EXPORT_TREE, "");
+        return prefs.getString(pk(KEY_LOCAL_EXPORT_TREE), "");
     }
 
     public void setLocalExportTree(String uri) {
-        prefs.edit().putString(KEY_LOCAL_EXPORT_TREE, uri == null ? "" : uri).apply();
+        prefs.edit().putString(pk(KEY_LOCAL_EXPORT_TREE), uri == null ? "" : uri).apply();
     }
 
     public boolean hasNextcloudConfig() {
@@ -329,11 +352,11 @@ public class SettingsStore {
 
     /** {@link #MODE_CSV} (Standard) oder {@link #MODE_KMY}. */
     public String getExportMode() {
-        return prefs.getString(KEY_EXPORT_MODE, MODE_CSV);
+        return prefs.getString(pk(KEY_EXPORT_MODE), MODE_CSV);
     }
 
     public void setExportMode(String exportMode) {
-        prefs.edit().putString(KEY_EXPORT_MODE, MODE_KMY.equals(exportMode) ? MODE_KMY : MODE_CSV).apply();
+        prefs.edit().putString(pk(KEY_EXPORT_MODE), MODE_KMY.equals(exportMode) ? MODE_KMY : MODE_CSV).apply();
     }
 
     public boolean isKmyMode() {
@@ -342,11 +365,11 @@ public class SettingsStore {
 
     /** {@link #SERVER_NEXTCLOUD} (Standard) oder {@link #SERVER_WEBDAV}. */
     public String getServerType() {
-        return prefs.getString(KEY_SERVER_TYPE, SERVER_NEXTCLOUD);
+        return prefs.getString(pk(KEY_SERVER_TYPE), SERVER_NEXTCLOUD);
     }
 
     public void setServerType(String serverType) {
-        prefs.edit().putString(KEY_SERVER_TYPE, normalizeServerType(serverType)).apply();
+        prefs.edit().putString(pk(KEY_SERVER_TYPE), normalizeServerType(serverType)).apply();
     }
 
     /** true = Nextcloud-Pfadschema; false = generischer WebDAV-Server oder SMB (Basis-URL = Wurzel). */
@@ -360,7 +383,7 @@ public class SettingsStore {
 
     /** Relativer Nextcloud-Pfad zur .kmy inkl. Dateiname, z. B. {@code KMyMoney/gdyx.kmy}. */
     public String getKmyPath() {
-        return prefs.getString(KEY_KMY_PATH, "").trim();
+        return prefs.getString(pk(KEY_KMY_PATH), "").trim();
     }
 
     /** Standard: dem System folgen, bis der Nutzer aktiv umschaltet. */
@@ -449,11 +472,11 @@ public class SettingsStore {
 
     /** Nachfrage, ob ein geänderter Empfänger als Alias gemerkt werden soll (Standard: an). */
     public boolean isAliasPromptEnabled() {
-        return prefs.getBoolean(KEY_ALIAS_PROMPT, true);
+        return prefs.getBoolean(pk(KEY_ALIAS_PROMPT), true);
     }
 
     public void setAliasPromptEnabled(boolean enabled) {
-        prefs.edit().putBoolean(KEY_ALIAS_PROMPT, enabled).apply();
+        prefs.edit().putBoolean(pk(KEY_ALIAS_PROMPT), enabled).apply();
     }
 
     /**
@@ -472,35 +495,35 @@ public class SettingsStore {
         prefs.edit().putString(KEY_LANGUAGE, code == null ? "" : code.trim()).apply();
     }
 
-    /** Globales Standard-Währungskennzeichen (für Konten ohne eigene Währung). Standard „€". */
+    /** Standard-Währungskennzeichen des Profils (für Konten ohne eigene Währung). Standard „€". */
     public String getCurrency() {
-        String c = prefs.getString(KEY_CURRENCY, "€");
+        String c = prefs.getString(pk(KEY_CURRENCY), "€");
         return c == null || c.trim().isEmpty() ? "€" : c.trim();
     }
 
     public void setCurrency(String currency) {
-        prefs.edit().putString(KEY_CURRENCY, currency == null ? "" : currency.trim()).apply();
+        prefs.edit().putString(pk(KEY_CURRENCY), currency == null ? "" : currency.trim()).apply();
     }
 
     /** Gewähltes Zahlenformat (siehe {@code NUMBER_FORMAT_*}). Standard = heutiges Verhalten (1234,56). */
     public String getNumberFormat() {
-        String v = prefs.getString(KEY_NUMBER_FORMAT, NUMBER_FORMAT_PLAIN_COMMA);
+        String v = prefs.getString(pk(KEY_NUMBER_FORMAT), NUMBER_FORMAT_PLAIN_COMMA);
         return v == null || v.trim().isEmpty() ? NUMBER_FORMAT_PLAIN_COMMA : v.trim();
     }
 
     public void setNumberFormat(String format) {
-        prefs.edit().putString(KEY_NUMBER_FORMAT,
+        prefs.edit().putString(pk(KEY_NUMBER_FORMAT),
                 format == null ? NUMBER_FORMAT_PLAIN_COMMA : format.trim()).apply();
     }
 
     /** Gewähltes CSV-Spaltentrennzeichen (";" Standard oder ","). Nur im CSV-Modus relevant. */
     public String getCsvSeparator() {
-        String v = prefs.getString(KEY_CSV_SEPARATOR, CSV_SEP_SEMICOLON);
+        String v = prefs.getString(pk(KEY_CSV_SEPARATOR), CSV_SEP_SEMICOLON);
         return CSV_SEP_COMMA.equals(v) ? CSV_SEP_COMMA : CSV_SEP_SEMICOLON;
     }
 
     public void setCsvSeparator(String separator) {
-        prefs.edit().putString(KEY_CSV_SEPARATOR,
+        prefs.edit().putString(pk(KEY_CSV_SEPARATOR),
                 CSV_SEP_COMMA.equals(separator) ? CSV_SEP_COMMA : CSV_SEP_SEMICOLON).apply();
     }
 
@@ -516,20 +539,20 @@ public class SettingsStore {
 
     /** Ob das Währungskennzeichen an Beträge angehängt wird (Standard an). */
     public boolean isCurrencyShown() {
-        return prefs.getBoolean(KEY_SHOW_CURRENCY, true);
+        return prefs.getBoolean(pk(KEY_SHOW_CURRENCY), true);
     }
 
     public void setCurrencyShown(boolean shown) {
-        prefs.edit().putBoolean(KEY_SHOW_CURRENCY, shown).apply();
+        prefs.edit().putBoolean(pk(KEY_SHOW_CURRENCY), shown).apply();
     }
 
     /** Dividenden im Depot brutto (true, Standard) oder netto (false) anzeigen/verrechnen. */
     public boolean isDividendGross() {
-        return prefs.getBoolean(KEY_DIVIDEND_GROSS, true);
+        return prefs.getBoolean(pk(KEY_DIVIDEND_GROSS), true);
     }
 
     public void setDividendGross(boolean gross) {
-        prefs.edit().putBoolean(KEY_DIVIDEND_GROSS, gross).apply();
+        prefs.edit().putBoolean(pk(KEY_DIVIDEND_GROSS), gross).apply();
     }
 
     /**
@@ -543,17 +566,17 @@ public class SettingsStore {
      */
     public double getDividendTaxPercent() {
         try {
-            return prefs.getLong(KEY_DIVIDEND_TAX_RATE, 0L) / 100000.0;
+            return prefs.getLong(pk(KEY_DIVIDEND_TAX_RATE), 0L) / 100000.0;
         } catch (ClassCastException e) {
             // Frühere Fassung: als float gespeichert. Einmal gelesen, schreibt das Speichern den Wert
             // im neuen Format zurück.
-            return prefs.getFloat(KEY_DIVIDEND_TAX_RATE, 0f);
+            return prefs.getFloat(pk(KEY_DIVIDEND_TAX_RATE), 0f);
         }
     }
 
     public void setDividendTaxPercent(double percent) {
         double p = percent < 0 || percent >= 100 ? 0 : percent;
-        prefs.edit().putLong(KEY_DIVIDEND_TAX_RATE, Math.round(p * 100000.0)).apply();
+        prefs.edit().putLong(pk(KEY_DIVIDEND_TAX_RATE), Math.round(p * 100000.0)).apply();
     }
 
     /**
@@ -574,11 +597,11 @@ public class SettingsStore {
 
     /** Budget app-intern aus dem Verlauf berechnen (true) statt aus KMyMoney importieren (false, Standard). */
     public boolean isBudgetInternal() {
-        return prefs.getBoolean(KEY_BUDGET_INTERNAL, false);
+        return prefs.getBoolean(pk(KEY_BUDGET_INTERNAL), false);
     }
 
     public void setBudgetInternal(boolean internal) {
-        prefs.edit().putBoolean(KEY_BUDGET_INTERNAL, internal).apply();
+        prefs.edit().putBoolean(pk(KEY_BUDGET_INTERNAL), internal).apply();
     }
 
     /**
@@ -588,17 +611,17 @@ public class SettingsStore {
     public void save(String url, String user, String password, String folder, String importFolder,
                      String defaultAccount, String exportMode, String kmyPath, String serverType) {
         prefs.edit()
-                .putString(KEY_URL, url == null ? "" : url.trim())
-                .putString(KEY_USER, user == null ? "" : user.trim())
-                .putString(KEY_FOLDER, folder == null ? "" : folder.trim())
-                .putString(KEY_IMPORT_FOLDER, importFolder == null ? "" : importFolder.trim())
-                .putString(KEY_DEFAULT_ACCOUNT, defaultAccount == null ? "" : defaultAccount.trim())
-                .putString(KEY_EXPORT_MODE, MODE_KMY.equals(exportMode) ? MODE_KMY : MODE_CSV)
-                .putString(KEY_KMY_PATH, kmyPath == null ? "" : kmyPath.trim())
-                .putString(KEY_SERVER_TYPE, normalizeServerType(serverType))
+                .putString(pk(KEY_URL), url == null ? "" : url.trim())
+                .putString(pk(KEY_USER), user == null ? "" : user.trim())
+                .putString(pk(KEY_FOLDER), folder == null ? "" : folder.trim())
+                .putString(pk(KEY_IMPORT_FOLDER), importFolder == null ? "" : importFolder.trim())
+                .putString(pk(KEY_DEFAULT_ACCOUNT), defaultAccount == null ? "" : defaultAccount.trim())
+                .putString(pk(KEY_EXPORT_MODE), MODE_KMY.equals(exportMode) ? MODE_KMY : MODE_CSV)
+                .putString(pk(KEY_KMY_PATH), kmyPath == null ? "" : kmyPath.trim())
+                .putString(pk(KEY_SERVER_TYPE), normalizeServerType(serverType))
                 .apply();
         if (password != null && !password.isEmpty()) {
-            secret.edit().putString(KEY_PASSWORD, password).apply();
+            secret.edit().putString(pk(KEY_PASSWORD), password).apply();
         }
     }
 

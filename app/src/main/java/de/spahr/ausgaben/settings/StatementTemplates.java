@@ -36,9 +36,9 @@ import de.spahr.ausgaben.statement.StatementTemplate;
  */
 public class StatementTemplates {
 
-    private static final String PREFS = "ausgaben_statements";
-    private static final String KEY_TEMPLATES = "templates";
-    private static final String KEY_ISINS = "isins";
+    static final String PREFS = "ausgaben_statements";
+    static final String KEY_TEMPLATES = "templates";
+    static final String KEY_ISINS = "isins";
     /**
      * Trennt Depot, Wertpapier-ID und Name im gespeicherten Wert. Das Steuerzeichen
      * "unit separator" kann in keinem der drei vorkommen; als Fluchtfolge geschrieben, weil es
@@ -47,9 +47,20 @@ public class StatementTemplates {
     private static final String SEP = "";
 
     private final SharedPreferences prefs;
+    private final String profilePrefix;
 
     public StatementTemplates(Context context) {
-        this.prefs = context.getApplicationContext().getSharedPreferences(PREFS, Context.MODE_PRIVATE);
+        Context app = context.getApplicationContext();
+        this.prefs = app.getSharedPreferences(PREFS, Context.MODE_PRIVATE);
+        this.profilePrefix = "p_" + new ProfileManager(app).getActiveProfileId() + "_";
+    }
+
+    private String keyTemplates() {
+        return profilePrefix + KEY_TEMPLATES;
+    }
+
+    private String keyIsins() {
+        return profilePrefix + KEY_ISINS;
     }
 
     // ---- Vorlagen ----
@@ -226,7 +237,7 @@ public class StatementTemplates {
             return null;
         }
         try {
-            String value = new JSONObject(prefs.getString(KEY_ISINS, "{}"))
+            String value = new JSONObject(prefs.getString(keyIsins(), "{}"))
                     .optString(isin.trim().toUpperCase(java.util.Locale.ROOT), "");
             String[] parts = value.split(SEP, -1);
             return parts.length == 3 ? parts : null;
@@ -240,10 +251,10 @@ public class StatementTemplates {
             return;
         }
         try {
-            JSONObject root = new JSONObject(prefs.getString(KEY_ISINS, "{}"));
+            JSONObject root = new JSONObject(prefs.getString(keyIsins(), "{}"));
             root.put(isin.trim().toUpperCase(java.util.Locale.ROOT),
                     depot + SEP + kmyId + SEP + (name == null ? "" : name));
-            prefs.edit().putString(KEY_ISINS, root.toString()).apply();
+            prefs.edit().putString(keyIsins(), root.toString()).apply();
         } catch (Exception ignored) {
         }
     }
@@ -264,7 +275,7 @@ public class StatementTemplates {
     private List<Entry> entries() {
         List<Entry> out = new ArrayList<>();
         try {
-            JSONArray arr = new JSONArray(prefs.getString(KEY_TEMPLATES, "[]"));
+            JSONArray arr = new JSONArray(prefs.getString(keyTemplates(), "[]"));
             for (int i = 0; i < arr.length(); i++) {
                 JSONObject o = arr.optJSONObject(i);
                 StatementTemplate t = fromJson(o);
@@ -290,7 +301,7 @@ public class StatementTemplates {
                 arr.put(o);
             }
         }
-        prefs.edit().putString(KEY_TEMPLATES, arr.toString()).apply();
+        prefs.edit().putString(keyTemplates(), arr.toString()).apply();
     }
 
     private static JSONObject toJson(StatementTemplate t) {

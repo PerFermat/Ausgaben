@@ -2,6 +2,7 @@ package de.spahr.ausgaben.ui;
 
 import android.content.Context;
 import android.graphics.drawable.Drawable;
+import android.graphics.drawable.GradientDrawable;
 import android.graphics.drawable.InsetDrawable;
 import android.view.LayoutInflater;
 import android.view.View;
@@ -12,45 +13,53 @@ import android.widget.TextView;
 import androidx.annotation.NonNull;
 import androidx.appcompat.app.AlertDialog;
 import androidx.appcompat.widget.ButtonBarLayout;
-import androidx.core.content.ContextCompat;
 
 import com.google.android.material.dialog.MaterialAlertDialogBuilder;
 import com.google.android.material.shape.MaterialShapeDrawable;
 
 import de.spahr.ausgaben.R;
+import de.spahr.ausgaben.settings.AccentColor;
 
 /**
  * Jeder Dialog der App. Bündelt, was alle gemeinsam haben: den Theme-Aufsatz mit 16dp-Radius und
- * grünem Kopfband, dazu den grünen Rahmen um das ganze Fenster.
+ * einem Kopfband sowie Rahmen um das ganze Fenster, beide in der Akzentfarbe des aktiven Profils
+ * (siehe {@link AccentColor}) – Dialoge laufen in einem eigenen Fenster und ziehen sonst nicht mit.
  *
  * <p>Der Rahmen entsteht nicht über eine eigene Zeichnung, sondern am Hintergrund, den
  * {@link MaterialAlertDialogBuilder} ohnehin anlegt: der behält seine Form und seine Ränder, und es
  * kommt nur der Strich dazu. So bleibt der Dialog in jeder Bildschirmgröße dort, wo Material ihn
  * hinstellt.</p>
  *
- * <p>Zerstörende Abfragen (löschen, zurücksetzen) über {@link #destructive(Context)} – dort ist die
- * bestätigende Taste rot statt grün.</p>
+ * <p>Zerstörende Abfragen (löschen, zurücksetzen) über {@link #destructive(Context)} – dort bleibt die
+ * bestätigende Taste rot statt in der Profilfarbe.</p>
  */
 public class AppDialog extends MaterialAlertDialogBuilder {
 
     /** Stärke des Rahmens in dp. */
     private static final float STROKE_DP = 2f;
 
+    /** true bei {@link #destructive}: die bestätigende Taste bleibt rot statt der Profilfarbe. */
+    private final boolean destructive;
+
     public AppDialog(@NonNull Context context) {
         super(context, R.style.ThemeOverlay_Ausgaben_Dialog);
+        this.destructive = false;
     }
 
-    private AppDialog(@NonNull Context context, int themeOverlay) {
+    private AppDialog(@NonNull Context context, int themeOverlay, boolean destructive) {
         super(context, themeOverlay);
+        this.destructive = destructive;
     }
 
     /** Abfrage, die etwas unwiderruflich entfernt: bestätigende Taste rot. */
     public static AppDialog destructive(@NonNull Context context) {
-        return new AppDialog(context, R.style.ThemeOverlay_Ausgaben_Dialog_Destructive);
+        return new AppDialog(context, R.style.ThemeOverlay_Ausgaben_Dialog_Destructive, true);
     }
 
     /** Überschrift; sie wandert in das eigene Kopfband statt in den Material-Titel. */
     private CharSequence title;
+    /** Über {@link #setView(View)} gesetzter Inhalt – zum Einfärben in {@link #create()} gemerkt. */
+    private View customView;
 
     @NonNull
     @Override
@@ -67,15 +76,33 @@ public class AppDialog extends MaterialAlertDialogBuilder {
 
     @NonNull
     @Override
+    public AppDialog setView(View view) {
+        this.customView = view;
+        super.setView(view);
+        return this;
+    }
+
+    @NonNull
+    @Override
     public AlertDialog create() {
+        int color = AccentColor.current(getContext());
         View band = null;
         if (title != null) {
             band = LayoutInflater.from(getContext()).inflate(R.layout.dialog_title, null, false);
             ((TextView) band.findViewById(R.id.dialogTitle)).setText(title);
+            ((TextView) band.findViewById(R.id.dialogTitle)).setTextColor(AccentColor.contrastColor(color));
+            Drawable bandBg = band.getBackground();
+            if (bandBg != null) {
+                bandBg = bandBg.mutate();
+                if (bandBg instanceof GradientDrawable) {
+                    ((GradientDrawable) bandBg).setColor(color);
+                }
+            }
             setCustomTitle(band);
         }
         AlertDialog dialog = super.create();
-        frame(dialog);
+        frame(dialog, color);
+        AccentColor.applyToDialog(dialog, !destructive, customView);
         if (band != null) {
             band.findViewById(R.id.dialogClose).setOnClickListener(v -> dialog.cancel());
         }
@@ -113,7 +140,7 @@ public class AppDialog extends MaterialAlertDialogBuilder {
      * eine {@link MaterialShapeDrawable}; passt das nicht (etwa nach einem Bibliotheks-Wechsel),
      * bleibt der Dialog eben ohne Rahmen – kein Grund, ihn gar nicht zu zeigen.
      */
-    private static void frame(AlertDialog dialog) {
+    private static void frame(AlertDialog dialog, int color) {
         Window window = dialog.getWindow();
         if (window == null) {
             return;
@@ -125,9 +152,7 @@ public class AppDialog extends MaterialAlertDialogBuilder {
         if (!(background instanceof MaterialShapeDrawable)) {
             return;
         }
-        Context context = dialog.getContext();
-        float stroke = STROKE_DP * context.getResources().getDisplayMetrics().density;
-        ((MaterialShapeDrawable) background).setStroke(
-                stroke, ContextCompat.getColor(context, R.color.green_primary));
+        float stroke = STROKE_DP * dialog.getContext().getResources().getDisplayMetrics().density;
+        ((MaterialShapeDrawable) background).setStroke(stroke, color);
     }
 }

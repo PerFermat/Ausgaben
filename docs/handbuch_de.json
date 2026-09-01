@@ -7,25 +7,89 @@
   "footer_text": "Ausgaben · Benutzerhandbuch (Version 1.10)",
   "page_text": "Seite %d",
   "placeholder_no_image": "Kein Bild",
-  "table_headers": ["Symbol", "Name", "Bedeutung / Funktion"],
+  "table_headers": [
+    "Symbol",
+    "Name",
+    "Bedeutung / Funktion"
+  ],
   "table_note": "Hinweis: Die Symbole in der Titelleiste stammen aus dem Material-Design-Satz; oben ist ihre Bedeutung beschrieben. Je nach Platz erscheinen manche Punkte im «⋮»-Überlaufmenü.",
   "code_example": "Datum;Empfänger;Konto;Typ;Betrag;Notiz;Kategorie<br/>29.06.2026;Metzgerei;Bargeld;Ausgabe;-7,30;Mittagessen;Lebensmittel",
   "symbols": [
-    ["☰", "Menü / Kontenschublade", "Oben links. Öffnet die seitliche Schublade mit allen Konten, Depots und «Konto hinzufügen»."],
-    ["←", "Zurück", "Oben links in Unterseiten. Kehrt zum vorherigen Bildschirm zurück."],
-    ["⬇", "Export / Synchronisieren", "Titelleisten-Symbol (Pfeil nach unten, Download-Stil). Startet den Abgleich: schreibt neue Buchungen in die .kmy bzw. lädt sie zum Sync-Ziel."],
-    ["▽", "Filter", "Trichter-Symbol. Öffnet den Filter nach Empfänger, Kategorie und Betrag."],
-    ["▮▮", "Auswertung", "Balkendiagramm-Symbol. Öffnet die grafische Auswertung."],
-    ["⋮", "Weitere Menüpunkte", "Drei Punkte (Überlauf). Enthält «Kategorien», «Bestände», «Budget», «Geplante Buchungen» und – <b>ganz unten</b> – «Einstellungen»."],
-    ["✚", "Neue Buchung", "Runder Knopf unten rechts. Kurz tippen: neue Buchung erfassen. <b>Langer Druck: Spracheingabe.</b>"],
-    ["⊞", "Stille Betragserfassung", "Ziffernblock-Symbol (nur bei eingeschaltetem Standort). Nur den Betrag eintippen; der Empfänger wird über den Standort ermittelt."],
-    ["↑", "Nach oben", "Kleiner Pfeil. Springt an den Anfang der Buchungsliste."],
-    ["★", "Bevorzugter Alias", "Markiert in der Alias-Liste einen bevorzugten Alias (wird vor Buchungen berücksichtigt)."],
-    ["→", "Alias-Zuordnung", "In der Alias-Liste: «gesprochener Begriff → richtiger Empfänger»."],
-    ["→ / ←", "Umbuchung", "In der Buchungsliste: → ausgehende, ← eingehende Umbuchung (zeigt Gegenkonto/Empfänger)."],
-    ["Split", "Splitbuchung", "Kennzeichnet eine Buchung, die auf mehrere Kategorien aufgeteilt ist."],
-    ["exportiert", "Exportiert", "Kleiner grüner Hinweis: diese Buchung wurde bereits exportiert."],
-    ["● rot/grün", "Betragsfarbe", "Roter Betrag = Ausgabe/negativ, grüner Betrag = Einnahme/positiv."]
+    [
+      "☰",
+      "Menü / Kontenschublade",
+      "Oben links. Öffnet die seitliche Schublade mit allen Konten, Depots und «Konto hinzufügen»."
+    ],
+    [
+      "←",
+      "Zurück",
+      "Oben links in Unterseiten. Kehrt zum vorherigen Bildschirm zurück."
+    ],
+    [
+      "⬇",
+      "Export / Synchronisieren",
+      "Titelleisten-Symbol (Pfeil nach unten, Download-Stil). Startet den Abgleich: schreibt neue Buchungen in die .kmy bzw. lädt sie zum Sync-Ziel."
+    ],
+    [
+      "▽",
+      "Filter",
+      "Trichter-Symbol. Öffnet den Filter nach Empfänger, Kategorie und Betrag."
+    ],
+    [
+      "▮▮",
+      "Auswertung",
+      "Balkendiagramm-Symbol. Öffnet die grafische Auswertung."
+    ],
+    [
+      "⋮",
+      "Weitere Menüpunkte",
+      "Drei Punkte (Überlauf). Enthält «Kategorien», «Bestände», «Budget», «Geplante Buchungen» und – <b>ganz unten</b> – «Einstellungen»."
+    ],
+    [
+      "✚",
+      "Neue Buchung",
+      "Runder Knopf unten rechts. Kurz tippen: neue Buchung erfassen. <b>Langer Druck: Spracheingabe.</b>"
+    ],
+    [
+      "⊞",
+      "Stille Betragserfassung",
+      "Ziffernblock-Symbol (nur bei eingeschaltetem Standort). Nur den Betrag eintippen; der Empfänger wird über den Standort ermittelt."
+    ],
+    [
+      "↑",
+      "Nach oben",
+      "Kleiner Pfeil. Springt an den Anfang der Buchungsliste."
+    ],
+    [
+      "★",
+      "Bevorzugter Alias",
+      "Markiert in der Alias-Liste einen bevorzugten Alias (wird vor Buchungen berücksichtigt)."
+    ],
+    [
+      "→",
+      "Alias-Zuordnung",
+      "In der Alias-Liste: «gesprochener Begriff → richtiger Empfänger»."
+    ],
+    [
+      "→ / ←",
+      "Umbuchung",
+      "In der Buchungsliste: → ausgehende, ← eingehende Umbuchung (zeigt Gegenkonto/Empfänger)."
+    ],
+    [
+      "Split",
+      "Splitbuchung",
+      "Kennzeichnet eine Buchung, die auf mehrere Kategorien aufgeteilt ist."
+    ],
+    [
+      "exportiert",
+      "Exportiert",
+      "Kleiner grüner Hinweis: diese Buchung wurde bereits exportiert."
+    ],
+    [
+      "● rot/grün",
+      "Betragsfarbe",
+      "Roter Betrag = Ausgabe/negativ, grüner Betrag = Einnahme/positiv."
+    ]
   ],
   "sections": [
     {
@@ -94,7 +158,7 @@
     {
       "type": "p",
       "id": "b-0005f",
-      "text": "<b>Wo es weitergeht:</b> Der Willkommen-Assistent im einzelnen steht im nächsten Kapitel, das Erfassen einer Buchung in Kapitel 7, der Abgleich mit KMyMoney in Kapitel 15 und jede einzelne Einstellung in Kapitel 17."
+      "text": "<b>Wo es weitergeht:</b> Der Willkommen-Assistent im einzelnen steht im nächsten Kapitel, das Erfassen einer Buchung in Kapitel 7, der Abgleich mit KMyMoney in Kapitel 14 und jede einzelne Einstellung in Kapitel 16."
     },
     {
       "type": "h1",
@@ -128,8 +192,14 @@
         }
       ],
       "shots": [
-        {"fname": "Willkommen_1.png", "caption": "Sprache, Format und Synchronisierung"},
-        {"fname": "Willkommen_2.png", "caption": "«Konten importieren», «Weitere Einstellungen», «Fertig»"}
+        {
+          "fname": "Willkommen_1.png",
+          "caption": "Sprache, Format und Synchronisierung"
+        },
+        {
+          "fname": "Willkommen_2.png",
+          "caption": "«Konten importieren», «Weitere Einstellungen», «Fertig»"
+        }
       ]
     },
     {
@@ -157,7 +227,11 @@
           "text": "Der Hauptbildschirm zeigt oben die grüne Titelleiste, darunter die <b>Saldenzeile</b> und dann die Liste der Buchungen. Unten rechts liegen die Aktionsknöpfe."
         }
       ],
-      "shot": {"fname": "Kontobuchungen.png", "caption": "Hauptbildschirm mit Titelleiste, Saldenzeile und Buchungsliste", "width": 6.0}
+      "shot": {
+        "fname": "Kontobuchungen.png",
+        "caption": "Hauptbildschirm mit Titelleiste, Saldenzeile und Buchungsliste",
+        "width": 6.0
+      }
     },
     {
       "type": "h2",
@@ -190,7 +264,11 @@
           "text": "Grüner Betrag = positiv/Guthaben, roter Betrag = negativ."
         }
       ],
-      "shot": {"fname": "Saldenzeile.png", "caption": "Saldenzeile mit Gruppensumme; Antippen schaltet weiter", "width": 6.0}
+      "shot": {
+        "fname": "Saldenzeile.png",
+        "caption": "Saldenzeile mit Gruppensumme; Antippen schaltet weiter",
+        "width": 6.0
+      }
     },
     {
       "type": "h2",
@@ -237,7 +315,11 @@
           "text": "Aktualisiert wird beim Öffnen der App und in regelmäßigen Abständen."
         }
       ],
-      "shot": {"fname": "Widget.png", "caption": "Alle vier Widget-Größen: mittel, Typ, groß und klein", "width": 6.0}
+      "shot": {
+        "fname": "Widget.png",
+        "caption": "Alle vier Widget-Größen: mittel, Typ, groß und klein",
+        "width": 6.0
+      }
     },
     {
       "type": "h1",
@@ -280,7 +362,11 @@
           ]
         }
       ],
-      "shot": {"fname": "Kontenmenü.png", "caption": "Kontenschublade mit Konten, Depot und «Konto hinzufügen»", "width": 3.5}
+      "shot": {
+        "fname": "Kontenmenü.png",
+        "caption": "Kontenschublade mit Konten, Depot und «Konto hinzufügen»",
+        "width": 3.5
+      }
     },
     {
       "type": "h2",
@@ -343,8 +429,14 @@
         }
       ],
       "shots": [
-        {"fname": "Kontengruppen Auswahl.png", "caption": "Tipp auf «Konten» öffnet die Auswahl der Gruppe"},
-        {"fname": "Kontengruppe gewählt.png", "caption": "Danach trägt die oberste Zeile den Gruppennamen"}
+        {
+          "fname": "Kontengruppen Auswahl.png",
+          "caption": "Tipp auf «Konten» öffnet die Auswahl der Gruppe"
+        },
+        {
+          "fname": "Kontengruppe gewählt.png",
+          "caption": "Danach trägt die oberste Zeile den Gruppennamen"
+        }
       ]
     },
     {
@@ -372,7 +464,11 @@
           "text": "Die Suche bleibt innerhalb der gewählten Kontengruppe und wird nirgends gespeichert. Sie endet außerdem von selbst, sobald man ein Konto auswählt, die Schublade zuschiebt oder die App verläßt."
         }
       ],
-      "shot": {"fname": "Konten suchen.png", "caption": "Die Sucheingabe tritt an die Stelle der Überschrift «Konten»", "width": 6.0}
+      "shot": {
+        "fname": "Konten suchen.png",
+        "caption": "Die Sucheingabe tritt an die Stelle der Überschrift «Konten»",
+        "width": 6.0
+      }
     },
     {
       "type": "h2",
@@ -430,9 +526,18 @@
         }
       ],
       "shots": [
-        {"fname": "Konten verwalten.png", "caption": "Die Verwaltung zeigt auch geschlossene Konten, grau und mit Saldo"},
-        {"fname": "Konten sortieren.png", "caption": "Beim Ziehen einer Kontenart klappen ihre Konten ein"},
-        {"fname": "Konten Kontextmenü.png", "caption": "«⋮»: Gruppen ankreuzen, neue anlegen, Konto schließen"}
+        {
+          "fname": "Konten verwalten.png",
+          "caption": "Die Verwaltung zeigt auch geschlossene Konten, grau und mit Saldo"
+        },
+        {
+          "fname": "Konten sortieren.png",
+          "caption": "Beim Ziehen einer Kontenart klappen ihre Konten ein"
+        },
+        {
+          "fname": "Konten Kontextmenü.png",
+          "caption": "«⋮»: Gruppen ankreuzen, neue anlegen, Konto schließen"
+        }
       ]
     },
     {
@@ -567,7 +672,11 @@
           "text": "Passen mehrere oder keiner, geschieht nichts; ein selbst eingetragener Empfänger bleibt unangetastet. Die Vorschlagsliste ändert sich dadurch nicht – dort stehen weiterhin alle Empfänger im 10-km-Umkreis. Einschalten läßt sich die Vorbelegung in den Einstellungen unter <b>«Betrag in den Vorschlägen berücksichtigen»</b>."
         }
       ],
-      "shot": {"fname": "Buchung Empfänger.png", "caption": "Buchungs-Editor mit Typ-Umschalter, Betrag, Empfänger und Konto", "width": 6.0}
+      "shot": {
+        "fname": "Buchung Empfänger.png",
+        "caption": "Buchungs-Editor mit Typ-Umschalter, Betrag, Empfänger und Konto",
+        "width": 6.0
+      }
     },
     {
       "type": "h2",
@@ -640,7 +749,11 @@
           "text": "Wählen Sie den Typ «Umbuchung», dann Von- und Nach-Konto sowie optional einen Empfänger. Es entsteht eine verknüpfte Buchung in beiden Konten (in der Liste mit → bzw. ← markiert). Zusätzlich können Sie einen <b>Von-Ort</b> und einen <b>Nach-Ort</b> wählen; dann wird das jeweilige Ortsjournal mitgeführt (Von-Konto −Betrag, Nach-Konto +Betrag). Beide Felder sind mit dem <b>Standardort</b> des jeweiligen Kontos vorbelegt; mit «ohne Ort» bleibt das Journal dieser Seite unberührt. Bearbeiten oder Löschen der Umbuchung rollt die Ort-Bewegungen wieder zurück."
         }
       ],
-      "shot": {"fname": "Buchung Umbuchung.png", "caption": "Detailansicht einer Umbuchung mit Kontostand vorher/nachher", "width": 6.0}
+      "shot": {
+        "fname": "Buchung Umbuchung.png",
+        "caption": "Detailansicht einer Umbuchung mit Kontostand vorher/nachher",
+        "width": 6.0
+      }
     },
     {
       "type": "h2",
@@ -663,39 +776,146 @@
       "text": "Stichwörter gibt es bei <b>Ausgaben, Einnahmen und Umbuchungen</b> gleichermaßen; bei einer Umbuchung tragen beide Kontoseiten dieselben, denn in der KMyMoney-Datei ist sie eine einzige Buchung. Bei einer <b>geplanten Buchung</b> sind die Stichwörter der Regel nur zu sehen, nicht zu ändern – legen Sie daraus eine Buchung an, wandern sie mit und lassen sich dann bearbeiten. Kennt die App noch <b>keine</b> Stichwörter – etwa vor dem ersten Abgleich oder im CSV-Betrieb, wo es keine KMyMoney-Datei gibt –, erscheint die ganze Zeile gar nicht."
     },
     {
+      "type": "h1",
+      "id": "b-0062z",
+      "text": "8. Wertpapiere - Depot"
+    },
+    {
+      "type": "p",
+      "id": "b-0062z1",
+      "text": "Das Depot zeigt Ihre Wertpapiere aus KMyMoney und erlaubt die Erfassung von Käufen, Verkäufen und Dividenden – sowohl manuell als auch durch automatische PDF-Erkennung von Bank-Abrechnungen. Dieses Kapitel behandelt die Depot-Ansicht und deren Funktionen."
+    },
+    {
       "type": "h2",
-      "id": "b-0062e",
+      "id": "b-0062z2",
       "text": "Wertpapier-Buchungen: Käufe, Verkäufe und Dividenden"
     },
     {
       "type": "p",
-      "id": "b-0062f",
+      "id": "b-0062z3",
       "text": "Das Depot unterstützt die Erfassung von <b>Käufen, Verkäufen und Dividenden</b> von Wertpapieren – aber nur für <b>Wertpapiere, die Sie bereits in KMyMoney angelegt haben</b>. Die App erstellt keine neuen Wertpapiere."
     },
     {
       "type": "p",
-      "id": "b-0062g",
-      "text": "<b>Zwei Wege:</b> Sie können eine Transaktion entweder <b>manuell</b> im Buchungs-Editor erfassen (Datum, Stückzahl, Kurs, Gebühren, Steuern) oder die App versucht, die Werte aus einer <b>PDF-Abrechnung Ihrer Bank</b> automatisch zu erkennen."
+      "id": "b-0062z4",
+      "text": "<b>Zwei Wege:</b> Sie können eine Transaktion entweder <b>manuell</b> im Buchungs-Editor erfassen (Datum, Stückzahl, Kurs, Gebühren, Steuern) oder die App versucht, die Werte aus einer <b>PDF-Abrechnung Ihrer Bank</b> automatisch zu erkennen. Beim manuellen Erfassen geben Sie einfach wie gewohnt alle Felder ein und speichern."
+    },
+    {
+      "type": "h2",
+      "id": "b-0062z5",
+      "text": "Die Depot-Ansicht"
+    },
+    {
+      "type": "text_with_single_shot",
+      "id": "b-0062z6",
+      "content": [
+        {
+          "type": "p",
+          "id": "b-0062z7",
+          "text": "Nach dem Import eines KMyMoney-Investmentkontos erscheint das <b>Depot</b> in der Kontenschublade. Die Ansicht ist wie eine Konto-Ansicht aufgebaut – gleiche Titelleiste, gleiche Schublade, gleicher Filter – und zeigt je Wertpapier <b>Stückzahl × Kurs = aktueller Wert</b>. Vollständig verkaufte Papiere werden ausgeblendet."
+        }
+      ],
+      "shot": {"fname": "Depot.png", "caption": "Depot-Ansicht: Wertpapiere mit Stückzahl, Kurs und aktuellem Wert", "width": 3.0}
     },
     {
       "type": "p",
-      "id": "b-0062h",
-      "text": "<b>PDF einlesen:</b> Beim <b>ersten Mal</b> für eine neue Bank müssen Sie die erkannten Werte <b>manuell prüfen und bestätigen</b> – genau wie bei der manuellen Erfassung. Dabei <b>lernt die App</b>, wo in den Abrechnungen dieser Bank die einzelnen Felder stehen. Für alle nachfolgenden Abrechnungen derselben Bank werden die Werte dann <b>automatisch vorbelegt</b>; Sie müssen nur noch kurz prüfen und können buchen. Die gelernten Regeln lassen sich jederzeit anpassen."
+      "id": "b-0062z8",
+      "text": "Die <b>Saldenzeile schaltet per Tipp</b> durch: Depotwert → Käufe → Verkäufe → Dividenden → <b>Nettoeinsatz</b> (Käufe − Verkäufe − Dividenden) → <b>Gewinn/Verlust</b> (farbig, mit Prozent). Verkäufe und Dividenden erscheinen nur, wenn es welche gibt. Der Depotwert wird getrennt geführt und steht zusätzlich als «Gesamtvermögen» in der Saldenzeile des Hauptbildschirms."
     },
     {
       "type": "p",
-      "id": "b-0062i",
-      "text": "<b>Einschränkung:</b> Die automatische Erkennung funktioniert <b>nicht bei jeder Bank</b> – eine vollständige Implementierung würde für jede Bank einen eigenen Code erfordern, das leisten nur professionelle Finanzanbieter. Diese App nutzt ein intelligentes, selbstkonfigurierendes System, das mit vielen Banken funktioniert, aber eben nicht allen. <b>Prüfen Sie die erkannten Werte immer, bevor Sie buchen</b>."
+      "id": "b-0062z9",
+      "text": "Ein Tipp auf ein Wertpapier öffnet seine <b>Bewegungen im Vollbild</b> – Käufe grün, Verkäufe rot, Dividenden neutral – mit denselben Kennzahlen für dieses Papier, einem Filter nach Käufen, Verkäufen und Dividenden sowie einem Datums-Regler, der beim ersten Kauf beginnt."
+    },
+    {
+      "type": "shot_row",
+      "id": "b-0062z10",
+      "shots": [
+        {"fname": "Depot Bewegungen.png", "caption": "Bewegungen eines Wertpapiers: Käufe, Verkäufe und Dividenden"},
+        {"fname": "Depot Auswertung.png", "caption": "Depot-Auswertung: Symbol-Umschalter, Zeitraumfilter und Kreisdiagramm"}
+      ]
+    },
+    {
+      "type": "h2",
+      "id": "b-0062z11",
+      "text": "Eine Wertpapier-Buchung öffnen"
     },
     {
       "type": "p",
-      "id": "b-0062j",
-      "text": "Die Schritt-für-Schritt-Erklärung und die Einstellungen zum Lernen von Erkennungsregeln stehen in Kapitel 14 (Depot) und Kapitel 17 (Einstellungen)."
+      "id": "b-0062z12",
+      "text": "Ein Wertpapierkauf erscheint auch in der Buchungsliste des Verrechnungskontos – als Umbuchung zwischen diesem Konto und dem Wertpapier. Öffnen Sie sie, sind <b>Betrag, Empfänger, Konten und Datum gesperrt</b>. Der Grund: <b>Stückzahl und Kurs</b> gehören zu dieser Buchung, stehen aber nur in der KMyMoney-Datei. Die App kennt sie nicht – dürfte sie die Buchung wie eine gewöhnliche Umbuchung zurückschreiben, wäre aus dem Wertpapierkauf in Ihrer Datei eine nackte Umbuchung geworden, und das Depot dort zerstört."
+    },
+    {
+      "type": "p",
+      "id": "b-0062z13",
+      "text": "Ändern lassen sich dafür genau die drei Dinge, die KMyMoney bei einer solchen Buchung nicht selbst braucht: die <b>Notiz</b>, die <b>Stichwörter</b> und der <b>Beleg</b> – etwa die Abrechnung Ihrer Bank als PDF. Beim nächsten Export trägt die App sie in die vorhandene Transaktion nach, ohne sie neu zu bauen: Stückzahl, Kurs und Art der Bewegung bleiben unangetastet. So finden Sie die Abrechnung auch nach einem erneuten Einlesen des Depots wieder."
+    },
+    {
+      "type": "h3",
+      "id": "b-0062z14",
+      "text": "Löschen geht – anders als Ändern"
+    },
+    {
+      "type": "p",
+      "id": "b-0062z15",
+      "text": "<b>«Löschen»</b> gibt es hier sehr wohl, und es nimmt die zugehörige <b>Depot-Bewegung</b> mit; sonst bliebe im Depot eine Bewegung ohne Geldbuchung stehen. Warum das erlaubt ist, wo das Ändern gesperrt bleibt: beim Löschen verschwindet die <b>ganze</b> Transaktion – Geld-, Wertpapier- und Gebührenteil zusammen. Es kann nichts halb stehenbleiben, und genau das war der Grund, das Ändern zu verbieten."
+    },
+    {
+      "type": "p",
+      "id": "b-0062z16",
+      "text": "Steht die Buchung bereits in der KMyMoney-Datei, sagt die Rückfrage das ausdrücklich: beim nächsten Export wird die Transaktion auch <b>dort</b> entfernt, samt Stückzahl und Kurs. <b>Rückgängig gibt es nicht</b> – die Buchung ließe sich wiederherstellen, die Depot-Bewegung nicht, und ein halbes Zurück wäre schlimmer als keines."
+    },
+    {
+      "type": "text_with_single_shot",
+      "id": "b-0062z17",
+      "content": [
+        {
+          "type": "p",
+          "id": "b-0062z18",
+          "text": "Ein <b>kurzer Tipp</b> auf eine Bewegung zeigt die Zahlen dahinter: bei <b>Kauf</b> und <b>Verkauf</b> Anzahl Stücke, Stückpreis, Betrag, Gebühren und den daraus folgenden Gesamtbetrag (Belastung beim Kauf, Gutschrift beim Verkauf); bei <b>Dividenden</b> die Stückzahl im Bestand, die Bruttodividende pro Stück, den Bruttobetrag, Steuern/Abgaben und den Nettobetrag; bei <b>Ein-</b> und <b>Ausbuchungen</b> die Stückzahl. Die <b>Gebühren</b> stehen erst nach einem erneuten Depot-Import zur Verfügung – vorher bleibt die Zeile weg."
+        }
+      ],
+      "shot": {"fname": "Wertpapier Buchung.png", "caption": "Wertpapier-Buchung: Details zu Stückzahl, Kurs und Gebühren", "width": 3.5}
+    },
+    {
+      "type": "p",
+      "id": "b-0062z19",
+      "text": "Bei <b>Einbuchungen</b> und <b>Ausbuchungen</b> kennt KMyMoney nur die Stückzahl, keinen Geldwert. Ein <b>langer Klick</b> auf eine solche Zeile öffnet einen Dialog, um den Wert manuell einzutragen (über dieselbe Rechentastatur wie sonst im Betragsfeld) – er zählt danach wie ein Kauf bzw. Verkauf zum Einstandspreis und Gewinn/Verlust und übersteht auch einen erneuten Depot-Import."
+    },
+    {
+      "type": "h2",
+      "id": "b-0062z20",
+      "text": "Auswertung (Kreisdiagramm)"
+    },
+    {
+      "type": "p",
+      "id": "b-0062z21",
+      "text": "Das Menü <b>«Auswertung»</b> öffnet ein <b>Kreisdiagramm</b> der Wertpapiere – im Design der Kategorien-Seite (durchgehender Ring, feste Farbe je Wertpapier, höchstens halbe Bildschirmhöhe, darunter eine eigene scrollbare Liste). Die Segmente sind unbeschriftet; ein Tipp zeigt in der Mitte <b>Name und Betrag</b> des Papiers, ohne Auswahl steht dort «Gesamt». Grafik und Liste sind <b>immer</b> absteigend nach dem aktuellen Wert des Zeitraums sortiert."
+    },
+    {
+      "type": "p",
+      "id": "b-0062z22",
+      "text": "Oben wählt ein <b>Symbol-Umschalter</b> die Ansicht: <b>Aktueller Wert</b> (Standard, €-Symbol) · <b>Netto-Einzahlungen</b> (Pfeil) · <b>Summe Dividenden</b> (%-Symbol) · <b>Gewinn/Verlust</b> (Trendpfeil). Darunter grenzt ein <b>Zeitraumfilter</b> die Auswertung ein – ein monatlicher Bereichsslider (erste Depot-Buchung bis heute) sowie zwei Datumsfelder <b>Von/Bis</b> für ein beliebiges Datum. Jede Änderung an Ansicht oder Zeitraum aktualisiert Grafik und Liste sofort."
+    },
+    {
+      "type": "p",
+      "id": "b-0062z23",
+      "text": "Im <b>Menüstreifen</b> blendet ein Symbol <b>komplett verkaufte Wertpapiere</b> ein oder aus (Standard: ausgeblendet). Maßgeblich ist der Netto-Bestand <b>am Ende des gewählten Zeitraums</b> – ein Verkauf danach zählt also noch nicht als «komplett verkauft»."
+    },
+    {
+      "type": "h2",
+      "id": "b-0062z24",
+      "text": "PDF-Abrechnungen automatisch einlesen"
+    },
+    {
+      "type": "p",
+      "id": "b-0062z25",
+      "text": "Die Depot-Ansicht kann Wertpapierabrechnungen als PDF einlesen und daraus Transaktionen automatisch vorbereiten. Beim <b>ersten Mal</b> prüfen und bestätigen Sie die Werte manuell – die App lernt dabei die Regeln für diese Bank. Anschließend lädt die App die Werte bei nachfolgenden Abrechnungen dieser Bank automatisch vor. Die ausführliche Dokumentation und die Einstellungen zum Lernen von Erkennungsregeln stehen in Kapitel 16 (Einstellungen)."
     },
     {
       "type": "h1",
       "id": "b-0063",
-      "text": "8. Schnell erfassen: Sprache, Standort, Belege"
+      "text": "9. Schnell erfassen: Sprache, Standort, Belege"
     },
     {
       "type": "p",
@@ -792,7 +1012,11 @@
           "text": "Daß der Betrag hier überhaupt mitredet, setzt den Schalter <b>«Betrag in den Vorschlägen berücksichtigen»</b> voraus (ab Werk <b>aus</b>). Ohne ihn steht sofort der nächstgelegene Empfänger da und bleibt beim Tippen stehen – gewählt wird dann allein durch Antippen."
         }
       ],
-      "shot": {"fname": "Buchung Betrag - Automatischer Empfänger anhand GPS.png", "caption": "Betrag-only-Erfassung: der Empfänger wird über den Standort gefunden", "width": 6.0}
+      "shot": {
+        "fname": "Buchung Betrag - Automatischer Empfänger anhand GPS.png",
+        "caption": "Betrag-only-Erfassung: der Empfänger wird über den Standort gefunden",
+        "width": 6.0
+      }
     },
     {
       "type": "h2",
@@ -824,7 +1048,11 @@
           "text": "Statt eines Fotos können Sie auch ein <b>PDF-Dokument</b> anhängen – die Rechnung aus dem Netz, den Kontoauszug, die Bestätigung einer Überweisung. Im Beleg-Dialog steht dafür der Eintrag <b>«PDF-Dokument wählen»</b>; es öffnet sich die Dateiauswahl des Geräts. Mehrere Dokumente je Buchung sind möglich, jedes bekommt eine eigene Zeile mit PDF-Symbol. Ein Tipp darauf öffnet es im <b>gewohnten PDF-Betrachter</b> Ihres Geräts, mit allen Seiten; zugeschnitten wird ein PDF nicht, es wird nur angehängt oder gelöscht. Eine Buchung trägt <b>entweder</b> Fotos <b>oder</b> Dokumente – der jeweils andere Eintrag im Dialog ist abgeblendet, bis Sie die vorhandenen Seiten gelöscht haben. Hochgeladen wird ein PDF wie ein Foto, in denselben Jahresordner; in der Notiz steht dafür das Kürzel <b>«BELEG (PDF): …»</b>."
         }
       ],
-      "shot": {"fname": "Beleg Seiten.png", "caption": "Beim Bearbeiten je Seite eine Zeile mit Zuschneiden und Löschen", "width": 4.0}
+      "shot": {
+        "fname": "Beleg Seiten.png",
+        "caption": "Beim Bearbeiten je Seite eine Zeile mit Zuschneiden und Löschen",
+        "width": 4.0
+      }
     },
     {
       "type": "text_with_single_shot",
@@ -851,7 +1079,11 @@
           "text": "Löschen Sie eine Buchung, verschwinden ihre Bilder beim <b>nächsten App-Start</b> – nicht sofort, damit das «Rückgängig» direkt nach dem Löschen den Beleg noch mitbringt."
         }
       ],
-      "shot": {"fname": "Beleg Betrachter.png", "caption": "Der eigene Betrachter zählt mit: «Seite 1 von 2»", "width": 4.0}
+      "shot": {
+        "fname": "Beleg Betrachter.png",
+        "caption": "Der eigene Betrachter zählt mit: «Seite 1 von 2»",
+        "width": 4.0
+      }
     },
     {
       "type": "h2",
@@ -903,7 +1135,11 @@
           "text": "Bearbeiten Sie ein Bild <b>ein zweites Mal</b>, fragt die App deshalb: <b>«Bearbeitung fortsetzen»</b> arbeitet auf der aktuellen Fassung weiter – etwa um nur die Helligkeit nachzuziehen, ohne den Zuschnitt zu verlieren. <b>«Mit Original beginnen»</b> holt das unbearbeitete Foto zurück, wenn ein Zuschnitt zu eng geraten ist. Bei einem Bild, das noch nie bearbeitet wurde, erscheint die Frage nicht."
         }
       ],
-      "shot": {"fname": "Beleg bearbeiten.png", "caption": "Bearbeitung: vier Eckpunkte, «Rechteck»/«Trapez», Helligkeit und Kontrast", "width": 4.5}
+      "shot": {
+        "fname": "Beleg bearbeiten.png",
+        "caption": "Bearbeitung: vier Eckpunkte, «Rechteck»/«Trapez», Helligkeit und Kontrast",
+        "width": 4.5
+      }
     },
     {
       "type": "h2",
@@ -955,7 +1191,11 @@
           "text": "Unabhängig davon merkt sich die App, welche Stichwörter bei einem Empfänger <b>schon vorkamen</b>. Sie stehen im Stichwort-Fenster ganz <b>oben</b>, mit dem Stichwort-Zeichen davor, und noch einmal an ihrem alphabetischen Platz – dieselbe Machart wie der Vorspann «Bei diesem Empfänger» der Kategorie-Auswahl. Die Rangfolge ist auch dieselbe: <b>bevorzugte Aliase (★) → Buchungen (jüngste zuerst) → übrige Aliase</b>, höchstens sechs. Sobald Sie tippen, bleibt allein die Trefferliste stehen."
         }
       ],
-      "shot": {"fname": "Aliase.png", "caption": "Verwaltung der Alias-Namen: gesprochener Begriff → echter Empfänger", "width": 6.0}
+      "shot": {
+        "fname": "Aliase.png",
+        "caption": "Verwaltung der Alias-Namen: gesprochener Begriff → echter Empfänger",
+        "width": 6.0
+      }
     },
     {
       "type": "h1",
@@ -980,7 +1220,11 @@
           ]
         }
       ],
-      "shot": {"fname": "Buchungen Filtern.png", "caption": "Filter nach Suchtext, Kategorie, Betrag und Zeitraum", "width": 6.0}
+      "shot": {
+        "fname": "Buchungen Filtern.png",
+        "caption": "Filter nach Suchtext, Kategorie, Betrag und Zeitraum",
+        "width": 6.0
+      }
     },
     {
       "type": "h2",
@@ -1063,7 +1307,11 @@
           ]
         }
       ],
-      "shot": {"fname": "Buchungen Auswertung.png", "caption": "Auswertung als Balken- und Liniendiagramm", "width": 5.5}
+      "shot": {
+        "fname": "Buchungen Auswertung.png",
+        "caption": "Auswertung als Balken- und Liniendiagramm",
+        "width": 5.5
+      }
     },
     {
       "type": "h1",
@@ -1092,7 +1340,11 @@
           ]
         }
       ],
-      "shot": {"fname": "Kategorien Auswertung.png", "caption": "Kategorien-Kreisdiagramm: «Wofür geht mein Geld?»", "width": 4.0}
+      "shot": {
+        "fname": "Kategorien Auswertung.png",
+        "caption": "Kategorien-Kreisdiagramm: «Wofür geht mein Geld?»",
+        "width": 4.0
+      }
     },
     {
       "type": "h2",
@@ -1157,7 +1409,11 @@
           "text": "Ob eine Kategorie <b>Einnahme oder Ausgabe</b> ist, ergibt sich aus der .kmy-Datei. Eine Erstattung mindert daher die Ausgabekategorie, ohne sie zur Einnahme zu machen; ein rechnerisch negativer Ist wird auf 0 gesetzt."
         }
       ],
-      "shot": {"fname": "Budget.png", "caption": "Budget-Seite: Ist/Soll je Kategorie, mit Fortschrittsbalken", "width": 6.0}
+      "shot": {
+        "fname": "Budget.png",
+        "caption": "Budget-Seite: Ist/Soll je Kategorie, mit Fortschrittsbalken",
+        "width": 6.0
+      }
     },
     {
       "type": "h2",
@@ -1207,7 +1463,11 @@
           ]
         }
       ],
-      "shot": {"fname": "Geplante Buchungen.png", "caption": "Geplante Buchungen: chronologische Liste mit Saldo-Streifen", "width": 4.5}
+      "shot": {
+        "fname": "Geplante Buchungen.png",
+        "caption": "Geplante Buchungen: chronologische Liste mit Saldo-Streifen",
+        "width": 4.5
+      }
     },
     {
       "type": "h2",
@@ -1324,300 +1584,16 @@
           "text": "Wer weit nach unten scrollt, kann über den eingeblendeten <b>Nach-oben-Knopf</b> (unten links) direkt an den Listenanfang springen."
         }
       ],
-      "shot": {"fname": "Geplante Buchungen Grafik.png", "caption": "Grafik der Planungen: Balken je Fälligkeit und Entwicklungslinie", "width": 6.0}
-    },
-    {
-      "type": "h1",
-      "id": "b-0131",
-      "text": "14. Bestände (Orte) und Depot"
-    },
-    {
-      "type": "h2",
-      "id": "b-0132",
-      "text": "Bestände / Orte – was ist das?"
-    },
-    {
-      "type": "text_with_single_shot",
-      "id": "b-0133",
-      "content": [
-        {
-          "type": "p",
-          "id": "b-0134",
-          "text": "Ein <b>Ort</b> beschreibt, <b>wo</b> das Bargeld eines Kontos physisch liegt – z. B. Geldbeutel, Spardose, Portokasse oder ein Umschlag. Ein Konto «Bargeld» lässt sich damit in mehrere reale Aufbewahrungsorte aufteilen. <b>Diese Funktion gibt es in KMyMoney nicht</b>; sie ist eine Ergänzung dieser App für die Bargeld-Praxis."
-        },
-        {
-          "type": "p",
-          "id": "b-0135",
-          "text": "Orte sind dabei <b>nicht auf Bargeld-Konten beschränkt</b> – sie lassen sich für <b>jedes beliebige Konto</b> verwenden. In den folgenden Beispielen bleiben wir aber beim Bargeld."
-        },
-        {
-          "type": "p",
-          "id": "b-0136",
-          "text": "Erreichbar über <b>⋮ → Bestände</b>. Jeder Ort führt ein eigenes <b>Bewegungs-Journal</b>; sein Saldo ist die Summe seiner Bewegungen. Die Summe aller Ort-Salden entspricht dabei immer dem Kontosaldo: <b>«ohne Ort»</b> ist der automatisch berechnete Rest (Kontosaldo − Summe der übrigen Orte). So bleibt das Konto stimmig, egal wie viele Orte Sie anlegen."
-        }
-      ],
-      "shot": {"fname": "Bestände.png", "caption": "Bestände: Anlage-/Verbindlichkeitskonten und Depot mit Orten je Konto", "width": 4.5}
-    },
-    {
-      "type": "bullets",
-      "id": "b-0137",
-      "items": [
-        "Eine in der App angelegte Buchung erzeugt automatisch eine Bewegung auf dem <b>Standardort</b> des Kontos.",
-        "Ort-Bewegungen lassen sich einzeln <b>anlegen, ändern und löschen</b>.",
-        "Geld lässt sich <b>zwischen Orten umbuchen</b> (z. B. um eine importierte Buchung einem Ort zuzuordnen oder um Bargeld vom Umschlag in den Geldbeutel zu verschieben).",
-        "Spätere Betrags- oder Lösch-Änderungen hängen datierte Ausgleichs-Bewegungen an – die Historie bleibt erhalten."
-      ]
-    },
-    {
-      "type": "h2",
-      "id": "b-0138",
-      "text": "Ort bei alten (importierten) Buchungen"
-    },
-    {
-      "type": "p",
-      "id": "b-0139",
-      "text": "Eine <b>exportierte und wieder importierte</b> Buchung verliert ihre Ort-Verknüpfung – das ist so gewollt. Öffnen Sie solch eine Buchung trotzdem <b>zum Bearbeiten</b> (langer Druck), wird das <b>Ort-Feld angezeigt</b>, sobald das Konto überhaupt Orte hat. So lässt sich ein Ort auswählen. Was damit passiert, hängt davon ab, welchen Knopf Sie drücken:"
-    },
-    {
-      "type": "bullets",
-      "id": "b-0140",
-      "items": [
-        "<b>«Neue Buchung»</b> (duplizieren): Es entsteht eine <b>neue</b> Buchung – der gewählte Ort wird <b>gespeichert</b> und in den Beständen als Bewegung angelegt. Das ist der Weg, einer alten Buchung nachträglich einen Ort zu geben.",
-        "<b>«Buchung ändern»</b> bei einer Buchung, die <b>vorher keinen Ort</b> hatte und <b>bereits exportiert</b> ist: Der eingegebene Ort wird <b>ignoriert</b>, das Ort-Journal bleibt unberührt.",
-        "<b>«Buchung ändern»</b> bei einer Buchung, die <b>vorher einen Ort</b> hatte: Der neue Ort wird <b>gespeichert</b> und per Ausgleichs-Bewegung nachgezogen (alter Ort −Betrag, neuer Ort +Betrag)."
-      ]
-    },
-    {
-      "type": "p",
-      "id": "b-0141",
-      "text": "In der reinen <b>Ansicht</b> (kurzer Tipp) zeigt sich das Ort-Feld nur, wenn die Buchung <b>wirklich an einem Ort hängt</b> – ein «ohne Ort» wäre ja keine Auskunft, und eine importierte Buchung hat gar keinen. Bei <b>Umbuchungen</b> gilt das für Von-Ort und Nach-Ort <b>jeweils für sich</b>; die Bewegung wird auf <b>beiden Konten</b> angelegt."
-    },
-    {
-      "type": "h2",
-      "id": "b-0142",
-      "text": "Kassensturz auf Orts-Ebene"
-    },
-    {
-      "type": "p",
-      "id": "b-0143",
-      "text": "Ein besonderer Vorteil: Der <b>Kassensturz</b> (Soll-Ist-Abgleich) lässt sich <b>pro Ort</b> durchführen. Sie zählen nur das Bargeld <i>eines</i> Ortes – etwa den Geldbeutel –, tragen den gezählten Betrag ein, und die App bucht automatisch die Differenz als Ausgleichs-Bewegung. Sie müssen also nicht das gesamte Konto auf einmal abstimmen; das <b>vereinfacht den Abgleich erheblich</b>. Importierte Buchungen tragen keine Ort-Verknüpfung. Hat ein Konto <b>gar keine Orte</b>, fehlt das Ort-Feld – dann wird das ganze Konto abgestimmt."
-    },
-    {
-      "type": "p",
-      "id": "b-0144",
-      "text": "Neben dem Schalter <b>«Buchung erzeugen»</b> steht ein Knopf für <b>Empfänger und Kategorie</b> dieser Ausgleichsbuchung. Anfangs ist beides leer und der Knopf sagt «Empfänger/Kategorie festlegen»; solange nichts festgelegt ist, bleibt <b>«Übernehmen»</b> ausgegraut. Der Knopf öffnet ein kleines Fenster mit beiden Feldern (mit denselben Vorschlagslisten wie im Editor); <b>«Speichern»</b> merkt die Angaben dauerhaft, sodass sie beim nächsten Kassensturz bereits vorbelegt sind."
-    },
-    {
-      "type": "h2",
-      "id": "b-0145",
-      "text": "Anlage- und Verbindlichkeitskonten"
-    },
-    {
-      "type": "p",
-      "id": "b-0146",
-      "text": "Konten werden anhand ihres KMyMoney-Typs in <b>Anlagekonten</b>, <b>Verbindlichkeitskonten</b> (Kredite, Kreditkarten) und <b>Depots</b> gruppiert – mit farbcodierten Überschriften (Anlage = grün, Verbindlichkeit = rot, Depot = blau; helle Darstellung → hellere Farbe/schwarze Schrift, dunkle Darstellung → dunklere Farbe/weiße Schrift) sowohl in der Kontenschublade als auch in den Beständen. In den Beständen zeigt jede Kategorie-Überschrift rechtsbündig ihre <b>Kategoriesumme</b>; das Depot zählt als eine Zeile (Depotwert) zum <b>Gesamt</b> mit (in neutralem Grau/Schwarz). Die Einteilung stammt aus der .kmy."
-    },
-    {
-      "type": "h2",
-      "id": "b-0147",
-      "text": "Depot (Wertpapiere)"
-    },
-    {
-      "type": "text_with_single_shot",
-      "id": "b-0148",
-      "content": [
-        {
-          "type": "p",
-          "id": "b-0149",
-          "text": "Nach dem Import eines KMyMoney-Investmentkontos erscheint das <b>Depot</b> in der Kontenschublade. Die Ansicht ist wie eine Konto-Ansicht aufgebaut – gleiche Titelleiste, gleiche Schublade, gleicher Filter – und zeigt je Wertpapier <b>Stückzahl × Kurs = aktueller Wert</b>. Vollständig verkaufte Papiere werden ausgeblendet."
-        },
-        {
-          "type": "p",
-          "id": "b-0149a",
-          "text": "Die <b>Saldenzeile schaltet per Tipp</b> durch: Depotwert → Käufe → Verkäufe → Dividenden → <b>Nettoeinsatz</b> (Käufe − Verkäufe − Dividenden) → <b>Gewinn/Verlust</b> (farbig, mit Prozent). Verkäufe und Dividenden erscheinen nur, wenn es welche gibt. Der Depotwert wird getrennt geführt und steht zusätzlich als «Gesamtvermögen» in der Saldenzeile des Hauptbildschirms."
-        },
-        {
-          "type": "p",
-          "id": "b-0149b",
-          "text": "Ein Tipp auf ein Wertpapier öffnet seine <b>Bewegungen im Vollbild</b> – Käufe grün, Verkäufe rot, Dividenden neutral – mit denselben Kennzahlen für dieses Papier, einem Filter nach Käufen, Verkäufen und Dividenden sowie einem Datums-Regler, der beim ersten Kauf beginnt."
-        },
-        {
-          "type": "p",
-          "id": "b-0149c",
-          "text": "Der <b>Depot-Filter</b> grenzt die Wertpapiere nach Name und Wert ein; der Regler arbeitet wie im Buchungsfilter in Anteilen, nicht in Beträgen. Wer weit nach unten scrollt, springt über den <b>Nach-oben-Knopf</b> unten links zurück an den Anfang."
-        },
-        {
-          "type": "p",
-          "id": "b-0150a",
-          "text": "Ein <b>kurzer Tipp</b> auf eine Bewegung zeigt die Zahlen dahinter: bei <b>Kauf</b> und <b>Verkauf</b> Anzahl Stücke, Stückpreis, Betrag, Gebühren und den daraus folgenden Gesamtbetrag (Belastung beim Kauf, Gutschrift beim Verkauf); bei <b>Dividenden</b> die Stückzahl im Bestand, die Bruttodividende pro Stück, den Bruttobetrag, Steuern/Abgaben und den Nettobetrag; bei <b>Ein-</b> und <b>Ausbuchungen</b> die Stückzahl. Die <b>Gebühren</b> stehen erst nach einem erneuten Depot-Import zur Verfügung – vorher bleibt die Zeile weg."
-        },
-        {
-          "type": "p",
-          "id": "b-0150",
-          "text": "Bei <b>Einbuchungen</b> und <b>Ausbuchungen</b> kennt KMyMoney nur die Stückzahl, keinen Geldwert. Ein <b>langer Klick</b> auf eine solche Zeile öffnet einen Dialog, um den Wert manuell einzutragen (über dieselbe Rechentastatur wie sonst im Betragsfeld) – er zählt danach wie ein Kauf bzw. Verkauf zum Einstandspreis und Gewinn/Verlust und übersteht auch einen erneuten Depot-Import."
-        }
-      ],
-      "shot": {"fname": "Depot.png", "caption": "Depot-Ansicht: Wertpapiere mit Stückzahl, Kurs und aktuellem Wert", "width": 3.0}
-    },
-    {
-      "type": "shot_row",
-      "id": "b-0151",
-      "shots": [
-        {"fname": "Depot Buchungen.png", "caption": "Bewegungen eines Wertpapiers: Käufe, Verkäufe und Dividenden"},
-        {"fname": "Depot Filtern.png", "caption": "Depot-Bewegungen filtern (Käufe/Verkäufe/Dividenden, Zeitraum)"}
-      ]
-    },
-    {
-      "type": "h2",
-      "id": "b-0151a",
-      "text": "Eine Wertpapier-Buchung öffnen"
-    },
-    {
-      "type": "p",
-      "id": "b-0151b",
-      "text": "Ein Wertpapierkauf erscheint auch in der Buchungsliste des Verrechnungskontos – als Umbuchung zwischen diesem Konto und dem Wertpapier. Öffnen Sie sie, sind <b>Betrag, Empfänger, Konten und Datum gesperrt</b>. Der Grund: <b>Stückzahl und Kurs</b> gehören zu dieser Buchung, stehen aber nur in der KMyMoney-Datei. Die App kennt sie nicht – dürfte sie die Buchung wie eine gewöhnliche Umbuchung zurückschreiben, wäre aus dem Wertpapierkauf in Ihrer Datei eine nackte Umbuchung geworden, und das Depot dort zerstört."
-    },
-    {
-      "type": "p",
-      "id": "b-0151c",
-      "text": "Ändern lassen sich dafür genau die drei Dinge, die KMyMoney bei einer solchen Buchung nicht selbst braucht: die <b>Notiz</b>, die <b>Stichwörter</b> und der <b>Beleg</b> – etwa die Abrechnung Ihrer Bank als PDF. Beim nächsten Export trägt die App sie in die vorhandene Transaktion nach, ohne sie neu zu bauen: Stückzahl, Kurs und Art der Bewegung bleiben unangetastet. So finden Sie die Abrechnung auch nach einem erneuten Einlesen des Depots wieder."
-    },
-    {
-      "type": "h3",
-      "id": "b-0151d",
-      "text": "Löschen geht – anders als Ändern"
-    },
-    {
-      "type": "p",
-      "id": "b-0151e",
-      "text": "<b>«Löschen»</b> gibt es hier sehr wohl, und es nimmt die zugehörige <b>Depot-Bewegung</b> mit; sonst bliebe im Depot eine Bewegung ohne Geldbuchung stehen. Warum das erlaubt ist, wo das Ändern gesperrt bleibt: beim Löschen verschwindet die <b>ganze</b> Transaktion – Geld-, Wertpapier- und Gebührenteil zusammen. Es kann nichts halb stehenbleiben, und genau das war der Grund, das Ändern zu verbieten."
-    },
-    {
-      "type": "p",
-      "id": "b-0151f",
-      "text": "Steht die Buchung bereits in der KMyMoney-Datei, sagt die Rückfrage das ausdrücklich: beim nächsten Export wird die Transaktion auch <b>dort</b> entfernt, samt Stückzahl und Kurs. <b>Rückgängig gibt es nicht</b> – die Buchung ließe sich wiederherstellen, die Depot-Bewegung nicht, und ein halbes Zurück wäre schlimmer als keines."
-    },
-    {
-      "type": "text_with_single_shot",
-      "id": "b-0152",
-      "content": [
-        {
-          "type": "p",
-          "id": "b-0153",
-          "text": "Das Menü <b>«Auswertung»</b> öffnet ein <b>Kreisdiagramm</b> der Wertpapiere – im Design der Kategorien-Seite (durchgehender Ring, feste Farbe je Wertpapier, höchstens halbe Bildschirmhöhe, darunter eine eigene scrollbare Liste). Die Segmente sind unbeschriftet; ein Tipp zeigt in der Mitte <b>Name und Betrag</b> des Papiers, ohne Auswahl steht dort «Gesamt». Grafik und Liste sind <b>immer</b> absteigend nach dem aktuellen Wert des Zeitraums sortiert."
-        },
-        {
-          "type": "p",
-          "id": "b-0154",
-          "text": "Oben wählt ein <b>Symbol-Umschalter</b> die Ansicht: <b>Aktueller Wert</b> (Standard, €-Symbol) · <b>Netto-Einzahlungen</b> (Pfeil) · <b>Summe Dividenden</b> (%-Symbol) · <b>Gewinn/Verlust</b> (Trendpfeil). Darunter grenzt ein <b>Zeitraumfilter</b> die Auswertung ein – ein monatlicher Bereichsslider (erste Depot-Buchung bis heute) sowie zwei Datumsfelder <b>Von/Bis</b> für ein beliebiges Datum. Jede Änderung an Ansicht oder Zeitraum aktualisiert Grafik und Liste sofort."
-        }
-      ],
-      "shot": {"fname": "Depot Auswertung.png", "caption": "Depot-Auswertung: Symbol-Umschalter, Zeitraumfilter und Kreisdiagramm", "width": 4.0}
-    },
-    {
-      "type": "bullets",
-      "id": "b-0155",
-      "items": [
-        "<b>Aktueller Wert:</b> heutiger Wert (aktueller Kurs) der im Zeitraum <b>aufgebauten Positionen</b> – also der im Zeitraum gekauften, noch gehaltenen Stücke. Bei vollem Zeitraum entspricht das dem aktuellen Depotwert (im Zeitraum wieder verkaufte Stücke zählen nicht negativ).",
-        "<b>Netto-Einzahlungen:</b> Käufe − Verkäufe − Dividenden innerhalb des Zeitraums.",
-        "<b>Summe Dividenden:</b> alle im Zeitraum erhaltenen Dividenden (brutto/netto laut Einstellung).",
-        "<b>Gewinn/Verlust:</b> Aktueller Wert − Netto-Einzahlungen, je Wertpapier als €-Betrag und als %-Rendite bezogen auf den Einstandspreis (Käufe) – in der Liste grün/rot gefärbt. Die Kreisdiagramm-Segmente behalten dabei die normale Wertpapierfarbe."
-      ]
-    },
-    {
-      "type": "p",
-      "id": "b-0156",
-      "text": "Im <b>Menüstreifen</b> blendet ein Symbol <b>komplett verkaufte Wertpapiere</b> ein oder aus (Standard: ausgeblendet). Maßgeblich ist der Netto-Bestand <b>am Ende des gewählten Zeitraums</b> – ein Verkauf danach zählt also noch nicht als «komplett verkauft»."
-    },
-    {
-      "type": "p",
-      "id": "b-0157",
-      "text": "<b>Dividenden brutto/netto:</b> In den Einstellungen wählbar, ob Dividenden brutto (deklarierte Dividende) oder netto (gutgeschriebenes Geld nach Steuer) angezeigt und in der Saldenzeile (Dividenden, Nettoeinsatz, Gewinn/Verlust) verrechnet werden."
-    },
-    {
-      "type": "p",
-      "id": "b-0157z",
-      "text": "<b>PDF-Abrechnungen einlesen:</b> Die Depot-Ansicht kann Wertpapierabrechnungen als PDF einlesen und daraus Transaktionen automatisch vorbereiten. Beim <b>ersten Mal</b> prüfen und bestätigen Sie die Werte manuell – die App <b>lernt</b> dabei die Regeln für diese Bank. Anschließend lädt die App die Werte bei nachfolgenden Abrechnungen dieser Bank automatisch vor. Die ausführliche Dokumentation und die Einstellungen zum Lernen von Erkennungsregeln stehen in Kapitel 17 (Einstellungen)."
-    },
-    {
-      "type": "h3",
-      "id": "b-0157g",
-      "text": "Werte in einer Tabelle"
-    },
-    {
-      "type": "p",
-      "id": "b-0157h",
-      "text": "Manche Banken stellen die Zahlen nicht hinter eine Beschriftung, sondern <b>unter eine Spaltenüberschrift</b>. Die Datenzeile beginnt dann mit einer Zahl und trägt selbst gar keine Beschriftung. Für solche Belege heißt <b>«in einer der Zeilen darunter»</b>: die nächste Zeile, die überhaupt einen Wert trägt – bis zu drei Zeilen weit. Das überspringt eine zweite Kopfzeile, die manche Banken einschieben. Wenn diese Suche an einer Zwischenzeile hängenbleibt, die zufällig eine Zahl trägt, wählen Sie stattdessen <b>«genau 1, 2 oder 3 Zeilen darunter»</b>."
-    },
-    {
-      "type": "p",
-      "id": "b-0157i",
-      "text": "Eine Tabellenzeile trägt oft mehrere Angaben derselben Art – vorn den Buchungstag, daneben die Wertstellung. Welche gemeint ist, sagt die Auswahl <b>«Welche Zahl der Zeile»</b>; sie gilt auch für Datumsangaben. Beim Datum bedeutet die Vorgabe «die letzte» aus Rücksicht auf ältere Regeln weiterhin <b>die erste</b> Angabe hinter der Beschriftung – wer eine andere will, wählt ausdrücklich «die erste (Tabellenspalte)» oder «die 2. von links»."
-    },
-    {
-      "type": "p",
-      "id": "b-0157k",
-      "text": "<b>In der Spalte der Beschriftung:</b> Bei einer Tabelle hilft Abzählen nur, solange jede Spalte genau eine Zahl breit ist und keine fehlt. Steht die Beschriftung als Spaltenüberschrift, wählen Sie bei «Welche Zahl der Zeile» stattdessen <b>«die Zahl in der Spalte der Beschriftung»</b>: die App nimmt dann den Wert, der auf der Seite unter (bzw. über) der Beschriftung steht. Das hält auch, wenn in einem späteren Beleg eine Spalte fehlt. Die Auswahl gibt es nur zusammen mit «darunter» oder «darüber» – in derselben Zeile wäre die Spalte der Beschriftung die Beschriftung selbst."
-    },
-    {
-      "type": "p",
-      "id": "b-0157l",
-      "text": "<b>Werte über der Beschriftung:</b> Manche Belege setzen erst die Zahl und benennen sie darunter. Dafür gibt es <b>«in einer der Zeilen darüber»</b> und <b>«genau 1, 2 oder 3 Zeilen darüber»</b> – spiegelbildlich zu «darunter»."
-    },
-    {
-      "type": "p",
-      "id": "b-0157j",
-      "text": "<b>Hilfe beim Eintippen:</b> Unter «Abrechnung prüfen» steht neben dem Ergebnis der Knopf <b>«Text mit Zeilennummern»</b>. Er zeigt die Abrechnung so, wie die App sie liest. Das ist nötig, weil ihre Zeilen nicht die Zeilen des PDF-Betrachters sind: sie entstehen aus den Wortpositionen, und eine optisch leere Zeile gibt es dort gar nicht. Zum Abzählen des Abstands ist das die einzige verläßliche Quelle."
-    },
-    {
-      "type": "h3",
-      "id": "b-0157o",
-      "text": "Mehrere Kategorien bei Gebühr und Ertrag"
-    },
-    {
-      "type": "p",
-      "id": "b-0157p",
-      "text": "Genau wie im Buchungseditor läßt sich «Gebühren/Steuern» – bei einer Dividende auch der «Ertrag» – auf mehrere Kategorien aufteilen. In der Erfassungsmaske fügt der Knopf <b>«+»</b> unter der Zeile eine weitere Kategorie hinzu; die Summe aller Zeilen muß den Betrag darüber ergeben."
-    },
-    {
-      "type": "p",
-      "id": "b-0157q",
-      "text": "Auf der Regelseite steht derselbe Knopf: Jede Teilzeile bekommt eine eigene Erkennungsregel – Beschriftung, Richtung, Stelle, genau wie ein normales Feld. Sagen Sie beim Merken «Für diese Bank merken», legt die App für jede Kategoriezeile, deren Beschriftung sie im Beleg findet, automatisch eine solche Teilregel an."
-    },
-    {
-      "type": "p",
-      "id": "b-0157r",
-      "text": "Bleibt danach ein Rest übrig, der auf dem Beleg gar nicht steht – etwa eine Bankgebühr, die manche Institute nicht ausdrucken –, merkt sich die App <b>nur diesen Rest</b> als feste Gebühr, nicht die ganze Summe. Beim erneuten Einlesen erscheint er dann als eigene, letzte Kategoriezeile neben den erkannten."
-    },
-    {
-      "type": "h3",
-      "id": "b-0157b",
-      "text": "Eine Gebühr, die nicht auf der Abrechnung steht"
-    },
-    {
-      "type": "p",
-      "id": "b-0157c",
-      "text": "Manche Banken nehmen je Order einen festen Betrag, ohne ihn auf der Abrechnung auszuweisen. Eine Regel kann ihn nicht finden – sie sucht nach einer Beschriftung, und es gibt keine. Auf der Regelseite steht deshalb bei der <b>Gebühr</b> ein Feld <b>«Feste Gebühr je Order»</b> samt Kategorie."
-    },
-    {
-      "type": "p",
-      "id": "b-0157d",
-      "text": "Ob dieser Betrag zum Zuge kommt, entscheidet der Schalter <b>«Mehrere Zeilen zusammenzählen»</b> darüber. Findet die Regel im Beleg keine Gebühr, gilt der feste Wert. Findet sie eine und der Schalter steht <b>an</b>, kommt der feste Wert hinzu. Steht er <b>aus</b>, gewinnt die gefundene Gebühr und der feste Wert bleibt außen vor."
-    },
-    {
-      "type": "p",
-      "id": "b-0157e",
-      "text": "Beim <b>Gesamtbetrag</b> steht dazu der Schalter <b>«Feste Gebühr steckt schon im Gesamtbetrag»</b>. Steht er aus, ist der abgebuchte Betrag um die Gebühr höher als die Zahl auf dem Beleg – beim Verkauf die Gutschrift um sie niedriger –, und die App rechnet das hinzu. Steht er an, bleibt der Gesamtbetrag, wie er dasteht."
-    },
-    {
-      "type": "p",
-      "id": "b-0157f",
-      "text": "<b>Von selbst erkannt:</b> Tragen Sie beim Erfassen einen Gesamtbetrag und eine Gebühr ein, die <b>beide</b> nicht in der Abrechnung stehen, probiert die App die Differenz – also den Betrag ohne die Gebühr. Findet sie den, lernt sie dessen Beschriftung und trägt die Gebühr gleich als feste Ordergebühr ein. Das ist der einzige Wert, den die App nicht abliest, sondern erschließt; die Rückfrage nennt ihn deshalb ausdrücklich mit Betrag."
+      "shot": {
+        "fname": "Geplante Buchungen Grafik.png",
+        "caption": "Grafik der Planungen: Balken je Fälligkeit und Entwicklungslinie",
+        "width": 6.0
+      }
     },
     {
       "type": "h1",
       "id": "b-0158",
-      "text": "15. Synchronisieren: Export und Import durchführen"
+      "text": "14. Synchronisieren: Export und Import durchführen"
     },
     {
       "type": "text_with_pic",
@@ -1629,7 +1605,11 @@
           "text": "Der eigentliche Abgleich mit KMyMoney läuft über <b>ein einziges Symbol</b> in der Titelleiste des Hauptbildschirms – das <b>Export-/Sync-Symbol</b> (Pfeil nach unten)."
         }
       ],
-      "pic": {"relpath": "screenshots/de/export_button.png", "caption": "Das Export-/Sync-Symbol in der Titelleiste (rot umkreist)", "width": 14.0}
+      "pic": {
+        "relpath": "screenshots/de/export_button.png",
+        "caption": "Das Export-/Sync-Symbol in der Titelleiste (rot umkreist)",
+        "width": 14.0
+      }
     },
     {
       "type": "h2",
@@ -1724,7 +1704,7 @@
     {
       "type": "h1",
       "id": "b-0173",
-      "text": "16. Wear OS (Uhr)"
+      "text": "15. Wear OS (Uhr)"
     },
     {
       "type": "text_with_single_shot",
@@ -1748,7 +1728,11 @@
           ]
         }
       ],
-      "shot": {"fname": "Promo-UhranlagemitAlias.png", "caption": "Erfassung auf der Uhr", "width": 4.5}
+      "shot": {
+        "fname": "Promo-UhranlagemitAlias.png",
+        "caption": "Erfassung auf der Uhr",
+        "width": 4.5
+      }
     },
     {
       "type": "h2",
@@ -1798,7 +1782,7 @@
     {
       "type": "h1",
       "id": "b-0181",
-      "text": "17. Einstellungen (vollständige Referenz)"
+      "text": "16. Einstellungen (vollständige Referenz)"
     },
     {
       "type": "text_with_shot_row",
@@ -1811,9 +1795,18 @@
         }
       ],
       "shots": [
-        {"fname": "Einstellungen_1.png", "caption": "Sprache, Zahlenformat, Server-Verbindung"},
-        {"fname": "Einstellungen_2.png", "caption": "Export-Modus, Standardkonto, Orte je Konto"},
-        {"fname": "Einstellungen_3.png", "caption": "Darstellung, Sicherheit, Daten"}
+        {
+          "fname": "Einstellungen_1.png",
+          "caption": "Sprache, Zahlenformat, Server-Verbindung"
+        },
+        {
+          "fname": "Einstellungen_2.png",
+          "caption": "Export-Modus, Standardkonto, Orte je Konto"
+        },
+        {
+          "fname": "Einstellungen_3.png",
+          "caption": "Darstellung, Sicherheit, Daten"
+        }
       ]
     },
     {
@@ -1831,7 +1824,7 @@
         "<b>Dividenden brutto/netto</b>: ob Depot-Dividenden brutto (deklariert) oder netto verrechnet werden.",
         "<b>Abrechnungen einlesen</b>: erlaubt im Depot das Einlesen von PDF-Abrechnungen der Bank (Standard: aus). Beim Einschalten nennt die App, an wie vielen Banken die Erkennung gemessen wurde. Die ausführliche Dokumentation steht im Abschnitt «Erkennungsregeln für PDF-Abrechnungen: Lernen und Verwalten» weiter unten.",
         "<b>Budget app-intern</b>: das Budget-Ist aus dem Verlauf berechnen statt aus KMyMoney importieren (siehe Kapitel 12).",
-        "<b>Offline-Sprachpaket auf der Uhr installieren</b> (nur GitHub-Variante mit Wear-Anbindung): erlaubt der Uhr, das Offline-Sprachmodell der gewählten Sprache zu laden, damit die Sprachaufnahme auch offline funktioniert (siehe Kapitel 16). Aus → offline greift der Zahlenblock-Fallback."
+        "<b>Offline-Sprachpaket auf der Uhr installieren</b> (nur GitHub-Variante mit Wear-Anbindung): erlaubt der Uhr, das Offline-Sprachmodell der gewählten Sprache zu laden, damit die Sprachaufnahme auch offline funktioniert (siehe Kapitel 15). Aus → offline greift der Zahlenblock-Fallback."
       ]
     },
     {
@@ -1929,7 +1922,11 @@
           "text": "Schlägt etwas fehl, nennt der Assistent den Grund konkret: «Server nicht erreichbar», «Benutzername oder Passwort sind ungültig», «Die ausgewählte Freigabe ist nicht verfügbar» oder «Zugriff auf den Ordner wurde verweigert» – dazu in Klammern der <b>rohe Statuscode</b> des Servers, damit eine Rückmeldung zuzuordnen ist. «Server nicht erreichbar» erscheint nur, solange wirklich noch keine Verbindung stand. Steht im Portfeld keine Zahl zwischen 1 und 65535, meldet er das sofort, ohne einen Verbindungsversuch."
         }
       ],
-      "shot": {"fname": "SMB Assistent.png", "caption": "SMB-Assistent: gefundene Server, Anmeldung und Freigabe-Auswahl", "width": 6.0}
+      "shot": {
+        "fname": "SMB Assistent.png",
+        "caption": "SMB-Assistent: gefundene Server, Anmeldung und Freigabe-Auswahl",
+        "width": 6.0
+      }
     },
     {
       "type": "h2",
@@ -1963,7 +1960,11 @@
           "text": "<b>«Bericht kopieren»</b> legt das Ergebnis in die Zwischenablage – gedacht zum Weiterschicken bei einer Fehlermeldung. Der Bericht enthält <b>weder Passwort noch Benutzernamen</b> (nur «gesetzt» oder «leer»)."
         }
       ],
-      "shot": {"fname": "SMB Diagnose.png", "caption": "Diagnose: jeder Schritt mit Dauer und Statuscode", "width": 6.0}
+      "shot": {
+        "fname": "SMB Diagnose.png",
+        "caption": "Diagnose: jeder Schritt mit Dauer und Statuscode",
+        "width": 6.0
+      }
     },
     {
       "type": "h2",
@@ -2193,7 +2194,7 @@
     {
       "type": "h1",
       "id": "b-0219",
-      "text": "18. CSV-Format (Export)"
+      "text": "17. CSV-Format (Export)"
     },
     {
       "type": "p",

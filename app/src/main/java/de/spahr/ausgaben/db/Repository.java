@@ -1446,6 +1446,16 @@ public class Repository {
 
     /** Löscht mehrere Konten samt Buchungen in einem Rutsch; {@code onDone} läuft einmal am Ende. */
     public void deleteAccounts(final List<String> accounts, final Runnable onDone) {
+        deleteAccountsAndDepots(accounts, null, onDone);
+    }
+
+    /**
+     * Löscht Konten und/oder Depots in einem Rutsch. Ein Depot hat keine eigenen Buchungen – gelöscht
+     * werden seine Wertpapiere samt Bewegungen/Kursen ({@link SecurityDao}) und die Trägerzeile in der
+     * Konto-Tabelle. {@code onDone} läuft einmal am Ende.
+     */
+    public void deleteAccountsAndDepots(final List<String> accounts, final List<String> depots,
+                                        final Runnable onDone) {
         executor.execute(() -> {
             if (accounts != null) {
                 for (String account : accounts) {
@@ -1456,9 +1466,21 @@ public class Repository {
                         accountDao.deleteByName(account.trim());
                     }
                 }
-                // Die Zuordnungen fallen mit dem Konto weg; dabei leer gewordene Gruppen mit entsorgen.
-                groupRepo.deleteEmptyCustomGroups();
             }
+            if (depots != null) {
+                for (String depot : depots) {
+                    if (depot != null && !depot.trim().isEmpty()) {
+                        String name = depot.trim();
+                        securityDao.deleteSplitsOf(name);
+                        securityDao.deleteTx(name);
+                        securityDao.deleteSecurities(name);
+                        securityDao.deletePrices(name);
+                        accountDao.deleteByName(name);
+                    }
+                }
+            }
+            // Die Zuordnungen fallen mit dem Konto weg; dabei leer gewordene Gruppen mit entsorgen.
+            groupRepo.deleteEmptyCustomGroups();
             if (onDone != null) {
                 mainHandler.post(onDone);
             }

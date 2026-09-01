@@ -22,17 +22,24 @@ public class PlacesStore {
 
     public static final String NO_PLACE = "ohne Ort";
 
-    private static final String PREFS = "ausgaben_places";
-    private static final String KEY_ACCOUNTS = "accounts_v2";
+    static final String PREFS = "ausgaben_places";
+    static final String KEY_ACCOUNTS = "accounts_v2";
     private static final String KEY_MIGRATED = "migrated_v2";
     // Alte (globale) Schlüssel – nur noch für die einmalige Migration.
     private static final String KEY_LEGACY_PLACES = "places";
     private static final String KEY_LEGACY_DEFAULT = "default_place";
 
     private final SharedPreferences prefs;
+    private final String profilePrefix;
 
     public PlacesStore(Context context) {
-        this.prefs = context.getApplicationContext().getSharedPreferences(PREFS, Context.MODE_PRIVATE);
+        Context app = context.getApplicationContext();
+        this.prefs = app.getSharedPreferences(PREFS, Context.MODE_PRIVATE);
+        this.profilePrefix = "p_" + new ProfileManager(app).getActiveProfileId() + "_";
+    }
+
+    private String accountsKey() {
+        return profilePrefix + KEY_ACCOUNTS;
     }
 
     // ---- Lesen ----
@@ -111,7 +118,7 @@ public class PlacesStore {
     public void removeAccount(String account) {
         JSONObject root = root();
         root.remove(account);
-        prefs.edit().putString(KEY_ACCOUNTS, root.toString()).apply();
+        prefs.edit().putString(accountsKey(), root.toString()).apply();
     }
 
     /**
@@ -151,7 +158,7 @@ public class PlacesStore {
 
     private JSONObject root() {
         try {
-            return new JSONObject(prefs.getString(KEY_ACCOUNTS, "{}"));
+            return new JSONObject(prefs.getString(accountsKey(), "{}"));
         } catch (Exception e) {
             return new JSONObject();
         }
@@ -183,7 +190,7 @@ public class PlacesStore {
             acc.put("p", arr);
             acc.put("d", defaultPlace == null ? "" : defaultPlace.trim());
             root.put(account.trim(), acc);
-            prefs.edit().putString(KEY_ACCOUNTS, root.toString()).apply();
+            prefs.edit().putString(accountsKey(), root.toString()).apply();
         } catch (Exception ignored) {
         }
     }

@@ -1,20 +1,16 @@
 package de.spahr.ausgaben.ui;
 
-import de.spahr.ausgaben.net.RemotePath;
 import android.Manifest;
 import android.content.Intent;
 import android.content.pm.PackageManager;
 import android.net.Uri;
 import android.os.Build;
 import android.os.Bundle;
-import android.view.Gravity;
 import android.view.LayoutInflater;
 import android.view.View;
 import android.widget.Button;
 import android.widget.CompoundButton;
-import android.widget.EditText;
 import android.widget.LinearLayout;
-import android.widget.TextView;
 import android.widget.Toast;
 
 import androidx.activity.result.ActivityResultLauncher;
@@ -49,65 +45,25 @@ import de.spahr.ausgaben.backup.BackupCrypto;
 import de.spahr.ausgaben.backup.BackupStore;
 import de.spahr.ausgaben.db.Repository;
 import de.spahr.ausgaben.export.ExportCoordinator;
-import de.spahr.ausgaben.net.RemoteStorage;
 import de.spahr.ausgaben.security.BiometricAuth;
 import de.spahr.ausgaben.settings.PlacesStore;
 import de.spahr.ausgaben.settings.SettingsStore;
 
-public class SettingsActivity extends LocalizedActivity implements SmbWizardController.Host {
+public class SettingsActivity extends LocalizedActivity {
 
     private SettingsStore settings;
     private Repository repository;
-    private PlacesStore placesStore;
 
-    private LinearLayout placesContainer;
-    private MaterialAutoCompleteTextView editDefaultPlace;
-    private MaterialAutoCompleteTextView editPlacesAccount;
-    /** Konto, dessen Orte gerade in den Einstellungen verwaltet werden. */
-    private String placesAccount = "";
-
-    private TextInputEditText editUrl;
-    private TextInputEditText editUser;
-    private TextInputEditText editPassword;
-    private TextInputLayout urlLayout;
-    private TextInputLayout userLayout;
-    private TextInputLayout passwordLayout;
-    /** Assistent für SMB; ersetzt bei diesem Server-Typ die Felder URL/Benutzer/Passwort. */
-    private SmbWizardController smbWizard;
-    private TextInputEditText editFolder;
-    private TextInputEditText editImportFolder;
-    private MaterialAutoCompleteTextView editExportMode;
-    private MaterialAutoCompleteTextView editServerType;
-    private TextInputEditText editKmyPath;
-    private MaterialAutoCompleteTextView editDefaultAccount;
     private MaterialSwitch switchDarkMode;
     private MaterialSwitch switchScheduledReminder;
     private MaterialSwitch switchAppLock;
 
     private MaterialAutoCompleteTextView editLanguage;
-    private TextInputEditText editCurrency;
-    private TextInputEditText editDividendTaxRate;
-    private MaterialAutoCompleteTextView editNumberFormat;
-    private MaterialAutoCompleteTextView editCsvSeparator;
-    /** Aktuell gewähltes CSV-Trennzeichen (SettingsStore.CSV_SEP_*). */
-    private String selectedCsvSeparator = SettingsStore.CSV_SEP_SEMICOLON;
-    /** Trennzeichen-Werte passend zu den Labels in {@link #setupCsvSeparator()}. */
-    private static final String[] CSV_SEPARATOR_VALUES = {
-            SettingsStore.CSV_SEP_SEMICOLON, SettingsStore.CSV_SEP_COMMA};
     private com.google.android.material.slider.Slider sliderFontSize;
     /** Schriftgrößen-Werte je Slider-Position 0..3 (klein → sehr groß). */
     private static final String[] FONT_SIZE_VALUES = {
             SettingsStore.FONT_SIZE_SMALL, SettingsStore.FONT_SIZE_NORMAL,
             SettingsStore.FONT_SIZE_LARGE, SettingsStore.FONT_SIZE_XLARGE};
-    private MaterialSwitch switchShowCurrency;
-    private MaterialSwitch switchDividendGross;
-    private MaterialSwitch switchBudgetInternal;
-    /** Aktuell gewählter Zahlenformat-Wert (SettingsStore.NUMBER_FORMAT_*). */
-    private String selectedNumberFormat = SettingsStore.NUMBER_FORMAT_PLAIN_COMMA;
-    /** Format-Werte passend zu den angezeigten Labels in {@link #setupNumberFormat()}. */
-    private static final String[] NUMBER_FORMAT_VALUES = {
-            SettingsStore.NUMBER_FORMAT_DE_GROUP, SettingsStore.NUMBER_FORMAT_EN_GROUP,
-            SettingsStore.NUMBER_FORMAT_PLAIN_COMMA, SettingsStore.NUMBER_FORMAT_PLAIN_DOT};
     private java.util.List<de.spahr.ausgaben.db.Language> languages = new java.util.ArrayList<>();
 
     private ActivityResultLauncher<String> notificationPermissionLauncher;
@@ -131,37 +87,7 @@ public class SettingsActivity extends LocalizedActivity implements SmbWizardCont
         settings = new SettingsStore(this);
         repository = new Repository(this);
 
-        editUrl = findViewById(R.id.editUrl);
-        editUser = findViewById(R.id.editUser);
-        editPassword = findViewById(R.id.editPassword);
-        urlLayout = findViewById(R.id.urlLayout);
-        userLayout = findViewById(R.id.userLayout);
-        passwordLayout = findViewById(R.id.passwordLayout);
-        editFolder = findViewById(R.id.editFolder);
-        editImportFolder = findViewById(R.id.editImportFolder);
-        editExportMode = findViewById(R.id.editExportMode);
-        editServerType = findViewById(R.id.editServerType);
-        editKmyPath = findViewById(R.id.editKmyPath);
-        editCsvSeparator = findViewById(R.id.editCsvSeparator);
-        editDefaultAccount = findViewById(R.id.editDefaultAccount);
         switchDarkMode = findViewById(R.id.switchDarkMode);
-
-        smbWizard = new SmbWizardController(this, findViewById(R.id.smbWizard), settings, this);
-
-        editUrl.setText(settings.getUrl());
-        editUser.setText(settings.getUser());
-        editFolder.setText(settings.getFolder());
-        editImportFolder.setText(settings.getImportFolder());
-        editKmyPath.setText(settings.getKmyPath());
-        setupExportMode();
-        setupCsvSeparator();
-        setupServerType();
-        editDefaultAccount.setText(settings.getDefaultAccount(), false);
-
-        // Passwort wird nie angezeigt; nur ein Hinweis, wenn eines gespeichert ist.
-        if (settings.hasPassword()) {
-            passwordLayout.setHelperText(getString(R.string.password_saved_hint));
-        }
 
         switchDarkMode.setChecked(settings.isDarkMode());
         switchDarkMode.setOnCheckedChangeListener((b, checked) -> {
@@ -229,51 +155,8 @@ public class SettingsActivity extends LocalizedActivity implements SmbWizardCont
         switchReceipt.setChecked(settings.isReceiptEnabled());
         switchReceipt.setOnCheckedChangeListener((b, checked) -> settings.setReceiptEnabled(checked));
 
-        MaterialSwitch switchAliasPrompt = findViewById(R.id.switchAliasPrompt);
-        switchAliasPrompt.setChecked(settings.isAliasPromptEnabled());
-        switchAliasPrompt.setOnCheckedChangeListener((b, checked) -> settings.setAliasPromptEnabled(checked));
-        ((MaterialButton) findViewById(R.id.btnManageAliases)).setOnClickListener(
-                v -> startActivity(new android.content.Intent(this, AliasActivity.class)));
-
         editLanguage = findViewById(R.id.editLanguage);
-        editCurrency = findViewById(R.id.editCurrency);
-        editCurrency.setText(settings.getCurrency());
-        editNumberFormat = findViewById(R.id.editNumberFormat);
         sliderFontSize = findViewById(R.id.sliderFontSize);
-        switchShowCurrency = findViewById(R.id.switchShowCurrency);
-        switchShowCurrency.setChecked(settings.isCurrencyShown());
-        switchDividendGross = findViewById(R.id.switchDividendGross);
-        switchDividendGross.setChecked(settings.isDividendGross());
-        editDividendTaxRate = findViewById(R.id.editDividendTaxRate);
-        // Ziffern und das oben eingestellte Dezimalzeichen – android:inputType="numberDecimal" kennt
-        // nur den Punkt und verschluckte ein Komma (siehe AmountField).
-        AmountField.preparePercent(editDividendTaxRate);
-        double taxPercent = settings.getDividendTaxPercent();
-        if (taxPercent > 0) {
-            editDividendTaxRate.setText(
-                    de.spahr.ausgaben.settings.MoneyFormat.decimal(taxPercent, 0, 5));
-        }
-        switchBudgetInternal = findViewById(R.id.switchBudgetInternal);
-        switchBudgetInternal.setChecked(settings.isBudgetInternal());
-        ((MaterialButton) findViewById(R.id.btnBudgetCompute)).setOnClickListener(v -> {
-            int y = java.util.Calendar.getInstance().get(java.util.Calendar.YEAR);
-            // Der Lauf beginnt mit deleteYear(y) – von Hand gepflegte Budgetwerte des Jahres sind danach
-            // weg, ohne Rückgängig. Deshalb erst fragen, und das betroffene Jahr benennen.
-            AppDialog.destructive(this)
-                    .setTitle(R.string.budget_compute_confirm_title)
-                    .setMessage(getString(R.string.budget_compute_confirm_message, y))
-                    .setPositiveButton(R.string.budget_compute, (d, w) ->
-                            repository.computeBudgetFromHistory(y, () ->
-                                    Toast.makeText(this, R.string.budget_import_done,
-                                            Toast.LENGTH_LONG).show()))
-                    .setNegativeButton(R.string.cancel, null)
-                    .show();
-        });
-        ((MaterialButton) findViewById(R.id.btnBudgetImport)).setOnClickListener(v -> {
-            int y = java.util.Calendar.getInstance().get(java.util.Calendar.YEAR);
-            BudgetImportFlow.run(this, settings, repository, y, null);
-        });
-        setupNumberFormat();
         setupFontSize();
         setupLanguages();
         ((MaterialButton) findViewById(R.id.btnExportTemplate)).setOnClickListener(
@@ -281,430 +164,19 @@ public class SettingsActivity extends LocalizedActivity implements SmbWizardCont
         ((MaterialButton) findViewById(R.id.btnUploadLanguage)).setOnClickListener(
                 v -> languageUploadLauncher.launch(new String[]{"application/json"}));
 
-        repository.getAccountNames(names -> PickerAdapters.accounts(repository, editDefaultAccount, names));
-
         registerLaunchers();
 
-        ((MaterialButton) findViewById(R.id.btnTestConnection)).setOnClickListener(v -> testConnection());
-        ((MaterialButton) findViewById(R.id.btnSmbDiagnose)).setOnClickListener(v -> runSmbDiagnostics());
-        findViewById(R.id.btnSmbSearch).setOnClickListener(v -> {
-            smbWizard.restart();
-            applyServerTypeHints();
-        });
-        ((MaterialButton) findViewById(R.id.btnBrowseKmy)).setOnClickListener(v -> browseKmy());
-        ((MaterialButton) findViewById(R.id.btnBrowseFolder)).setOnClickListener(v -> browseFolderInto(editFolder));
-        ((MaterialButton) findViewById(R.id.btnBrowseImportFolder)).setOnClickListener(v -> browseFolderInto(editImportFolder));
+        ((MaterialButton) findViewById(R.id.btnChangeProfile)).setOnClickListener(
+                v -> OnboardingActivity.startForEditing(this, new de.spahr.ausgaben.settings.ProfileManager(this)
+                        .getActiveProfileId()));
+        ((MaterialButton) findViewById(R.id.btnNewProfile)).setOnClickListener(
+                v -> OnboardingActivity.startForNewProfile(this));
 
-        MaterialButton btnSave = findViewById(R.id.btnSaveSettings);
-        btnSave.setOnClickListener(v -> save());
         ((MaterialButton) findViewById(R.id.btnExportAll)).setOnClickListener(v -> exportAll());
         ((MaterialButton) findViewById(R.id.btnBackup)).setOnClickListener(v -> askBackupOptions());
         ((MaterialButton) findViewById(R.id.btnRestore)).setOnClickListener(v -> confirmRestore());
-        ((MaterialButton) findViewById(R.id.btnDeleteAccount)).setOnClickListener(v -> manageAccounts());
         ((MaterialButton) findViewById(R.id.btnReset)).setOnClickListener(v -> confirmReset());
-
-        setupPlaces();
     }
-
-    private String selectedExportMode = SettingsStore.MODE_CSV;
-
-    /** Dropdown „Export-/Import-Format" mit zwei Optionen (CSV / KMyMoney-.kmy). */
-    private void setupExportMode() {
-        String csvLabel = getString(R.string.export_mode_csv);
-        String kmyLabel = getString(R.string.export_mode_kmy);
-        PickerAdapters.plain(editExportMode, java.util.Arrays.asList(csvLabel, kmyLabel));
-        selectedExportMode = settings.getExportMode();
-        editExportMode.setText(
-                SettingsStore.MODE_KMY.equals(selectedExportMode) ? kmyLabel : csvLabel, false);
-        applyExportModeVisibility();
-        editExportMode.setOnItemClickListener((parent, view, position, id) -> {
-            selectedExportMode = position == 1 ? SettingsStore.MODE_KMY : SettingsStore.MODE_CSV;
-            applyExportModeVisibility();
-        });
-    }
-
-    /** Dropdown „CSV-Trennzeichen" (nur im CSV-Block sichtbar): Semikolon (Standard) oder Komma. */
-    private void setupCsvSeparator() {
-        String[] labels = {
-                getString(R.string.csv_separator_semicolon),
-                getString(R.string.csv_separator_comma)};
-        PickerAdapters.plain(editCsvSeparator, java.util.Arrays.asList(labels));
-        selectedCsvSeparator = settings.getCsvSeparator();
-        int idx = SettingsStore.CSV_SEP_COMMA.equals(selectedCsvSeparator) ? 1 : 0;
-        editCsvSeparator.setText(labels[idx], false);
-        editCsvSeparator.setOnItemClickListener((parent, view, position, id) ->
-                selectedCsvSeparator = CSV_SEPARATOR_VALUES[position]);
-    }
-
-    /** Blendet nur die zum gewählten Format passenden Felder ein (CSV: Ordner, .kmy: Dateipfad). */
-    private void applyExportModeVisibility() {
-        boolean kmy = SettingsStore.MODE_KMY.equals(selectedExportMode);
-        findViewById(R.id.csvOptions).setVisibility(kmy ? View.GONE : View.VISIBLE);
-        findViewById(R.id.kmyOptions).setVisibility(kmy ? View.VISIBLE : View.GONE);
-    }
-
-    private String selectedServerType = SettingsStore.SERVER_NEXTCLOUD;
-
-    /** Dropdown „Server-Typ": Nextcloud (Pfadschema), generischer WebDAV oder SMB/Samba-Freigabe. */
-    private void setupServerType() {
-        String ncLabel = getString(R.string.server_type_nextcloud);
-        String davLabel = getString(R.string.server_type_webdav);
-        String smbLabel = getString(R.string.server_type_smb);
-        PickerAdapters.plain(editServerType, java.util.Arrays.asList(ncLabel, davLabel, smbLabel));
-        selectedServerType = settings.getServerType();
-        editServerType.setText(labelForServerType(ncLabel, davLabel, smbLabel), false);
-        applyServerTypeHints();
-        editServerType.setOnItemClickListener((parent, view, position, id) -> {
-            selectedServerType = position == 1 ? SettingsStore.SERVER_WEBDAV
-                    : position == 2 ? SettingsStore.SERVER_SMB : SettingsStore.SERVER_NEXTCLOUD;
-            applyServerTypeHints();
-        });
-    }
-
-    private String labelForServerType(String nc, String dav, String smb) {
-        if (SettingsStore.SERVER_WEBDAV.equals(selectedServerType)) {
-            return dav;
-        }
-        if (SettingsStore.SERVER_SMB.equals(selectedServerType)) {
-            return smb;
-        }
-        return nc;
-    }
-
-    /**
-     * Passt die URL-/Benutzer-Hinweise an den Server-Typ an (SMB nutzt smb://Host/Freigabe + Gast) und
-     * zeigt bei SMB statt der Felder den Einrichtungsassistenten – außer der Benutzer hat dort
-     * „Server manuell eingeben" gewählt.
-     */
-    private void applyServerTypeHints() {
-        boolean smb = SettingsStore.SERVER_SMB.equals(selectedServerType);
-        urlLayout.setHint(getString(smb ? R.string.smb_url_hint : R.string.nextcloud_url_hint));
-        userLayout.setHint(getString(smb ? R.string.smb_user_hint : R.string.nextcloud_user_hint));
-        if (!smb) {
-            smbWizard.resetManual();
-        }
-        boolean wizard = smb && !smbWizard.isManual();
-        int fields = wizard ? View.GONE : View.VISIBLE;
-        urlLayout.setVisibility(fields);
-        userLayout.setVisibility(fields);
-        passwordLayout.setVisibility(fields);
-        findViewById(R.id.btnTestConnection).setVisibility(fields);
-        // Die Diagnose gilt der gespeicherten Verbindung – sie hilft auch (gerade) im Assistenten.
-        findViewById(R.id.btnSmbDiagnose).setVisibility(smb ? View.VISIBLE : View.GONE);
-        // Rückweg zum Assistenten nur, solange SMB gewählt und gerade manuell eingegeben wird.
-        findViewById(R.id.btnSmbSearch).setVisibility(smb && !wizard ? View.VISIBLE : View.GONE);
-        smbWizard.setVisible(wizard);
-    }
-
-    @Override
-    protected void onDestroy() {
-        smbWizard.stopDiscovery();
-        super.onDestroy();
-    }
-
-    @Override
-    public void onSmbConfigured(String url, String user, String password) {
-        editUrl.setText(url);
-        editUser.setText(user);
-        if (!password.isEmpty()) {
-            editPassword.setText(password);
-        }
-        String defaultAccount = editDefaultAccount.getText() == null
-                ? "" : editDefaultAccount.getText().toString().trim();
-        settings.save(url, user, password, textOf(editFolder), textOf(editImportFolder),
-                defaultAccount, selectedExportMode, textOf(editKmyPath), SettingsStore.SERVER_SMB);
-    }
-
-    @Override
-    public void onSmbManualRequested() {
-        applyServerTypeHints();
-    }
-
-    /**
-     * Grund einer fehlgeschlagenen Server-Aktion. Bei SMB dieselben klaren Meldungen wie im Assistenten
-     * („Server nicht erreichbar", „Zugriff auf den Ordner wurde verweigert" …) statt der rohen
-     * smbj-Texte; für WebDAV/Nextcloud bleibt es beim bisherigen Text.
-     */
-    private String serverError(Exception e) {
-        if (SettingsStore.SERVER_SMB.equals(selectedServerType)) {
-            return de.spahr.ausgaben.net.smb.SmbErrors.messageFor(this,
-                    de.spahr.ausgaben.net.smb.SmbErrors.Step.FOLDER, e);
-        }
-        return e.getMessage() == null ? e.toString() : e.getMessage();
-    }
-
-    /** Verbindung mit den aktuellen (auch ungespeicherten) Feldwerten testen. */
-    private void testConnection() {
-        final String serverType = selectedServerType;
-        final String url = textOf(editUrl);
-        final String user = textOf(editUser);
-        String pw = textOf(editPassword);
-        final String password = pw.isEmpty() ? settings.getPassword() : pw; // leer → gespeichertes nutzen
-        Toast.makeText(this, R.string.conn_testing, Toast.LENGTH_SHORT).show();
-        new Thread(() -> {
-            try {
-                RemoteStorage.from(serverType, url, user, password).testConnection();
-                runOnUiThread(() -> Toast.makeText(this, R.string.conn_ok, Toast.LENGTH_LONG).show());
-            } catch (Exception e) {
-                final String msg = serverError(e);
-                runOnUiThread(() -> Toast.makeText(this,
-                        getString(R.string.conn_failed, msg), Toast.LENGTH_LONG).show());
-            }
-        }).start();
-    }
-
-    /**
-     * SMB-Diagnose: läuft die ganze Kette in einer Anmeldung durch und zeigt je Schritt Ergebnis und
-     * rohen Statuscode. Der Bericht lässt sich in die Zwischenablage kopieren – er enthält kein
-     * Passwort und ist zum Weiterschicken gedacht.
-     */
-    private void runSmbDiagnostics() {
-        String pw = textOf(editPassword);
-        // Geprüft wird der Ordner, in den die App wirklich schreibt: im .kmy-Modus der Ordner der
-        // Datei (samt Datei), im CSV-Modus der Export-Ordner.
-        boolean kmy = SettingsStore.MODE_KMY.equals(selectedExportMode);
-        String path = kmy ? textOf(editKmyPath) : textOf(editFolder);
-        SmbDiagnosticsDialog.run(this, textOf(editUrl), textOf(editUser),
-                pw.isEmpty() ? settings.getPassword() : pw,
-                kmy ? RemotePath.folderOf(path) : path, kmy ? RemotePath.fileOf(path) : "");
-    }
-
-    /** Öffnet den .kmy-Datei-Browser im Ordner des aktuellen kmy-Pfads (navigierbar in Unterordner). */
-    private void browseKmy() {
-        browseKmyAt(RemotePath.folderOf(textOf(editKmyPath)));
-    }
-
-    /**
-     * Listet Unterordner und .kmy-Dateien im {@code folder} und zeigt sie in einem navigierbaren Dialog:
-     * „..“ (eine Ebene hoch), dann Ordner, dann Dateien. Zugangsdaten werden je Aufruf aus den Feldern
-     * gelesen.
-     */
-    private void browseKmyAt(String folder) {
-        final String serverType = selectedServerType;
-        final String url = textOf(editUrl);
-        final String user = textOf(editUser);
-        String pw = textOf(editPassword);
-        final String password = pw.isEmpty() ? settings.getPassword() : pw;
-        Toast.makeText(this, R.string.loading_files, Toast.LENGTH_SHORT).show();
-        new Thread(() -> {
-            try {
-                // Ordner und Dateien in einem Aufruf: SMB meldet sich sonst zweimal hintereinander an.
-                RemoteStorage.Entries entries = RemoteStorage.from(serverType, url, user, password)
-                        .listEntries(folder, "kmy");
-                List<String> folders = entries.folders;
-                List<String> files = entries.files;
-                java.util.Collections.sort(folders, String.CASE_INSENSITIVE_ORDER);
-                java.util.Collections.sort(files, String.CASE_INSENSITIVE_ORDER);
-                runOnUiThread(() -> {
-                    if (folder.isEmpty() && folders.isEmpty() && files.isEmpty()) {
-                        Toast.makeText(this, R.string.kmy_browse_none, Toast.LENGTH_LONG).show();
-                    } else {
-                        showKmyPick(folder, folders, files);
-                    }
-                });
-            } catch (Exception e) {
-                final String msg = serverError(e);
-                runOnUiThread(() -> Toast.makeText(this,
-                        getString(R.string.conn_failed, msg), Toast.LENGTH_LONG).show());
-            }
-        }).start();
-    }
-
-    private void showKmyPick(String folder, List<String> folders, List<String> files) {
-        final List<String> labels = new ArrayList<>();
-        final List<Runnable> actions = new ArrayList<>();
-        if (!folder.isEmpty()) {
-            labels.add("↑  ..");
-            actions.add(() -> browseKmyAt(RemotePath.parentFolder(folder)));
-        }
-        for (String d : folders) {
-            labels.add("📁  " + d);
-            final String target = folder.isEmpty() ? d : folder + "/" + d;
-            actions.add(() -> browseKmyAt(target));
-        }
-        for (String f : files) {
-            labels.add(f);
-            final String path = folder.isEmpty() ? f : folder + "/" + f;
-            actions.add(() -> editKmyPath.setText(path));
-        }
-        String title = folder.isEmpty() ? getString(R.string.kmy_browse) : "/" + folder;
-        new AppDialog(this)
-                .setTitle(title)
-                .setItems(labels.toArray(new String[0]), (d, w) -> actions.get(w).run())
-                .show();
-    }
-
-    /**
-     * Öffnet einen navigierbaren Ordner-Dialog (nur Ordner, keine Dateien) und schreibt den gewählten
-     * Ordner in {@code target}. Nutzt – wie der kmy-Browser – {@link RemoteStorage}, gilt also für
-     * Nextcloud, WebDAV und SMB. Ausgangspunkt ist der aktuell im Feld eingetragene Ordner.
-     */
-    private void browseFolderInto(TextInputEditText target) {
-        browseFolderAt(textOf(target).trim(), target);
-    }
-
-    private void browseFolderAt(String folder, TextInputEditText target) {
-        final String serverType = selectedServerType;
-        final String url = textOf(editUrl);
-        final String user = textOf(editUser);
-        String pw = textOf(editPassword);
-        final String password = pw.isEmpty() ? settings.getPassword() : pw;
-        Toast.makeText(this, R.string.loading_files, Toast.LENGTH_SHORT).show();
-        new Thread(() -> {
-            try {
-                RemoteStorage storage = RemoteStorage.from(serverType, url, user, password);
-                List<String> folders = storage.listFolders(folder);
-                java.util.Collections.sort(folders, String.CASE_INSENSITIVE_ORDER);
-                runOnUiThread(() -> showFolderPick(folder, folders, target));
-            } catch (Exception e) {
-                final String msg = serverError(e);
-                runOnUiThread(() -> Toast.makeText(this,
-                        getString(R.string.conn_failed, msg), Toast.LENGTH_LONG).show());
-            }
-        }).start();
-    }
-
-    private void showFolderPick(String folder, List<String> folders, TextInputEditText target) {
-        final List<String> labels = new ArrayList<>();
-        final List<Runnable> actions = new ArrayList<>();
-        labels.add(getString(R.string.folder_choose_this));
-        actions.add(() -> target.setText(folder));
-        if (!folder.isEmpty()) {
-            labels.add("↑  ..");
-            actions.add(() -> browseFolderAt(RemotePath.parentFolder(folder), target));
-        }
-        for (String d : folders) {
-            labels.add("📁  " + d);
-            final String next = folder.isEmpty() ? d : folder + "/" + d;
-            actions.add(() -> browseFolderAt(next, target));
-        }
-        String title = folder.isEmpty() ? getString(R.string.folder_browse) : "/" + folder;
-        new AppDialog(this)
-                .setTitle(title)
-                .setItems(labels.toArray(new String[0]), (d, w) -> actions.get(w).run())
-                .show();
-    }
-
-    // ---- Orte (Bargeld-Bestände) ----
-
-    private void setupPlaces() {
-        placesStore = new PlacesStore(this);
-        placesContainer = findViewById(R.id.placesContainer);
-        editDefaultPlace = findViewById(R.id.editDefaultPlace);
-        editPlacesAccount = findViewById(R.id.editPlacesAccount);
-
-        // Konto-Auswahl für die Orte-Verwaltung (Default = Standardkonto).
-        placesAccount = settings.getDefaultAccount();
-        repository.getAccountNames(names -> {
-            if (placesAccount.isEmpty() && !names.isEmpty()) {
-                placesAccount = names.get(0);
-            }
-            PickerAdapters.accounts(repository, editPlacesAccount, names);
-            editPlacesAccount.setText(placesAccount, false);
-            refreshPlaces();
-        });
-        // Über PickerBehaviour und nicht über setOnItemClickListener: der Name kann auch getippt und
-        // stehengelassen werden, dann fällt kein Antippen eines Listeneintrags an.
-        PickerBehaviour.onCommitted(editPlacesAccount, value -> {
-            placesAccount = value;
-            refreshPlaces();
-        });
-
-        EditText editNewPlace = findViewById(R.id.editNewPlace);
-        ((MaterialButton) findViewById(R.id.btnAddPlace)).setOnClickListener(v -> {
-            String name = editNewPlace.getText() == null ? "" : editNewPlace.getText().toString().trim();
-            if (!name.isEmpty() && !placesAccount.isEmpty()) {
-                placesStore.addPlace(placesAccount, name);
-                editNewPlace.setText("");
-                refreshPlaces();
-            }
-        });
-
-        PickerBehaviour.onCommitted(editDefaultPlace, value ->
-                placesStore.setDefaultPlace(placesAccount,
-                        PlacesStore.NO_PLACE.equals(value) ? "" : value));
-
-        refreshPlaces();
-    }
-
-    private void refreshPlaces() {
-        java.util.List<String> places = placesAccount.isEmpty()
-                ? new java.util.ArrayList<>() : placesStore.getPlaces(placesAccount);
-
-        // Zeilen je Ort (Name antippen = umbenennen, Button = entfernen)
-        placesContainer.removeAllViews();
-        for (String place : places) {
-            LinearLayout row = new LinearLayout(this);
-            row.setOrientation(LinearLayout.HORIZONTAL);
-            row.setGravity(Gravity.CENTER_VERTICAL);
-
-            TextView name = new TextView(this);
-            // Stift voran, damit erkennbar ist, dass der Name antippbar ist – sonst ist der rote
-            // „Entfernen"-Knopf daneben die einzige sichtbare Aktion der Zeile.
-            name.setText("\u270E  " + place);
-            name.setTextSize(16f);
-            name.setPadding(0, 24, 0, 24);
-            LinearLayout.LayoutParams lp = new LinearLayout.LayoutParams(
-                    0, LinearLayout.LayoutParams.WRAP_CONTENT, 1f);
-            name.setLayoutParams(lp);
-            android.util.TypedValue ripple = new android.util.TypedValue();
-            getTheme().resolveAttribute(android.R.attr.selectableItemBackground, ripple, true);
-            name.setBackgroundResource(ripple.resourceId);
-            name.setContentDescription(getString(R.string.place_rename_hint, place));
-            name.setOnClickListener(v -> renamePlaceDialog(place));
-
-            MaterialButton remove = new MaterialButton(this,
-                    null, com.google.android.material.R.attr.materialButtonOutlinedStyle);
-            remove.setText(R.string.remove);
-            remove.setTextColor(getColor(R.color.expense_red));
-            remove.setStrokeColor(android.content.res.ColorStateList.valueOf(getColor(R.color.expense_red)));
-            remove.setOnClickListener(v -> confirmRemovePlace(place));
-
-            row.addView(name);
-            row.addView(remove);
-            placesContainer.addView(row);
-        }
-
-        // Standardort-Dropdown (für das gewählte Konto)
-        java.util.List<String> options = new java.util.ArrayList<>(places);
-        options.add(PlacesStore.NO_PLACE);
-        PickerAdapters.places(editDefaultPlace, options);
-        String def = placesAccount.isEmpty() ? "" : placesStore.getDefaultPlace(placesAccount);
-        editDefaultPlace.setText(def.isEmpty() ? PlacesStore.NO_PLACE : def, false);
-    }
-
-    private void renamePlaceDialog(String oldName) {
-        EditText input = new EditText(this);
-        input.setText(oldName);
-        input.setSelectAllOnFocus(true);
-        int pad = (int) (20 * getResources().getDisplayMetrics().density);
-        android.widget.FrameLayout frame = new android.widget.FrameLayout(this);
-        frame.setPadding(pad, pad / 2, pad, 0);
-        frame.addView(input);
-        new AppDialog(this)
-                .setTitle(R.string.place_rename_title)
-                .setView(frame)
-                .setPositiveButton(R.string.rename, (d, w) -> {
-                    String newName = input.getText().toString().trim();
-                    if (!newName.isEmpty() && !newName.equals(oldName)) {
-                        placesStore.renamePlace(placesAccount, oldName, newName);
-                        repository.renamePlaceEntries(placesAccount, oldName, newName, this::refreshPlaces);
-                    }
-                })
-                .show();
-    }
-
-    private void confirmRemovePlace(String place) {
-        AppDialog.destructive(this)
-                .setTitle(R.string.place_remove_title)
-                .setMessage(getString(R.string.place_remove_message, place))
-                .setPositiveButton(R.string.remove, (d, w) -> {
-                    placesStore.removePlace(placesAccount, place);
-                    repository.deletePlaceEntries(placesAccount, place, this::refreshPlaces);
-                })
-                .show();
-    }
-
     /** Schalter „App mit Biometrie schützen": bei Aktivierung Verfügbarkeit prüfen. */
     private void onAppLockToggled(CompoundButton buttonView, boolean checked) {
         if (checked) {
@@ -777,27 +249,6 @@ public class SettingsActivity extends LocalizedActivity implements SmbWizardCont
                         importLanguageFile(uri);
                     }
                 });
-    }
-
-    // ---- Zahlenformat ----
-
-    /** Dropdown mit den vier Zahlenformat-Optionen (Beispiel-Labels); Vorauswahl aus den Einstellungen. */
-    private void setupNumberFormat() {
-        selectedNumberFormat = settings.getNumberFormat();
-        String[] labels = {
-                getString(R.string.number_format_de_group),
-                getString(R.string.number_format_en_group),
-                getString(R.string.number_format_plain_comma),
-                getString(R.string.number_format_plain_dot)};
-        PickerAdapters.plain(editNumberFormat, java.util.Arrays.asList(labels));
-        for (int i = 0; i < NUMBER_FORMAT_VALUES.length; i++) {
-            if (NUMBER_FORMAT_VALUES[i].equals(selectedNumberFormat)) {
-                editNumberFormat.setText(labels[i], false);
-                break;
-            }
-        }
-        editNumberFormat.setOnItemClickListener((parent, view, position, id) ->
-                selectedNumberFormat = NUMBER_FORMAT_VALUES[position]);
     }
 
     /**
@@ -919,151 +370,6 @@ public class SettingsActivity extends LocalizedActivity implements SmbWizardCont
         }
     }
 
-    /**
-     * „Konto löschen/schließen": alle Konten mit Status als Mehrfachauswahl. Untere Zeile (vor „Abbrechen"):
-     * „Löschen" (immer bei Auswahl) und die kontextabhängige Aktion „Schließen"/„Öffnen". „Schließen" gibt es
-     * nur, wenn <b>alle</b> ausgewählten Konten Saldo 0 haben; „Öffnen", wenn alle ausgewählten geschlossen sind.
-     */
-    private void manageAccounts() {
-        repository.getAllAccountsWithStatus(all -> {
-            // Depots gehören in die Kontenverwaltung der Schublade, nicht in diese Liste: ihr Saldo
-            // kommt aus Kursen, und ein Löschen hier ließe die Wertpapiere verwaist zurück.
-            java.util.List<de.spahr.ausgaben.db.Account> accounts = new java.util.ArrayList<>();
-            for (de.spahr.ausgaben.db.Account a : all) {
-                if (!a.isDepot()) {
-                    accounts.add(a);
-                }
-            }
-            if (accounts.isEmpty()) {
-                Toast.makeText(this, R.string.no_accounts, Toast.LENGTH_LONG).show();
-                return;
-            }
-            repository.getAllAccountBalances(balances -> showAccountsDialog(accounts, balances));
-        });
-    }
-
-    /** Mehrfachauswahl-Dialog; die Aktionsbuttons werden je nach Auswahl dynamisch ein-/ausgeblendet. */
-    private void showAccountsDialog(List<de.spahr.ausgaben.db.Account> accounts, Map<String, Long> balances) {
-        String[] items = new String[accounts.size()];
-        for (int i = 0; i < accounts.size(); i++) {
-            de.spahr.ausgaben.db.Account a = accounts.get(i);
-            String status = getString(a.closed
-                    ? R.string.account_status_closed : R.string.account_status_active);
-            items[i] = getString(R.string.account_status_line, a.name, status);
-        }
-        final boolean[] checked = new boolean[accounts.size()];
-        final Runnable[] updater = new Runnable[1];
-        // Untere Zeile (links→rechts): „Schließen"/„Öffnen" (Neutral) · „Abbrechen" (Negativ) ·
-        // „Löschen" (Positiv, rot gefüllt). „Löschen" gehört auf den bestimmenden Platz: es ist das,
-        // worum es hier geht. Nur eine gefüllte Taste – so bleiben alle drei nebeneinander.
-        final AlertDialog dlg = AppDialog.destructive(this)
-                .setTitle(R.string.account_manage_choose)
-                .setMultiChoiceItems(items, checked, (d, which, isChecked) -> {
-                    checked[which] = isChecked;
-                    if (updater[0] != null) {
-                        updater[0].run();
-                    }
-                })
-                .setNeutralButton(R.string.account_close, null)
-                .setPositiveButton(R.string.delete, null)
-                .create();
-        dlg.setOnShowListener(dialog -> {
-            Button delBtn = dlg.getButton(AlertDialog.BUTTON_POSITIVE);
-            Button actBtn = dlg.getButton(AlertDialog.BUTTON_NEUTRAL); // Schließen/Öffnen (dynamisch)
-            updater[0] = () -> {
-                List<de.spahr.ausgaben.db.Account> sel = selectedAccounts(accounts, checked);
-                delBtn.setEnabled(!sel.isEmpty());
-                boolean allClosed = !sel.isEmpty();
-                boolean allOpenZero = !sel.isEmpty();
-                for (de.spahr.ausgaben.db.Account a : sel) {
-                    long bal = balances.containsKey(a.name) ? balances.get(a.name) : 0L;
-                    if (!a.closed) {
-                        allClosed = false;
-                    }
-                    if (a.closed || bal != 0) {
-                        allOpenZero = false;
-                    }
-                }
-                if (allClosed) {
-                    actBtn.setText(R.string.account_reopen);
-                    actBtn.setVisibility(View.VISIBLE);
-                } else if (allOpenZero) {
-                    actBtn.setText(R.string.account_close);
-                    actBtn.setVisibility(View.VISIBLE);
-                } else {
-                    actBtn.setVisibility(View.GONE); // Schließen nur bei Saldo 0 aller Ausgewählten
-                }
-            };
-            delBtn.setOnClickListener(v -> {
-                List<de.spahr.ausgaben.db.Account> sel = selectedAccounts(accounts, checked);
-                if (sel.isEmpty()) {
-                    return;
-                }
-                dlg.dismiss();
-                confirmDeleteAccounts(accountNames(sel));
-            });
-            actBtn.setOnClickListener(v -> {
-                List<de.spahr.ausgaben.db.Account> sel = selectedAccounts(accounts, checked);
-                if (sel.isEmpty()) {
-                    return;
-                }
-                boolean allClosed = true;
-                for (de.spahr.ausgaben.db.Account a : sel) {
-                    if (!a.closed) {
-                        allClosed = false;
-                        break;
-                    }
-                }
-                final List<String> names = accountNames(sel);
-                final boolean reopen = allClosed;
-                dlg.dismiss();
-                repository.setAccountsClosed(names, !reopen, () ->
-                        Toast.makeText(this, getString(reopen
-                                ? R.string.accounts_reopened_done : R.string.accounts_closed_done,
-                                names.size()), Toast.LENGTH_SHORT).show());
-            });
-            updater[0].run();
-        });
-        dlg.show();
-    }
-
-    /** Die aktuell angehakten Konten. */
-    private List<de.spahr.ausgaben.db.Account> selectedAccounts(
-            List<de.spahr.ausgaben.db.Account> accounts, boolean[] checked) {
-        List<de.spahr.ausgaben.db.Account> sel = new ArrayList<>();
-        for (int i = 0; i < accounts.size(); i++) {
-            if (checked[i]) {
-                sel.add(accounts.get(i));
-            }
-        }
-        return sel;
-    }
-
-    private List<String> accountNames(List<de.spahr.ausgaben.db.Account> accounts) {
-        List<String> names = new ArrayList<>();
-        for (de.spahr.ausgaben.db.Account a : accounts) {
-            names.add(a.name);
-        }
-        return names;
-    }
-
-    private void confirmDeleteAccounts(List<String> accounts) {
-        AppDialog.destructive(this)
-                .setTitle(R.string.delete_account_confirm_title)
-                .setMessage(getString(R.string.delete_accounts_confirm_message, accounts.size()))
-                .setPositiveButton(R.string.delete, (d, w) -> repository.deleteAccounts(accounts, () -> {
-                    for (String account : accounts) {
-                        placesStore.removeAccount(account);
-                        if (account.equals(placesAccount)) {
-                            placesAccount = settings.getDefaultAccount();
-                        }
-                    }
-                    Toast.makeText(this, getString(R.string.accounts_deleted_done, accounts.size()),
-                            Toast.LENGTH_LONG).show();
-                }))
-                .show();
-    }
-
     private void confirmReset() {
         AppDialog.destructive(this)
                 .setTitle(R.string.reset_confirm_title)
@@ -1080,6 +386,7 @@ public class SettingsActivity extends LocalizedActivity implements SmbWizardCont
      */
     private void finishReset() {
         settings.clearAll();
+        new de.spahr.ausgaben.settings.ProfileManager(this).clearAll(this);
         new de.spahr.ausgaben.settings.PlacesStore(this).clearAll();
         de.spahr.ausgaben.receipt.Receipts.reset(this);
         getSharedPreferences("widget_selection", MODE_PRIVATE).edit().clear().commit();
@@ -1164,6 +471,15 @@ public class SettingsActivity extends LocalizedActivity implements SmbWizardCont
             runOnUiThread(() -> Toast.makeText(this, R.string.restore_invalid, Toast.LENGTH_LONG).show());
             return;
         }
+        // Eine Profil-Sicherung (aus der Profil-Maske heraus erstellt) betrifft nur ein Profil – die
+        // gehört dort auch wieder eingespielt, nicht hier in den allgemeinen Einstellungen, die alle
+        // Profile ersetzen. Das Wort „Profil" in der Meldung ist dabei kein Zufall: dort steht der
+        // passende Knopf.
+        if (!content.isAllProfiles()) {
+            runOnUiThread(() -> Toast.makeText(this,
+                    R.string.restore_wrong_scope_use_profile, Toast.LENGTH_LONG).show());
+            return;
+        }
         runOnUiThread(() -> chooseRestoreScope(content));
     }
 
@@ -1204,10 +520,10 @@ public class SettingsActivity extends LocalizedActivity implements SmbWizardCont
         new Thread(() -> {
             try {
                 if (scope == 0 || scope == 2) {
-                    BackupStore.restoreData(this, content.db);
+                    BackupStore.restoreAllData(this, content);
                 }
                 if (scope == 1 || scope == 2) {
-                    BackupStore.restoreSettings(this, content);
+                    BackupStore.restoreAllSettings(this, content);
                 }
                 runOnUiThread(() -> {
                     Toast.makeText(this, R.string.restore_done, Toast.LENGTH_LONG).show();
@@ -1237,40 +553,6 @@ public class SettingsActivity extends LocalizedActivity implements SmbWizardCont
             }
             return bos.toByteArray();
         }
-    }
-
-    private void save() {
-        String defaultAccount = editDefaultAccount.getText() == null
-                ? "" : editDefaultAccount.getText().toString().trim();
-
-        // Leeres Passwortfeld → vorhandenes Passwort behalten.
-        settings.save(
-                textOf(editUrl),
-                textOf(editUser),
-                textOf(editPassword),
-                textOf(editFolder),
-                textOf(editImportFolder),
-                defaultAccount,
-                selectedExportMode,
-                textOf(editKmyPath),
-                selectedServerType);
-
-        repository.ensureAccount(defaultAccount);
-        // Schriftgröße wird bereits beim Schieben des Sliders sofort angewendet (siehe setupFontSize()).
-        settings.setCurrency(textOf(editCurrency));
-        settings.setNumberFormat(selectedNumberFormat);
-        settings.setCsvSeparator(selectedCsvSeparator);
-        settings.setCurrencyShown(switchShowCurrency.isChecked());
-        settings.setDividendGross(switchDividendGross.isChecked());
-        // Der Steuersatz kommt im eingestellten Zahlenformat herein (Komma oder Punkt); ein unlesbarer
-        // oder unsinniger Wert schaltet die Vorbelegung ab, statt eine falsche Steuer zu erzeugen.
-        settings.setDividendTaxPercent(parsePercent(textOf(editDividendTaxRate)));
-        settings.setBudgetInternal(switchBudgetInternal.isChecked());
-        de.spahr.ausgaben.settings.Currencies.refresh(this);
-        de.spahr.ausgaben.settings.MoneyFormat.refresh(this);
-
-        Toast.makeText(this, R.string.settings_saved, Toast.LENGTH_SHORT).show();
-        finish();
     }
 
     private void exportAll() {
@@ -1323,7 +605,7 @@ public class SettingsActivity extends LocalizedActivity implements SmbWizardCont
     private void doBackup(Uri uri) {
         new Thread(() -> {
             try {
-                byte[] file = BackupStore.create(this,
+                byte[] file = BackupStore.createAll(this,
                         backupIncludeServerPassword, backupPassword);
                 try (OutputStream out = getContentResolver().openOutputStream(uri)) {
                     out.write(file);
@@ -1347,18 +629,6 @@ public class SettingsActivity extends LocalizedActivity implements SmbWizardCont
      * stehengebliebener Wert soll nicht am Trennzeichen scheitern. Leer, unlesbar oder außerhalb von
      * 0 bis unter 100 ergibt 0 – dann belegt die Wertpapier-Erfassung die Steuer eben nicht vor.
      */
-    private static double parsePercent(String raw) {
-        String t = raw == null ? "" : raw.trim().replace(',', '.');
-        if (t.isEmpty()) {
-            return 0;
-        }
-        try {
-            double v = Double.parseDouble(t);
-            return v > 0 && v < 100 ? v : 0;
-        } catch (NumberFormatException e) {
-            return 0;
-        }
-    }
 
     private String textOf(TextInputEditText e) {
         return e.getText() == null ? "" : e.getText().toString();

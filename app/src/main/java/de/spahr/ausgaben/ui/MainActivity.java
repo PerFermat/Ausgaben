@@ -1554,6 +1554,7 @@ public class MainActivity extends LocalizedActivity {
         setMenuTitle(menu, R.id.action_balance, R.string.action_balance);
         setMenuTitle(menu, R.id.action_budget, R.string.action_budget);
         setMenuTitle(menu, R.id.action_scheduled, R.string.action_scheduled);
+        setMenuTitle(menu, R.id.action_switch_profile, R.string.action_switch_profile);
         setMenuTitle(menu, R.id.action_settings, R.string.action_settings);
         return true;
     }
@@ -1569,6 +1570,11 @@ public class MainActivity extends LocalizedActivity {
         android.view.MenuItem receipts = menu.findItem(R.id.action_export_receipts);
         if (receipts != null) {
             receipts.setVisible(isFilterActive());
+        }
+        // „Profil wechseln" nur, solange es überhaupt etwas zum Wechseln gibt.
+        android.view.MenuItem switchProfile = menu.findItem(R.id.action_switch_profile);
+        if (switchProfile != null) {
+            switchProfile.setVisible(new de.spahr.ausgaben.settings.ProfileManager(this).getProfiles().size() > 1);
         }
         return super.onPrepareOptionsMenu(menu);
     }
@@ -1621,6 +1627,9 @@ public class MainActivity extends LocalizedActivity {
             return true;
         } else if (id == R.id.action_scheduled) {
             startActivity(new Intent(this, ScheduledActivity.class));
+            return true;
+        } else if (id == R.id.action_switch_profile) {
+            ProfileSwitchDialog.show(this);
             return true;
         } else if (id == R.id.action_settings) {
             startActivity(new Intent(this, SettingsActivity.class));

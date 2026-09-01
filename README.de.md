@@ -138,7 +138,7 @@ weiterverwendet; vor jedem Schreiben legt die App eine Sicherung an.
 **Prüfbarkeit.** Alles, was rechnet oder entscheidet, steckt in reinen Klassen **ohne Android** –
 `PayeeAmounts`, `PayeeCategories`, `AccountScope`, `BudgetMath`, `RadiusFilter`, `EditStatus`,
 `NoteReceipt` und andere. Sie sind mit JUnit 4 ohne Emulator und ohne Mocks prüfbar; derzeit laufen
-**815 Unit-Tests**, darunter Prüfungen gegen echte `.kmy`-Dateien (dafür Robolectric, das im APK nicht
+**844 Unit-Tests**, darunter Prüfungen gegen echte `.kmy`-Dateien (dafür Robolectric, das im APK nicht
 landet).
 
 **Belege.** Fotos und PDFs liegen app-privat und werden im Hintergrund nach `Belege/<Jahr>/` neben der

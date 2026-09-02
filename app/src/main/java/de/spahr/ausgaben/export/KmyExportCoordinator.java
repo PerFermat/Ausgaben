@@ -180,8 +180,8 @@ public class KmyExportCoordinator {
                         repository.scheduledAdvanceDao().deleteByIds(schedRes.resolvedIds);
                     }
                 });
-                complete(listener, buildMessage(r, res, delRes.resolvedIds.size(),
-                        schedRes.writtenIds.size(), file, backup), true);
+                complete(listener, buildMessage(r, res, secRes.writtenIds.size(),
+                        delRes.resolvedIds.size(), schedRes.writtenIds.size(), file, backup), true);
             } catch (de.spahr.ausgaben.net.RemoteConflictException e) {
                 // Fremdänderung erkannt: nichts geschrieben, nichts als exportiert markiert.
                 complete(listener, r.getString(de.spahr.ausgaben.R.string.kmy_conflict), false);
@@ -206,11 +206,19 @@ public class KmyExportCoordinator {
         return map;
     }
 
-    private String buildMessage(Context r, KmyExporter.Result res, int removedCount, int advancedCount,
-                                String file, String backup) {
+    /**
+     * Was am Ende dasteht.
+     *
+     * <p>Die Depot-Bewegungen zählen mit. Sie stehen in einer eigenen Ergebnisliste, weil sie einen
+     * anderen Weg durch den Exporter nehmen — gezählt wurden bis 1.13 aber nur die gewöhnlichen
+     * Buchungen, und wer eine einzelne Wertpapierbuchung übertrug, bekam „0 Buchung(en) geschrieben"
+     * zu lesen, während die Transaktion längst in der Datei stand.</p>
+     */
+    static String buildMessage(Context r, KmyExporter.Result res, int securityCount, int removedCount,
+                               int advancedCount, String file, String backup) {
         StringBuilder sb = new StringBuilder();
         sb.append(r.getString(de.spahr.ausgaben.R.string.kmy_result_written,
-                res.writtenIds.size() - res.updated, file));
+                res.writtenIds.size() - res.updated + securityCount, file));
         if (res.updated > 0) {
             sb.append(r.getString(de.spahr.ausgaben.R.string.kmy_result_updated, res.updated));
         }
@@ -235,14 +243,14 @@ public class KmyExportCoordinator {
      * Hinweis auf bearbeitete Buchungen, deren Transaktion in der Datei fehlt (etwa weil sie am Rechner
      * gelöscht wurde). Sie bleiben „bearbeitet"; eingefügt wird nichts, damit keine Dublette entsteht.
      */
-    private String notFoundText(Context r, KmyExporter.Result res) {
+    private static String notFoundText(Context r, KmyExporter.Result res) {
         if (res.notFound.isEmpty()) {
             return "";
         }
         return "\n" + r.getString(de.spahr.ausgaben.R.string.kmy_edited_not_found, res.notFound.size());
     }
 
-    private String skippedText(Context r, KmyExporter.Result res) {
+    private static String skippedText(Context r, KmyExporter.Result res) {
         if (res.skipped.isEmpty()) {
             return "";
         }

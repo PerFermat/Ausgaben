@@ -810,6 +810,9 @@
     <!-- Aus einer Abrechnung eingelesen, aber nicht gefunden: dann steht das Feld leer. -->
     <string name="statement_date_missing">Not in the statement – please choose</string>
     <string name="statement_action_missing">Not in the statement – please choose</string>
+    <string name="statement_learning_preparing">No recognition rule for "%1$s" yet — learning in progress…</string>
+    <string name="statement_learn_intro_title">New bank — how the app learns</string>
+    <string name="statement_learn_intro_message">There are no recognition rules for this bank yet. With the first statement, the app learns from you where the values sit:\n\nDate: every date found in the statement is offered — choose the value date.\n\nNumbers: as soon as you enter an amount, the app shows the possible labels for it — choose the right one. If there is only one possibility, it won\'t even ask.\n\nThe entry is learned when you save it, and booked as usual.</string>
     <string name="security_tx_need_date">Please choose the date</string>
     <string name="security_tx_need_action">Please choose buy, sell or dividend</string>
     <!-- Regelseite: die gelernten Erkennungsregeln von Hand nachbessern. -->

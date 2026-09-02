@@ -242,6 +242,12 @@ public class SecurityTxEditActivity extends LocalizedActivity implements HostedD
     /** Zu welchem Wert je Feld schon gefragt wurde — sonst fragte jedes Durchqueren erneut. */
     private final Map<Field, Double> ankerGefragtFuer = new EnumMap<>(Field.class);
     /**
+     * Ob die Einführung ins Lernen (siehe {@link #DLG_LEARN_INTRO}) schon einmal aufging — sonst käme
+     * sie nach jeder Drehung noch einmal, obwohl der Nutzer sie längst weggetippt hat.
+     */
+    private boolean learnIntroShown;
+    private static final String STATE_LEARN_INTRO_SHOWN = "s_learnIntroShown";
+    /**
      * Die einmal gelesene Abrechnung. Ohne sie läse jeder Tipp aufs Datumsfeld das PDF neu ein.
      *
      * <p>{@code volatile}, weil geschrieben und gelesen wird das Feld auf zwei Fäden: das Einlesen läuft
@@ -249,6 +255,13 @@ public class SecurityTxEditActivity extends LocalizedActivity implements HostedD
      * der zweite Faden den geschriebenen Wert schlicht nicht sehen und läse das PDF ein zweites Mal.</p>
      */
     private volatile de.spahr.ausgaben.pdf.PdfText statementText;
+    /**
+     * Die einmal ermittelten Datumskandidaten – {@link #datesOf}/{@code StatementScan.dates} sucht dafür
+     * jede Fundstelle im ganzen Text ({@code AnchorRule.readDate}), das kostet bei einer mehrseitigen
+     * Abrechnung spürbar Zeit. Ohne diesen Cache liefe genau diese Suche bei jedem Antippen des
+     * Datumsfeldes neu – auch dann, wenn {@link #statementText} längst feststeht.
+     */
+    private volatile java.util.List<de.spahr.ausgaben.statement.StatementScan.DateCandidate> statementDates;
     /**
      * Die Felder, in die der Nutzer <b>selbst</b> geschrieben hat — nur aus ihnen wird gelernt.
      *
@@ -299,6 +312,7 @@ public class SecurityTxEditActivity extends LocalizedActivity implements HostedD
     private static final String DLG_LEARN = "dlg_learn";
     private static final String DLG_VERIFY = "dlg_verify";
     private static final String DLG_ANCHOR_CHOICE = "dlg_anchorChoice";
+    private static final String DLG_LEARN_INTRO = "dlg_learnIntro";
     private static final String ARG_DATE_LABELS = "a_labels";
     private static final String ARG_DATE_MILLIS = "a_millis";
     private static final String ARG_DATE_ANCHORS = "a_anchors";
@@ -461,6 +475,42 @@ public class SecurityTxEditActivity extends LocalizedActivity implements HostedD
         }
         fromStatement = statementTextPath != null || pendingStatement != null;
         updateStatementButton();
+        // Vorlesen, solange der Nutzer noch Aktion/Konto prüft – ohne das läse showDatePicker()/
+        // ankerAuswahlAnbieten() erst beim ersten Antippen, und genau das fror sichtbar ein. Die
+        // Datumskandidaten gleich mit: ihre Suche (StatementScan.dates) kostet bei einer mehrseitigen
+        // Abrechnung selbst noch einmal spürbar Zeit, unabhängig vom reinen PDF-Einlesen.
+        if (fromStatement) {
+            repository.executor().execute(() -> {
+                readStatementDates();
+                // Fehlt für diese Bank noch eine Vorlage, wartet auf den Nutzer echtes Lernen – bevor er
+                // loslegt, kurz erklären, wie das abläuft (siehe zeigeLernEinfuehrungFallsNoetig).
+                if (ohneVorlage(statementText)) {
+                    runOnUiThread(this::zeigeLernEinfuehrungFallsNoetig);
+                }
+            });
+        }
+    }
+
+    /**
+     * Erste Abrechnung dieser Bank: erklärt einmal (pro Aufruf der Maske), wie das Lernen abläuft –
+     * Datum wählen, Zahlen zuordnen, der Rest bucht sich beim Speichern wie gewohnt. Ohne sie stünde der
+     * Nutzer beim ersten Antippen des Datumsfeldes vor einer Auswahl, deren Sinn sich nicht von selbst
+     * erschließt.
+     */
+    private void zeigeLernEinfuehrungFallsNoetig() {
+        if (learnIntroShown || isFinishing() || isDestroyed()) {
+            return;
+        }
+        learnIntroShown = true;
+        HostedDialog.show(this, DLG_LEARN_INTRO, null);
+    }
+
+    private android.app.Dialog buildLearnIntroDialog() {
+        return new AppDialog(this)
+                .setTitle(R.string.statement_learn_intro_title)
+                .setMessage(R.string.statement_learn_intro_message)
+                .setPositiveButton(android.R.string.ok, null)
+                .create();
     }
 
     @Override
@@ -473,6 +523,7 @@ public class SecurityTxEditActivity extends LocalizedActivity implements HostedD
         out.putBoolean(STATE_DUP_BOOKED, dupBooked);
         out.putBoolean(STATE_CONFLICT, conflict);
         out.putBoolean(STATE_SAVING, saving);
+        out.putBoolean(STATE_LEARN_INTRO_SHOWN, learnIntroShown);
         out.putStringArray(STATE_USER_SET, namesOf(userSet));
         out.putStringArray(STATE_TYPED_FIELDS, namesOf(typedFields));
         out.putString(STATE_LAST_COMPUTED, lastComputed == null ? null : lastComputed.name());
@@ -509,6 +560,7 @@ public class SecurityTxEditActivity extends LocalizedActivity implements HostedD
         dupBooked = in.getBoolean(STATE_DUP_BOOKED, dupBooked);
         conflict = in.getBoolean(STATE_CONFLICT, conflict);
         saving = in.getBoolean(STATE_SAVING, false);
+        learnIntroShown = in.getBoolean(STATE_LEARN_INTRO_SHOWN, learnIntroShown);
         readFields(in.getStringArray(STATE_USER_SET), userSet);
         readFields(in.getStringArray(STATE_TYPED_FIELDS), typedFields);
         lastComputed = fieldOf(in.getString(STATE_LAST_COMPUTED));
@@ -1864,6 +1916,8 @@ public class SecurityTxEditActivity extends LocalizedActivity implements HostedD
                 return buildDateChoiceDialog(args);
             case DLG_ANCHOR_CHOICE:
                 return buildAnchorChoiceDialog(args);
+            case DLG_LEARN_INTRO:
+                return buildLearnIntroDialog();
             case DLG_CALENDAR:
                 return buildCalendarDialog();
             case DLG_LEARN:
@@ -2213,17 +2267,24 @@ public class SecurityTxEditActivity extends LocalizedActivity implements HostedD
             showCalendar();
             return;
         }
-        if (statementText != null) {
-            // Schon gelesen – dann sofort, ohne den Umweg über den Hintergrund und ohne Zucken.
-            showDateChoice(datesOf(statementText));
+        if (statementDates != null) {
+            // Schon gelesen und ausgewertet – dann sofort, ohne den Umweg über den Hintergrund und ohne
+            // Zucken. Die reine PdfText-Prüfung reichte hier nicht: das Absuchen nach Datumskandidaten
+            // (StatementScan.dates) kostet selbst noch einmal Zeit und lief bislang bei jedem Antippen neu.
+            showDateChoice(statementDates);
             return;
         }
-        // Das Einlesen holt das PDF von der Platte und schickt es durch pdfbox; bei einer mehrseitigen
-        // Abrechnung dauert das lange genug, um das Antippen des Datumsfeldes einfrieren zu lassen.
+        // Das Einlesen holt das PDF von der Platte und schickt es durch pdfbox, und die Kandidatensuche
+        // durchsucht danach den ganzen Text noch einmal; bei einer mehrseitigen Abrechnung dauert das
+        // zusammen lange genug, um das Antippen des Datumsfeldes einfrieren zu lassen. Der Hinweis sagt in
+        // der Zwischenzeit, was passiert – und macht zugleich sichtbar, dass hier noch gelesen/gelernt
+        // wird, nicht schon aus einer feststehenden Vorlage erkannt.
+        dateLayout.setError(getString(R.string.statement_learning_preparing, getString(R.string.date_hint)));
         repository.executor().execute(() -> {
             final java.util.List<de.spahr.ausgaben.statement.StatementScan.DateCandidate> found =
-                    datesOf(readStatementText());
+                    readStatementDates();
             runOnUiThread(() -> {
+                dateLayout.setError(null);
                 // Wer inzwischen weggegangen ist, bekommt keinen Dialog mehr.
                 if (isFinishing() || isDestroyed()) {
                     return;
@@ -2300,6 +2361,18 @@ public class SecurityTxEditActivity extends LocalizedActivity implements HostedD
                 : de.spahr.ausgaben.statement.StatementScan.dates(text);
     }
 
+    /**
+     * Wie {@link #readStatementText()}, nur eine Ebene weiter: das Ergebnis von {@link #datesOf} gecacht,
+     * nicht nur der rohe Text. Aufruf nur vom Hintergrundfaden aus (siehe {@link #showDatePicker()}).
+     */
+    private java.util.List<de.spahr.ausgaben.statement.StatementScan.DateCandidate> readStatementDates() {
+        if (statementDates != null) {
+            return statementDates;
+        }
+        statementDates = datesOf(readStatementText());
+        return statementDates;
+    }
+
     // ---- Die Beschriftung zu einem Wert ----
 
     /**
@@ -2331,14 +2404,23 @@ public class SecurityTxEditActivity extends LocalizedActivity implements HostedD
             return;
         }
         ankerGefragtFuer.put(field, wert);
+        // Der Hinweis steht, solange die Prüfung läuft, egal ob am Ende eine Vorlage entscheidet oder
+        // tatsächlich gelernt wird – vorher weiß die App das selbst noch nicht (dafür müsste sie den Text
+        // schon gelesen haben). Er sagt dem Nutzer: hier wird gerade aus der Abrechnung gelesen/gelernt.
+        final TextInputLayout hinweisLayout = layoutFor(field);
+        if (hinweisLayout != null) {
+            hinweisLayout.setError(getString(R.string.statement_learning_preparing,
+                    StatementFieldNames.of(this, lernfeld, currentAction())));
+        }
         repository.executor().execute(() -> {
             final de.spahr.ausgaben.pdf.PdfText text = readStatementText();
-            if (!ohneVorlage(text)) {
-                return;
-            }
-            final java.util.List<de.spahr.ausgaben.statement.AnchorRule> kandidaten =
-                    de.spahr.ausgaben.statement.TemplateLearner.kandidaten(text, lernfeld, wert);
+            final java.util.List<de.spahr.ausgaben.statement.AnchorRule> kandidaten = ohneVorlage(text)
+                    ? de.spahr.ausgaben.statement.TemplateLearner.kandidaten(text, lernfeld, wert)
+                    : java.util.Collections.emptyList();
             runOnUiThread(() -> {
+                if (hinweisLayout != null) {
+                    hinweisLayout.setError(null);
+                }
                 if (isFinishing() || isDestroyed() || kandidaten.isEmpty()) {
                     return;
                 }
@@ -2349,6 +2431,24 @@ public class SecurityTxEditActivity extends LocalizedActivity implements HostedD
                 showAnchorChoice(field, kandidaten);
             });
         });
+    }
+
+    /** Die Eingabehülle eines Zahlenfelds – für den „wird gelernt"-Hinweis in {@link #ankerAuswahlAnbieten}. */
+    private TextInputLayout layoutFor(Field field) {
+        switch (field) {
+            case GROSS:
+                return grossLayout;
+            case FEE:
+                return feeLayout;
+            case NET:
+                return netLayout;
+            case SHARES:
+                return sharesLayout;
+            case PRICE:
+                return priceLayout;
+            default:
+                return null;
+        }
     }
 
     /**

@@ -805,6 +805,9 @@
     <!-- Aus einer Abrechnung eingelesen, aber nicht gefunden: dann steht das Feld leer. -->
     <string name="statement_date_missing">Steht nicht in der Abrechnung – bitte wählen</string>
     <string name="statement_action_missing">Steht nicht in der Abrechnung – bitte wählen</string>
+    <string name="statement_learning_preparing">Erkennungsregel für „%1$s" noch nicht gefunden – Lernen wird vorbereitet …</string>
+    <string name="statement_learn_intro_title">Neue Bank – so lernt die App</string>
+    <string name="statement_learn_intro_message">Für diese Bank gibt es noch keine Erkennungsregeln. Beim ersten Beleg lernt die App von Ihnen, woran die Werte stehen:\n\nDatum: Alle im Beleg gefundenen Datumsangaben stehen zur Auswahl – wählen Sie das Wertstellungsdatum.\n\nZahlen: Sobald Sie einen Betrag eingegeben haben, zeigt die App die möglichen Beschriftungen dazu an – wählen Sie die passende. Gibt es nur eine Möglichkeit, fragt sie gar nicht erst nach.\n\nDie Buchung wird beim Speichern gelernt und ganz normal gebucht.</string>
     <string name="security_tx_need_date">Bitte das Datum wählen</string>
     <string name="security_tx_need_action">Bitte Kauf, Verkauf oder Dividende wählen</string>
     <!-- Regelseite: die gelernten Erkennungsregeln von Hand nachbessern. -->

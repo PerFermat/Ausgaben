@@ -331,9 +331,12 @@ public class KmyImporter {
                 return x;
             case "buy":
             case "sell":
-                // KMyMoney beschriftet Verkäufe teils fälschlich als "Buy" (oder lässt die Action leer).
-                // Zuverlässig ist nur das Vorzeichen der Stückzahl: negativ = Verkauf, positiv = Kauf.
-                // Ohne diese Regel würde ein Verkauf als Kauf gezählt und der Erlös zum Einstand addiert.
+                // KMyMoney schreibt für einen Verkauf "Buy" — das ist keine Nachlässigkeit, sondern das
+                // Format: actionNamesLUT (mymoney/mymoneysplit.cpp) kennt gar kein "Sell", dort steht
+                // ausdrücklich „SellShares is not present as action". Unterschieden wird allein am
+                // Vorzeichen der Stückzahl: negativ = Verkauf, positiv = Kauf. Ohne diese Regel würde ein
+                // Verkauf als Kauf gezählt und der Erlös zum Einstand addiert. "sell" bleibt hier
+                // trotzdem stehen: ältere Dateien tragen es, weil die App es bis 1.13 selbst schrieb.
                 return shares < 0 ? "sell" : "buy";
             default:
                 // Unbekannte Action: nur bei echter Stückbewegung als Kauf/Verkauf einordnen (leere Action).

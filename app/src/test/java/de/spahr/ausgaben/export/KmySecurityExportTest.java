@@ -315,6 +315,81 @@ public class KmySecurityExportTest {
         assertEquals(value, shares * price, 1e-6);
     }
 
+    /**
+     * Die Aktionen, die KMyMoney kennt — wörtlich aus {@code actionNamesLUT} in
+     * {@code kmymoney/mymoney/mymoneysplit.cpp}. Dort steht auch der Satz, um den es hier geht:
+     * <i>„SellShares is not present as action"</i>.
+     */
+    private static final java.util.Set<String> KMY_AKTIONEN = new java.util.HashSet<>(java.util.Arrays
+            .asList("", "ATM", "Add", "Amortization", "Buy", "Check", "Deposit", "Dividend",
+                    "Interest", "IntIncome", "Reinvest", "Split", "Transfer", "Withdrawal", "Yield"));
+
+    /**
+     * Ein Verkauf wird als {@code Buy} mit <b>negativer</b> Stückzahl geschrieben — so und nur so führt
+     * KMyMoney ihn.
+     *
+     * <p>Bis 1.13 stand dort {@code action="Sell"}. Das kennt KMyMoney nicht:
+     * {@code actionStringToAction} liefert dafür {@code Unknown}, und das Depotbuch fiel auf die
+     * Anzeige „Anteile kaufen" zurück. Die Beträge stimmten dabei die ganze Zeit, weshalb es lange
+     * niemandem auffiel — auch dem Rundlauf-Test nicht, denn der eigene Importer entscheidet ohnehin
+     * am Vorzeichen ({@code KmyImporter.normalizeAction}) und verstand die eigene Schreibweise
+     * anstandslos.</p>
+     */
+    @Test
+    public void einVerkaufStehtAlsBuyMitNegativerStückzahlInDerDatei() throws IOException {
+        KmyDocument original = doc();
+        KmyExporter.SecurityResult res = new KmyExporter(original, ctx).buildSecurityTransactions(
+                original.xml(),
+                Collections.singletonList(pending("sell", -4.0, 12000L, 11700L, 300L)));
+        assertEquals(1, res.writtenIds.size());
+
+        // Die Testdatei bringt selbst einen Kauf mit; der neue wird angehängt, also den letzten nehmen.
+        Matcher m = Pattern.compile("<SPLIT\\b[^>]*action=\"Buy\"[^>]*/>").matcher(res.xml);
+        String split = null;
+        while (m.find()) {
+            split = m.group();
+        }
+        assertNotNull("kein Buy-Split gefunden – steht dort wieder „Sell\"?", split);
+        assertEquals("die Stückzahl trägt die Unterscheidung, nicht die Aktion",
+                -4.0, fractionOf(split, "shares"), 1e-9);
+    }
+
+    /**
+     * Und allgemein: keine geschriebene Aktion darf außerhalb dessen liegen, was KMyMoney kennt.
+     *
+     * <p>Der eigentliche Prüfstein. „Sell" fiel nicht auf, weil die App ihre eigene Erfindung selbst
+     * wieder las; ein erfundenes „Remove" für Ausbuchungen fiele genauso wenig auf. Diese Schranke
+     * fängt beides.</p>
+     */
+    @Test
+    public void keineGeschriebeneAktionIstKMyMoneyUnbekannt() throws IOException {
+        for (SecurityTx tx : java.util.Arrays.asList(
+                pending("buy", 10.0, 25000L, 25500L, 500L),
+                pending("sell", -4.0, 12000L, 11700L, 300L),
+                dividende())) {
+            KmyDocument original = doc();
+            KmyExporter.SecurityResult res = new KmyExporter(original, ctx).buildSecurityTransactions(
+                    original.xml(), Collections.singletonList(tx));
+            assertEquals("Bewegung übersprungen: " + res.skipped, 1, res.writtenIds.size());
+
+            Matcher m = Pattern.compile("<SPLIT\\b[^>]*\\baction=\"([^\"]*)\"").matcher(res.xml);
+            while (m.find()) {
+                assertTrue("KMyMoney kennt die Aktion \"" + m.group(1) + "\" nicht (" + tx.action
+                        + ")", KMY_AKTIONEN.contains(m.group(1)));
+            }
+        }
+    }
+
+    /** Eine Dividende mit Ertrags- und Steuerzeile — sonst lässt der Exporter sie aus. */
+    private static SecurityTx dividende() {
+        SecurityTx div = pending("dividend", 0, 10000L, 7362L, 0L);
+        div.parts.add(new de.spahr.ausgaben.db.SecurityTxSplit(
+                0, true, "Dividenden", div.amountCents, "", 0));
+        div.parts.add(new de.spahr.ausgaben.db.SecurityTxSplit(
+                0, false, "Bankgebühren", div.amountCents - div.netCents, "", 1));
+        return div;
+    }
+
     private static double fractionOf(String splitXml, String attribute) {
         Matcher m = Pattern.compile("\\b" + attribute + "=\"([^\"]*)\"").matcher(splitXml);
         assertTrue(attribute + " fehlt", m.find());

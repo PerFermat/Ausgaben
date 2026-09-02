@@ -638,10 +638,16 @@ public class KmyExporter {
      * {@code value} muss exakt 0 ergeben – daran erkennt KMyMoney eine ausgeglichene Buchung.</p>
      *
      * <pre>
-     *   Kauf:      Geld −(Betrag+Gebühr) · Papier +Betrag (Buy,  +Stück) · Gebührenkategorie +Gebühr
-     *   Verkauf:   Geld +(Betrag−Gebühr) · Papier −Betrag (Sell, −Stück) · Gebührenkategorie +Gebühr
+     *   Kauf:      Geld −(Betrag+Gebühr) · Papier +Betrag (Buy, +Stück) · Gebührenkategorie +Gebühr
+     *   Verkauf:   Geld +(Betrag−Gebühr) · Papier −Betrag (Buy, −Stück) · Gebührenkategorie +Gebühr
      *   Dividende: Geld +Netto · Papier 0 (Dividend, 0 Stück) · Ertrag −Brutto · Steuer +Steuer
      * </pre>
+     *
+     * <p>Der Verkauf trägt <b>dieselbe</b> Aktion wie der Kauf; unterschieden wird er allein am
+     * Vorzeichen der Stückzahl. So führt KMyMoney es: {@code actionNamesLUT} in
+     * {@code mymoney/mymoneysplit.cpp} kennt kein „Sell" — dort steht ausdrücklich
+     * <i>„SellShares is not present as action"</i> —, und {@code investmentTransactionType} macht aus
+     * {@code Buy} mit negativer Stückzahl den Verkauf.</p>
      *
      * <p>Der Kurs wird nicht gerundet, sondern als exakter Bruch {@code Betrag/Stückzahl} geschrieben –
      * sonst passte {@code shares × price} nicht mehr zu {@code value}.</p>
@@ -739,8 +745,11 @@ public class KmyExporter {
         }
         long stockValue = sell ? -gross : gross;
         String sharesFraction = decimalFraction(tx.shares, SHARE_SCALE);
+        // „Buy" auch beim Verkauf: KMyMoney kennt keine „Sell"-Aktion (siehe oben). Bis 1.13 stand hier
+        // eine, und weil actionStringToAction sie nicht auflösen konnte, zeigte das Depotbuch jeden
+        // Verkauf als „Anteile kaufen" — bei richtigen Beträgen, weshalb es lange nicht auffiel.
         splits.add(securitySplit(splitId(index), stockId, fraction(stockValue), sharesFraction,
-                priceFraction(gross, tx.shares), sell ? "Sell" : "Buy"));
+                priceFraction(gross, tx.shares), "Buy"));
         return addCategorySplits(splits, index, tx.partsOf(false), 1, fee, label, commodity,
                 result) ? splits : null;
     }

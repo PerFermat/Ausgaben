@@ -6,6 +6,7 @@ import android.view.Gravity;
 import android.view.LayoutInflater;
 import android.view.View;
 import android.widget.LinearLayout;
+import android.widget.ScrollView;
 import android.widget.TextView;
 import android.widget.Toast;
 
@@ -68,6 +69,18 @@ public class PlaceHistoryActivity extends LocalizedActivity {
 
         FloatingActionButton fab = findViewById(R.id.fabNewHere);
         fab.setOnClickListener(v -> showMovementDialog(null));
+
+        // Wie in MainActivity: erst sichtbar, sobald nach unten gescrollt wurde.
+        ScrollView scroll = findViewById(R.id.historyScroll);
+        FloatingActionButton fabScrollTop = findViewById(R.id.fabScrollTop);
+        fabScrollTop.setOnClickListener(v -> scroll.smoothScrollTo(0, 0));
+        scroll.setOnScrollChangeListener((View v, int scrollX, int scrollY, int oldScrollX, int oldScrollY) -> {
+            if (scrollY > 0) {
+                fabScrollTop.show();
+            } else {
+                fabScrollTop.hide();
+            }
+        });
     }
 
     @Override

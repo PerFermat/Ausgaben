@@ -250,4 +250,61 @@ final class StatementFixtures {
                 "Solidaritätszuschlag                                                     EUR      37,43 -",
                 "Zu Gunsten Konto 1234567890      Valuta: 02.08.2024                      EUR  20.806,02");
     }
+
+    /**
+     * Ein <b>Kauf</b> von Scalable Capital, nachgebaut aus einem echten Beleg.
+     *
+     * <p>Der Prüfstein für die Auswahl der Beschriftung: der Kurs 116,20 ist auf drei Arten zu
+     * erreichen — über die Spaltenüberschrift „Kurs" darüber, über das „STK" links daneben und über
+     * den Fondsnamen unmittelbar davor. Alle drei lesen ihn in <b>diesem</b> Beleg; beim nächsten
+     * Fonds derselben Bank tut es nur noch die Überschrift. Aus dem Dokument allein ist das nicht zu
+     * entscheiden.</p>
+     */
+    static PdfText scalableKauf() {
+        return of(
+                "Wertpapierabrechnung: Kauf",
+                "Auftragsdatum: 07.08.2024        Ausführungsplatz: GETTEX - MM Munich",
+                "Nominale                         ISIN: IE00B3RBWM25    WKN: A1JX52      Kurs",
+                "STK 86                           Vanguard FTSE All-World U.ETF          EUR    116,20",
+                "                                 Registered Shares USD Dis.oN",
+                "Kurswert                                                                 EUR   9.993,20",
+                "Zu Lasten Konto 1234567890       Valuta: 09.08.2024                      EUR   9.993,20",
+                "Details zur Ausführung:",
+                "Nominale        Kurs             Ausführungsplatz            Handelsdatum   Handelsuhrzeit",
+                "STK  86         EUR  116,20      GETTEX - MM Munich          07.08.2024     19:13:49:506");
+    }
+
+    /**
+     * Derselbe Verkauf, aber <b>vollständig</b>: mit dem Ausführungsblock und der Steuertabelle von
+     * Seite 2.
+     *
+     * <p>Der Prüfstein für die Rückprobe des Lerners. „STK 170" steht in diesem Beleg dreimal, und die
+     * unterste Fundstelle — die Zeile der Anschaffungsgeschäfte — trägt hinter der Beschriftung ganz
+     * andere Zahlen als die Nominale-Zeile. Eine Regel mit dem Anker „STK" liest dort 4.859,11 statt
+     * des Stückpreises 126,933. Die kurze Fassung {@link #scalableVerkauf()} zeigt das nicht: ihr fehlen
+     * die beiden weiteren Zeilen, und deshalb sieht dort jede Regel richtig aus.</p>
+     */
+    static PdfText scalableVerkaufZweiSeitig() {
+        return of(
+                "Wertpapierabrechnung: Verkauf",
+                "Auftragsdatum: 29.07.2024        Ausführungsplatz: GETTEX - MM Munich",
+                "Nominale                         ISIN: DE0009779611     WKN: 977961      Kurs",
+                "STK 170                          First Priv. Euro Div.STAUFER            EUR    126,933",
+                "                                 Inhaber-Anteile A",
+                "Kurswert                                                                 EUR  21.578,61",
+                "Kapitalertragsteuer                                                      EUR     680,71 -",
+                "Kirchensteuer                                                            EUR      54,45 -",
+                "Solidaritätszuschlag                                                     EUR      37,43 -",
+                "Zu Gunsten Konto 1234567890      Valuta: 02.08.2024                      EUR  20.806,02",
+                "Details zur Ausführung:",
+                "Nominale        Kurs             Ausführungsplatz            Handelsdatum   Handelsuhrzeit",
+                "STK  170        EUR  126,933     GETTEX - MM Munich          29.07.2024     12:59:08:397",
+                "Darstellung der steuerlichen Berechnungsgrundlagen:",
+                "Kapitalertragsteuer 24,51 %                                              EUR     680,71 -",
+                "Kirchensteuer 8,00 %                                                     EUR      54,45 -",
+                "Solidaritätszuschlag 5,50 %                                              EUR      37,43 -",
+                "Berücksichtigte Anschaffungsgeschäfte (alle ermittelten Beträge in EUR)",
+                "Geschäft        Nr.       Datum        Whg./St.  Nominal/Stück  Anschaff.-kosten",
+                "WP-Einlief. mit AK  342515894  31.12.2003  STK      170   16.719,50   21.578,61   4.859,11");
+    }
 }

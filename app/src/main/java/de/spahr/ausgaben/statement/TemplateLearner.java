@@ -73,6 +73,16 @@ public final class TemplateLearner {
          */
         public AnchorRule dateRule;
         /**
+         * Dasselbe für die Wertfelder: was der Nutzer beim Verlassen des Feldes ausgewählt hat.
+         *
+         * <p>Der Grund ist derselbe wie beim Datum, nur häufiger: zu einer Zahl führen mehrere
+         * Beschriftungen, und welche die Bank im nächsten Beleg behält, steht nicht im Dokument
+         * (siehe {@link #kandidaten}). Was hier steht, hat Vorrang vor der eigenen Suche — sofern es
+         * den Wert auch wirklich liest; sonst sucht der Lerner wie bisher.</p>
+         */
+        public Map<StatementTemplate.Field, AnchorRule> chosenRules =
+                new EnumMap<>(StatementTemplate.Field.class);
+        /**
          * Die Teilbeträge, in die der Nutzer die Gebühr bzw. Steuer aufgeteilt hat — jeder für sich
          * eine Zeile der Abrechnung. Gelernt wird daraus je eine eigene Regel, damit beim nächsten
          * Mal nicht nur die Summe, sondern auch ihre Aufteilung dasteht.
@@ -108,9 +118,11 @@ public final class TemplateLearner {
         // Notierung des Wertpapiers – bei einem Dollar-Papier steht dort USD, bei einem Euro-Papier EUR.
         // Bände man ihn an die einmal gelernte Währung, ginge nach dem Lernen an einem Dollar-Papier
         // kein Euro-Papier mehr, und umgekehrt.
-        AnchorRule net = forValue(text, cents(known.netCents), MONEY_EPSILON, true, used);
+        AnchorRule net = regelFuer(known, StatementTemplate.Field.NET, text, cents(known.netCents),
+                MONEY_EPSILON, true, used);
         put(rules, StatementTemplate.Field.NET, net, used);
-        AnchorRule fee = forValue(text, cents(known.feeCents), MONEY_EPSILON, true, used);
+        AnchorRule fee = regelFuer(known, StatementTemplate.Field.FEE, text, cents(known.feeCents),
+                MONEY_EPSILON, true, used);
         put(rules, StatementTemplate.Field.FEE, fee, used);
 
         // Weder Gesamtbetrag noch Gebühr gefunden? Dann kann beides denselben Grund haben: die Bank nimmt
@@ -129,10 +141,10 @@ public final class TemplateLearner {
             }
         }
 
-        put(rules, StatementTemplate.Field.PRICE,
-                forValue(text, known.price, MONEY_EPSILON, false, used), used);
-        put(rules, StatementTemplate.Field.SHARES,
-                forValue(text, known.shares, SHARE_EPSILON, false, used), used);
+        put(rules, StatementTemplate.Field.PRICE, regelFuer(known, StatementTemplate.Field.PRICE,
+                text, known.price, MONEY_EPSILON, false, used), used);
+        put(rules, StatementTemplate.Field.SHARES, regelFuer(known, StatementTemplate.Field.SHARES,
+                text, known.shares, SHARE_EPSILON, false, used), used);
         put(rules, StatementTemplate.Field.DATE,
                 known.dateRule != null && known.dateRule.readDate(text) == known.dateMillis
                         ? known.dateRule
@@ -253,6 +265,27 @@ public final class TemplateLearner {
 
     private static Double cents(Long value) {
         return value == null ? null : value / 100.0;
+    }
+
+    /**
+     * Die Regel für ein Wertfeld: die vom Nutzer gewählte, sonst die selbst gesuchte.
+     *
+     * <p>Die Wahl gilt nur, wenn sie den eingetragenen Wert auch liest. Sie kann veraltet sein — wer
+     * eine Beschriftung antippt und den Betrag danach noch einmal ändert, meint sie nicht mehr. Dann
+     * ist ein selbst gesuchter Vorschlag besser als eine Regel, die von Anfang an etwas anderes
+     * liest.</p>
+     */
+    private static AnchorRule regelFuer(Known known, StatementTemplate.Field field, PdfText text,
+                                        Double value, double epsilon, boolean bindCurrency,
+                                        List<String> used) {
+        if (value == null) {
+            return null;
+        }
+        AnchorRule gewaehlt = known.chosenRules == null ? null : known.chosenRules.get(field);
+        if (gewaehlt != null && liestSichSelbst(gewaehlt, text, Math.abs(value), epsilon)) {
+            return gewaehlt;
+        }
+        return forValue(text, value, epsilon, bindCurrency, used);
     }
 
     private static void put(Map<StatementTemplate.Field, AnchorRule> rules,
@@ -536,14 +569,37 @@ public final class TemplateLearner {
         return found;
     }
 
-    /** Der Wert steht als letzte Zahl einer Zeile — der Regelfall. */
+    /**
+     * Der Wert steht als letzte Zahl einer Zeile — der Regelfall.
+     *
+     * <p>Jede Regel wird <b>zurückgelesen</b>, bevor sie gilt: sie muss auf demselben Beleg wieder den
+     * Wert hergeben, aus dem sie entstanden ist. Ohne diese Probe entstand aus „STK 170 … EUR 126,933"
+     * eine Regel für den Stückpreis mit der Beschriftung „STK" — die aber steht in derselben
+     * Abrechnung noch zweimal, und beim Lesen gewinnt die <b>unterste</b> Fundstelle
+     * ({@link AnchorRule#read}). Herauskam das anteilige Ergebnis aus der Steuertabelle von Seite 2.
+     * {@code columnLine} und {@code aboveLine} halten diese Probe längst; hier fehlte sie.</p>
+     */
     private static AnchorRule singleLine(PdfText text, double value, double epsilon,
                                          boolean bindCurrency, List<String> used) {
-        String anchor = null;
-        String currency = "";
-        AnchorRule.Direction direction = AnchorRule.Direction.SAME_LINE;
-        AnchorRule.Position position = AnchorRule.Position.LAST;
-        int nthFound = 1;
+        List<AnchorRule> gefunden = new ArrayList<>();
+        zeilenregeln(text, value, epsilon, bindCurrency, used, gefunden, false);
+        // Mehrere Fundstellen: die unterste gewinnt – in einer Abrechnung steht die Endsumme unten,
+        // und sie ist die Zahl, die auch mit Gebühren noch stimmt.
+        return gefunden.isEmpty() ? null : gefunden.get(gefunden.size() - 1);
+    }
+
+    /**
+     * Der sammelnde Kern von {@link #singleLine}: jede Beschriftung, die diesen Wert in ihrer eigenen
+     * Zeile (oder in der Zeile darunter) wiederfindet, in der Reihenfolge des Dokuments.
+     *
+     * <p>Mit {@code alle} entscheidet der Aufrufer, wieviel er braucht. Der Lerner nimmt je Fundstelle
+     * die erste Beschriftung, die sich bestätigt, und ist fertig — er sucht einen Vorschlag. Die
+     * Auswahlliste der Maske dagegen will jede: dort soll der Nutzer ja gerade zwischen „STK" und
+     * „Nominale" entscheiden können ({@link #kandidaten}).</p>
+     */
+    private static void zeilenregeln(PdfText text, double value, double epsilon,
+                                     boolean bindCurrency, List<String> used,
+                                     List<AnchorRule> out, boolean alle) {
         List<PdfText.Line> lines = text.lines();
         for (int i = 0; i < lines.size(); i++) {
             // Von aussen nach innen: erst die letzte Zahl – der Regelfall –, dann die erste (unter einer
@@ -557,38 +613,169 @@ public final class TemplateLearner {
             AnchorRule.Position where = stelle[0] == 1
                     ? AnchorRule.Position.FIRST : AnchorRule.Position.LAST;
             int nth = stelle[1];
+            String zeile = lines.get(i).text();
+            AnchorRule probe = null;
             // Beschriftung in derselben Zeile — erst die unmittelbar vor dem Wert, dann die am
             // Zeilenanfang. Beides wird gebraucht: „Beispielstraße 1 DATUM 13.05.2019" gibt nur die erste
             // her, „Stückzinsen für 153 Tage per 26.11.2015 73,16-" nur die zweite. Hat die Zeile keine
             // brauchbare, steht sie eine Zeile darüber.
-            String own = firstUsable(used, where,
-                    labelBefore(lines.get(i).text(), where), labelOf(lines.get(i).text()));
-            if (own != null) {
-                anchor = own;
-                direction = AnchorRule.Direction.SAME_LINE;
+            //
+            // Nicht mehr über {@code firstUsable}: hält die erste brauchbare Beschriftung die Rückprobe
+            // nicht, muss die zweite noch drankommen.
+            for (String kandidat : new String[]{labelBefore(zeile, where), labelOf(zeile)}) {
+                if (!isUsable(kandidat, used, where)) {
+                    continue;
+                }
                 // Die Währung aus dem Text hinter der Beschriftung – genau dem, den die Regel beim Lesen
                 // ansieht. Nähme man die ganze Zeile, lernte „UNSOLICITED NET AMOUNT $371.65" die
                 // Währung „NET" (drei Großbuchstaben) und fände sie nie wieder.
-                currency = bindCurrency
-                        ? AnchorRule.currencyOf(AnchorRule.afterAnchorText(lines.get(i).text(), own))
-                        : "";
-                position = where;
-                nthFound = nth;
-            } else {
-                String above = labelAbove(lines, i, used, where);
-                if (above != null) {
-                    anchor = above;
-                    direction = AnchorRule.Direction.LINE_BELOW;
-                    currency = bindCurrency ? AnchorRule.currencyOf(lines.get(i).text()) : "";
-                    position = where;
-                    nthFound = nth;
+                AnchorRule regel = AnchorRule.single(kandidat, AnchorRule.Direction.SAME_LINE,
+                        bindCurrency ? AnchorRule.currencyOf(AnchorRule.afterAnchorText(zeile, kandidat))
+                                : "",
+                        where, nth);
+                if (liestSichSelbst(regel, text, value, epsilon)) {
+                    probe = regel;
+                    if (alle) {
+                        merke(out, regel);
+                        continue;
+                    }
+                    break;
                 }
             }
+            // Hat die Zeile keine brauchbare Beschriftung, steht sie eine Zeile darüber. Beim Sammeln
+            // wird sie zusätzlich angeboten: eine Tabellenzeile trägt beides, „STK" daneben und
+            // „Nominale" darüber, und welche die Bank im nächsten Beleg behält, weiß nur der Nutzer.
+            if (probe == null || alle) {
+                AnchorRule oben = ruleAbove(text, lines, i, used, where, nth, value, epsilon,
+                        bindCurrency);
+                if (alle) {
+                    merke(out, oben);
+                } else {
+                    probe = oben;
+                }
+            }
+            if (!alle && probe != null) {
+                out.add(probe);
+            }
         }
-        // Mehrere Fundstellen: die unterste gewinnt (die Schleife überschreibt) – in einer Abrechnung
-        // steht die Endsumme unten, und sie ist die Zahl, die auch mit Gebühren noch stimmt.
-        return anchor == null ? null
-                : AnchorRule.single(anchor, direction, currency, position, nthFound);
+    }
+
+    /** Nimmt die Regel auf, wenn nicht schon eine gleichlautende dasteht. */
+    private static void merke(List<AnchorRule> out, AnchorRule rule) {
+        if (rule != null && !out.contains(rule)) {
+            out.add(rule);
+        }
+    }
+
+    /**
+     * <b>Alle</b> Wege, auf denen dieser Wert in diesem Dokument zu erreichen ist — für die Auswahl in
+     * der Erfassungsmaske.
+     *
+     * <p>Der Lerner sucht sich sonst einen davon aus, und das ist die Stelle, an der er raten muss:
+     * „STK 86 Vanguard FTSE All-World U.ETF EUR 116,20" unter der Überschrift „Nominale … Kurs" gibt
+     * für den Kurs drei Beschriftungen her — die Überschrift „Kurs" (richtig), das „STK" daneben
+     * (zufällig auch) und den Fondsnamen (beim nächsten Fonds falsch). Aus dem Dokument allein ist
+     * das nicht zu entscheiden; also legt die Maske die Wege vor und lässt wählen, wie sie es beim
+     * Datum längst tut ({@link StatementScan#dates}).</p>
+     *
+     * <p>Die Reihenfolge ist die des Lerners, damit sein Vorschlag und die Auswahl nicht
+     * auseinanderlaufen: erst die Beschriftungen in der Zeile selbst und darüber, dann die
+     * Spaltenüberschriften, dann der Wert über seiner Beschriftung, zuletzt die Summe mehrerer Zeilen.
+     * Jeder Kandidat ist zurückgelesen — was hier draufsteht, findet die Regel hinterher wieder.</p>
+     *
+     * <p>Eine <b>leere</b> Liste ist kein Fehler: der gerechnete Gesamtbetrag einer Dividende und eine
+     * feste Ordergebühr stehen nirgends im Dokument. Dann gibt es nichts zu fragen.</p>
+     */
+    /**
+     * Wie {@link #kandidaten(PdfText, Double, double, boolean)}, aber mit den Maßen des Feldes — damit
+     * die Maske sie nicht selbst kennen muss und nicht von denen abweichen kann, mit denen
+     * {@link #learn} kurz darauf sucht.
+     */
+    public static List<AnchorRule> kandidaten(PdfText text, StatementTemplate.Field field,
+                                              Double value) {
+        boolean geld = field == StatementTemplate.Field.NET || field == StatementTemplate.Field.FEE;
+        return kandidaten(text, value,
+                field == StatementTemplate.Field.SHARES ? SHARE_EPSILON : MONEY_EPSILON,
+                // Die Währung wird nur dort festgehalten, wo sie feststeht: Gesamtsumme und Steuer
+                // gehen aufs Konto, der Stückpreis ist die Notierung des Papiers (siehe learn).
+                geld);
+    }
+
+    public static List<AnchorRule> kandidaten(PdfText text, Double value, double epsilon,
+                                              boolean bindCurrency) {
+        List<AnchorRule> out = new ArrayList<>();
+        if (text == null || value == null) {
+            return out;
+        }
+        double gesucht = Math.abs(value);
+        List<String> used = java.util.Collections.emptyList();
+        zeilenregeln(text, gesucht, epsilon, bindCurrency, used, out, true);
+        spaltenregeln(text, gesucht, epsilon, bindCurrency, used, out);
+        merke(out, aboveLine(text, gesucht, epsilon, bindCurrency, used));
+        merke(out, summedLines(text, gesucht, epsilon, bindCurrency, used));
+        return out;
+    }
+
+    /**
+     * Die Spaltenüberschriften, unter denen dieser Wert steht — der zweite Teil von
+     * {@link #kandidaten}.
+     *
+     * <p>Nur in Tabellenzeilen und nur bei echten Wortpositionen: sonst bietet sich über jeder
+     * beliebigen Zahl irgendein Wort als „Überschrift" an. Dieselbe Schranke zieht
+     * {@link StatementScan#values}.</p>
+     */
+    private static void spaltenregeln(PdfText text, double value, double epsilon,
+                                      boolean bindCurrency, List<String> used,
+                                      List<AnchorRule> out) {
+        if (!text.hasWordPositions()) {
+            return;
+        }
+        List<PdfText.Line> lines = text.lines();
+        for (int i = 0; i < lines.size(); i++) {
+            if (!istTabellenzeile(lines.get(i))) {
+                continue;
+            }
+            for (PdfText.Word word : lines.get(i).words) {
+                Double zahl = TextValues.toDecimal(word.text);
+                if (zahl == null || Math.abs(Math.abs(zahl) - value) > epsilon) {
+                    continue;
+                }
+                merke(out, columnRuleFor(text, i, word, used,
+                        bindCurrency ? AnchorRule.currencyOf(lines.get(i).text()) : "",
+                        gelesen -> gelesen != null && Math.abs(gelesen - value) <= epsilon, null));
+            }
+        }
+    }
+
+    /** Ob die Regel auf ihrem eigenen Lernbeleg wieder den gelernten Wert hergibt. */
+    private static boolean liestSichSelbst(AnchorRule rule, PdfText text, double value,
+                                           double epsilon) {
+        Double gelesen = rule.read(text);
+        return gelesen != null && Math.abs(gelesen - value) <= epsilon;
+    }
+
+    /**
+     * Die Regel zu einer Spaltenüberschrift <b>über</b> der Wertzeile — {@code null}, wenn keine trägt.
+     *
+     * <p>Wie {@link #labelAbove}, aber mit der Rückprobe: gesucht wird weiter nach oben, bis eine
+     * Überschrift ihren eigenen Wert wieder liest. Die erste brauchbare zu nehmen und es dabei zu
+     * belassen, hiesse hier dasselbe Risiko eingehen wie in derselben Zeile.</p>
+     */
+    private static AnchorRule ruleAbove(PdfText text, List<PdfText.Line> lines, int i,
+                                        List<String> used, AnchorRule.Position where, int nth,
+                                        double value, double epsilon, boolean bindCurrency) {
+        for (int j = i - 1; j >= 0 && j >= i - AnchorRule.MAX_DISTANCE; j--) {
+            String label = labelOf(lines.get(j).text());
+            if (!isUsable(label, used, where)) {
+                continue;
+            }
+            AnchorRule regel = AnchorRule.single(label, AnchorRule.Direction.LINE_BELOW,
+                    bindCurrency ? AnchorRule.currencyOf(lines.get(i).text()) : "", where, nth);
+            if (liestSichSelbst(regel, text, value, epsilon)) {
+                return regel;
+            }
+        }
+        return null;
     }
 
     /**

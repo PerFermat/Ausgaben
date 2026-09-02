@@ -1,7 +1,12 @@
 <?xml version="1.0" encoding="utf-8"?>
 <resources>
-    <!-- Akzent-Textfarbe für Outlined-/Dialog-Buttons: weiß im Dunkelmodus (sonst unlesbar) -->
-    <color name="button_accent">#FFFFFF</color>
+    <!-- Akzent-Textfarbe für Outlined-/Dialog-Buttons: weiß im Dunkelmodus (sonst unlesbar).
+         Bewusst #FFFFFE statt #FFFFFFFF: AccentColor.retint() erkennt akzentgefärbten Text am exakten
+         Farbwert. Mit reinem Weiß wäre das nicht mehr von gewöhnlichem weißem Kontrast-Text auf grünem
+         Grund (z. B. Kontoname im Schubladenkopf) zu unterscheiden – der würde dann fälschlich auf die
+         Akzentfarbe umgefärbt und verschwindet, wenn diese mit dem Hintergrund übereinstimmt. Der
+         Unterschied ist für das Auge nicht wahrnehmbar. -->
+    <color name="button_accent">#FFFFFFFE</color>
     <!-- Etwas hellere Signalfarben für besseren Kontrast auf dunklem Grund -->
     <color name="income_green">#81C784</color>
     <color name="expense_red">#EF9A9A</color>

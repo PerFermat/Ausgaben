@@ -94,7 +94,9 @@ public final class AccentColor {
         }
         View content = activity.findViewById(android.R.id.content);
         if (content != null) {
-            retint(activity, content, color, contrast);
+            // toolbar ist oben schon fertig eingefärbt (Titel/Untertitel/Icons) – nicht noch einmal
+            // hinabsteigen, sonst greift der Text-Abgleich unten ein zweites Mal auf denselben Titel zu.
+            retint(activity, content, color, contrast, toolbar);
         }
     }
 
@@ -143,6 +145,13 @@ public final class AccentColor {
      * Hintergrundfarbe, {@link TextView}s mit grüner Schrift/Symbolfarbe sowie Switch/Slider.
      */
     private static void retint(Context context, View view, int color, int contrast) {
+        retint(context, view, color, contrast, null);
+    }
+
+    private static void retint(Context context, View view, int color, int contrast, View skip) {
+        if (view == skip) {
+            return;
+        }
         int greenPrimary = ProfileManager.DEFAULT_ACCENT_COLOR;
         int greenDark = ContextCompat.getColor(context, R.color.green_dark);
         int buttonAccent = ContextCompat.getColor(context, R.color.button_accent);
@@ -170,7 +179,7 @@ public final class AccentColor {
         if (view instanceof ViewGroup) {
             ViewGroup group = (ViewGroup) view;
             for (int i = 0; i < group.getChildCount(); i++) {
-                retint(context, group.getChildAt(i), color, contrast);
+                retint(context, group.getChildAt(i), color, contrast, skip);
             }
         }
     }
@@ -178,24 +187,33 @@ public final class AccentColor {
     private static void retintMaterialButton(MaterialButton button, int color, int contrast,
                                               int greenPrimary, int greenDark, int buttonAccent) {
         ColorStateList bgTint = button.getBackgroundTintList();
+        boolean recoloredByBackground = false;
         if (bgTint != null) {
             int def = bgTint.getDefaultColor();
             if (def == greenPrimary) {
                 button.setBackgroundTintList(ColorStateList.valueOf(color));
                 button.setTextColor(contrast);
+                recoloredByBackground = true;
             } else if (def == greenDark) {
                 int dark = darkVariant(color);
                 button.setBackgroundTintList(ColorStateList.valueOf(dark));
                 button.setTextColor(contrastColor(dark));
+                recoloredByBackground = true;
             }
         }
-        ColorStateList strokeColor = button.getStrokeColor();
-        if (strokeColor != null && strokeColor.getDefaultColor() == buttonAccent) {
-            button.setStrokeColor(ColorStateList.valueOf(color));
-        }
-        ColorStateList textColors = button.getTextColors();
-        if (textColors != null && textColors.getDefaultColor() == buttonAccent) {
-            button.setTextColor(color);
+        // Ein gefüllter Knopf ist damit fertig eingefärbt (Hintergrund + Kontrast-Schrift). Käme jetzt
+        // noch der Text-/Rahmen-Abgleich gegen buttonAccent dazu, würde er im Dunkelmodus zuschlagen –
+        // dort ist buttonAccent zufällig Weiß, genau die gerade gesetzte Kontrastfarbe – und die Schrift
+        // mit der (oft dunklen) Akzentfarbe überschreiben: Schrift = Hintergrund = unsichtbar.
+        if (!recoloredByBackground) {
+            ColorStateList strokeColor = button.getStrokeColor();
+            if (strokeColor != null && strokeColor.getDefaultColor() == buttonAccent) {
+                button.setStrokeColor(ColorStateList.valueOf(color));
+            }
+            ColorStateList textColors = button.getTextColors();
+            if (textColors != null && textColors.getDefaultColor() == buttonAccent) {
+                button.setTextColor(color);
+            }
         }
     }
 

@@ -1,0 +1,26 @@
+<resources>
+    <string name="app_name">Ausgaben</string>
+    <string name="wear_title">Registrar apunte</string>
+    <string name="wear_switch">Cambiar cuenta/lugar</string>
+    <string name="wear_type_income">Ingreso</string>
+    <string name="wear_type_transfer">Traspaso</string>
+    <string name="wear_type_expense">Gasto</string>
+    <string name="wear_cancel">Cancelar</string>
+    <string name="wear_prompt">Di un apunte, p. ej. \"peluquería 20 euros\"</string>
+    <!-- Bis der Erkennungsdienst wirklich aufnimmt; erst danach „Speak now". -->
+    <string name="wear_preparing">Un momento…</string>
+    <string name="wear_listening">Habla ahora…</string>
+    <string name="wear_not_understood">No reconocido</string>
+    <string name="wear_no_mic">Se necesita micrófono</string>
+    <string name="wear_no_recognizer">Sin reconocimiento</string>
+    <!-- Kurzform für die einzige verfügbare Zeile: Anzahl + Grund, z. B. "3 pending · No phone". -->
+    <string name="wear_pending">%1$d pendiente(s) · %2$s</string>
+    <string name="wear_reason_gps">GPS</string>
+    <string name="wear_reason_no_phone">Sin teléfono</string>
+    <string name="wear_reason_sending">enviando…</string>
+    <string name="wear_offline_number">Sin conexión – introduce importe</string>
+    <string name="wear_model_downloading">Descargando modelo de voz sin conexión…</string>
+    <string name="wear_model_hint">Activa el reconocimiento de voz sin conexión para este idioma en los ajustes del reloj (Sistema → Idiomas y entrada).</string>
+    <string name="wear_model_unsupported">Este reloj no admite reconocimiento de voz sin conexión. Se usa el teclado numérico cuando no hay conexión.</string>
+    <string name="number_entry">Introduce el importe con el teclado</string>
+</resources>

@@ -51,6 +51,16 @@ public class CsvImporter {
         int accountIndex = nextNonEmpty(lines, 0);
         int headerIndex = accountIndex < 0 ? -1 : nextNonEmpty(lines, accountIndex + 1);
 
+        // KMyMoneys Investment-/Depot-Export trägt dieselbe Kontozeile, nur mit diesem Kontotyp
+        // (csvwriter.cpp: accountTypeToString(Investment)). Die Datenspalten sind ein völlig anderes
+        // Layout (Wertpapier/Menge/Preis statt Empfänger/Betrag/Kategorie) – ohne diese Sperre würde die
+        // Spaltenerkennung unten die Stückzahl für den Betrag halten und ein Konto voller Fantasiebuchungen
+        // anlegen. Depots liefert CSV ohnehin nicht (keine aktuellen Kurse), also klar ablehnen statt
+        // halb einzulesen.
+        if (accountIndex >= 0 && accountTypeIsInvestment(lines[accountIndex])) {
+            throw new IllegalArgumentException(ctx.getString(R.string.err_csv_depot_unsupported));
+        }
+
         String account = accountIndex < 0 ? null : accountName(lines[accountIndex]);
         if (account == null || account.isEmpty()) {
             throw new IllegalArgumentException(ctx.getString(R.string.err_csv_account_missing));
@@ -112,6 +122,11 @@ public class CsvImporter {
             b.payee = payee;
             b.account = account;
             b.category = category;
+            // Ohne diese Zeile bleibt category_is_income auf jeder importierten Buchung NULL, und
+            // getExpenseCategories()/getIncomeCategories() (BookingDao) übernehmen die Kategorie nie in
+            // die Auswahlliste des Editors – der Speichern-Knopf sperrt dann jede neue Buchung mit dieser
+            // Kategorie dauerhaft, weil containsCategory() sie nicht kennt.
+            b.categoryIsIncome = category.isEmpty() ? null : cents >= 0;
             b.note = note;
             b.createdAt = when;
             b.exported = true;
@@ -134,6 +149,22 @@ public class CsvImporter {
             }
         }
         return -1;
+    }
+
+    /**
+     * Kontotyp der Kontozeile = Wert zwischen dem ersten „:" und dem folgenden Feldtrenner (Komma),
+     * bzw. bis zum Zeilenende, wenn kein „Kontoname:"-Teil folgt. True, wenn das ein Investment-/
+     * Depotkonto ist ({@code Investment} englisch, {@code Investition} deutsch – siehe
+     * {@code MyMoneyAccount::accountTypeToString} in KMyMoney).
+     */
+    private static boolean accountTypeIsInvestment(String line) {
+        int colon = line.indexOf(':');
+        if (colon < 0) {
+            return false;
+        }
+        int comma = line.indexOf(',', colon);
+        String type = (comma < 0 ? line.substring(colon + 1) : line.substring(colon + 1, comma)).trim();
+        return type.equalsIgnoreCase("Investment") || type.equalsIgnoreCase("Investition");
     }
 
     /** Kontoname = Wert hinter dem letzten „:" der Kontozeile (ohne Anführungszeichen/Whitespace). */

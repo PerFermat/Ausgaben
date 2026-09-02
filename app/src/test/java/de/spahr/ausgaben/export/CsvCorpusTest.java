@@ -136,7 +136,76 @@ public class CsvCorpusTest {
         assertEquals("Haushalt", back.get(1).category);
     }
 
+    /**
+     * Eine importierte Buchung mit Kategorie muss sofort in der Auswahlliste des Editors auftauchen.
+     *
+     * <p>Regression: {@code CsvImporter} setzte {@code category_is_income} nie, und
+     * {@code BookingDao.getExpenseCategories()}/{@code getIncomeCategories()} übernehmen eine Kategorie
+     * nur, wenn mindestens eine Buchungszeile diesen Typ trägt (oder ein globaler Fallback aus dem
+     * .kmy-Import existiert, den es im CSV-Modus nie gibt). Ohne den Typ blieb die Kategorie für den
+     * Editor unsichtbar, und {@code SplitRowController.isValid()} sperrte den Speichern-Knopf für jede
+     * neue Buchung mit genau dieser Kategorie dauerhaft.</p>
+     */
+    @Test
+    public void importierteKategorieLandetInDerAuswahlliste() throws Exception {
+        android.content.Context ctx = ApplicationProvider.getApplicationContext();
+        de.spahr.ausgaben.db.AppDatabase db = androidx.room.Room
+                .inMemoryDatabaseBuilder(ctx, de.spahr.ausgaben.db.AppDatabase.class)
+                .allowMainThreadQueries().build();
+        try {
+            List<Booking> imported = new CsvImporter(ctx).parse(fixture("ledger-de.csv"));
+            for (Booking b : imported) {
+                db.bookingDao().insert(b);
+            }
+            assertTrue("Ausgabe-Kategorie fehlt in der Auswahlliste: " + db.bookingDao().getExpenseCategories(),
+                    db.bookingDao().getExpenseCategories().contains("Unterhaltung"));
+            assertTrue("Einnahme-Kategorie fehlt in der Auswahlliste: " + db.bookingDao().getIncomeCategories(),
+                    db.bookingDao().getIncomeCategories().contains("Einnahmen:Gehalt"));
+        } finally {
+            db.close();
+        }
+    }
+
     // ---- Was abgelehnt werden muss ----
+
+    /**
+     * KMyMoneys Investment-/Depot-Export trägt dieselbe Kontozeile wie ein normales Konto, nur mit dem
+     * Kontotyp „Investment"/„Investition" – die Datenspalten sind aber Wertpapier/Menge/Preis statt
+     * Empfänger/Betrag/Kategorie. Ohne eigene Sperre hielt die Spaltenerkennung die Stückzahl für den
+     * Betrag und legte ein Konto voller Fantasiebuchungen an ({@code -> "Investition"}, 100/170/150/40
+     * "Buchungen" für reine Bestandsübernahmen). Depots liefert CSV ohnehin nie (keine aktuellen Kurse),
+     * also klar ablehnen statt halb einzulesen – wie jede andere fremde CSV auch.
+     */
+    @Test
+    public void depotCsvWirdMitMeldungAbgelehnt() {
+        String csv = "Kontentyp:Investition,Kontoname:Test\n"
+                + "\n"
+                + "Datum;Wertpapier;Aktion/Typ;Betrag;Menge;Preis;Zinsen;Gebühren;Konto;Notiz;Status\n"
+                + "2019-12-31;\"SAP SE\";Shrsin;;\"100,00\";;;;;;C\n";
+        try {
+            List<Booking> b = new CsvImporter(ctx).parse(csv);
+            fail("Depot-CSV wurde als Ledger-Export akzeptiert (" + b.size() + " Buchungen)");
+        } catch (IllegalArgumentException e) {
+            assertNotNull(e.getMessage());
+            assertFalse(e.getMessage().isEmpty());
+        }
+    }
+
+    /** Dieselbe Sperre muss auch beim englischen Kontotyp „Investment" greifen. */
+    @Test
+    public void depotCsvWirdAuchAufEnglischAbgelehnt() {
+        String csv = "Account Type:Investment,Account Name:Test\n"
+                + "\n"
+                + "Date,Security,Action/Type,Amount,Quantity,Price,Interest,Fees,Account,Memo,Status\n"
+                + "2019-12-31,\"SAP SE\",Shrsin,,\"100.00\",,,,,,C\n";
+        try {
+            List<Booking> b = new CsvImporter(ctx).parse(csv);
+            fail("Depot-CSV wurde als Ledger-Export akzeptiert (" + b.size() + " Buchungen)");
+        } catch (IllegalArgumentException e) {
+            assertNotNull(e.getMessage());
+            assertFalse(e.getMessage().isEmpty());
+        }
+    }
 
     /**
      * Ein Bank-Kontoauszug mit englischem Datum. Steht im Quelltext statt im Korpus, weil der Korpuslauf

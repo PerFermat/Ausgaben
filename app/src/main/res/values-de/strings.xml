@@ -691,6 +691,7 @@
     <string name="err_csv_account_missing">Kontozeile nicht gefunden</string>
     <string name="err_csv_header_missing">Kopfzeile nicht gefunden</string>
     <string name="err_csv_no_bookings">Keine Buchungen gefunden – ist das ein Ledger-Export aus KMyMoney oder Ausgaben?</string>
+    <string name="err_csv_depot_unsupported">Depots werden im CSV-Modus nicht unterstützt (aktuelle Kurse lassen sich darüber nicht abbilden). Bitte ohne Depot-Konto arbeiten oder den KMyMoney-Dateimodus verwenden.</string>
     <string name="skip_account_not_found">Konto nicht gefunden (%1$s)</string>
     <string name="skip_category_not_found">Kategorie nicht gefunden (%1$s)</string>
     <string name="skip_transfer_account_not_found">Umbuchung %1$s → %2$s: Konto nicht gefunden (%3$s)</string>

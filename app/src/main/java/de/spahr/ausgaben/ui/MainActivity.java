@@ -2194,26 +2194,34 @@ public class MainActivity extends LocalizedActivity implements HostedDialog.Host
     }
 
     private void downloadAndImport(String folder, String fileName) {
+        // Ohne das Banner sah ein CSV-Reimport nach nichts aus – anders als der KMY-Reimport
+        // (reimportDepot/runKmyImport), der immer schon importBanner.start()/finish() nutzt.
+        importBanner.start(getString(R.string.import_running_banner));
         new Thread(() -> {
             try {
                 String content = RemoteStorage.from(settings).downloadText(folder, fileName);
                 processImport(content);
             } catch (Exception e) {
                 final String msg = e.getMessage() == null ? e.toString() : e.getMessage();
-                runOnUiThread(() -> Toast.makeText(this,
-                        getString(R.string.import_failed, msg), Toast.LENGTH_LONG).show());
+                runOnUiThread(() -> {
+                    importBanner.finishNow();
+                    Toast.makeText(this, getString(R.string.import_failed, msg), Toast.LENGTH_LONG).show();
+                });
             }
         }).start();
     }
 
     private void doImportLocal(Uri uri) {
+        importBanner.start(getString(R.string.import_running_banner));
         new Thread(() -> {
             try {
                 processImport(readText(uri));
             } catch (Exception e) {
                 final String msg = e.getMessage() == null ? e.toString() : e.getMessage();
-                runOnUiThread(() -> Toast.makeText(this,
-                        getString(R.string.import_failed, msg), Toast.LENGTH_LONG).show());
+                runOnUiThread(() -> {
+                    importBanner.finishNow();
+                    Toast.makeText(this, getString(R.string.import_failed, msg), Toast.LENGTH_LONG).show();
+                });
             }
         }).start();
     }
@@ -2225,13 +2233,16 @@ public class MainActivity extends LocalizedActivity implements HostedDialog.Host
             List<Booking> bookings = importer.parse(content);
             String account = importer.getParsedAccount();
             runOnUiThread(() -> repository.replaceImport(account, bookings, count -> {
+                importBanner.finish();
                 Toast.makeText(this, getString(R.string.import_done, count), Toast.LENGTH_LONG).show();
                 refreshBookings();
             }));
         } catch (Exception e) {
             final String msg = e.getMessage() == null ? e.toString() : e.getMessage();
-            runOnUiThread(() -> Toast.makeText(this,
-                    getString(R.string.import_failed, msg), Toast.LENGTH_LONG).show());
+            runOnUiThread(() -> {
+                importBanner.finishNow();
+                Toast.makeText(this, getString(R.string.import_failed, msg), Toast.LENGTH_LONG).show();
+            });
         }
     }
 

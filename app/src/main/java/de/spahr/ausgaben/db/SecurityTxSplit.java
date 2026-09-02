@@ -38,7 +38,19 @@ public class SecurityTxSplit {
     @ColumnInfo(name = "category")
     public String category = "";
 
-    /** Teilbetrag, immer positiv — das Vorzeichen ergibt sich aus der Rolle. */
+    /**
+     * Teilbetrag, <b>vorzeichenbehaftet</b> — genau wie bei {@link BookingSplit}, und die Summe der
+     * Teile einer Rolle ergibt den (positiven) Betrag, der in der Maske darüber steht.
+     *
+     * <p>Eine Zeile darf gegen die Richtung ihrer Rolle laufen: in einem Ertrag steht die
+     * Kapitalertragsteuer als Abzug. Zinsertrag 100 €, Kapitalertragsteuer −20 €, Gutschrift 80 € —
+     * drei Zahlen, die genau so zusammengehören, und die Erfassungsmaske rechnet seit jeher damit
+     * ({@code SplitRowController.isValid} summiert vorzeichenbehaftet).</p>
+     *
+     * <p>Bis 1.12 wurde hier {@code Math.abs} gespeichert. Die Maske nahm die Eingabe an und erklärte
+     * sie für stimmig, in der Datenbank stand danach etwas anderes: aus 100 und −20 (Summe 80) wurden
+     * 100 und 20 (Summe 120).</p>
+     */
     @ColumnInfo(name = "amount_cents")
     public long amountCents;
 

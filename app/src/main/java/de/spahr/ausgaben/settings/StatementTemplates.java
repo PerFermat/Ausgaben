@@ -174,16 +174,14 @@ public class StatementTemplates {
     /**
      * Schreibt die ganze Liste — für die Regelseite, auf der von Hand bearbeitet wird. Ersetzt alles im
      * Depot {@code ""}; für ein bestimmtes Depot {@link #saveAll(String, List)} nehmen.
+     *
+     * <p>Der Javadoc sagte das schon immer, die Methode tat es nicht: sie schrieb die übergebene Liste
+     * als <b>gesamten</b> Bestand und löschte damit die Vorlagen aller anderen Depots gleich mit.
+     * Aufgerufen wurde sie bisher nur aus Tests, in denen es kein zweites Depot gab — als öffentliche
+     * Methode war sie trotzdem eine Falle. Jetzt geht sie denselben Weg wie ihre Schwester.</p>
      */
     public void saveAll(List<StatementTemplate> templates) {
-        List<Entry> kept = new ArrayList<>();
-        for (StatementTemplate t : templates) {
-            if (t == null || t.isEmpty()) {
-                continue;
-            }
-            kept.add(new Entry("", t));
-        }
-        write(kept);
+        saveAll("", templates);
     }
 
     /**
@@ -208,9 +206,17 @@ public class StatementTemplates {
         write(kept);
     }
 
-    /** Alles Gelernte verwerfen (Auslieferungszustand). */
+    /**
+     * Alles Gelernte dieses Profils verwerfen (Auslieferungszustand).
+     *
+     * <p>Nur die beiden Einträge dieses Profils, nicht die ganze Datei: die Vorlagen aller Profile
+     * liegen in derselben und tragen den Profilnamen nur im Schlüssel. Ein {@code clear()} nahm dem
+     * Nutzer beim Zurücksetzen <b>eines</b> Profils das Gelernte aller anderen mit — ohne dass es
+     * irgendwo aufgefallen wäre, denn eine leere Vorlagenliste sieht aus wie eine, die es noch nicht
+     * gibt.</p>
+     */
     public void clearAll() {
-        prefs.edit().clear().apply();
+        prefs.edit().remove(keyTemplates()).remove(keyIsins()).apply();
     }
 
     private static boolean sameDepot(String a, String b) {

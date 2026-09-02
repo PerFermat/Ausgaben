@@ -37,9 +37,6 @@ public class LocalizedActivity extends AppCompatActivity {
     private Resources translatedBase;
     /** Schriftgrößen-Faktor, mit dem diese Activity aufgebaut wurde (für Live-Neuaufbau bei Änderung). */
     private float appliedFontScale = 1f;
-    /** Akzentfarbe, mit der diese Activity zuletzt eingefärbt wurde (für Live-Update ohne Neuaufbau). */
-    private int appliedAccentColor;
-
     @Override
     protected void attachBaseContext(Context base) {
         // Globale Schriftgröße anwenden: fontScale multiplikativ (stapelt auf die System-Schriftgröße,
@@ -94,7 +91,6 @@ public class LocalizedActivity extends AppCompatActivity {
 
     /** Färbt Toolbar/Statusleiste/Buttons mit der aktuellen Profil-Akzentfarbe ein. */
     protected void applyAccentColor() {
-        appliedAccentColor = de.spahr.ausgaben.settings.AccentColor.current(this);
         de.spahr.ausgaben.settings.AccentColor.apply(this);
     }
 

@@ -15,8 +15,16 @@ import de.spahr.ausgaben.pdf.PdfText;
  */
 public final class Sedol {
 
-    /** Sieben Zeichen am Wortrand, das letzte eine Ziffer (die Prüfziffer ist stets numerisch). */
-    private static final Pattern CANDIDATE = Pattern.compile("\\b([0-9A-Z]{6}[0-9])\\b");
+    /**
+     * Sieben Zeichen am Wortrand, das letzte eine Ziffer (die Prüfziffer ist stets numerisch).
+     *
+     * <p>Die Vokale A, E, I, O, U sind ausgenommen — die SEDOL-Spezifikation vergibt sie nicht. Vorher
+     * stand hier {@code [0-9A-Z]}, und damit bestand jede siebenstellige Auftrags- oder Referenznummer
+     * die Prüfung mit rund einem Zehntel Wahrscheinlichkeit. Ein solcher Treffer bleibt nicht folgenlos:
+     * über {@code StatementScan.isin} wird er in {@code StatementTemplates.rememberSecurity} dauerhaft
+     * einem Wertpapier zugeordnet.</p>
+     */
+    private static final Pattern CANDIDATE = Pattern.compile("\\b([0-9B-DF-HJ-NP-TV-Z]{6}[0-9])\\b");
     private static final int[] WEIGHTS = {1, 3, 1, 7, 3, 9};
 
     private Sedol() {
@@ -46,10 +54,19 @@ public final class Sedol {
         return (10 - total % 10) % 10 == last - '0';
     }
 
-    /** Der Zahlenwert einer Stelle: Ziffern 0–9, Buchstaben A–Z 10–35. */
+    /**
+     * Der Zahlenwert einer Stelle: Ziffern 0–9, Buchstaben 10–35 nach ihrer Lage im Alphabet.
+     *
+     * <p>Vokale gibt es in einer SEDOL nicht; sie werden hier abgelehnt statt mitgerechnet. Der Wert der
+     * übrigen Buchstaben bleibt davon unberührt — gewichtet wird nach der Lage im ganzen Alphabet, nicht
+     * nach der Lage in der zugelassenen Teilmenge.</p>
+     */
     private static int value(char c) {
         if (Character.isDigit(c)) {
             return c - '0';
+        }
+        if (c == 'A' || c == 'E' || c == 'I' || c == 'O' || c == 'U') {
+            return -1;
         }
         if (c >= 'A' && c <= 'Z') {
             return c - 'A' + 10;

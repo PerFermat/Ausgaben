@@ -159,7 +159,7 @@ public class PlaceHistoryActivity extends LocalizedActivity {
 
         MaterialAlertDialogBuilder b = new AppDialog(this)
                 .setTitle(existing == null ? R.string.movement_add : R.string.movement_edit)
-                .setView(view)
+                .setView(AppDialog.scrollable(view))
                 .setPositiveButton(R.string.save, (d, w) -> {
                     Long cents = parseSignedCents(text(amountField));
                     if (cents == null) {

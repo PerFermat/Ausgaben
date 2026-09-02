@@ -66,6 +66,33 @@ public class IngReaderTest {
         assertEquals(Long.valueOf(53_753L), e.netCents);
     }
 
+    /**
+     * Regression: Die Kosten entstehen als Differenz zwischen Kurswert und Endbetrag, und diese
+     * Differenz hat beim Verkauf das andere Vorzeichen als beim Kauf. Gerechnet wurde aber
+     * {@code |Endbetrag − Kurswert| − Stückzinsen} — beim Verkauf einer Anleihe ist das
+     * {@code (Stückzinsen − Kosten) − Stückzinsen}, also die <b>negative</b> Kostensumme. In der Maske
+     * stand damit eine Gebühr von −30,00 €, und die Gesamtsumme ging um den doppelten Betrag daneben.
+     */
+    @Test
+    public void verkaufMitStueckzinsenHatPositiveKosten() {
+        StatementTemplate.Extraction e = lies(StatementFixtures.ingVerkaufMitStueckzinsen());
+
+        assertEquals("sell", e.action);
+        // Provision 20,00 + Kapitalertragsteuer 10,00; die Stückzinsen sind Preis, keine Kosten.
+        assertEquals(Long.valueOf(3_000L), e.feeCents);
+        assertEquals(Long.valueOf(1_002_000L), e.netCents);
+    }
+
+    /** Beim Kauf kommen die Kosten obendrauf – diese Richtung stimmte schon vorher. */
+    @Test
+    public void kaufMitStueckzinsenRechnetInDieAndereRichtung() {
+        StatementTemplate.Extraction e = lies(StatementFixtures.ingKaufMitStueckzinsen());
+
+        assertEquals("buy", e.action);
+        assertEquals(Long.valueOf(3_000L), e.feeCents);
+        assertEquals(Long.valueOf(1_008_000L), e.netCents);
+    }
+
     /** Dollar-Papier: der Bruttobetrag steht in USD, gebucht wird der umgerechnete Euro-Betrag. */
     @Test
     public void dividendeInFremdwaehrung() {

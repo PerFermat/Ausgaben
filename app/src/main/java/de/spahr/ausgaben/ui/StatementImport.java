@@ -80,19 +80,20 @@ final class StatementImport {
             if (isin != null) {
                 Security byIsin = withIsin(securities, isin);
                 if (byIsin != null) {
-                    start(activity, text, source, isin, byIsin.depot, byIsin.kmyId, byIsin.name);
+                    start(activity, repository, text, source, isin, byIsin.depot, byIsin.kmyId,
+                            byIsin.name);
                     return;
                 }
                 String[] learned = new StatementTemplates(activity).security(isin);
                 if (learned != null) {
-                    start(activity, text, source, isin, learned[0], learned[1], learned[2]);
+                    start(activity, repository, text, source, isin, learned[0], learned[1], learned[2]);
                     return;
                 }
             }
             // Ohne Kennung oder mit einer unbekannten: kommt eines der eigenen Wertpapiere im Text vor?
             Security named = namedIn(securities, text);
             if (named != null) {
-                start(activity, text, source, isin, named.depot, named.kmyId, named.name);
+                start(activity, repository, text, source, isin, named.depot, named.kmyId, named.name);
                 return;
             }
             // Die App weiß hier nichts, was der Nutzer nicht in zwei Sekunden beantworten könnte, also
@@ -177,7 +178,7 @@ final class StatementImport {
                                        PdfText text, Uri source, String isin) {
         String label = isin != null ? isin : displayName(activity, source);
         pickSecurity(activity, repository, label, isin,
-                s -> start(activity, text, source, isin, s.depot, s.kmyId, s.name));
+                s -> start(activity, repository, text, source, isin, s.depot, s.kmyId, s.name));
     }
 
     /**
@@ -235,9 +236,30 @@ final class StatementImport {
         return false;
     }
 
-    /** Vorlage anwenden (falls gelernt) und die Maske mit dem Ergebnis öffnen. */
-    private static void start(AppCompatActivity activity, PdfText text, Uri source, String isin,
-                              String depot, String kmyId, String name) {
+    /**
+     * Vorlage anwenden (falls gelernt) und die Maske mit dem Ergebnis öffnen.
+     *
+     * <p>Alles bis auf den letzten Schritt läuft im Hintergrund. Was hier zusammenkommt, ist einzeln
+     * unauffällig und zusammen zuviel für den Bedienfaden: die Vorlage lässt jede ihrer Regeln über das
+     * ganze Dokument laufen, die Abrechnung wird in die Belegablage kopiert, und ihr Text wird auf die
+     * Platte geschrieben. Das geschieht, während der Nutzer schon auf die Maske wartet.</p>
+     */
+    private static void start(AppCompatActivity activity, Repository repository, PdfText text,
+                              Uri source, String isin, String depot, String kmyId, String name) {
+        repository.executor().execute(() -> {
+            final Intent i = intentFor(activity, text, source, isin, depot, kmyId, name);
+            activity.runOnUiThread(() -> {
+                if (activity.isFinishing() || activity.isDestroyed()) {
+                    return;
+                }
+                activity.startActivity(i);
+            });
+        });
+    }
+
+    /** Der Hintergrundteil von {@link #start}: die fertige Absicht für die Maske. */
+    private static Intent intentFor(AppCompatActivity activity, PdfText text, Uri source, String isin,
+                                    String depot, String kmyId, String name) {
         StatementTemplates store = new StatementTemplates(activity);
         StatementTemplate.Extraction e = extract(store, text, depot);
 
@@ -290,7 +312,7 @@ final class StatementImport {
             i.putExtra(SecurityTxEditActivity.EXTRA_STATEMENT_TEXT, cached);
             i.putExtra(SecurityTxEditActivity.EXTRA_STATEMENT_ISIN, isin);
         }
-        activity.startActivity(i);
+        return i;
     }
 
     // ---- Mehrere Abrechnungen auf einmal ----
@@ -495,19 +517,7 @@ final class StatementImport {
     /** Der Name, unter dem der Nutzer die Datei ausgewählt hat — die einzige Kennung einer Datei,
      * die sich nicht lesen ließ. */
     private static String displayName(AppCompatActivity activity, Uri uri) {
-        try (android.database.Cursor c = activity.getContentResolver().query(uri,
-                new String[]{android.provider.OpenableColumns.DISPLAY_NAME}, null, null, null)) {
-            if (c != null && c.moveToFirst()) {
-                String name = c.getString(0);
-                if (name != null && !name.isEmpty()) {
-                    return name;
-                }
-            }
-        } catch (Exception ignored) {
-            // Nicht jeder Anbieter liefert einen Namen; dann tut der Pfad es auch.
-        }
-        String last = uri.getLastPathSegment();
-        return last == null ? "" : last;
+        return DocumentName.of(activity, uri);
     }
 
     /**

@@ -34,6 +34,16 @@ public final class SecurityAmounts {
         NET
     }
 
+    /**
+     * Zwei Stückzahlen gelten als gleich, wenn sie sich um weniger als das unterscheiden — und eine
+     * Position als geschlossen, wenn ihr Bestand so nah an null liegt.
+     *
+     * <p>Der Wert ist keine beliebige kleine Zahl: {@link de.spahr.ausgaben.settings.MoneyFormat#SHARE_DECIMALS}
+     * ist 6, eine Stückzahl wird also auf die sechste Nachkommastelle geführt. Was darunter liegt, ist
+     * gar nicht darstellbar und kann nur Rechenrest sein.</p>
+     */
+    public static final double SHARE_EPSILON = 1e-6;
+
     /** Stückzahlen unterhalb dieser Schwelle gelten als „nicht gesetzt" (Division). */
     private static final double EPS = 1e-9;
 

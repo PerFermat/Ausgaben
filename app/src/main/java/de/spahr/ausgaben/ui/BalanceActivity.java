@@ -412,7 +412,7 @@ public class BalanceActivity extends LocalizedActivity {
 
         new AppDialog(this)
                 .setTitle(R.string.transfer_title)
-                .setView(view)
+                .setView(AppDialog.scrollable(view))
                 .setPositiveButton(R.string.transfer_do, (d, w) -> {
                     // Der Knopf nimmt dem Feld nicht zwangsläufig den Fokus; ein Feld mitten in der Suche
                     // ist leer. Erst die Suche beenden, dann lesen.
@@ -482,7 +482,7 @@ public class BalanceActivity extends LocalizedActivity {
         androidx.appcompat.app.AlertDialog dialog =
                 new AppDialog(this)
                         .setTitle(R.string.reconcile_title)
-                        .setView(view)
+                        .setView(AppDialog.scrollable(view))
                         .setPositiveButton(R.string.reconcile_do, (d, w) -> {
                             // Der Knopf nimmt dem Feld nicht zwangsläufig den Fokus; ein Feld mitten in der Suche
                             // ist leer. Erst die Suche beenden, dann lesen.

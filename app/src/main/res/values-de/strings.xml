@@ -422,6 +422,8 @@
     <string name="restore_done">Sicherung eingespielt</string>
     <string name="restore_failed">Wiederherstellung fehlgeschlagen: %1$s</string>
     <string name="restore_invalid">Keine gültige Sicherungsdatei</string>
+    <string name="restore_pick_again">Bitte die Sicherungsdatei noch einmal auswählen</string>
+    <string name="restore_too_new">Diese Sicherung stammt aus einer neueren Fassung der App (Datenstand %1$d, diese App: %2$d). Bitte zuerst die App aktualisieren – es wurde nichts verändert.</string>
     <string name="backup_options_title">Sicherung erstellen</string>
     <string name="backup_options_message">Gesichert werden Daten und Einstellungen ALLER Profile (Konten, Orte, Farben, Server).</string>
     <string name="backup_options_message_profile">Gesichert werden nur Daten und Einstellungen des aktiven Profils – lässt sich in ein beliebiges Profil einspielen.</string>
@@ -435,6 +437,9 @@
     <string name="backup_password_hint">Sicherungspasswort</string>
     <string name="backup_password_repeat">Wiederholen</string>
     <string name="backup_password_mismatch">Die Passwörter stimmen nicht überein</string>
+    <string name="backup_password_too_short">Bitte mindestens %1$d Zeichen verwenden – oder das Feld leer lassen für eine unverschlüsselte Sicherung</string>
+    <string name="backup_target_unwritable">Die gewählte Datei lässt sich nicht beschreiben</string>
+    <string name="backup_source_unreadable">Die gewählte Datei lässt sich nicht lesen</string>
     <string name="restore_what_title">Was soll eingespielt werden?</string>
     <string name="restore_what_data">Nur Daten</string>
     <string name="restore_what_settings">Nur Einstellungen</string>
@@ -482,6 +487,7 @@
     <string name="rename">Umbenennen</string>
     <string name="remove">Entfernen</string>
     <string name="password_saved_hint">•••••• (gespeichert)</string>
+    <string name="settings_secret_fallback">Der Schlüsselspeicher dieses Geräts ist nicht verfügbar – das Server-Passwort liegt unverschlüsselt</string>
     <string name="import_done">%1$d Buchung(en) importiert (Konto ersetzt)</string>
     <string name="import_failed">Import fehlgeschlagen: %1$s</string>
     <string name="nextcloud_import_folder_hint">Import-Ordner (Nextcloud)</string>
@@ -515,6 +521,7 @@
     <string name="dividend_gross_switch">Dividenden brutto anzeigen (aus = netto)</string>
     <string name="dividend_tax_rate_hint">Steuersatz auf Dividenden (%)</string>
     <string name="dividend_tax_rate_helper">Belegt die Steuer beim Erfassen einer Dividende vor</string>
+    <string name="dividend_tax_rate_invalid">Bitte einen Satz zwischen 0 und 100 eingeben oder das Feld leer lassen</string>
     <string name="budget_internal_switch">Budget app-intern aus Verlauf berechnen (statt aus KMyMoney)</string>
     <string name="budget_import_button">Budget aus KMyMoney importieren</string>
     <string name="budget_compute_button">Budget aus Verlauf berechnen</string>
@@ -764,6 +771,9 @@
     <string name="statement_batch_save">Alle speichern</string>
     <string name="statement_batch_saved">%1$d Bewegungen gespeichert</string>
     <string name="statement_batch_incomplete">Bitte zuerst die rot markierten Einträge berichtigen</string>
+    <string name="statement_batch_save_failed">Speichern fehlgeschlagen – gebucht wurde nichts. Bitte noch einmal versuchen.</string>
+    <string name="statement_batch_receipt_failed">%1$d Abrechnungen konnten nicht als Beleg abgelegt werden</string>
+    <string name="statement_receipt_failed">Die Abrechnung konnte nicht als Beleg abgelegt werden</string>
     <string name="statement_batch_discard_title">Verwerfen?</string>
     <string name="statement_batch_discard_message">Keine der eingelesenen Abrechnungen wird gebucht.</string>
     <string name="statement_batch_discard">Verwerfen</string>

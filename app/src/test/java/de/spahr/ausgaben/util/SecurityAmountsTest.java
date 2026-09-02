@@ -293,4 +293,18 @@ public class SecurityAmountsTest {
         SecurityAmounts.Result r = SecurityAmounts.solve(i);
         assertNull(r.price);
     }
+
+    /**
+     * Die Schwelle, ab der zwei Stückzahlen als gleich und eine Position als geschlossen gilt, hängt an
+     * der Zahl der geführten Nachkommastellen — sie ist genau die kleinste darstellbare Einheit.
+     *
+     * <p>Bis 1.12 stand {@code 1e-6} an vier Stellen wörtlich im Code, ohne dass jemand den
+     * Zusammenhang sah. Wer {@code SHARE_DECIMALS} erhöht, muss die Schwelle mitziehen — dieser Test
+     * sagt es ihm.</p>
+     */
+    @Test
+    public void dieStueckzahlSchwelleIstDieKleinsteDarstellbareEinheit() {
+        assertEquals(Math.pow(10, -de.spahr.ausgaben.settings.MoneyFormat.SHARE_DECIMALS),
+                SecurityAmounts.SHARE_EPSILON, 1e-15);
+    }
 }

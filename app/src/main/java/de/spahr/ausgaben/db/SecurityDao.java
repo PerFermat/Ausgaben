@@ -122,10 +122,20 @@ public interface SecurityDao {
     /**
      * Verwirft die aus der Datei stammenden Bewegungen eines Depots (der Reimport schreibt sie neu).
      * In der App erfasste, noch nicht exportierte bleiben stehen – sonst wären sie nach dem nächsten
-     * Reimport spurlos verschwunden.
+     * Reimport spurlos verschwunden. Gehört mit {@link #deleteImportedSplitsOf} zusammen: beide müssen
+     * dieselbe Bedingung tragen, sonst verliert eine überlebende Bewegung ihre Kategoriezeilen.
      */
     @Query("DELETE FROM security_tx WHERE depot = :depot AND pending = 0")
-    void deleteTx(String depot);
+    void deleteImportedTx(String depot);
+
+    /**
+     * Verwirft <b>alle</b> Bewegungen eines Depots, auch die noch nicht exportierten – für das Löschen
+     * des Depots selbst. Dort gibt es kein späteres Wiedersehen: bliebe eine {@code pending}-Bewegung
+     * stehen, fände {@code getPendingTx()} sie bei jedem Export weiterhin, während Depot und
+     * Wertpapier längst fehlen. Der Export meldete sie dann bei jedem Lauf als übersprungen.
+     */
+    @Query("DELETE FROM security_tx WHERE depot = :depot")
+    void deleteAllTx(String depot);
 
     @Query("DELETE FROM security_price WHERE depot = :depot")
     void deletePrices(String depot);
@@ -229,10 +239,20 @@ public interface SecurityDao {
     @Query("DELETE FROM security_tx_split WHERE tx_id = :txId")
     void deleteSplits(long txId);
 
-    /** Vor dem Neuaufbau eines Depots: die Kategoriezeilen seiner Bewegungen mit weglöschen. */
+    /**
+     * Vor dem Neuaufbau eines Depots: die Kategoriezeilen der aus der Datei stammenden Bewegungen mit
+     * weglöschen – dieselbe {@code pending}-Bedingung wie {@link #deleteImportedTx}. Ohne sie überlebte
+     * eine in der App erfasste Bewegung den Reimport zwar als Zeile, verlöre aber ihre Kategoriezeilen
+     * und fiele beim nächsten Export still aus {@code KmyExporter.addCategorySplits} heraus.
+     */
+    @Query("DELETE FROM security_tx_split WHERE tx_id IN "
+            + "(SELECT id FROM security_tx WHERE depot = :depot AND pending = 0)")
+    void deleteImportedSplitsOf(String depot);
+
+    /** Die Kategoriezeilen <b>aller</b> Bewegungen eines Depots – Gegenstück zu {@link #deleteAllTx}. */
     @Query("DELETE FROM security_tx_split WHERE tx_id IN "
             + "(SELECT id FROM security_tx WHERE depot = :depot)")
-    void deleteSplitsOf(String depot);
+    void deleteAllSplitsOf(String depot);
 
     /** Setzt/überschreibt den manuellen Wert einer Ein-/Ausbuchung (übersteht einen Depot-Reimport). */
     @Insert(onConflict = OnConflictStrategy.REPLACE)
@@ -246,6 +266,18 @@ public interface SecurityDao {
     /** Alle manuell gesetzten Werte eines Depots – zum Einblenden in die Bewegungsliste. */
     @Query("SELECT * FROM security_tx_value_override WHERE depot = :depot")
     List<SecurityTxValueOverride> getValueOverrides(String depot);
+
+    /**
+     * Alle manuell gesetzten Werte eines Depots verwerfen – nur beim Löschen des Depots, <b>nicht</b>
+     * beim Reimport: dort sollen sie die Datei ja gerade überdauern.
+     *
+     * <p>Die Tabelle hat keinen Fremdschlüssel auf {@code security_tx}, ihr Schlüssel ist das Tupel aus
+     * Depot, Wertpapier, Datum, Art und Stückzahl. Ohne diesen Aufruf überlebten die Werte das Löschen
+     * und träfen ein später gleichnamig angelegtes Depot erneut – mit Beträgen, die dort niemand
+     * eingegeben hat.</p>
+     */
+    @Query("DELETE FROM security_tx_value_override WHERE depot = :depot")
+    void deleteValueOverrides(String depot);
 
     /** Projektion für {@link #getShareSums(String)}. */
     class ShareSum {

@@ -137,8 +137,39 @@ public final class IngReader implements BankReader {
             }
         }
         if (kurswert != null && into.netCents != null) {
-            into.feeCents = Math.abs(into.netCents - kurswert) - stueckzinsen;
+            into.feeCents = kosten(into.action, kurswert, stueckzinsen, into.netCents);
         }
+    }
+
+    /**
+     * Die Kosten als Differenz — mit dem Vorzeichen, das zur Art gehört.
+     *
+     * <p>Beim <b>Kauf</b> zahlt man Kurswert + Stückzinsen + Kosten, beim <b>Verkauf</b> bekommt man
+     * Kurswert + Stückzinsen − Kosten. Ohne diese Unterscheidung kam beim Verkauf einer Anleihe mit
+     * Stückzinsen eine negative Kostensumme heraus: {@code |Endbetrag − Kurswert|} ist dort
+     * Stückzinsen − Kosten, und davon noch die Stückzinsen abzuziehen ergibt −Kosten.</p>
+     *
+     * <p>Ohne Stückzinsen — der Regelfall, jede Aktie — ist der Betrag der Differenz in beide Richtungen
+     * richtig. Deshalb kommt auch ein Beleg durch, dessen Art die Bank nicht deutlich genug
+     * hingeschrieben hat. Mit Stückzinsen und ohne bekannte Art bleibt das Feld dagegen leer: die Maske
+     * fragt dann nach, statt eine ausgedachte Zahl vorzulegen.</p>
+     */
+    private static Long kosten(String action, long kurswert, long stueckzinsen, long netCents) {
+        if (stueckzinsen == 0) {
+            return Math.abs(netCents - kurswert);
+        }
+        if ("buy".equals(action)) {
+            return nichtNegativ(netCents - kurswert - stueckzinsen);
+        }
+        if ("sell".equals(action)) {
+            return nichtNegativ(kurswert + stueckzinsen - netCents);
+        }
+        return null;
+    }
+
+    /** Eine negative Kostensumme wäre gerechnet, nicht gelesen – dann lieber gar keine. */
+    private static Long nichtNegativ(long cents) {
+        return cents < 0 ? null : cents;
     }
 
     /**
@@ -196,16 +227,14 @@ public final class IngReader implements BankReader {
      */
     private static Long ersterBetrag(String line) {
         List<String> tokens = TextValues.numberTokens(line);
-        if (tokens.isEmpty()) {
-            return null;
-        }
-        Double wert = TextValues.toDecimal(tokens.get(0));
-        return wert == null ? null : Math.round(wert * 100);
+        // Direkt aus dem Token: toCents rundet auf der Dezimalzahl. Der Umweg über double verschöbe
+        // krumme Beträge um einen Cent (2,675 wird als double zu 2,67499…).
+        return tokens.isEmpty() ? null : TextValues.toCents(tokens.get(0));
     }
 
     private static Long letzterBetrag(String line) {
-        Double wert = letzteZahl(line);
-        return wert == null ? null : Math.round(wert * 100);
+        List<String> tokens = TextValues.numberTokens(line);
+        return tokens.isEmpty() ? null : TextValues.toCents(tokens.get(tokens.size() - 1));
     }
 
     private static Double letzteZahl(String line) {

@@ -59,6 +59,9 @@ public class StatementBatchActivity extends LocalizedActivity {
     /** Läuft das Speichern schon? Ein zweiter Tipp legte den Stapel sonst ein zweites Mal an. */
     private boolean saving;
 
+    private static final String STATE_EDITING = "s_editing";
+    private static final String STATE_SAVING = "s_saving";
+
     @Override
     protected void onCreate(Bundle savedInstanceState) {
         super.onCreate(savedInstanceState);
@@ -70,6 +73,10 @@ public class StatementBatchActivity extends LocalizedActivity {
                 : getIntent().getParcelableArrayListExtra(EXTRA_DRAFTS);
         if (given != null) {
             drafts.addAll(given);
+        }
+        if (savedInstanceState != null) {
+            editing = savedInstanceState.getInt(STATE_EDITING, -1);
+            saving = savedInstanceState.getBoolean(STATE_SAVING, false);
         }
 
         MaterialToolbar toolbar = findViewById(R.id.toolbar);
@@ -108,6 +115,12 @@ public class StatementBatchActivity extends LocalizedActivity {
     protected void onSaveInstanceState(Bundle out) {
         super.onSaveInstanceState(out);
         out.putParcelableArrayList(EXTRA_DRAFTS, drafts);
+        // Ohne den Index käme die Berichtigung aus der Maske ins Leere: applyCorrection bricht bei
+        // editing == -1 wortlos ab, und alles, was der Nutzer dort eingegeben hat, wäre verloren —
+        // die Zeile bliebe rot, ohne dass irgendwo ein Fehler stünde. Dass die Maske im Vordergrund
+        // liegt, hindert das System nicht daran, diese Activity darunter abzuräumen.
+        out.putInt(STATE_EDITING, editing);
+        out.putBoolean(STATE_SAVING, saving);
     }
 
     // ---- Anzeige ----
@@ -400,32 +413,80 @@ public class StatementBatchActivity extends LocalizedActivity {
         if (saving) {
             return;
         }
-        List<SecurityTx> txs = new ArrayList<>();
-        List<Booking> bookings = new ArrayList<>();
+        // Erst prüfen, dann anfassen: ein unvollständiger Eintrag soll auffallen, bevor irgendeine
+        // Abrechnung schon in den Jahresordner gewandert ist.
         for (StatementDraft d : drafts) {
             if (!d.isBookable()) {
                 Toast.makeText(this, R.string.statement_batch_incomplete, Toast.LENGTH_LONG).show();
                 return;
             }
-            Booking booking = d.toBooking();
-            // Die Abrechnung wird zum Beleg der Gegenbuchung – über denselben Weg wie die Belege der
-            // übrigen Buchungen (Ablage, Jahresordner, Abgleich, Export).
-            if (d.stagedPath != null) {
-                booking.note = de.spahr.ausgaben.receipt.SingleReceipt.attach(this,
-                        new java.io.File(d.stagedPath), booking.note, booking.createdAt);
-                d.stagedPath = null;
-            }
-            txs.add(d.toTx());
-            bookings.add(booking);
         }
         saving = true;
         btnSave.setEnabled(false);
-        final int count = txs.size();
-        repository.saveManualSecurityTxBatch(txs, bookings, () -> {
-            Toast.makeText(this, getString(R.string.statement_batch_saved, count),
-                    Toast.LENGTH_SHORT).show();
-            finish();
+        // Je Entwurf wird eine Datei in den Jahresordner geschoben. Bei einem Stapel aus zwanzig
+        // Abrechnungen ist das zwanzigmal Dateiarbeit — nichts, was auf dem Bedienfaden zu suchen hat.
+        final List<StatementDraft> liste = new ArrayList<>(drafts);
+        repository.executor().execute(() -> {
+            List<SecurityTx> txs = new ArrayList<>();
+            List<Booking> bookings = new ArrayList<>();
+            List<de.spahr.ausgaben.receipt.SingleReceipt.Planned> belege = new ArrayList<>();
+            for (StatementDraft d : liste) {
+                Booking booking = d.toBooking();
+                // Die Abrechnung wird zum Beleg der Gegenbuchung – über denselben Weg wie die Belege der
+                // übrigen Buchungen (Ablage, Jahresordner, Abgleich, Export). Der Name steht hier schon
+                // fest, damit er in die Notiz kann; abgelegt wird die Datei erst, wenn der Stapel
+                // wirklich gebucht ist. Sonst läge die Abrechnung nach einem Fehlschlag im Jahresordner
+                // und der Upload wäre angelaufen, während im Depot nichts steht.
+                de.spahr.ausgaben.receipt.SingleReceipt.Planned beleg =
+                        de.spahr.ausgaben.receipt.SingleReceipt.plan(
+                                d.stagedPath == null ? null : new java.io.File(d.stagedPath),
+                                booking.note, booking.createdAt);
+                booking.note = beleg.note;
+                belege.add(beleg);
+                txs.add(d.toTx());
+                bookings.add(booking);
+            }
+            final int count = txs.size();
+            runOnUiThread(() -> repository.saveManualSecurityTxBatch(txs, bookings,
+                    () -> belegeAblegenUndSchliessen(liste, belege, count),
+                    () -> {
+                        // Die Transaktion ist zurückgerollt und keine Datei bewegt: die vorläufigen
+                        // Kopien liegen noch da, der Stapel steht unverändert auf dem Schirm und lässt
+                        // sich erneut speichern.
+                        saving = false;
+                        btnSave.setEnabled(true);
+                        Toast.makeText(this, R.string.statement_batch_save_failed,
+                                Toast.LENGTH_LONG).show();
+                    }));
         });
+    }
+
+    /**
+     * Nach dem erfolgreichen Buchen: die Abrechnungen aus der vorläufigen Ablage in den Jahresordner
+     * schieben und zum Hochladen anmelden.
+     *
+     * <p>Scheitert das bei einer Datei, ist die Buchung trotzdem angelegt — sie trägt dann einen
+     * Beleg-Tag ohne Datei dahinter. Das wird gesagt statt verschluckt; nachträglich anhängen lässt sich
+     * der Beleg in der Buchung selbst.</p>
+     */
+    private void belegeAblegenUndSchliessen(List<StatementDraft> liste,
+                                            List<de.spahr.ausgaben.receipt.SingleReceipt.Planned> belege,
+                                            int count) {
+        int misslungen = 0;
+        for (int i = 0; i < belege.size(); i++) {
+            if (de.spahr.ausgaben.receipt.SingleReceipt.attach(this, belege.get(i))) {
+                liste.get(i).stagedPath = null;   // die Datei liegt jetzt in der Ablage
+            } else {
+                misslungen++;
+            }
+        }
+        Toast.makeText(this, getString(R.string.statement_batch_saved, count),
+                Toast.LENGTH_SHORT).show();
+        if (misslungen > 0) {
+            Toast.makeText(this, getString(R.string.statement_batch_receipt_failed, misslungen),
+                    Toast.LENGTH_LONG).show();
+        }
+        finish();
     }
 
     private void confirmDiscard() {

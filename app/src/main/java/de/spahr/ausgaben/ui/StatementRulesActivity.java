@@ -54,7 +54,36 @@ import de.spahr.ausgaben.statement.StatementTemplate.Field;
  * <p>Neue Vorlagen entstehen hier nicht — die entstehen beim ersten Erfassen einer Abrechnung und sind
  * dann vollständig. Von Hand wird nachgebessert, nicht angefangen.</p>
  */
-public class StatementRulesActivity extends LocalizedActivity {
+public class StatementRulesActivity extends LocalizedActivity implements HostedDialog.Host {
+
+    /** Schlüssel und Angaben der Ankerauswahl – siehe {@link HostedDialog}. */
+    private static final String DLG_PICK_ANCHOR = "dlg_pickAnchor";
+    private static final String ARG_ANCHOR_TARGET = "a_anchorTarget";
+
+    /**
+     * Der Bereich, dessen Ankerauswahl gerade offen ist.
+     *
+     * <p>Er lässt sich nicht in ein {@link Bundle} legen — es ist ein Formularabschnitt mit seinen
+     * Ansichten. Nach einer Drehung ist er weg, und mit ihm die eingelesene Testabrechnung: Der Dialog
+     * lässt sich dann nicht wieder aufbauen und verschwindet. Ein erneuter Tipp aufs Feld stellt ihn
+     * her.</p>
+     */
+    private FieldForm offeneAnkerauswahl;
+
+    @Override
+    public android.app.Dialog buildDialog(String key, Bundle args) {
+        if (!DLG_PICK_ANCHOR.equals(key) || offeneAnkerauswahl == null || testText == null) {
+            return null;
+        }
+        TextInputEditText ziel = findViewById(args.getInt(ARG_ANCHOR_TARGET));
+        return ziel == null ? null : offeneAnkerauswahl.buildAnchorDialog(ziel);
+    }
+
+    @Override
+    public void onDialogCancelled(String key, Bundle args) {
+        offeneAnkerauswahl = null;
+    }
+
 
     public static final String EXTRA_DEPOT = "depot";
 
@@ -125,6 +154,27 @@ public class StatementRulesActivity extends LocalizedActivity {
 
     private ActivityResultLauncher<String[]> tryLauncher;
 
+    /**
+     * Das Leserecht an der Testabrechnung über einen Prozesstod hinweg festhalten.
+     *
+     * <p>Was der Dateiwähler liefert, gilt zunächst nur für diesen Lauf der App. Die Maske hält die
+     * Adresse aber weiter (Anzeigen der PDF, erneutes Prüfen) — nach einem Prozesstod scheiterte der
+     * Zugriff dann mit einer {@code SecurityException}, die als allgemeines „Beleg nicht lesbar"
+     * beim Nutzer ankam.</p>
+     *
+     * <p>Scheitert das Festhalten selbst, geht es ohne weiter: Das Recht für diesen Lauf besteht
+     * bereits, und die Maske funktioniert bis zum Schließen. Manche Dateianbieter geben kein
+     * dauerhaftes Recht heraus — daran soll die Prüfung nicht scheitern.</p>
+     */
+    private void merkeZugriffsrecht(android.net.Uri uri) {
+        try {
+            getContentResolver().takePersistableUriPermission(uri,
+                    android.content.Intent.FLAG_GRANT_READ_URI_PERMISSION);
+        } catch (SecurityException e) {
+            android.util.Log.i("StatementRules", "kein dauerhaftes Leserecht für " + uri, e);
+        }
+    }
+
     @Override
     protected void onCreate(Bundle savedInstanceState) {
         super.onCreate(savedInstanceState);
@@ -163,6 +213,7 @@ public class StatementRulesActivity extends LocalizedActivity {
         tryLauncher = registerForActivityResult(
                 new ActivityResultContracts.OpenDocument(), uri -> {
                     if (uri != null) {
+                        merkeZugriffsrecht(uri);
                         useTestStatement(uri);
                     }
                 });
@@ -391,14 +442,12 @@ public class StatementRulesActivity extends LocalizedActivity {
             view.findViewById(R.id.fixedFeeBox)
                     .setVisibility(field == Field.FEE && !isPart ? View.VISIBLE : View.GONE);
             fixedFeeInTotal.setVisibility(field == Field.NET && !isPart ? View.VISIBLE : View.GONE);
-            attachCategories(categoryAdapter);
             if (field == Field.FEE && !isPart) {
                 wireCalcField(fixedFee);
                 if (template.fixedFeeCents > 0) {
                     fixedFee.setText(MoneyFormat.plain(template.fixedFeeCents));
                 }
                 fixedFeeCategory.setText(template.fixedFeeCategory, false);
-                attachCategories(categoryAdapter);
                 // Der Schalter beim Gesamtbetrag hat erst einen Gegenstand, wenn hier etwas steht.
                 fixedFee.addTextChangedListener(new SimpleWatcher(
                         StatementRulesActivity.this::updateFixedFeeSwitch));
@@ -408,7 +457,22 @@ public class StatementRulesActivity extends LocalizedActivity {
                 // Ohne festen Betrag hat die Frage keinen Gegenstand.
                 dim(fixedFeeInTotal, template.fixedFeeCents > 0);
             }
+            // Einmal, und zwar hier: Das Anhängen des Adapters leert das Feld und stellt es wieder her
+            // (siehe anhaengen). Stand es davor, wurde der eben gesetzte Text durch den zweiten Aufruf
+            // noch einmal durchgereicht — zweimal Arbeit für dasselbe Ergebnis.
+            attachCategories(categoryAdapter);
 
+            regelUebernehmen(template, part);
+        }
+
+        /**
+         * Der zweite Teil des Aufbaus: die gelernte Regel in die Felder legen und die Bedienung
+         * verdrahten.
+         *
+         * <p>Getrennt vom Konstruktor, weil dort nur noch stehen soll, was die {@code final}-Felder
+         * belegt — alles Übrige ließ ihn auf knapp hundert Zeilen anwachsen.</p>
+         */
+        private void regelUebernehmen(StatementTemplate template, StatementTemplate.PartRule part) {
             PickerAdapters.plain(direction, richtungen());
 
             AnchorRule rule = isPart ? (part == null ? null : part.rule) : template.rule(field);
@@ -678,6 +742,21 @@ public class StatementRulesActivity extends LocalizedActivity {
          * sind. Alles andere wäre eine Liste voller Werte, die die fertige Regel nie fände.</p>
          */
         private void pickAnchor(TextInputEditText edit) {
+            offeneAnkerauswahl = this;
+            Bundle args = new Bundle();
+            args.putInt(ARG_ANCHOR_TARGET, edit.getId());
+            HostedDialog.show(StatementRulesActivity.this, DLG_PICK_ANCHOR, args);
+        }
+
+        /**
+         * Baut die Auswahlliste — beim ersten Mal und nach jeder Drehung erneut (siehe
+         * {@link HostedDialog}).
+         *
+         * <p>Was zur Auswahl steht, wird jedes Mal frisch aus der Testabrechnung gelesen; eine
+         * Zwischenspeicherung wäre hier falsch, denn die Einstellungen des Bereichs können sich
+         * zwischendurch geändert haben.</p>
+         */
+        android.app.Dialog buildAnchorDialog(TextInputEditText edit) {
             readBack();
             List<String> labels = new ArrayList<>();
             List<AnchorRule> rules = new ArrayList<>();
@@ -699,7 +778,7 @@ public class StatementRulesActivity extends LocalizedActivity {
                 }
             }
             shown.add(getString(R.string.statement_rules_type_own));
-            new AppDialog(StatementRulesActivity.this)
+            return new AppDialog(StatementRulesActivity.this)
                     .setTitle(R.string.statement_rules_pick_value)
                     .setItems(shown.toArray(new CharSequence[0]), (d, which) -> {
                         if (which >= labels.size()) {
@@ -717,7 +796,7 @@ public class StatementRulesActivity extends LocalizedActivity {
                         readBack();
                         updateFound();
                     })
-                    .show();
+                    .create();
         }
 
         /**
@@ -799,7 +878,16 @@ public class StatementRulesActivity extends LocalizedActivity {
         }
     }
 
-    /** Bis zu dieser Stelle lässt sich von Hand wählen — so weit sucht auch der Lerner. */
+    /**
+     * Bis zu dieser Stelle lässt sich von Hand wählen.
+     *
+     * <p>Der Kommentar sagte hier bis 1.12 „so weit sucht auch der Lerner" — das stimmte nicht: der
+     * kommt nur bis {@link de.spahr.ausgaben.statement.TemplateLearner#MAX_STELLE}. Die beiden Zahlen
+     * gehören auch nicht gleichgezogen. Der Lerner hört früh auf, weil jede weitere Stelle die Aussicht
+     * erhöht, dass irgendeine Zahl der Zeile zufällig passt und eine Regel entsteht, die beim nächsten
+     * Beleg etwas anderes meint. Wer die Stelle dagegen <b>selbst</b> wählt, weiß, was er meint — dort
+     * ist die Beschränkung nur im Weg.</p>
+     */
     private static final int MAX_STELLE = 6;
 
     /**
@@ -1079,17 +1167,18 @@ public class StatementRulesActivity extends LocalizedActivity {
     }
 
     /** Der Anzeigename der gewählten Datei; im Zweifel das letzte Stück des Uri. */
+    /**
+     * Der Anzeigename einer gewählten Datei.
+     *
+     * <p>Denselben Zweck erfüllte {@code StatementImport.displayName} mit einer zweiten, leicht
+     * abweichenden Fassung; beide fragen jetzt über {@link DocumentName} und mit <b>ausdrücklicher
+     * Spaltenauswahl</b>. Ein {@code query(uri, null, …)} lässt sich jeden Anbieter alle Spalten
+     * zusammenstellen — bei einem Dokument in der Cloud kann das einen Netzzugriff bedeuten, für einen
+     * einzigen Namen.</p>
+     */
     private String fileName(Uri uri) {
-        try (android.database.Cursor c = getContentResolver().query(uri, null, null, null, null)) {
-            int at = c == null ? -1
-                    : c.getColumnIndex(android.provider.OpenableColumns.DISPLAY_NAME);
-            if (c != null && at >= 0 && c.moveToFirst()) {
-                return c.getString(at);
-            }
-        } catch (Exception ignored) {
-            // Der Name ist nur eine Erinnerungshilfe – dafür bricht nichts ab.
-        }
-        return uri.getLastPathSegment() == null ? uri.toString() : uri.getLastPathSegment();
+        String name = DocumentName.of(this, uri);
+        return name.isEmpty() ? uri.toString() : name;
     }
 
     /**

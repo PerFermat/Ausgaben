@@ -53,7 +53,7 @@ import de.spahr.ausgaben.util.SecurityAmounts.Field;
  * <p>Von den vier Zahlenfeldern ergänzt {@link SecurityAmounts} jeweils das fehlende. Die Maske merkt sich
  * dafür, welche Felder der Nutzer selbst gefüllt hat – nur die übrigen werden überschrieben.</p>
  */
-public class SecurityTxEditActivity extends LocalizedActivity {
+public class SecurityTxEditActivity extends LocalizedActivity implements HostedDialog.Host {
 
     public static final String EXTRA_DEPOT = "depot";
     public static final String EXTRA_KMY_ID = "kmyId";
@@ -101,9 +101,9 @@ public class SecurityTxEditActivity extends LocalizedActivity {
     /** Pfad der schon in die Belegablage kopierten Abrechnung; wird beim Speichern zum Beleg. */
     public static final String EXTRA_STATEMENT_FILE = "statementFile";
 
-    private static final String BUY = "buy";
-    private static final String SELL = "sell";
-    private static final String DIVIDEND = "dividend";
+    private static final String BUY = SecurityTx.BUY;
+    private static final String SELL = SecurityTx.SELL;
+    private static final String DIVIDEND = SecurityTx.DIVIDEND;
 
     private final SimpleDateFormat dateFormat = new SimpleDateFormat("dd.MM.yyyy", Locale.GERMANY);
     private final Calendar selectedDate = Calendar.getInstance();
@@ -166,6 +166,7 @@ public class SecurityTxEditActivity extends LocalizedActivity {
     private TextInputLayout feeLayout;
     private TextInputLayout netLayout;
     private TextInputLayout priceLayout;
+    private TextInputLayout sharesLayout;
     private View sharesRow;
     private TextInputLayout accountLayout;
     private View feeSplitBox;
@@ -223,10 +224,13 @@ public class SecurityTxEditActivity extends LocalizedActivity {
      */
     private de.spahr.ausgaben.statement.AnchorRule chosenDateRule;
     /**
-     * Die einmal gelesene Abrechnung. Ohne sie läse jeder Tipp aufs Datumsfeld das PDF neu ein, und
-     * zwar auf dem Bedienfaden.
+     * Die einmal gelesene Abrechnung. Ohne sie läse jeder Tipp aufs Datumsfeld das PDF neu ein.
+     *
+     * <p>{@code volatile}, weil geschrieben und gelesen wird das Feld auf zwei Fäden: das Einlesen läuft
+     * im Hintergrund, die Maske greift danach vom Bedienfaden aus darauf zu. Ohne die Kennzeichnung darf
+     * der zweite Faden den geschriebenen Wert schlicht nicht sehen und läse das PDF ein zweites Mal.</p>
      */
-    private de.spahr.ausgaben.pdf.PdfText statementText;
+    private volatile de.spahr.ausgaben.pdf.PdfText statementText;
     /**
      * Die Felder, in die der Nutzer <b>selbst</b> geschrieben hat — nur aus ihnen wird gelernt.
      *
@@ -239,6 +243,68 @@ public class SecurityTxEditActivity extends LocalizedActivity {
     private final Set<Field> typedFields = EnumSet.noneOf(Field.class);
     /** Hat der Nutzer das Datum selbst gewählt? Dann gehört auch dessen Beschriftung gelernt. */
     private boolean dateTyped;
+    /** Das Speichern läuft schon — siehe {@link #save()}. */
+    private boolean saving;
+
+    /**
+     * Schlüssel für {@link #onSaveInstanceState}.
+     *
+     * <p>Gesichert wird nur, was die Views selbst <b>nicht</b> tragen: Merker, Mengen und die
+     * Datumsregel. Die Texte der Eingabefelder stellt Android über die View-Hierarchie wieder her, und
+     * zwar nach {@code onCreate} — die Vorbelegung aus dem Intent überschreibt sie also nicht.</p>
+     *
+     * <p>Ohne diese Sicherung war die Maske nach einer Drehung nicht mehr zu bedienen: Das Datum stand
+     * sichtbar im Feld, {@code dateKnown} war aber wieder {@code false}, und Speichern meldete „Datum
+     * fehlt", ohne dass der Nutzer etwas dagegen tun konnte. Zugleich waren {@code typedFields} und
+     * {@code dateTyped} leer, sodass {@code offerToLearn} wortlos abbrach — die Bank-Vorlage wurde nicht
+     * gelernt, obwohl der Nutzer alles abgetippt hatte.</p>
+     */
+    private static final String STATE_DATE_MILLIS = "s_dateMillis";
+    private static final String STATE_DATE_KNOWN = "s_dateKnown";
+    private static final String STATE_ACTION_KNOWN = "s_actionKnown";
+    private static final String STATE_DATE_TYPED = "s_dateTyped";
+    private static final String STATE_DUP_BOOKED = "s_dupBooked";
+    private static final String STATE_CONFLICT = "s_conflict";
+    private static final String STATE_SAVING = "s_saving";
+    private static final String STATE_USER_SET = "s_userSet";
+    private static final String STATE_TYPED_FIELDS = "s_typedFields";
+    private static final String STATE_LAST_COMPUTED = "s_lastComputed";
+    private static final String STATE_DATE_LABEL = "s_dateLabel";
+    private static final String STATE_DATE_RULE = "s_dateRule";
+    private static final String STATE_STATEMENT_TAG = "s_statementTag";
+    private static final String STATE_FIXED_FEE_CATEGORY = "s_fixedFeeCategory";
+
+    /** Schlüssel der Dialoge dieser Maske – siehe {@link HostedDialog}. */
+    private static final String DLG_DATE_CHOICE = "dlg_dateChoice";
+    private static final String DLG_CALENDAR = "dlg_calendar";
+    private static final String DLG_LEARN = "dlg_learn";
+    private static final String DLG_VERIFY = "dlg_verify";
+    private static final String ARG_DATE_LABELS = "a_labels";
+    private static final String ARG_DATE_MILLIS = "a_millis";
+    private static final String ARG_DATE_ANCHORS = "a_anchors";
+    private static final String ARG_DATE_RULES = "a_rules";
+
+    /**
+     * Die beiden Rückfragen am Ende des Speicherns hängen an einem gelesenen PDF und an gelernten
+     * Vorlagen. Beides gehört nicht in ein {@link Bundle} – es bleibt hier im Speicher, und was nach
+     * einer Drehung fehlt, holt {@link #wiederaufnahme()} neu.
+     */
+    private LernAngebot lernAngebot;
+    private PruefErgebnis pruefErgebnis;
+    /** Die Angaben, mit denen sich die Lern-Rückfrage nach einer Drehung neu aufsetzen lässt. */
+    private String learnAction;
+    private Double learnShares;
+    private Double learnPrice;
+    private Long learnFeeCents;
+    private Long learnNetCents;
+    private static final String STATE_LEARN_ACTION = "s_learnAction";
+    private static final String STATE_LEARN_SHARES = "s_learnShares";
+    private static final String STATE_LEARN_PRICE = "s_learnPrice";
+    private static final String STATE_LEARN_FEE = "s_learnFee";
+    private static final String STATE_LEARN_NET = "s_learnNet";
+    private static final String STATE_LIST_HINT = "s_listHint";
+    private static final String STATE_LIST_HINT_KEY = "s_listHintKey";
+    private static final String STATE_LAST_DUP_KEY = "s_lastDupKey";
 
     @Override
     protected void onCreate(Bundle savedInstanceState) {
@@ -252,8 +318,44 @@ public class SecurityTxEditActivity extends LocalizedActivity {
         taxRate = new SettingsStore(this).getDividendTaxPercent() / 100.0;
         batchMode = getIntent().getBooleanExtra(EXTRA_BATCH, false);
 
+        setupToolbar();
+        findViews();
+        setupNumberFields();
+        setupDateField();
+        setupActionToggle();
+        btnSave.setOnClickListener(v -> save());
+        btnDelete.setOnClickListener(v -> confirmDelete());
+        loadPickers();
+        readStatementExtras();
+
+        long txId = getIntent().getLongExtra(EXTRA_TX_ID, -1);
+        if (txId >= 0) {
+            repository.getSecurityTx(txId, this::bind);
+        } else {
+            setupNewMode();
+        }
+        // Zum Schluss: setupNewMode/applyPrefill setzen dieselben Merker aus dem Intent und würden den
+        // wiederhergestellten Stand sonst wieder überschreiben. Im Bearbeiten-Modus kommt danach noch
+        // bind() aus der Datenbank — das ist gewollt, dort stehen die verbindlichen Werte.
+        restoreState(savedInstanceState);
+    }
+
+    private void setupToolbar() {
         toolbar = findViewById(R.id.toolbar);
-        toolbar.setNavigationOnClickListener(v -> finish());
+        toolbar.setNavigationOnClickListener(v -> zurueck());
+        // Der Systemzurück muss denselben Weg nehmen wie der Pfeil in der Leiste – sonst hängt es vom
+        // Griff des Nutzers ab, ob seine Korrekturen in der Liste ankommen (siehe zurueck()).
+        getOnBackPressedDispatcher().addCallback(this,
+                new androidx.activity.OnBackPressedCallback(true) {
+                    @Override
+                    public void handleOnBackPressed() {
+                        zurueck();
+                    }
+                });
+    }
+
+    /** Die Ansichten der Maske einsammeln – reines Zuordnen, keine Logik. */
+    private void findViews() {
         toggleAction = findViewById(R.id.toggleAction);
         actionHeading = findViewById(R.id.actionHeading);
         actionHint = findViewById(R.id.actionHint);
@@ -281,20 +383,31 @@ public class SecurityTxEditActivity extends LocalizedActivity {
         // Im Hochformat haelt der Platzhalter die Hoehe der Tastatur frei, damit das Formular
         // wie bisher ueber ihr endet; quer schwebt sie darueber und der Platzhalter bleibt weg.
         calcKeyboard.reserveSpaceWith(findViewById(R.id.calcSpacer));
+    }
 
+    private void setupNumberFields() {
         numberFields.put(Field.SHARES, findViewById(R.id.editShares));
         numberFields.put(Field.PRICE, findViewById(R.id.editPrice));
         numberFields.put(Field.GROSS, findViewById(R.id.editGross));
         numberFields.put(Field.FEE, findViewById(R.id.editFee));
         numberFields.put(Field.NET, findViewById(R.id.editNet));
+        sharesLayout = findViewById(R.id.sharesLayout);
+        // Wer den bemängelten Wert nachträgt, soll die Markierung sofort loswerden.
+        markierungAufhebenBeimTippen(Field.GROSS, grossLayout);
+        markierungAufhebenBeimTippen(Field.NET, netLayout);
+        markierungAufhebenBeimTippen(Field.SHARES, sharesLayout);
+    }
 
+    private void setupDateField() {
         // Der Hinweis am Datumsfeld soll das Kalendersymbol nicht verdrängen – sonst verschwände mit
         // ihm der Weg, den Mangel zu beheben.
         dateLayout.setErrorIconDrawable(null);
         editDate.setOnClickListener(v -> showDatePicker());
         // Das Kalendersymbol liegt über dem Feld und würde den Tipper sonst schlucken.
         dateLayout.setEndIconOnClickListener(v -> showDatePicker());
+    }
 
+    private void setupActionToggle() {
         toggleAction.addOnButtonCheckedListener((group, id, checked) -> {
             if (checked) {
                 actionKnown = true;
@@ -313,11 +426,10 @@ public class SecurityTxEditActivity extends LocalizedActivity {
                 recompute(null);
             }
         });
-        btnSave.setOnClickListener(v -> save());
-        btnDelete.setOnClickListener(v -> confirmDelete());
+    }
 
-        loadPickers();
-
+    /** Was der Aufrufer über eine eingelesene Abrechnung mitgibt. */
+    private void readStatementExtras() {
         statementTextPath = getIntent().getStringExtra(EXTRA_STATEMENT_TEXT);
         statementIsin = getIntent().getStringExtra(EXTRA_STATEMENT_ISIN);
         String staged = getIntent().getStringExtra(EXTRA_STATEMENT_FILE);
@@ -326,12 +438,128 @@ public class SecurityTxEditActivity extends LocalizedActivity {
         }
         fromStatement = statementTextPath != null || pendingStatement != null;
         updateStatementButton();
+    }
 
-        long txId = getIntent().getLongExtra(EXTRA_TX_ID, -1);
-        if (txId >= 0) {
-            repository.getSecurityTx(txId, this::bind);
-        } else {
-            setupNewMode();
+    @Override
+    protected void onSaveInstanceState(@androidx.annotation.NonNull Bundle out) {
+        super.onSaveInstanceState(out);
+        out.putLong(STATE_DATE_MILLIS, selectedDate.getTimeInMillis());
+        out.putBoolean(STATE_DATE_KNOWN, dateKnown);
+        out.putBoolean(STATE_ACTION_KNOWN, actionKnown);
+        out.putBoolean(STATE_DATE_TYPED, dateTyped);
+        out.putBoolean(STATE_DUP_BOOKED, dupBooked);
+        out.putBoolean(STATE_CONFLICT, conflict);
+        out.putBoolean(STATE_SAVING, saving);
+        out.putStringArray(STATE_USER_SET, namesOf(userSet));
+        out.putStringArray(STATE_TYPED_FIELDS, namesOf(typedFields));
+        out.putString(STATE_LAST_COMPUTED, lastComputed == null ? null : lastComputed.name());
+        out.putString(STATE_DATE_LABEL, chosenDateLabel);
+        out.putSerializable(STATE_DATE_RULE, chosenDateRule);
+        out.putString(STATE_STATEMENT_TAG, savedStatementTag);
+        out.putString(STATE_FIXED_FEE_CATEGORY, fixedFeeCategory);
+        out.putInt(STATE_LIST_HINT, listHint);
+        out.putString(STATE_LIST_HINT_KEY, listHintKey);
+        out.putString(STATE_LAST_DUP_KEY, lastDupKey);
+        out.putString(STATE_LEARN_ACTION, learnAction);
+        putBoxed(out, STATE_LEARN_SHARES, learnShares);
+        putBoxed(out, STATE_LEARN_PRICE, learnPrice);
+        putBoxed(out, STATE_LEARN_FEE, learnFeeCents);
+        putBoxed(out, STATE_LEARN_NET, learnNetCents);
+    }
+
+    private void restoreState(Bundle in) {
+        if (in == null) {
+            return;
+        }
+        selectedDate.setTimeInMillis(in.getLong(STATE_DATE_MILLIS, selectedDate.getTimeInMillis()));
+        dateKnown = in.getBoolean(STATE_DATE_KNOWN, dateKnown);
+        actionKnown = in.getBoolean(STATE_ACTION_KNOWN, actionKnown);
+        dateTyped = in.getBoolean(STATE_DATE_TYPED, dateTyped);
+        dupBooked = in.getBoolean(STATE_DUP_BOOKED, dupBooked);
+        conflict = in.getBoolean(STATE_CONFLICT, conflict);
+        saving = in.getBoolean(STATE_SAVING, false);
+        readFields(in.getStringArray(STATE_USER_SET), userSet);
+        readFields(in.getStringArray(STATE_TYPED_FIELDS), typedFields);
+        lastComputed = fieldOf(in.getString(STATE_LAST_COMPUTED));
+        chosenDateLabel = in.getString(STATE_DATE_LABEL);
+        Object rule = in.getSerializable(STATE_DATE_RULE);
+        chosenDateRule = rule instanceof de.spahr.ausgaben.statement.AnchorRule
+                ? (de.spahr.ausgaben.statement.AnchorRule) rule : null;
+        savedStatementTag = in.getString(STATE_STATEMENT_TAG);
+        fixedFeeCategory = orEmpty(in.getString(STATE_FIXED_FEE_CATEGORY));
+        listHint = in.getInt(STATE_LIST_HINT, 0);
+        listHintKey = in.getString(STATE_LIST_HINT_KEY);
+        lastDupKey = in.getString(STATE_LAST_DUP_KEY);
+        learnAction = in.getString(STATE_LEARN_ACTION);
+        learnShares = in.containsKey(STATE_LEARN_SHARES) ? in.getDouble(STATE_LEARN_SHARES) : null;
+        learnPrice = in.containsKey(STATE_LEARN_PRICE) ? in.getDouble(STATE_LEARN_PRICE) : null;
+        learnFeeCents = in.containsKey(STATE_LEARN_FEE) ? in.getLong(STATE_LEARN_FEE) : null;
+        learnNetCents = in.containsKey(STATE_LEARN_NET) ? in.getLong(STATE_LEARN_NET) : null;
+        if (saving) {
+            btnSave.setEnabled(false);
+            wiederaufnahme();
+        }
+    }
+
+    private static void putBoxed(Bundle out, String key, Double value) {
+        if (value != null) {
+            out.putDouble(key, value);
+        }
+    }
+
+    private static void putBoxed(Bundle out, String key, Long value) {
+        if (value != null) {
+            out.putLong(key, value);
+        }
+    }
+
+    /**
+     * Nach einer Drehung mitten in der Lern-Rückfrage: die Bewegung ist gebucht, der Dialog ist neu zu
+     * bauen — aber das gelesene PDF und die gelernten Vorlagen lagen nur im Speicher der alten Maske.
+     *
+     * <p>Also wird der Weg noch einmal gegangen: {@link #offerToLearn} liest die Abrechnung im
+     * Hintergrund erneut und stellt die Rückfrage wieder hin. Ohne das bliebe die Maske als Sackgasse
+     * stehen — ausgefüllt, mit gesperrtem Speichern-Knopf und ohne die Rückfrage, für die sie
+     * überhaupt noch offen war; die Bank-Vorlage wäre verloren.</p>
+     */
+    private void wiederaufnahme() {
+        if (learnAction == null) {
+            return;
+        }
+        offerToLearn(learnAction, learnShares, learnPrice, learnFeeCents, learnNetCents);
+    }
+
+    private static String[] namesOf(Set<Field> fields) {
+        String[] out = new String[fields.size()];
+        int i = 0;
+        for (Field f : fields) {
+            out[i++] = f.name();
+        }
+        return out;
+    }
+
+    private static void readFields(String[] names, Set<Field> into) {
+        if (names == null) {
+            return;
+        }
+        into.clear();
+        for (String name : names) {
+            Field f = fieldOf(name);
+            if (f != null) {
+                into.add(f);
+            }
+        }
+    }
+
+    /** {@code null} statt einer Ausnahme: ein Bundle aus einer anderen Fassung darf nicht abstürzen. */
+    private static Field fieldOf(String name) {
+        if (name == null) {
+            return null;
+        }
+        try {
+            return Field.valueOf(name);
+        } catch (IllegalArgumentException e) {
+            return null;
         }
     }
 
@@ -404,7 +632,10 @@ public class SecurityTxEditActivity extends LocalizedActivity {
      * den Betrag darüber ergeben, sonst stünde in KMyMoney eine Buchung, die sich nicht ausgleicht.
      */
     private void updateSaveEnabled() {
-        btnSave.setEnabled(splitsOk(feeSplits, Field.FEE) && splitsOk(incomeSplits, Field.GROSS));
+        // Läuft das Speichern bereits, bleibt der Knopf aus: die Kategoriezeilen melden sich beim
+        // Schreiben noch einmal und würden ihn sonst wieder freigeben.
+        btnSave.setEnabled(!saving
+                && splitsOk(feeSplits, Field.FEE) && splitsOk(incomeSplits, Field.GROSS));
     }
 
     /**
@@ -1011,11 +1242,8 @@ public class SecurityTxEditActivity extends LocalizedActivity {
         tx.securityKmyId = kmyId;
         tx.securityName = securityName;
         tx.date = selectedDate.getTimeInMillis();
-        tx.action = action;
-        tx.shares = dividend ? 0 : (SELL.equals(action) ? -Math.abs(count) : Math.abs(count));
-        tx.amountCents = gross;
-        tx.netCents = dividend ? net : gross;
-        tx.feeCents = dividend ? 0 : Math.abs(fee == null ? 0 : fee);
+        // Dieselben Regeln wie beim Speichern – buchstäblich dieselben, siehe SecurityTx.applyAmounts.
+        tx.applyAmounts(action, count, gross, net, fee == null ? 0 : fee);
         return tx;
     }
 
@@ -1045,21 +1273,44 @@ public class SecurityTxEditActivity extends LocalizedActivity {
         numberFields.get(field).setText(MoneyFormat.plain(cents));
     }
 
+    /**
+     * Markiert ein Zahlenfeld als fehlend beziehungsweise räumt die Markierung wieder weg.
+     *
+     * <p>Ohne Text: die Umrandung genügt, und ein zusätzlicher Satz unter jedem der drei Felder
+     * verschöbe die Maske. Weg ist die Markierung, sobald jemand in das Feld tippt (siehe der
+     * {@code SimpleWatcher} in {@code setupNumberField}).</p>
+     */
+    private void markierungAufhebenBeimTippen(Field field, TextInputLayout layout) {
+        numberFields.get(field).addTextChangedListener(new SimpleWatcher(() -> layout.setError(null)));
+    }
+
+    private void markiereFehlendes(TextInputLayout layout, boolean fehlt) {
+        layout.setErrorIconDrawable(null);
+        layout.setError(fehlt ? " " : null);
+    }
+
     private Long money(Field field) {
         String raw = textOf(numberFields.get(field)).trim();
         return raw.isEmpty() ? null : AmountExpression.toCents(raw);
     }
 
+    /**
+     * Eine Zahl aus einem der Felder — durch <b>denselben</b> Parser wie {@link #money(Field)}.
+     *
+     * <p>Bis 1.12 stand hier {@code Double.parseDouble(raw.replace(',', '.'))}, während die
+     * Betragsfelder über {@link AmountExpression} liefen. Die Maske hatte damit zwei Parser für
+     * Felder, über denen dieselbe Rechentastatur sitzt: Wer die Stückzahl als {@code 10*3} eintippte —
+     * was die Tastatur ausdrücklich anbietet —, bekam beim Speichern „Beträge fehlen", obwohl sichtbar
+     * etwas im Feld stand. Schwerer wiegt, dass die Stückzahl in {@code duplicateCandidate} und
+     * {@code expectation} still wegfiel: Doppelungsprüfung und Lern-Nachprüfung rechneten dann mit
+     * einer Lücke, ohne dass jemand etwas davon merkte.</p>
+     *
+     * <p>{@code evaluate} und nicht {@code toCents}: eine Stückzahl hat mehr Nachkommastellen als
+     * Geld ({@code 1,839801}) und darf nicht auf Cent gerundet werden.</p>
+     */
     private Double number(Field field) {
-        String raw = textOf(numberFields.get(field)).trim().replace(',', '.');
-        if (raw.isEmpty()) {
-            return null;
-        }
-        try {
-            return Double.parseDouble(raw);
-        } catch (NumberFormatException e) {
-            return null;
-        }
+        java.math.BigDecimal wert = AmountExpression.evaluate(textOf(numberFields.get(field)).trim());
+        return wert == null ? null : wert.doubleValue();
     }
 
     // ---- Auswahllisten ----
@@ -1141,68 +1392,112 @@ public class SecurityTxEditActivity extends LocalizedActivity {
 
     // ---- Speichern ----
 
+    /**
+     * Speichern: prüfen, zusammenbauen, schreiben — und danach anbieten, aus der Abrechnung zu lernen.
+     *
+     * <p>Die drei Schritte stehen in eigenen Methoden. Vorher waren es knapp hundert Zeilen am Stück,
+     * in denen Prüfungen, Vorzeichenregeln, Belegablage und Datenbankaufruf ineinanderliefen.</p>
+     */
     private void save() {
+        if (saving) {
+            // Zwischen dem Tipp und dem finish() aus offerToLearn liegen eine Datenbankschreibung und
+            // womöglich zwei Rückfragen – die Maske steht so lange sichtbar offen. Ohne diese Sperre
+            // legt ein zweiter Tipp Bewegung und Gegenbuchung ein zweites Mal an, und weil
+            // pendingStatement beim ersten Durchlauf verbraucht wurde, hinge der Beleg nur an der
+            // ersten von beiden.
+            return;
+        }
         if (batchMode) {
             returnToList();
             return;
         }
+        if (!eingabenSindVollstaendig()) {
+            return;
+        }
+        schreibe(bewegungAusDerMaske());
+    }
+
+    /**
+     * Was fehlt, wird gesagt — und zwar am Feld, an dem es fehlt.
+     *
+     * @return {@code false}, wenn nicht gespeichert werden kann; die Meldung steht dann schon
+     */
+    private boolean eingabenSindVollstaendig() {
         if (conflict) {
             Toast.makeText(this, R.string.security_tx_conflict, Toast.LENGTH_LONG).show();
-            return;
+            return false;
         }
         if (!actionKnown) {
             Toast.makeText(this, R.string.security_tx_need_action, Toast.LENGTH_LONG).show();
-            return;
+            return false;
         }
         if (!dateKnown) {
             Toast.makeText(this, R.string.security_tx_need_date, Toast.LENGTH_LONG).show();
-            return;
+            return false;
         }
-        String action = currentAction();
-        boolean dividend = DIVIDEND.equals(action);
+        boolean dividend = DIVIDEND.equals(currentAction());
         Long gross = money(Field.GROSS);
         Long net = money(Field.NET);
         Double count = number(Field.SHARES);
         if (gross == null || net == null || gross <= 0 || (!dividend && (count == null || count <= 0))) {
+            // Der Sammel-Toast sagte nur, dass etwas fehlt, nicht was. Bei fünf Zahlenfeldern
+            // untereinander ist das eine Suchaufgabe – also wird das Feld selbst markiert.
+            markiereFehlendes(grossLayout, gross == null || gross <= 0);
+            markiereFehlendes(netLayout, net == null);
+            markiereFehlendes(sharesLayout, !dividend && (count == null || count <= 0));
             Toast.makeText(this, R.string.security_tx_need_amounts, Toast.LENGTH_LONG).show();
-            return;
+            return false;
         }
-        String account = textOf(editAccount).trim();
-        if (account.isEmpty()) {
+        if (textOf(editAccount).trim().isEmpty()) {
             Toast.makeText(this, R.string.security_tx_need_account, Toast.LENGTH_LONG).show();
-            return;
+            return false;
         }
-        Long fee = money(Field.FEE);
-        long feeCents = fee == null ? 0 : Math.abs(fee);
+        return true;
+    }
 
+    /**
+     * Die Bewegung, wie sie in der Maske steht. Beim Ändern wird die geladene weiterverwendet, damit
+     * ihre id und ihre Verknüpfung zur Buchung erhalten bleiben.
+     *
+     * <p>Vorzeichen und Dividendenregeln stehen nicht hier, sondern in
+     * {@link SecurityTx#applyAmounts} — an einer Stelle für alle, die sie brauchen.</p>
+     */
+    private SecurityTx bewegungAusDerMaske() {
+        String action = currentAction();
+        Long fee = money(Field.FEE);
         SecurityTx tx = loaded != null ? loaded : new SecurityTx();
         tx.depot = depot;
         tx.securityKmyId = kmyId;
         tx.securityName = securityName;
         tx.date = selectedDate.getTimeInMillis();
-        tx.action = action;
-        // Eine Dividende bewegt keine Stücke; die Maske fragt dort auch keine Anzahl mehr ab, weil der
-        // Bestand am Ex-Tag nicht in der Abrechnung steht.
-        tx.shares = dividend ? 0 : (SELL.equals(action) ? -Math.abs(count) : Math.abs(count));
-        tx.amountCents = gross;
-        tx.netCents = dividend ? net : gross;
-        tx.feeCents = dividend ? 0 : feeCents;
-        tx.moneyAccount = account;
+        tx.applyAmounts(action, number(Field.SHARES), money(Field.GROSS), money(Field.NET),
+                fee == null ? 0 : Math.abs(fee));
+        tx.moneyAccount = textOf(editAccount).trim();
         tx.parts.clear();
         tx.parts.addAll(splitsOf(feeSplits, false));
-        if (dividend) {
+        if (DIVIDEND.equals(action)) {
             tx.parts.addAll(splitsOf(incomeSplits, true));
         }
+        return tx;
+    }
 
-        Booking booking = buildBooking(action, account, net);
+    /** Bewegung und Gegenbuchung wegschreiben, den Beleg vormerken und danach zum Lernen überleiten. */
+    private void schreibe(SecurityTx tx) {
+        final String action = tx.action;
+        // Der Buchungsbetrag kommt aus tx.netCents und nicht noch einmal aus dem Feld: Damit gilt
+        // „Buchungsbetrag == netCents" von selbst, und genau daran hängt SecurityTxMatch.
+        Booking booking = buildBooking(tx, tx.netCents);
         // Die Abrechnung wird zum Beleg der Gegenbuchung – dauerhaft und über denselben Weg wie die
         // Belege der übrigen Buchungen (Ablage, Jahresordner, Abgleich, Export).
-        if (pendingStatement != null) {
-            booking.note = de.spahr.ausgaben.receipt.SingleReceipt.attach(
-                    this, pendingStatement, booking.note, booking.createdAt);
-            pendingStatement = null;
-            // Wohin die Datei gewandert ist, steht jetzt nur noch in der Notiz. Der Tag wird gebraucht:
-            // gleich danach wird aus dieser Abrechnung gelernt und an ihr nachgeprüft.
+        // Der Name des Belegs steht damit fest und kann in die Notiz; bewegt wird die Datei erst, wenn
+        // die Buchung wirklich in der Datenbank steht (siehe SingleReceipt.plan).
+        final de.spahr.ausgaben.receipt.SingleReceipt.Planned beleg =
+                de.spahr.ausgaben.receipt.SingleReceipt.plan(pendingStatement, booking.note,
+                        booking.createdAt);
+        if (beleg.hatBeleg()) {
+            booking.note = beleg.note;
+            // Wohin die Datei wandern wird, steht jetzt in der Notiz. Der Tag wird gebraucht: gleich
+            // danach wird aus dieser Abrechnung gelernt und an ihr nachgeprüft.
             savedStatementTag = de.spahr.ausgaben.receipt.NoteReceipt.pdfName(booking.note);
         }
         final Double sharesGiven = number(Field.SHARES);
@@ -1210,13 +1505,42 @@ public class SecurityTxEditActivity extends LocalizedActivity {
         final Long feeGiven = money(Field.FEE);
         final Long netGiven = money(Field.NET);
         Runnable done = () -> {
+            if (de.spahr.ausgaben.receipt.SingleReceipt.attach(this, beleg)) {
+                pendingStatement = null;
+            } else if (beleg.hatBeleg()) {
+                Toast.makeText(this, R.string.statement_receipt_failed, Toast.LENGTH_LONG).show();
+            }
             Toast.makeText(this, R.string.security_tx_saved, Toast.LENGTH_SHORT).show();
             offerToLearn(action, sharesGiven, priceGiven, feeGiven, netGiven);
         };
+        // Ab hier ist geschrieben; erst jetzt sperren, damit eine abgebrochene Prüfung oben den Knopf
+        // nicht für immer stilllegt.
+        saving = true;
+        btnSave.setEnabled(false);
         if (loaded != null) {
             repository.updateManualSecurityTx(tx, booking, done);
         } else {
             repository.saveManualSecurityTx(tx, booking, done);
+        }
+    }
+
+    /**
+     * Verlassen der Maske ohne „Speichern" beziehungsweise „Übernehmen".
+     *
+     * <p>Beim Berichtigen eines Stapels ist das <b>kein</b> Verwerfen: die Maske ist dort nur die
+     * Detailansicht einer Zeile der Erkennungsliste, gebucht wird erst dort. Der Stand geht deshalb
+     * genauso zurück wie über „Übernehmen" — bis 1.12 gaben Pfeil und Systemzurück schlicht kein
+     * Ergebnis zurück, und alles Getippte war weg, obwohl der Javadoc von {@link #returnToList} das
+     * Gegenteil verspricht.</p>
+     *
+     * <p>Außerhalb des Stapels bleibt es beim Beenden: dort ist die Maske eine eigene Erfassung, und
+     * wer sie ohne Speichern verlässt, will nichts anlegen.</p>
+     */
+    private void zurueck() {
+        if (batchMode) {
+            returnToList();
+        } else {
+            finish();
         }
     }
 
@@ -1257,7 +1581,8 @@ public class SecurityTxEditActivity extends LocalizedActivity {
         List<SecurityTxSplit> out = new ArrayList<>();
         int sort = 0;
         for (SplitRowController.Part part : ctl.collectParts()) {
-            out.add(new SecurityTxSplit(0, income, part.category, Math.abs(part.cents),
+            // Ohne Betrag: das Vorzeichen gehört zur Zeile (siehe SecurityTxSplit).
+            out.add(new SecurityTxSplit(0, income, part.category, part.cents,
                     part.label, sort++));
         }
         return out;
@@ -1295,11 +1620,18 @@ public class SecurityTxEditActivity extends LocalizedActivity {
         return "";
     }
 
-    /** Dieselben Zeilen für den Weg zurück in die Erkennungsliste. */
+    /**
+     * Dieselben Zeilen für den Weg zurück in die Erkennungsliste — <b>mit</b> Vorzeichen.
+     *
+     * <p>Anders als bei {@link #lernbareTeile} und {@link #partAmounts}: die suchen den Betrag im
+     * Text der Abrechnung, und dort steht die Kapitalertragsteuer als positive Zahl unter ihrer
+     * Beschriftung. Hier dagegen gehen die Zeilen unverändert weiter in eine Bewegung, und dort ist
+     * das Vorzeichen Teil der Angabe (siehe {@link SecurityTxSplit}).</p>
+     */
     private List<CategorySplits.Part> collectedParts(SplitRowController ctl) {
         List<CategorySplits.Part> out = new ArrayList<>();
         for (SplitRowController.Part part : ctl.collectParts()) {
-            out.add(new CategorySplits.Part(part.category, Math.abs(part.cents), part.label));
+            out.add(new CategorySplits.Part(part.category, part.cents, part.label));
         }
         return out;
     }
@@ -1325,6 +1657,11 @@ public class SecurityTxEditActivity extends LocalizedActivity {
      * kleine Zahlen antippt, wird damit überflüssig.</p>
      */
     private void offerToLearn(String action, Double shares, Double price, Long feeCents, Long netCents) {
+        learnAction = action;
+        learnShares = shares;
+        learnPrice = price;
+        learnFeeCents = feeCents;
+        learnNetCents = netCents;
         if (statementTextPath == null && statementPdf() == null) {
             finish();
             return;
@@ -1410,25 +1747,88 @@ public class SecurityTxEditActivity extends LocalizedActivity {
             finish();
             return;
         }
+        // Der Dialog wird nicht hier gebaut, sondern in buildDialog – siehe HostedDialog: nach einer
+        // Drehung baut ihn die neue Maske erneut, und zwar aus diesen Angaben.
+        lernAngebot = new LernAngebot(store, raw, existing, replaced, appended, text);
+        HostedDialog.show(this, DLG_LEARN, null);
+    }
+
+    /** Was die Lern-Rückfrage zum Bauen braucht. Lebt nur im Speicher – siehe {@link #buildDialog}. */
+    private static final class LernAngebot {
+        final StatementTemplates store;
+        final StatementTemplate raw;
+        final StatementTemplate existing;
+        final StatementTemplate replaced;
+        final StatementTemplate appended;
+        final de.spahr.ausgaben.pdf.PdfText text;
+
+        LernAngebot(StatementTemplates store, StatementTemplate raw, StatementTemplate existing,
+                    StatementTemplate replaced, StatementTemplate appended,
+                    de.spahr.ausgaben.pdf.PdfText text) {
+            this.store = store;
+            this.raw = raw;
+            this.existing = existing;
+            this.replaced = replaced;
+            this.appended = appended;
+            this.text = text;
+        }
+    }
+
+    private android.app.Dialog buildLearnDialog() {
+        final LernAngebot a = lernAngebot;
         AppDialog dialog = new AppDialog(this);
         dialog.setTitle(R.string.statement_learn_title);
-        if (appended.sameAs(replaced)) {
-            dialog.setMessage(learnMessage(raw, existing));
+        if (a.appended.sameAs(a.replaced)) {
+            dialog.setMessage(learnMessage(a.raw, a.existing));
             dialog.setPositiveButton(R.string.statement_learn_yes,
-                    (d, w) -> keep(store, replaced, text));
+                    (d, w) -> keep(a.store, a.replaced, a.text));
         } else {
             // Es gibt einen echten Widerspruch: die neue Beschriftung tritt an die Stelle einer
             // vorhandenen. Das ist nicht zu entscheiden, ohne zu wissen, ob die alte weiter gebraucht
             // wird – also wird gefragt, statt zu raten.
             dialog.setMessage(R.string.statement_learn_conflict);
             dialog.setPositiveButton(R.string.statement_learn_append,
-                    (d, w) -> keep(store, appended, text));
+                    (d, w) -> keep(a.store, a.appended, a.text));
             dialog.setNeutralButton(R.string.statement_learn_replace,
-                    (d, w) -> keep(store, replaced, text));
+                    (d, w) -> keep(a.store, a.replaced, a.text));
         }
         dialog.setNegativeButton(R.string.cancel, (d, w) -> finish());
-        dialog.setOnCancelListener(d -> finish());
-        dialog.show();
+        return dialog.create();
+    }
+
+    /**
+     * Baut die Dialoge dieser Maske – beim ersten Mal und nach jeder Drehung erneut (siehe
+     * {@link HostedDialog}).
+     *
+     * <p>Die beiden Rückfragen am Ende des Speicherns liefern hier {@code null}, wenn ihre Grundlage
+     * nach einer Drehung fehlt. Sie verschwinden dann kurz und kommen über {@link #wiederaufnahme()}
+     * wieder – neu berechnet aus der erneut gelesenen Abrechnung.</p>
+     */
+    @Override
+    public android.app.Dialog buildDialog(String key, Bundle args) {
+        switch (key) {
+            case DLG_DATE_CHOICE:
+                return buildDateChoiceDialog(args);
+            case DLG_CALENDAR:
+                return buildCalendarDialog();
+            case DLG_LEARN:
+                return lernAngebot == null ? null : buildLearnDialog();
+            case DLG_VERIFY:
+                return pruefErgebnis == null ? null : buildVerifyDialog();
+            default:
+                return null;
+        }
+    }
+
+    /**
+     * Weggetippt oder mit Zurück verlassen. Bei den beiden Rückfragen am Ende des Speicherns ist das
+     * der Weg hinaus: Die Bewegung ist gebucht, die Maske hat nichts mehr zu tun.
+     */
+    @Override
+    public void onDialogCancelled(String key, Bundle args) {
+        if (DLG_LEARN.equals(key) || DLG_VERIFY.equals(key)) {
+            finish();
+        }
     }
 
     /** Ob dieses Feld in den Lernvorgang geht (siehe {@code offerToLearn}). */
@@ -1480,9 +1880,25 @@ public class SecurityTxEditActivity extends LocalizedActivity {
             finish();
             return;
         }
+        pruefErgebnis = new PruefErgebnis(template.action, maengel);
+        HostedDialog.show(this, DLG_VERIFY, null);
+    }
+
+    /** Was die Nachprüfung ergeben hat – siehe {@link #buildDialog}. */
+    private static final class PruefErgebnis {
+        final String action;
+        final java.util.List<TemplateCheck.Complaint> maengel;
+
+        PruefErgebnis(String action, java.util.List<TemplateCheck.Complaint> maengel) {
+            this.action = action;
+            this.maengel = maengel;
+        }
+    }
+
+    private android.app.Dialog buildVerifyDialog() {
         StringBuilder message = new StringBuilder(getString(R.string.statement_check_intro));
-        for (TemplateCheck.Complaint c : maengel) {
-            message.append("\n\n").append(complaintLine(c, template.action));
+        for (TemplateCheck.Complaint c : pruefErgebnis.maengel) {
+            message.append("\n\n").append(complaintLine(c, pruefErgebnis.action));
         }
         message.append("\n\n").append(getString(R.string.statement_check_hint));
         AppDialog dialog = new AppDialog(this);
@@ -1490,8 +1906,7 @@ public class SecurityTxEditActivity extends LocalizedActivity {
         dialog.setMessage(message.toString());
         dialog.setPositiveButton(R.string.statement_check_rules, (d, w) -> openRules());
         dialog.setNegativeButton(android.R.string.ok, (d, w) -> finish());
-        dialog.setOnCancelListener(d -> finish());
-        dialog.show();
+        return dialog.create();
     }
 
     /** Was in der Maske stand – der Sollwert der Nachprüfung. */
@@ -1568,8 +1983,14 @@ public class SecurityTxEditActivity extends LocalizedActivity {
                 // Ohne Probe ist die Seite immer noch zu gebrauchen – die Regeln stehen dort so oder so.
             }
         }
-        finish();
+        // Erst starten, dann schließen: andersherum verschluckt Android die Übergangsanimation, und
+        // für einen Moment steht der Startbildschirm dazwischen. Gerufen wird das aus einem
+        // Dialog-Knopf heraus — die Maske kann inzwischen weg sein.
+        if (isFinishing() || isDestroyed()) {
+            return;
+        }
         startActivity(i);
+        finish();
     }
 
     /**
@@ -1703,17 +2124,9 @@ public class SecurityTxEditActivity extends LocalizedActivity {
      * Form, die auch der KMyMoney-Import erzeugt. Beim Kauf verlässt das Geld das Konto, bei Verkauf und
      * Dividende kommt es an (bei der Dividende der <b>Nettobetrag</b>, denn nur der wird gutgeschrieben).
      */
-    private Booking buildBooking(String action, String account, long netCents) {
-        Booking b = new Booking();
-        b.account = account;
-        b.isTransfer = true;
-        b.transferAccount = securityName;
-        b.isIncome = !BUY.equals(action);
-        b.amountCents = Math.abs(netCents);
-        b.payee = securityName;
-        b.createdAt = selectedDate.getTimeInMillis();
-        b.category = "";
-        return b;
+    /** Die Geldbuchung zur Bewegung – gebaut aus ihr selbst, siehe {@link SecurityTx#toMoneyBooking}. */
+    private Booking buildBooking(SecurityTx tx, long moneyCents) {
+        return tx.toMoneyBooking(moneyCents);
     }
 
     private void confirmDelete() {
@@ -1741,7 +2154,33 @@ public class SecurityTxEditActivity extends LocalizedActivity {
      * bringt der Vorlage beim Speichern den Anker bei, ab dann kommt das Datum von selbst.
      */
     private void showDatePicker() {
-        java.util.List<de.spahr.ausgaben.statement.StatementScan.DateCandidate> found = statementDates();
+        if (statementTextPath == null || readOnly) {
+            showCalendar();
+            return;
+        }
+        if (statementText != null) {
+            // Schon gelesen – dann sofort, ohne den Umweg über den Hintergrund und ohne Zucken.
+            showDateChoice(datesOf(statementText));
+            return;
+        }
+        // Das Einlesen holt das PDF von der Platte und schickt es durch pdfbox; bei einer mehrseitigen
+        // Abrechnung dauert das lange genug, um das Antippen des Datumsfeldes einfrieren zu lassen.
+        repository.executor().execute(() -> {
+            final java.util.List<de.spahr.ausgaben.statement.StatementScan.DateCandidate> found =
+                    datesOf(readStatementText());
+            runOnUiThread(() -> {
+                // Wer inzwischen weggegangen ist, bekommt keinen Dialog mehr.
+                if (isFinishing() || isDestroyed()) {
+                    return;
+                }
+                showDateChoice(found);
+            });
+        });
+    }
+
+    /** Der zweite Teil von {@link #showDatePicker()}: die Datumsangaben liegen vor. */
+    private void showDateChoice(
+            java.util.List<de.spahr.ausgaben.statement.StatementScan.DateCandidate> found) {
         if (found.isEmpty()) {
             showCalendar();
             return;
@@ -1756,37 +2195,67 @@ public class SecurityTxEditActivity extends LocalizedActivity {
             labels[i] = label + ":  " + dateFormat.format(new Date(found.get(i).millis));
         }
         labels[found.size()] = getString(R.string.statement_date_other);
-        new AppDialog(this)
+        // Die Auswahl kommt als HostedDialog: Sie ist aus diesen Angaben jederzeit neu zu bauen, also
+        // wandern sie ins Bundle und überstehen damit eine Drehung.
+        Bundle args = new Bundle();
+        args.putCharSequenceArray(ARG_DATE_LABELS, labels);
+        long[] millis = new long[found.size()];
+        java.util.ArrayList<de.spahr.ausgaben.statement.AnchorRule> rules = new java.util.ArrayList<>();
+        String[] anker = new String[found.size()];
+        for (int i = 0; i < found.size(); i++) {
+            millis[i] = found.get(i).millis;
+            anker[i] = found.get(i).label;
+            rules.add(found.get(i).rule);
+        }
+        args.putLongArray(ARG_DATE_MILLIS, millis);
+        args.putStringArray(ARG_DATE_ANCHORS, anker);
+        args.putSerializable(ARG_DATE_RULES, rules);
+        HostedDialog.show(this, DLG_DATE_CHOICE, args);
+    }
+
+    @SuppressWarnings("unchecked")
+    private android.app.Dialog buildDateChoiceDialog(Bundle args) {
+        CharSequence[] labels = args.getCharSequenceArray(ARG_DATE_LABELS);
+        long[] millis = args.getLongArray(ARG_DATE_MILLIS);
+        String[] anker = args.getStringArray(ARG_DATE_ANCHORS);
+        java.util.List<de.spahr.ausgaben.statement.AnchorRule> rules =
+                (java.util.List<de.spahr.ausgaben.statement.AnchorRule>)
+                        args.getSerializable(ARG_DATE_RULES);
+        final int anzahl = millis == null ? 0 : millis.length;
+        return new AppDialog(this)
                 .setTitle(R.string.statement_date_title)
                 .setItems(labels, (d, which) -> {
-                    if (which >= found.size()) {
+                    if (which >= anzahl) {
                         showCalendar();
                         return;
                     }
-                    selectedDate.setTimeInMillis(found.get(which).millis);
-                    chosenDateLabel = found.get(which).label;
-                    chosenDateRule = found.get(which).rule;
+                    selectedDate.setTimeInMillis(millis[which]);
+                    chosenDateLabel = anker[which];
+                    chosenDateRule = rules == null ? null : rules.get(which);
                     dateTyped = true;
                     updateDateField();
                 })
-                .show();
+                .create();
     }
 
-    /**
-     * Die Datumsangaben der eingelesenen Abrechnung — leer, wenn die Maske nicht aus einer stammt oder
-     * die Vorlage das Datum bereits kennt (dann steht es schon im Feld).
-     */
-    private java.util.List<de.spahr.ausgaben.statement.StatementScan.DateCandidate> statementDates() {
-        if (statementTextPath == null || readOnly) {
-            return java.util.Collections.emptyList();
-        }
-        de.spahr.ausgaben.pdf.PdfText text = readStatementText();
+    /** Die Datumsangaben einer eingelesenen Abrechnung — leer, wenn keine da ist. */
+    private static java.util.List<de.spahr.ausgaben.statement.StatementScan.DateCandidate> datesOf(
+            de.spahr.ausgaben.pdf.PdfText text) {
         return text == null ? java.util.Collections.emptyList()
                 : de.spahr.ausgaben.statement.StatementScan.dates(text);
     }
 
     private void showCalendar() {
-        new DatePickerDialog(this, (view, year, month, day) -> {
+        HostedDialog.show(this, DLG_CALENDAR, null);
+    }
+
+    /**
+     * Der Kalender – gebaut aus {@link #selectedDate}, das {@code onSaveInstanceState} mitsichert.
+     * Deshalb braucht er keine eigenen Angaben im Bundle: Nach der Drehung steht dort dasselbe Datum
+     * wie vorher.
+     */
+    private android.app.Dialog buildCalendarDialog() {
+        return new DatePickerDialog(this, (view, year, month, day) -> {
             selectedDate.set(Calendar.YEAR, year);
             selectedDate.set(Calendar.MONTH, month);
             selectedDate.set(Calendar.DAY_OF_MONTH, day);
@@ -1796,7 +2265,7 @@ public class SecurityTxEditActivity extends LocalizedActivity {
             dateTyped = true;
             updateDateField();
         }, selectedDate.get(Calendar.YEAR), selectedDate.get(Calendar.MONTH),
-                selectedDate.get(Calendar.DAY_OF_MONTH)).show();
+                selectedDate.get(Calendar.DAY_OF_MONTH));
     }
 
     /** Schreibt das gewählte Datum ins Feld – damit steht es fest. */

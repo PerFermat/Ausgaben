@@ -286,13 +286,4 @@ public final class StatementScan {
         }
         return Sedol.single(text);
     }
-
-    private static boolean containsAny(String haystack, String[] needles) {
-        for (String n : needles) {
-            if (haystack.contains(n)) {
-                return true;
-            }
-        }
-        return false;
-    }
 }

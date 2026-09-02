@@ -10,7 +10,6 @@ import android.view.LayoutInflater;
 import android.view.View;
 import android.widget.Button;
 import android.widget.CompoundButton;
-import android.widget.LinearLayout;
 import android.widget.Toast;
 
 import androidx.activity.result.ActivityResultLauncher;
@@ -27,8 +26,6 @@ import com.google.android.material.textfield.MaterialAutoCompleteTextView;
 import com.google.android.material.textfield.TextInputEditText;
 import com.google.android.material.textfield.TextInputLayout;
 
-import java.io.ByteArrayOutputStream;
-import java.io.InputStream;
 import java.io.OutputStream;
 import java.nio.charset.StandardCharsets;
 import java.text.SimpleDateFormat;
@@ -40,8 +37,7 @@ import java.util.Map;
 
 import de.spahr.ausgaben.AusgabenApp;
 import de.spahr.ausgaben.R;
-import de.spahr.ausgaben.backup.BackupArchive;
-import de.spahr.ausgaben.backup.BackupCrypto;
+import de.spahr.ausgaben.util.UriBytes;
 import de.spahr.ausgaben.backup.BackupStore;
 import de.spahr.ausgaben.db.Repository;
 import de.spahr.ausgaben.export.ExportCoordinator;
@@ -49,7 +45,24 @@ import de.spahr.ausgaben.security.BiometricAuth;
 import de.spahr.ausgaben.settings.PlacesStore;
 import de.spahr.ausgaben.settings.SettingsStore;
 
-public class SettingsActivity extends LocalizedActivity {
+public class SettingsActivity extends LocalizedActivity implements HostedDialog.Host {
+
+    /** Schlüssel der Dialoge dieser Maske – siehe {@link HostedDialog}. */
+    private static final String DLG_BACKUP_OPTIONS = "dlg_backupOptions";
+
+    @Override
+    public android.app.Dialog buildDialog(String key, Bundle args) {
+        if (DLG_BACKUP_OPTIONS.equals(key)) {
+            return buildBackupOptions();
+        }
+        return fullBackupRestoreFlow == null ? null : fullBackupRestoreFlow.buildDialog(key, args);
+    }
+
+    @Override
+    public void onDialogCancelled(String key, Bundle args) {
+        // Beide Dialoge dürfen weggetippt werden; es folgt nichts daraus.
+    }
+
 
     private SettingsStore settings;
     private Repository repository;
@@ -351,7 +364,7 @@ public class SettingsActivity extends LocalizedActivity {
 
     private void importLanguageFile(Uri uri) {
         try {
-            String json = new String(readBytes(uri), StandardCharsets.UTF_8);
+            String json = new String(UriBytes.read(this, uri), StandardCharsets.UTF_8);
             de.spahr.ausgaben.i18n.TranslationIo.Parsed parsed =
                     de.spahr.ausgaben.i18n.TranslationIo.parse(json);
             repository.importLanguage(parsed, () -> {
@@ -397,18 +410,6 @@ public class SettingsActivity extends LocalizedActivity {
         Runtime.getRuntime().exit(0);
     }
 
-    private byte[] readBytes(Uri uri) throws Exception {
-        try (InputStream is = getContentResolver().openInputStream(uri)) {
-            ByteArrayOutputStream bos = new ByteArrayOutputStream();
-            byte[] buf = new byte[8192];
-            int n;
-            while (is != null && (n = is.read(buf)) > 0) {
-                bos.write(buf, 0, n);
-            }
-            return bos.toByteArray();
-        }
-    }
-
     private void exportAll() {
         if (!settings.hasRemoteConfig() && settings.getLocalExportTree().isEmpty()) {
             Toast.makeText(this, R.string.choose_export_folder, Toast.LENGTH_LONG).show();
@@ -430,6 +431,14 @@ public class SettingsActivity extends LocalizedActivity {
      * verschlüsselt werden? Erst danach den Dateinamen wählen lassen.
      */
     private void askBackupOptions() {
+        HostedDialog.show(this, DLG_BACKUP_OPTIONS, null);
+    }
+
+    /**
+     * Der Sichern-Dialog – nach einer Drehung baut ihn die neue Maske erneut. Was eingetippt war,
+     * stellt das Fenstersystem selbst wieder her (siehe HostedDialog).
+     */
+    private android.app.Dialog buildBackupOptions() {
         View view = LayoutInflater.from(this).inflate(R.layout.dialog_backup_options, null, false);
         com.google.android.material.checkbox.MaterialCheckBox include =
                 view.findViewById(R.id.backupIncludePassword);
@@ -448,19 +457,30 @@ public class SettingsActivity extends LocalizedActivity {
                         Toast.makeText(this, R.string.backup_password_mismatch, Toast.LENGTH_LONG).show();
                         return;
                     }
+                    // Leer heißt „ohne Verschlüsselung" – das bleibt erlaubt. Hier geht es um die
+                    // Sicherung *aller* Profile; ein Passwort, das seinen Zweck nicht erfüllen kann,
+                    // wird abgelehnt.
+                    if (!p1.isEmpty() && p1.length() < de.spahr.ausgaben.backup.BackupCrypto.MIN_PASSWORD_LENGTH) {
+                        Toast.makeText(this, getString(R.string.backup_password_too_short,
+                                de.spahr.ausgaben.backup.BackupCrypto.MIN_PASSWORD_LENGTH), Toast.LENGTH_LONG).show();
+                        return;
+                    }
                     backupIncludeServerPassword = include.isChecked();
                     backupPassword = p1;
                     dialog.dismiss();
                     backupLauncher.launch("ausgaben-backup-" + timestamp() + (p1.isEmpty() ? ".zip" : ".abk"));
                 }));
-        dialog.show();
+        return dialog;
     }
 
     private void doBackup(Uri uri) {
+        // Aus dem Feld genommen, bevor der Faden startet – siehe ProfileSettingsActivity.doBackup.
+        final String passwort = backupPassword;
+        backupPassword = "";
         new Thread(() -> {
             try {
                 byte[] file = BackupStore.createAll(this,
-                        backupIncludeServerPassword, backupPassword);
+                        backupIncludeServerPassword, passwort);
                 try (OutputStream out = getContentResolver().openOutputStream(uri)) {
                     out.write(file);
                 }
@@ -476,13 +496,6 @@ public class SettingsActivity extends LocalizedActivity {
     private String timestamp() {
         return new SimpleDateFormat("yyyyMMdd-HHmmss", Locale.GERMANY).format(new Date());
     }
-
-    /**
-     * Der Steuersatz in Prozent, im eingestellten Zahlenformat eingegeben. Komma wie Punkt werden
-     * angenommen – welches Zeichen das Feld zulässt, steht in den Einstellungen, aber ein von früher
-     * stehengebliebener Wert soll nicht am Trennzeichen scheitern. Leer, unlesbar oder außerhalb von
-     * 0 bis unter 100 ergibt 0 – dann belegt die Wertpapier-Erfassung die Steuer eben nicht vor.
-     */
 
     private String textOf(TextInputEditText e) {
         return e.getText() == null ? "" : e.getText().toString();

@@ -333,7 +333,7 @@ public class DepotActivity extends LocalizedActivity {
         container.removeAllViews();
         boolean any = false;
         for (Repository.DepotHolding h : holdings) {
-            boolean closed = Math.abs(h.shares) < 1e-6;
+            boolean closed = Math.abs(h.shares) < de.spahr.ausgaben.util.SecurityAmounts.SHARE_EPSILON;
             boolean visible = closed ? filterShowClosed : filterShowActive;
             if (!visible || !matchesFilter(h)) {
                 continue;
@@ -395,8 +395,25 @@ public class DepotActivity extends LocalizedActivity {
         setMenuTitle(menu, R.id.action_balance, R.string.action_balance);
         setMenuTitle(menu, R.id.action_budget, R.string.action_budget);
         setMenuTitle(menu, R.id.action_scheduled, R.string.action_scheduled);
+        setMenuTitle(menu, R.id.action_switch_profile, R.string.action_switch_profile);
         setMenuTitle(menu, R.id.action_settings, R.string.action_settings);
         return true;
+    }
+
+    /**
+     * „Profil wechseln" nur, solange es überhaupt etwas zum Wechseln gibt — wie im Hauptmenü.
+     *
+     * <p>In {@code onPrepareOptionsMenu} und nicht in {@code onCreateOptionsMenu}: Die Zahl der Profile
+     * kann sich ändern, während diese Maske im Hintergrund steht.</p>
+     */
+    @Override
+    public boolean onPrepareOptionsMenu(Menu menu) {
+        MenuItem switchProfile = menu.findItem(R.id.action_switch_profile);
+        if (switchProfile != null) {
+            switchProfile.setVisible(
+                    new de.spahr.ausgaben.settings.ProfileManager(this).getProfiles().size() > 1);
+        }
+        return super.onPrepareOptionsMenu(menu);
     }
 
     private void setMenuTitle(Menu menu, int itemId, int stringId) {
@@ -439,6 +456,9 @@ public class DepotActivity extends LocalizedActivity {
             return true;
         } else if (id == R.id.action_scheduled) {
             startActivity(new Intent(this, ScheduledActivity.class));
+            return true;
+        } else if (id == R.id.action_switch_profile) {
+            ProfileSwitchDialog.show(this);
             return true;
         } else if (id == R.id.action_settings) {
             startActivity(new Intent(this, SettingsActivity.class));
@@ -670,7 +690,7 @@ public class DepotActivity extends LocalizedActivity {
         // über die Ränge, damit ein großer Posten ihn nicht aufzieht (siehe AmountRange).
         java.util.List<Long> werte = new ArrayList<>();
         for (Repository.DepotHolding h : lastHoldings) {
-            boolean closed = Math.abs(h.shares) < 1e-6;
+            boolean closed = Math.abs(h.shares) < de.spahr.ausgaben.util.SecurityAmounts.SHARE_EPSILON;
             if (closed ? filterShowClosed : filterShowActive) {
                 werte.add(h.valueCents);
             }

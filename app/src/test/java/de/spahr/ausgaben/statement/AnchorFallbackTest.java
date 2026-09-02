@@ -134,6 +134,23 @@ public class AnchorFallbackTest {
         assertEquals(Long.valueOf(15873L), steuer.readCents(dollarPapier()));
     }
 
+    /**
+     * Regression: {@code readCents} rundete mit {@code Math.round(wert * 100.0)}. Ein dreistelliger
+     * Nachkommaanteil landete damit einen Cent zu tief — {@code 2,675} ist als {@code double}
+     * {@code 2.67499999999999982}. Belege mit drei Nachkommastellen im Geldfeld gibt es genug
+     * (Stückzinsen, Zwischensummen in Fremdwährung).
+     */
+    @Test
+    public void dreiNachkommastellenWerdenKaufmaennischGerundet() {
+        PdfText beleg = StatementFixtures.of(
+                "Wertpapierabrechnung        Kauf",
+                "Stückzinsen                 EUR                 2,675");
+        AnchorRule regel = new AnchorRule(Arrays.asList("Stückzinsen"),
+                AnchorRule.Direction.SAME_LINE, false, "EUR");
+
+        assertEquals(Long.valueOf(268L), regel.readCents(beleg));
+    }
+
     // ---- Welche Zahl der Zeile ----
 
     /**
@@ -322,6 +339,32 @@ public class AnchorFallbackTest {
                 .appendedTo(template(alt), PdfText.fromLines("Valuta 01.01.2024\nZahltag 100,00"))
                 .rule(StatementTemplate.Field.DATE);
         assertEquals(Arrays.asList("Zahltag", "Valuta"), merged.anchors);
+    }
+
+    /**
+     * Regression: Beim Anhängen eines neuen Ankers wurde die zusammengeführte Regel über die kurze
+     * Konstruktor-Signatur gebaut. Position, n-te Zahl und Zeilenabstand fielen dabei auf ihre
+     * Standardwerte zurück — eine gelernte Spaltenregel las ab dem ersten Nachlernen still die falsche
+     * Zahl, ohne dass irgendwo ein Fehler sichtbar wurde.
+     */
+    @Test
+    public void nachlernenBehaeltSpaltenregelUndZahlposition() {
+        AnchorRule spalte = new AnchorRule(Arrays.asList("Kurswert"),
+                AnchorRule.Direction.LINE_BELOW, false, "EUR", AnchorRule.Position.COLUMN, 2, 3);
+        Map<StatementTemplate.Field, AnchorRule> alt = new EnumMap<>(StatementTemplate.Field.class);
+        alt.put(StatementTemplate.Field.GROSS, spalte);
+        Map<StatementTemplate.Field, AnchorRule> neu = new EnumMap<>(StatementTemplate.Field.class);
+        neu.put(StatementTemplate.Field.GROSS, kette("Ausmachender Betrag"));
+
+        AnchorRule merged = template(neu).appendedTo(template(alt), PdfText.fromLines(""))
+                .rule(StatementTemplate.Field.GROSS);
+
+        assertEquals("der neue Anker kommt dazu", 2, merged.anchors.size());
+        assertEquals(AnchorRule.Position.COLUMN, merged.position);
+        assertEquals(2, merged.nth);
+        assertEquals(3, merged.lineDistance);
+        assertEquals(AnchorRule.Direction.LINE_BELOW, merged.direction);
+        assertEquals("EUR", merged.currency);
     }
 
     @Test

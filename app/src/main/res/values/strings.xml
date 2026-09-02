@@ -423,6 +423,8 @@
     <string name="restore_done">Backup restored</string>
     <string name="restore_failed">Restore failed: %1$s</string>
     <string name="restore_invalid">Not a valid backup file</string>
+    <string name="restore_pick_again">Please pick the backup file again</string>
+    <string name="restore_too_new">This backup comes from a newer version of the app (data level %1$d, this app: %2$d). Please update the app first — nothing has been changed.</string>
     <string name="backup_options_title">Create backup</string>
     <string name="backup_options_message">The backup contains the data and settings of ALL profiles (accounts, places, colours, server).</string>
     <string name="backup_options_message_profile">The backup contains only the active profile\'s data and settings — it can be restored into any profile.</string>
@@ -436,6 +438,9 @@
     <string name="backup_password_hint">Backup password</string>
     <string name="backup_password_repeat">Repeat</string>
     <string name="backup_password_mismatch">The passwords do not match</string>
+    <string name="backup_password_too_short">Please use at least %1$d characters — or leave the field empty for an unencrypted backup</string>
+    <string name="backup_target_unwritable">The chosen file cannot be written</string>
+    <string name="backup_source_unreadable">The chosen file cannot be read</string>
     <string name="restore_what_title">What should be restored?</string>
     <string name="restore_what_data">Data only</string>
     <string name="restore_what_settings">Settings only</string>
@@ -483,6 +488,7 @@
     <string name="rename">Rename</string>
     <string name="remove">Remove</string>
     <string name="password_saved_hint">•••••• (saved)</string>
+    <string name="settings_secret_fallback">The key store of this device is unavailable — the server password is stored unencrypted</string>
     <string name="import_done">Imported %1$d booking(s) (account replaced)</string>
     <string name="import_failed">Import failed: %1$s</string>
     <string name="nextcloud_import_folder_hint">Import folder (Nextcloud)</string>
@@ -516,6 +522,7 @@
     <string name="dividend_gross_switch">Show dividends gross (off = net)</string>
     <string name="dividend_tax_rate_hint">Dividend tax rate (%)</string>
     <string name="dividend_tax_rate_helper">Prefills the tax when booking a dividend</string>
+    <string name="dividend_tax_rate_invalid">Please enter a rate between 0 and 100, or leave the field empty</string>
     <string name="depot_dividends_gross">Dividends (gross)</string>
     <string name="depot_dividends_net">Dividends (net)</string>
     <string name="budget_internal_switch">Compute budget internally from history (instead of KMyMoney)</string>
@@ -765,6 +772,9 @@
     <string name="statement_batch_save">Save all</string>
     <string name="statement_batch_saved">%1$d movements saved</string>
     <string name="statement_batch_incomplete">Please correct the entries marked red first</string>
+    <string name="statement_batch_save_failed">Saving failed — nothing was booked. Please try again.</string>
+    <string name="statement_batch_receipt_failed">%1$d statements could not be filed as receipts</string>
+    <string name="statement_receipt_failed">The statement could not be filed as a receipt</string>
     <string name="statement_batch_discard_title">Discard?</string>
     <string name="statement_batch_discard_message">None of the statements read will be booked.</string>
     <string name="statement_batch_discard">Discard</string>

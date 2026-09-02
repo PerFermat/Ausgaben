@@ -1454,34 +1454,43 @@ public class Repository {
      * Löscht Konten und/oder Depots in einem Rutsch. Ein Depot hat keine eigenen Buchungen – gelöscht
      * werden seine Wertpapiere samt Bewegungen/Kursen ({@link SecurityDao}) und die Trägerzeile in der
      * Konto-Tabelle. {@code onDone} läuft einmal am Ende.
+     *
+     * <p>Der ganze Block läuft in <b>einer</b> Transaktion: er löscht über fünf Tabellen hinweg, und ein
+     * Abbruch in der Mitte hinterließe ein halb gelöschtes Depot – Wertpapiere weg, Bewegungen noch da.</p>
      */
     public void deleteAccountsAndDepots(final List<String> accounts, final List<String> depots,
                                         final Runnable onDone) {
         executor.execute(() -> {
-            if (accounts != null) {
-                for (String account : accounts) {
-                    if (account != null && !account.trim().isEmpty()) {
-                        bookingDao.deleteSplitsForAccount(account.trim());
-                        bookingDao.deleteAllByAccount(account.trim());
-                        placeEntryDao.deleteByAccount(account.trim());
-                        accountDao.deleteByName(account.trim());
+            db.runInTransaction(() -> {
+                if (accounts != null) {
+                    for (String account : accounts) {
+                        if (account != null && !account.trim().isEmpty()) {
+                            bookingDao.deleteSplitsForAccount(account.trim());
+                            bookingDao.deleteAllByAccount(account.trim());
+                            placeEntryDao.deleteByAccount(account.trim());
+                            accountDao.deleteByName(account.trim());
+                        }
                     }
                 }
-            }
-            if (depots != null) {
-                for (String depot : depots) {
-                    if (depot != null && !depot.trim().isEmpty()) {
-                        String name = depot.trim();
-                        securityDao.deleteSplitsOf(name);
-                        securityDao.deleteTx(name);
-                        securityDao.deleteSecurities(name);
-                        securityDao.deletePrices(name);
-                        accountDao.deleteByName(name);
+                if (depots != null) {
+                    for (String depot : depots) {
+                        if (depot != null && !depot.trim().isEmpty()) {
+                            String name = depot.trim();
+                            // Hier bewusst die bedingungslosen Fassungen: anders als beim Reimport
+                            // kommt das Depot nicht wieder. Eine geschonte pending-Bewegung fände der
+                            // Export weiterhin, ohne dass es Depot oder Wertpapier dazu noch gäbe.
+                            securityDao.deleteAllSplitsOf(name);
+                            securityDao.deleteAllTx(name);
+                            securityDao.deleteValueOverrides(name);
+                            securityDao.deleteSecurities(name);
+                            securityDao.deletePrices(name);
+                            accountDao.deleteByName(name);
+                        }
                     }
                 }
-            }
-            // Die Zuordnungen fallen mit dem Konto weg; dabei leer gewordene Gruppen mit entsorgen.
-            groupRepo.deleteEmptyCustomGroups();
+                // Die Zuordnungen fallen mit dem Konto weg; dabei leer gewordene Gruppen mit entsorgen.
+                groupRepo.deleteEmptyCustomGroups();
+            });
             if (onDone != null) {
                 mainHandler.post(onDone);
             }
@@ -1628,10 +1637,15 @@ public class Repository {
         depotRepo.saveManualTx(tx, booking, onDone);
     }
 
-    /** Legt einen ganzen Stapel erfasster Bewegungen an — alle oder keine (Erkennungsliste). */
+    /**
+     * Legt einen ganzen Stapel erfasster Bewegungen an — alle oder keine (Erkennungsliste).
+     *
+     * @param onError läuft auf dem Bedienfaden, wenn die Transaktion gescheitert ist; gebucht wurde
+     *                dann nichts
+     */
     public void saveManualSecurityTxBatch(List<SecurityTx> txs, List<Booking> bookings,
-                                          Runnable onDone) {
-        depotRepo.saveManualTxBatch(txs, bookings, onDone);
+                                          Runnable onDone, Runnable onError) {
+        depotRepo.saveManualTxBatch(txs, bookings, onDone, onError);
     }
 
     /** Ändert eine noch nicht exportierte Bewegung samt Geldbuchung. */
@@ -2095,6 +2109,19 @@ public class Repository {
                 mainHandler.post(onDone);
             }
         });
+    }
+
+    /**
+     * Mehrere Schreibvorgänge als <b>ein</b> Vorgang — nur für Hintergrund-Aufgaben, die ihre Daos
+     * direkt ansprechen.
+     *
+     * <p>Gedacht für Nachbereitungen, die entweder ganz oder gar nicht gelten dürfen: nach einem
+     * geglückten Export etwa steht in der Datei alles, und lokal muss dann auch alles als geschrieben
+     * vermerkt sein. Bleibt davon die Hälfte liegen, exportiert der nächste Lauf eine Bewegung ein
+     * zweites Mal oder verliert eine Buchung dauerhaft.</p>
+     */
+    public void inTransaction(Runnable work) {
+        db.runInTransaction(work);
     }
 
     /** Liefert die Direktreferenz auf den BookingDao – nur für Hintergrund-Aufgaben verwenden. */

@@ -144,34 +144,42 @@ public class KmyExportCoordinator {
                 byte[] packed = KmyDocument.gzip(res.xml);
                 storage.uploadBytes(folder, file, packed, version);
 
-                repository.bookingDao().markExported(res.writtenIds);
-                if (!secRes.writtenIds.isEmpty()) {
-                    // Bewegung und ihre Geldbuchung stehen jetzt gemeinsam in der Datei: beide sind keine
-                    // Vormerkung mehr. Beim nächsten Depot-Import wird die Bewegung von dort ersetzt.
-                    repository.securityDao().markTxExported(secRes.writtenIds);
-                    List<Long> bookingIds = new java.util.ArrayList<>();
-                    for (de.spahr.ausgaben.db.SecurityTx tx : securityTx) {
-                        if (tx.bookingId > 0 && secRes.writtenIds.contains(tx.id)) {
-                            bookingIds.add(tx.bookingId);
+                // Die Datei ist geschrieben; jetzt zieht der lokale Stand nach — und zwar als ein
+                // Vorgang. Vorher waren das bis zu fünf einzelne Schreibzugriffe, und ein Abbruch
+                // dazwischen (Absturz, Speicher voll) hinterließ eine halbe Wahrheit: eine Bewegung
+                // bliebe „Vormerkung" und käme beim nächsten Export ein zweites Mal in die Datei, oder
+                // eine Buchung bliebe ungemarkt und käme über BookingDao nie wieder durch.
+                repository.inTransaction(() -> {
+                    repository.bookingDao().markExported(res.writtenIds);
+                    if (!secRes.writtenIds.isEmpty()) {
+                        // Bewegung und ihre Geldbuchung stehen jetzt gemeinsam in der Datei: beide sind
+                        // keine Vormerkung mehr. Beim nächsten Depot-Import wird die Bewegung von dort
+                        // ersetzt.
+                        repository.securityDao().markTxExported(secRes.writtenIds);
+                        List<Long> bookingIds = new java.util.ArrayList<>();
+                        for (de.spahr.ausgaben.db.SecurityTx tx : securityTx) {
+                            if (tx.bookingId > 0 && secRes.writtenIds.contains(tx.id)) {
+                                bookingIds.add(tx.bookingId);
+                            }
+                        }
+                        if (!bookingIds.isEmpty()) {
+                            repository.bookingDao().markExported(bookingIds);
                         }
                     }
-                    if (!bookingIds.isEmpty()) {
-                        repository.bookingDao().markExported(bookingIds);
+                    if (!delRes.resolvedIds.isEmpty()) {
+                        repository.kmyPendingDeleteDao().deleteByIds(delRes.resolvedIds);
                     }
-                }
-                if (!delRes.resolvedIds.isEmpty()) {
-                    repository.kmyPendingDeleteDao().deleteByIds(delRes.resolvedIds);
-                }
-                if (!schedRes.resolvedIds.isEmpty()) {
-                    // Nur wirklich geschriebene Regeln lokal nachziehen, damit die Liste bis zum nächsten
-                    // Import denselben Stand zeigt wie die Datei.
-                    for (de.spahr.ausgaben.db.ScheduledAdvance a : advances) {
-                        if (schedRes.writtenIds.contains(a.id)) {
-                            repository.scheduledTransactionDao().updateNextDue(a.kmyId, a.nextDueMs);
+                    if (!schedRes.resolvedIds.isEmpty()) {
+                        // Nur wirklich geschriebene Regeln lokal nachziehen, damit die Liste bis zum
+                        // nächsten Import denselben Stand zeigt wie die Datei.
+                        for (de.spahr.ausgaben.db.ScheduledAdvance a : advances) {
+                            if (schedRes.writtenIds.contains(a.id)) {
+                                repository.scheduledTransactionDao().updateNextDue(a.kmyId, a.nextDueMs);
+                            }
                         }
+                        repository.scheduledAdvanceDao().deleteByIds(schedRes.resolvedIds);
                     }
-                    repository.scheduledAdvanceDao().deleteByIds(schedRes.resolvedIds);
-                }
+                });
                 complete(listener, buildMessage(r, res, delRes.resolvedIds.size(),
                         schedRes.writtenIds.size(), file, backup), true);
             } catch (de.spahr.ausgaben.net.RemoteConflictException e) {

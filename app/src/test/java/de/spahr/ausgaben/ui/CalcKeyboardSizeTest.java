@@ -135,6 +135,60 @@ public class CalcKeyboardSizeTest {
         assertEquals(16, tasten);
     }
 
+    // ---- Querformat: in einem Dialog ----
+
+    /**
+     * Ein Dialog ist quer deutlich niedriger als der Bildschirm, und ein {@code AlertDialog} scrollt
+     * seine Ansicht nicht — die unterste Tastenreihe wurde dort abgeschnitten, und mit ihr die
+     * OK-Taste, die den Betrag übernimmt.
+     *
+     * <p>Der erste Anlauf ließ die Tastatur sich in die Vorgabe des Containers einpassen. Sie passte
+     * dann hinein, war aber nicht mehr zu lesen. Also andersherum: die gewohnte Größe behalten und den
+     * Dialog scrollbar machen. Genau das ist hier festgehalten — in einem scrollenden Rahmen misst sich
+     * die Tastatur <b>unverändert</b>, auch wenn der Rahmen niedriger ist.</p>
+     */
+    @Test
+    @Config(qualifiers = "w915dp-h412dp-land")
+    public void inEinemScrollendenRahmenBleibtSieSoGrossWieSonst() {
+        CalcKeyboardView frei = tastatur();
+        int breite = frei.getResources().getDisplayMetrics().widthPixels;
+        miss(frei, breite, bildschirmHoehe(frei));
+        int gewohnteHoehe = frei.getMeasuredHeight();
+
+        CalcKeyboardView kb = tastatur();
+        android.widget.LinearLayout inhalt = new android.widget.LinearLayout(kb.getContext());
+        inhalt.setOrientation(android.widget.LinearLayout.VERTICAL);
+        inhalt.addView(kb);
+        View rahmen = AppDialog.scrollable(inhalt);
+
+        int imDialog = bildschirmHoehe(kb) / 4;
+        miss(rahmen, breite, imDialog);
+
+        assertEquals("die Tastatur behält ihre Größe", gewohnteHoehe, kb.getMeasuredHeight());
+        assertTrue("und der Rahmen bleibt im Dialog: " + rahmen.getMeasuredHeight(),
+                rahmen.getMeasuredHeight() <= imDialog);
+    }
+
+    /** Was nicht hineinpasst, muss erreichbar bleiben – der Rahmen scrollt. */
+    @Test
+    @Config(qualifiers = "w915dp-h412dp-land")
+    public void derRahmenScrolltUeberDasWasNichtHineinpasst() {
+        CalcKeyboardView kb = tastatur();
+        android.widget.LinearLayout inhalt = new android.widget.LinearLayout(kb.getContext());
+        inhalt.setOrientation(android.widget.LinearLayout.VERTICAL);
+        inhalt.addView(kb);
+        View rahmen = AppDialog.scrollable(inhalt);
+        int breite = kb.getResources().getDisplayMetrics().widthPixels;
+        int imDialog = bildschirmHoehe(kb) / 4;
+
+        miss(rahmen, breite, imDialog);
+        rahmen.layout(0, 0, rahmen.getMeasuredWidth(), rahmen.getMeasuredHeight());
+
+        assertTrue("kein ScrollView", rahmen instanceof android.widget.ScrollView);
+        assertTrue("der Inhalt ist höher als der Rahmen – sonst gäbe es nichts zu scrollen",
+                inhalt.getMeasuredHeight() > rahmen.getMeasuredHeight());
+    }
+
     // ---- Hochformat: die Gegenprobe ----
 
     @Test

@@ -35,6 +35,30 @@ import de.spahr.ausgaben.settings.AccentColor;
  */
 public class AppDialog extends MaterialAlertDialogBuilder {
 
+    /**
+     * Legt einen Dialoginhalt in einen scrollbaren Rahmen.
+     *
+     * <p>Ein {@code AlertDialog} scrollt seine eigene Ansicht nicht: Was nicht hineinpasst, wird
+     * abgeschnitten. Quer fällt das auf, sobald eine Rechentastatur im Dialog steht — dort blieb die
+     * unterste Reihe weg, und mit ihr die OK-Taste, die den Betrag übernimmt.</p>
+     *
+     * <p>Die Tastatur kleiner zu messen wäre der scheinbar elegantere Weg und war der erste Versuch:
+     * Sie passte dann hinein, war aber nicht mehr zu lesen. Lieber die gewohnte Größe und ein Dialog,
+     * durch den man schiebt — quer erfasst ohnehin kaum jemand eine Buchung.</p>
+     *
+     * @return der Rahmen, der als {@code setView(...)} zu übergeben ist
+     */
+    public static View scrollable(View content) {
+        android.widget.ScrollView rahmen = new android.widget.ScrollView(content.getContext());
+        // Ohne das säße der Inhalt bei viel Platz oben und der Dialog bliebe unnötig hoch leer.
+        rahmen.setFillViewport(true);
+        // Der Elevation-Schatten der Tasten reicht über ihren Rand hinaus – sonst kappt ihn der Rahmen.
+        rahmen.setClipToPadding(false);
+        rahmen.addView(content, new android.widget.FrameLayout.LayoutParams(
+                ViewGroup.LayoutParams.MATCH_PARENT, ViewGroup.LayoutParams.WRAP_CONTENT));
+        return rahmen;
+    }
+
     /** Stärke des Rahmens in dp. */
     private static final float STROKE_DP = 2f;
 

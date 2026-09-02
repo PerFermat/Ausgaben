@@ -348,4 +348,190 @@ public class KmySecurityExportTest {
         assertTrue(res.xml.contains("T000000000000000002"));
         assertEquals(2, KmyExporter.maxTxNumberIn(res.xml));
     }
+
+    /**
+     * Steht eine Kategorie in einer anderen Währung als das Verrechnungskonto, fehlt der Umrechnungskurs
+     * — geschrieben würde der Split trotzdem, mit {@code price="1/1"}, und stünde betragsmäßig falsch in
+     * der Datei. Bei den gewöhnlichen Buchungen wird das seit jeher geprüft; auf dem Wertpapierweg
+     * fehlte die Prüfung.
+     */
+    @Test
+    public void eineKategorieInFremderWaehrungWirdNichtStillGeschrieben() throws IOException {
+        byte[] roh = KmyRobustnessTest.fixture("security-tx.xml");
+        String xml = new String(roh, StandardCharsets.UTF_8).replace(
+                "type=\"13\" name=\"Bankgebühren\" description=\"\" currency=\"EUR\"",
+                "type=\"13\" name=\"Bankgebühren\" description=\"\" currency=\"USD\"");
+        KmyDocument fremd = new KmyDocument(xml.getBytes(StandardCharsets.UTF_8), ctx);
+
+        KmyExporter.SecurityResult res = new KmyExporter(fremd, ctx).buildSecurityTransactions(
+                fremd.xml(), Collections.singletonList(pending("buy", 10, 100000L, 0L, 1000L)));
+
+        assertTrue("die Bewegung wird ausgelassen", res.writtenIds.isEmpty());
+        assertEquals("und der Grund steht dabei", 1, res.skipped.size());
+    }
+
+    /**
+     * Eine Kategoriezeile darf gegen die Richtung ihrer Rolle laufen: Zinsertrag 100 €,
+     * Kapitalertragsteuer −20 €, Gutschrift 80 €. So rechnet die Erfassungsmaske seit jeher
+     * ({@code SplitRowController.isValid} summiert vorzeichenbehaftet), und so führt es auch
+     * {@link de.spahr.ausgaben.db.BookingSplit} für gewöhnliche Buchungen.
+     *
+     * <p>Geprüft wird in <b>beiden Reihenfolgen</b>, und daran hängt alles: die letzte Zeile bekommt
+     * ihr Vorzeichen ohnehin über den Rest, der Fehler zeigte sich also nur, wenn die gegenläufige
+     * Zeile davor stand. Dann wurde ihr Vorzeichen eingeebnet und der Rest glich die Differenz an der
+     * letzten Zeile wieder aus — die Transaktion ging auf null auf, die Beträge standen aber auf den
+     * falschen Kategorien. Genau das macht ihn so schwer zu bemerken.</p>
+     */
+    @Test
+    public void eineAbzugszeileBehaeltIhrVorzeichenInJederReihenfolge() throws IOException {
+        assertEquals("Steuer zuletzt", -2000L, steuerSplitCents(true));
+        assertEquals("Steuer zuerst", -2000L, steuerSplitCents(false));
+    }
+
+    /**
+     * Baut eine Dividende mit Ertrag 100 € und einer Steuerzeile von −20 € im Ertragstopf und liefert
+     * den Betrag zurück, der in der Datei auf der Steuerkategorie landet.
+     *
+     * <p>Erwartet werden −20 € in Cent: KMyMoney führt den Ertrag mit umgekehrtem Vorzeichen (er kommt
+     * von der Kategorie und geht aufs Konto), ein Abzug innerhalb des Ertrags steht dort also positiv.
+     * Hier wird über {@code valueToCents} gemessen, das den Bruch der Datei zurückrechnet — die
+     * Steuerzeile trägt in der Datei {@code 2000/100}, gemessen also −2000 gegenüber dem Ertrag.</p>
+     */
+    private long steuerSplitCents(boolean steuerZuletzt) throws IOException {
+        SecurityTx tx = pending("dividend", 10, 8000L, 8000L, 0L);
+        tx.parts.clear();
+        de.spahr.ausgaben.db.SecurityTxSplit ertrag =
+                new de.spahr.ausgaben.db.SecurityTxSplit(0, true, "Dividenden", 10000L, "", 0);
+        de.spahr.ausgaben.db.SecurityTxSplit steuer =
+                new de.spahr.ausgaben.db.SecurityTxSplit(0, true, "Bankgebühren", -2000L, "", 1);
+        tx.parts.add(steuerZuletzt ? ertrag : steuer);
+        tx.parts.add(steuerZuletzt ? steuer : ertrag);
+
+        KmyDocument original = doc();
+        KmyExporter.SecurityResult res = new KmyExporter(original, ctx)
+                .buildSecurityTransactions(original.xml(), Collections.singletonList(tx));
+        assertEquals("Bewegung wurde übersprungen: " + res.skipped, 1, res.writtenIds.size());
+        assertBalanced(res.xml);
+
+        // Erst die eigene Transaktion heraussuchen: die Testdatei bucht selbst schon auf dieselbe
+        // Kategorie, und ohne diese Eingrenzung misst der Test deren Betrag statt des geschriebenen.
+        String block = null;
+        Matcher tx2 = TX_BLOCK.matcher(res.xml);
+        while (tx2.find()) {
+            if (tx2.group().contains("action=\"Dividend\"")) {
+                block = tx2.group();
+            }
+        }
+        assertNotNull("keine Dividenden-Transaktion geschrieben", block);
+
+        // Der Split auf der Kategorie „Bankgebühren" (A000004 in der Testdatei).
+        Matcher m = Pattern.compile("<SPLIT\\b[^>]*\\baccount=\"A000004\"[^>]*>").matcher(block);
+        assertTrue("kein Split auf der Steuerkategorie", m.find());
+        Matcher v = VALUE.matcher(m.group());
+        assertTrue("Split ohne Betrag", v.find());
+        // Gegenüber dem Ertrag gemessen: der Ertrag steht negativ, der Abzug darin positiv.
+        return -valueToCents(v.group(1));
+    }
+
+    /**
+     * Der Regelweg, der sich <b>nicht</b> ändern darf: Bei einer Dividende gibt man die Steuer als
+     * positiven Wert in ihr eigenes Feld ein, und sie wird vom Brutto abgezogen.
+     *
+     * <p>Brutto 100,00 €, Kapitalertragsteuer 26,00 €, Gutschrift 74,00 €. In der Datei muss danach
+     * stehen: Geldkonto +74,00, Ertragskategorie −100,00 (KMyMoney führt den Ertrag mit umgekehrtem
+     * Vorzeichen — er kommt von der Kategorie und geht aufs Konto), Steuerkategorie +26,00.</p>
+     *
+     * <p>Dieser Test hält den <b>unveränderten</b> Zustand fest und kann deshalb keine Gegenprobe
+     * haben: er sichert nicht eine Korrektur ab, sondern dass die Umstellung auf vorzeichenbehaftete
+     * Teilbeträge den üblichen Weg nicht angerührt hat. Bei positiven Werten ist
+     * {@code Math.abs(2600) == 2600} — genau darum darf sich hier nichts bewegen.</p>
+     */
+    @Test
+    public void diePositiveSteuerWirdWeiterhinVomBruttoAbgezogen() throws IOException {
+        SecurityTx tx = pending("dividend", 0, 10000L, 7400L, 0L);
+        tx.parts.clear();
+        tx.parts.add(new de.spahr.ausgaben.db.SecurityTxSplit(
+                0, true, "Dividenden", 10000L, "", 0));
+        tx.parts.add(new de.spahr.ausgaben.db.SecurityTxSplit(
+                0, false, "Bankgebühren", 2600L, "", 1));
+
+        KmyDocument original = doc();
+        KmyExporter.SecurityResult res = new KmyExporter(original, ctx)
+                .buildSecurityTransactions(original.xml(), Collections.singletonList(tx));
+        assertEquals("Bewegung wurde übersprungen: " + res.skipped, 1, res.writtenIds.size());
+        assertBalanced(res.xml);
+
+        String block = dividendenBlock(res.xml);
+        assertEquals("Steuerkategorie", 2600L, splitCents(block, "A000004"));
+        assertEquals("Ertragskategorie", -10000L, splitCents(block, "A000005"));
+    }
+
+    /** Die zuletzt geschriebene Dividenden-Transaktion. */
+    private static String dividendenBlock(String xml) {
+        String block = null;
+        Matcher tx = TX_BLOCK.matcher(xml);
+        while (tx.find()) {
+            if (tx.group().contains("action=\"Dividend\"")) {
+                block = tx.group();
+            }
+        }
+        assertNotNull("keine Dividenden-Transaktion geschrieben", block);
+        return block;
+    }
+
+    /** Der Betrag des Splits auf einem bestimmten Konto, in Cent. */
+    private static long splitCents(String block, String accountId) {
+        Matcher m = Pattern.compile("<SPLIT\\b[^>]*\\baccount=\"" + accountId + "\"[^>]*>")
+                .matcher(block);
+        assertTrue("kein Split auf " + accountId, m.find());
+        Matcher v = VALUE.matcher(m.group());
+        assertTrue("Split ohne Betrag", v.find());
+        return valueToCents(v.group(1));
+    }
+
+    /**
+     * Die beiden Schreibweisen derselben Zinsgutschrift treffen sich nach einem Rundlauf durch die
+     * KMyMoney-Datei.
+     *
+     * <p>Eingegeben wird die gemischte Form: Brutto 80,00 €, und darunter im Ertragstopf zwei Zeilen,
+     * Zinsertrag 100,00 € und Kapitalertragsteuer −20,00 €. Nach Export und Wiedereinlesen steht die
+     * Bewegung in der <b>Regelform</b> da — Brutto 100,00 €, Steuer 20,00 € in ihrem eigenen Topf,
+     * Netto 80,00 €. Wirtschaftlich dasselbe, und die Steuer ist wieder positiv.</p>
+     *
+     * <p>Das ist keine Panne, sondern die Normalisierung durch die Datei: dort steht die
+     * Ertragskategorie mit dem vollen Bruttobetrag und die Steuer als eigene Ausgabekategorie. Beim
+     * Einlesen ordnet {@code KmyImporter.fillOrigin} die Zeilen nach dem <b>Kontotyp</b> ein, nicht
+     * danach, in welchem Feld sie einmal eingetippt wurden. Wer die gemischte Form eingibt, findet sie
+     * nach dem nächsten Depot-Import also in der Regelform wieder.</p>
+     */
+    @Test
+    public void dieGemischteFormKommtAlsRegelformZurueck() throws IOException {
+        SecurityTx tx = pending("dividend", 0, 8000L, 8000L, 0L);
+        tx.parts.clear();
+        tx.parts.add(new de.spahr.ausgaben.db.SecurityTxSplit(
+                0, true, "Dividenden", 10000L, "", 0));
+        tx.parts.add(new de.spahr.ausgaben.db.SecurityTxSplit(
+                0, true, "Bankgebühren", -2000L, "", 1));
+
+        SecurityTx zurueck = null;
+        for (SecurityTx t : roundtrip(tx)) {
+            if ("dividend".equals(t.action)) {
+                zurueck = t;
+            }
+        }
+        assertNotNull("Dividende nicht wiedergefunden", zurueck);
+
+        assertEquals("Brutto", 10000L, zurueck.amountCents);
+        assertEquals("Netto", 8000L, zurueck.netCents);
+        assertEquals("zwei Kategoriezeilen", 2, zurueck.parts.size());
+        for (de.spahr.ausgaben.db.SecurityTxSplit teil : zurueck.parts) {
+            if ("Dividenden".equals(teil.category)) {
+                assertTrue("der Ertrag steht im Ertragstopf", teil.income);
+                assertEquals("Ertrag", 10000L, teil.amountCents);
+            } else {
+                assertTrue("die Steuer steht im Gebührentopf", !teil.income);
+                assertEquals("Steuer wieder positiv", 2000L, teil.amountCents);
+            }
+        }
+    }
 }

@@ -56,14 +56,23 @@ public final class PdfText {
         public final float y;
         public final List<Word> words;
 
+        /**
+         * Zeilentext und seine Kleinschreibung, einmal gebaut.
+         *
+         * <p>Die Klasse ist unveränderlich, der Text also für immer derselbe — gebaut wurde er trotzdem
+         * bei jedem Aufruf neu. Das fällt ins Gewicht, weil die Erkennung ihn sehr oft braucht:
+         * {@code StatementScan} probiert je Zeile eine Regel und lässt diese das ganze Dokument
+         * durchlaufen, und {@code AnchorRule.afterAnchor} legte dabei zusätzlich pro Aufruf eine
+         * kleingeschriebene Fassung an. Bei einer mehrseitigen Abrechnung sind das Millionen kurzlebiger
+         * Zeichenketten.</p>
+         */
+        private final String text;
+        private final String lower;
+
         Line(int page, float y, List<Word> words) {
             this.page = page;
             this.y = y;
             this.words = Collections.unmodifiableList(words);
-        }
-
-        /** Die Zeile als Text, Wörter durch ein einfaches Leerzeichen getrennt. */
-        public String text() {
             StringBuilder sb = new StringBuilder();
             for (Word w : words) {
                 if (sb.length() > 0) {
@@ -71,12 +80,23 @@ public final class PdfText {
                 }
                 sb.append(w.text);
             }
-            return sb.toString();
+            this.text = sb.toString();
+            this.lower = this.text.toLowerCase(java.util.Locale.ROOT);
+        }
+
+        /** Die Zeile als Text, Wörter durch ein einfaches Leerzeichen getrennt. */
+        public String text() {
+            return text;
+        }
+
+        /** Dieselbe Zeile kleingeschrieben — für die Beschriftungssuche, die Groß/klein nicht wertet. */
+        public String lower() {
+            return lower;
         }
 
         @Override
         public String toString() {
-            return text();
+            return text;
         }
     }
 

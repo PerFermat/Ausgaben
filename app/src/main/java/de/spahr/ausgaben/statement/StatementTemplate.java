@@ -371,8 +371,12 @@ public final class StatementTemplate {
                     anchors.addAll(neu);
                 }
             }
+            // Die volle Signatur, nicht die kurze: position/nth/lineDistance gehören zur alten Regel und
+            // fielen sonst auf COLUMN→LAST, nth→1, lineDistance→0 zurück. Eine gelernte Spaltenregel läse
+            // ab dem ersten Nachlernen still die falsche Zahl.
             merged.put(field, anchors.size() == old.anchors.size() ? old
-                    : new AnchorRule(anchors, old.direction, old.sum, old.currency));
+                    : new AnchorRule(anchors, old.direction, old.sum, old.currency,
+                            old.position, old.nth, old.lineDistance));
         }
         return new StatementTemplate(action, merged, keptFixedFee(older),
                 keptFixedCategory(older), keptFixedInTotal(older),

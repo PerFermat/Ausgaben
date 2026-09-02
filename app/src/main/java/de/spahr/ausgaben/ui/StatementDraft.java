@@ -28,9 +28,9 @@ import de.spahr.ausgaben.util.SecurityAmounts;
  */
 public class StatementDraft implements Parcelable {
 
-    static final String BUY = "buy";
-    static final String SELL = "sell";
-    static final String DIVIDEND = "dividend";
+    static final String BUY = SecurityTx.BUY;
+    static final String SELL = SecurityTx.SELL;
+    static final String DIVIDEND = SecurityTx.DIVIDEND;
 
     /** Anzeigename der Datei — das Einzige, was von einer unlesbaren Abrechnung bleibt. */
     public String fileName = "";
@@ -209,14 +209,11 @@ public class StatementDraft implements Parcelable {
         tx.securityKmyId = kmyId;
         tx.securityName = securityName;
         tx.date = dateMillis;
-        tx.action = action;
-        double count = shares == null ? 0 : Math.abs(shares);
-        // Eine Dividende bewegt keine Stücke; der Bestand am Ex-Tag steht nicht in der Abrechnung.
-        tx.shares = isDividend() ? 0 : (SELL.equals(action) ? -count : count);
-        long gross = grossCents == null ? 0 : grossCents;
-        tx.amountCents = gross;
-        tx.netCents = isDividend() ? (netCents == null ? 0 : netCents) : gross;
-        tx.feeCents = isDividend() ? 0 : Math.abs(feeCents == null ? 0 : feeCents);
+        // Vorzeichen und Dividendenregeln stehen an einer Stelle – siehe SecurityTx.applyAmounts.
+        tx.applyAmounts(action == null ? "" : action, shares,
+                grossCents == null ? 0 : grossCents,
+                netCents == null ? 0 : netCents,
+                feeCents == null ? 0 : feeCents);
         tx.moneyAccount = moneyAccount.trim();
         addParts(tx, feeParts, false);
         if (isDividend()) {
@@ -230,7 +227,7 @@ public class StatementDraft implements Parcelable {
             if (part.category.trim().isEmpty()) {
                 continue;
             }
-            tx.parts.add(new SecurityTxSplit(0, income, part.category.trim(), Math.abs(part.cents),
+            tx.parts.add(new SecurityTxSplit(0, income, part.category.trim(), part.cents,
                     part.label, tx.parts.size()));
         }
     }
@@ -241,16 +238,7 @@ public class StatementDraft implements Parcelable {
      * denn nur der wird gutgeschrieben.
      */
     public Booking toBooking() {
-        Booking b = new Booking();
-        b.account = moneyAccount.trim();
-        b.isTransfer = true;
-        b.transferAccount = securityName;
-        b.isIncome = !BUY.equals(action);
-        b.amountCents = Math.abs(netCents == null ? 0 : netCents);
-        b.payee = securityName;
-        b.createdAt = dateMillis;
-        b.category = "";
-        return b;
+        return toTx().toMoneyBooking(netCents == null ? 0 : netCents);
     }
 
     // ---- Parcelable ----

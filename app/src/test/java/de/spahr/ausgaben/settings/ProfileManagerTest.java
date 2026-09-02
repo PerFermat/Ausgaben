@@ -1,6 +1,7 @@
 package de.spahr.ausgaben.settings;
 
 import static org.junit.Assert.assertEquals;
+import static org.junit.Assert.assertFalse;
 import static org.junit.Assert.assertNotEquals;
 import static org.junit.Assert.assertTrue;
 
@@ -37,6 +38,7 @@ public class ProfileManagerTest {
         ctx.getSharedPreferences("ausgaben_settings", Context.MODE_PRIVATE).edit().clear().commit();
         ctx.getSharedPreferences("ausgaben_places", Context.MODE_PRIVATE).edit().clear().commit();
         ctx.getSharedPreferences("ausgaben_statements", Context.MODE_PRIVATE).edit().clear().commit();
+        SettingsStore.secretPrefs(ctx).edit().clear().commit();
         ctx.getDatabasePath("ausgaben.db").delete();
     }
 
@@ -73,6 +75,80 @@ public class ProfileManagerTest {
         ProfileManager pm = new ProfileManager(ctx);
         assertEquals(ProfileManager.LEGACY_PROFILE_ID, pm.getActiveProfileId());
         assertEquals("ausgaben.db", pm.getActiveProfile().dbFileName);
+    }
+
+    /**
+     * Regression: Das Server-Passwort lag bis 1.11 unter dem unpräfixierten Schlüssel im
+     * verschlüsselten Speicher, wird ab 1.12 aber profilweise gelesen. Ohne den Umzug in
+     * {@code copyLegacySettingsUnderPrefix} verlor jede Bestandsinstallation mit Serveranbindung beim
+     * Update ihre Zugangsdaten – ohne Hinweis auf die Ursache.
+     */
+    @Test
+    public void bestandsinstallationBehaeltServerPasswort() {
+        android.database.sqlite.SQLiteDatabase.openOrCreateDatabase(
+                ctx.getDatabasePath("ausgaben.db"), null).close();
+        SettingsStore.secretPrefs(ctx).edit()
+                .putString("nextcloud_password", "geheim").commit();
+
+        ProfileManager.migrateLegacyInstallationIfNeeded(ctx);
+
+        assertEquals("geheim", new SettingsStore(ctx).getPassword());
+        assertTrue(new SettingsStore(ctx).hasPassword());
+        // Der alte Schlüssel ist geräumt, damit ein später angelegtes Profil ihn nicht mehr erbt.
+        assertFalse(SettingsStore.secretPrefs(ctx).contains("nextcloud_password"));
+    }
+
+    /** Ein danach angelegtes zweites Profil startet ohne die Zugangsdaten des ersten. */
+    @Test
+    public void zweitesProfilErbtDasPasswortNicht() {
+        android.database.sqlite.SQLiteDatabase.openOrCreateDatabase(
+                ctx.getDatabasePath("ausgaben.db"), null).close();
+        SettingsStore.secretPrefs(ctx).edit()
+                .putString("nextcloud_password", "geheim").commit();
+        ProfileManager.migrateLegacyInstallationIfNeeded(ctx);
+
+        ProfileManager pm = new ProfileManager(ctx);
+        pm.switchTo(ctx, pm.createProfile("Zweitprofil").id);
+
+        assertTrue(new SettingsStore(ctx).getPassword().isEmpty());
+    }
+
+    /**
+     * {@code clearAll} löschte die Datenbankdateien, bevor es die Verbindung schloss. SQLite hielt die
+     * Datei des aktiven Profils da noch offen; das anschließende {@code close()} schrieb den WAL-Puffer
+     * zurück, sodass der „Werksreset" je nach Zeitpunkt eine Rest-Datenbank hinterließ.
+     *
+     * <p><b>Achtung:</b> Dieser Test läuft auch mit der alten Reihenfolge grün — Robolectrics
+     * SQLite-Nachbau zeigt das Verhalten von POSIX-{@code unlink} auf einer offenen Datei nicht. Er
+     * sichert also die Nachbedingung (nach dem Reset liegt nichts mehr herum), nicht die Reihenfolge
+     * selbst; die steht als Kommentar in {@code clearAll}. Belegen ließe sich der Fehler nur auf einem
+     * echten Gerät.</p>
+     */
+    @Test
+    public void werksresetLaesstKeineDatenbankdateienZurueck() throws Exception {
+        ProfileManager.migrateLegacyInstallationIfNeeded(ctx);
+        ProfileManager pm = new ProfileManager(ctx);
+        String dbFile = pm.getActiveProfile().dbFileName;
+        // Room öffnet die Datei erst beim ersten Zugriff – und der muss abseits des Hauptfadens laufen.
+        // Ohne offene Verbindung ginge der Fehler gerade nicht auf.
+        java.util.concurrent.ExecutorService io =
+                java.util.concurrent.Executors.newSingleThreadExecutor();
+        try {
+            io.submit(() -> de.spahr.ausgaben.db.AppDatabase.getInstance(ctx).accountDao()
+                    .insertIfAbsent(new de.spahr.ausgaben.db.Account("Girokonto")))
+                    .get(10, java.util.concurrent.TimeUnit.SECONDS);
+        } finally {
+            io.shutdownNow();
+        }
+        assertTrue("Voraussetzung: die Datenbank liegt auf der Platte",
+                ctx.getDatabasePath(dbFile).exists());
+
+        pm.clearAll(ctx);
+
+        assertFalse("die Datenbank selbst", ctx.getDatabasePath(dbFile).exists());
+        assertFalse("der WAL-Puffer", ctx.getDatabasePath(dbFile + "-wal").exists());
+        assertFalse("das Shared-Memory-Abbild", ctx.getDatabasePath(dbFile + "-shm").exists());
+        assertTrue("und die Profilliste ist leer", new ProfileManager(ctx).getProfiles().isEmpty());
     }
 
     @Test

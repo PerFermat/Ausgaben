@@ -22,6 +22,16 @@ import javax.crypto.spec.SecretKeySpec;
 public final class BackupCrypto {
 
     static final byte[] MAGIC = "AUSGBK1".getBytes(StandardCharsets.US_ASCII);
+
+    /**
+     * Kürzeste zulässige Länge eines selbstgewählten Sicherungs-Passworts.
+     *
+     * <p>Die Sicherung enthält den gesamten Buchungsbestand und liegt danach als Datei irgendwo — in
+     * der Cloud, auf einem Stick, im Mail-Anhang. Ein vierstelliges Passwort ist trotz der 210.000
+     * PBKDF2-Runden in überschaubarer Zeit durchprobiert. Kein Passwort (leeres Feld) bleibt weiterhin
+     * erlaubt: das ist eine bewusste Wahl, kein Versehen.</p>
+     */
+    public static final int MIN_PASSWORD_LENGTH = 8;
     private static final int SALT_LEN = 16;
     private static final int IV_LEN = 12;
     private static final int TAG_BITS = 128;

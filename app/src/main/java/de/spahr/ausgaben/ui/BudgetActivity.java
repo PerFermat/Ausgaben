@@ -824,7 +824,7 @@ public class BudgetActivity extends LocalizedActivity {
         // sichtbaren Weg mehr zu speichern.
         androidx.appcompat.app.AlertDialog dialog = new AppDialog(this)
                 .setTitle(getString(R.string.budget_edit_title, category))
-                .setView(box)
+                .setView(AppDialog.scrollable(box))
                 .setPositiveButton(android.R.string.ok, null)
                 .setNegativeButton(R.string.cancel, null)
                 .create();

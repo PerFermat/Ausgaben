@@ -4,6 +4,7 @@ import android.content.Context;
 import android.net.Uri;
 
 import com.tom_roush.pdfbox.android.PDFBoxResourceLoader;
+import com.tom_roush.pdfbox.io.MemoryUsageSetting;
 import com.tom_roush.pdfbox.pdmodel.PDDocument;
 import com.tom_roush.pdfbox.text.PDFTextStripper;
 import com.tom_roush.pdfbox.text.TextPosition;
@@ -44,14 +45,35 @@ public final class PdfTextExtractor {
             if (in == null) {
                 throw new IOException("Datei nicht lesbar: " + uri);
             }
-            return read(in);
+            return read(in, speicherGrenze(context));
         }
+    }
+
+    /**
+     * Wie viel des Dokuments im Arbeitsspeicher gehalten werden darf, bevor pdfbox auf eine temporäre
+     * Datei ausweicht.
+     *
+     * <p>{@code PDDocument.load(in)} ohne Angabe hält das <b>ganze</b> Dokument im Speicher. Eine
+     * Abrechnung ist klein, eine Jahressteuerbescheinigung mit hundert Seiten nicht mehr — und die
+     * Datei kommt über einen Dateiwähler herein, ihre Größe bestimmt also nicht die App. Bis 16 MB
+     * bleibt alles wie bisher im Speicher; darüber weicht pdfbox in den Cache-Ordner der App aus,
+     * statt den Prozess zu sprengen.</p>
+     */
+    private static MemoryUsageSetting speicherGrenze(Context context) {
+        // Ausdrücklich der Cache-Ordner der App: java.io.tmpdir zeigt auf Android nicht zuverlässig
+        // auf ein beschreibbares Verzeichnis.
+        return MemoryUsageSetting.setupMixed(16L * 1024 * 1024)
+                .setTempDir(context.getApplicationContext().getCacheDir());
     }
 
     /** Wie oben, aber aus einem offenen Strom — der Strom wird nicht geschlossen. */
     public static PdfText read(InputStream in) throws IOException {
+        return read(in, MemoryUsageSetting.setupMainMemoryOnly());
+    }
+
+    private static PdfText read(InputStream in, MemoryUsageSetting speicher) throws IOException {
         final PdfText.Builder builder = new PdfText.Builder();
-        try (PDDocument document = PDDocument.load(in)) {
+        try (PDDocument document = PDDocument.load(in, speicher)) {
             PDFTextStripper stripper = new PDFTextStripper() {
                 @Override
                 protected void writeString(String text, List<TextPosition> positions) {

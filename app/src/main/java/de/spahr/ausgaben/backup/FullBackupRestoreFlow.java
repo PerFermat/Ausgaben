@@ -75,6 +75,36 @@ public final class FullBackupRestoreFlow {
 
     /** Passwort der verschlüsselten Sicherung erfragen und die Datei damit öffnen. */
     private void askBackupPassword(byte[] data) {
+        // Das Archiv bleibt hier liegen und geht nicht ins Bundle – siehe BackupRestoreController,
+        // dieselbe Überlegung.
+        this.archiv = data;
+        de.spahr.ausgaben.ui.HostedDialog.show(activity, DLG_BACKUP_PASSWORD, null);
+    }
+
+    /** Schlüssel der Passwortabfrage – siehe {@code HostedDialog}. */
+    public static final String DLG_BACKUP_PASSWORD = "dlg_fullBackupPassword";
+
+    /** Das noch verschlüsselte Archiv, solange nach dem Passwort gefragt wird. */
+    private byte[] archiv;
+
+    /**
+     * Die Dialoge dieses Ablaufs – die Maske, die ihn hält, leitet {@code buildDialog} hierher weiter.
+     *
+     * @return {@code null}, wenn der Schlüssel keiner von hier ist <b>oder</b> das Archiv nach einer
+     *         Drehung nicht mehr vorliegt
+     */
+    public android.app.Dialog buildDialog(String key, android.os.Bundle args) {
+        if (!DLG_BACKUP_PASSWORD.equals(key)) {
+            return null;
+        }
+        if (archiv == null) {
+            Toast.makeText(activity, R.string.restore_pick_again, Toast.LENGTH_LONG).show();
+            return null;
+        }
+        return buildPasswordDialog(archiv);
+    }
+
+    private android.app.Dialog buildPasswordDialog(final byte[] data) {
         final TextInputEditText field = new TextInputEditText(activity);
         field.setHint(activity.getString(R.string.backup_password_hint));
         field.setInputType(android.text.InputType.TYPE_CLASS_TEXT
@@ -84,7 +114,7 @@ public final class FullBackupRestoreFlow {
         box.setOrientation(LinearLayout.VERTICAL);
         box.setPadding(pad, pad / 2, pad, 0);
         box.addView(field);
-        new AppDialog(activity)
+        return new AppDialog(activity)
                 .setTitle(R.string.restore_password_title)
                 .setView(box)
                 .setPositiveButton(R.string.restore_db, (d, w) -> {
@@ -93,9 +123,14 @@ public final class FullBackupRestoreFlow {
                         byte[] plain;
                         try {
                             plain = BackupCrypto.decrypt(data, pw);
-                        } catch (Exception e) {
+                        } catch (javax.crypto.BadPaddingException e) {
+                            // Nur hier steht das Passwort tatsächlich in Frage – siehe
+                            // BackupRestoreController, dieselbe Unterscheidung.
                             activity.runOnUiThread(() -> Toast.makeText(activity,
                                     R.string.restore_password_wrong, Toast.LENGTH_LONG).show());
+                            return;
+                        } catch (Exception e) {
+                            postRestoreError(e);
                             return;
                         }
                         try {
@@ -105,7 +140,7 @@ public final class FullBackupRestoreFlow {
                         }
                     }).start();
                 })
-                .show();
+                .create();
     }
 
     /** Archiv lesen und die Auswahl anbieten (läuft im Hintergrund-Thread). */

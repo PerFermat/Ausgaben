@@ -20,6 +20,7 @@ import java.util.List;
 import java.util.Map;
 import java.util.Set;
 
+import de.spahr.ausgaben.R;
 import de.spahr.ausgaben.db.AppDatabase;
 import de.spahr.ausgaben.settings.ProfileManager;
 import de.spahr.ausgaben.settings.SettingsStore;
@@ -48,13 +49,41 @@ public final class BackupStore {
      * {@code StatementTemplates}). Wer hier eine Datei ergänzt, muss beim Einspielen nichts
      * nachziehen.
      */
+    private static final String SETTINGS_FILE = "ausgaben_settings";
     private static final String[] PROFILE_PREFIXED_FILES = {
-            "ausgaben_settings", "ausgaben_places", "ausgaben_statements"};
+            SETTINGS_FILE, "ausgaben_places", "ausgaben_statements"};
     /** Geräteweite Prefs-Dateien ohne Profil-Bezug – nur in einer Alle-Profile-Sicherung dabei. */
     private static final String[] GLOBAL_ONLY_FILES = {"receipts", "widget_selection"};
     private static final String PROFILES_FILE = "ausgaben_profiles";
 
     private BackupStore() {
+    }
+
+    /**
+     * Ob dieser Name im Archiv eine Einstellungsdatei bezeichnet, die die App kennt.
+     *
+     * <p>Der Name aus dem Archiv wird beim Einspielen zum Dateinamen
+     * ({@code getSharedPreferences}). {@code BackupArchive} lässt darin schon keine Pfadangaben mehr
+     * durch; hier kommt die zweite Bedingung dazu, dass es überhaupt eine Datei ist, die die App
+     * schreibt. Unbekannte Namen werden übergangen statt abgelehnt: eine Sicherung aus einer neueren
+     * Fassung mit einer weiteren Einstellungsdatei lässt sich so trotzdem einspielen, nur eben ohne
+     * den Teil, mit dem diese Fassung nichts anfangen kann.</p>
+     *
+     * <p>{@link BackupArchive#PREFS_SECRET} und {@link BackupArchive#PREFS_PROFILES} stehen bewusst
+     * nicht in der Liste – sie haben jeweils ein eigenes Ziel und werden vorher abgefangen.</p>
+     */
+    private static boolean bekannteEinstellungsdatei(String name) {
+        for (String bekannt : PROFILE_PREFIXED_FILES) {
+            if (bekannt.equals(name)) {
+                return true;
+            }
+        }
+        for (String bekannt : GLOBAL_ONLY_FILES) {
+            if (bekannt.equals(name)) {
+                return true;
+            }
+        }
+        return false;
     }
 
     // ---------------- Profil-Sicherung (ein Profil, portabel) ----------------
@@ -86,17 +115,72 @@ public final class BackupStore {
 
     /** Ersetzt die Datenbank des aktiven Profils; andere Profile bleiben unberührt. */
     public static void restoreProfileData(Context context, byte[] db) throws IOException {
-        writeDatabaseFile(context, ProfileManager.currentDbFileName(context), db);
+        Context app = context.getApplicationContext();
+        pruefeSchema(app, db);
+        writeDatabaseFile(app, ProfileManager.currentDbFileName(app), db);
+    }
+
+    /**
+     * Bricht ab, wenn die Sicherung aus einer <b>neueren</b> Fassung der App stammt.
+     *
+     * <p>Geschrieben wurde die Datei bis 1.12 bedingungslos. Room merkt erst beim nächsten Zugriff,
+     * dass der Datenstand höher ist als das, was diese Fassung kennt, und wirft — die bisherigen Daten
+     * sind zu dem Zeitpunkt aber schon überschrieben. Ein Rückweg besteht dann nicht.</p>
+     *
+     * <p>Ein <b>niedrigerer</b> Stand ist in Ordnung: dafür gibt es die Migrationen, genau wie beim
+     * Update der App selbst.</p>
+     *
+     * <p>Gelesen wird der Stand aus der Datei und nicht aus dem Manifest: der {@code versionCode} dort
+     * ist nur eine Information über die schreibende App, und alte Sicherungen führen ihn gar nicht.
+     * Die Datei selbst weiß es immer.</p>
+     */
+    private static void pruefeSchema(Context app, byte[] db) throws IOException {
+        int ausDerSicherung = schemaVersionOf(db);
+        if (ausDerSicherung < 0) {
+            return;   // kein lesbarer Kopf – darüber urteilt writeDatabaseFileRaw/Room, nicht diese Prüfung
+        }
+        int hier = AppDatabase.getInstance(app).getOpenHelper().getReadableDatabase().getVersion();
+        if (ausDerSicherung > hier) {
+            throw new IOException(app.getString(R.string.restore_too_new, ausDerSicherung, hier));
+        }
+    }
+
+    /**
+     * Der Schemastand einer SQLite-Datei — {@code PRAGMA user_version}, das Room für die
+     * Datenbankversion nutzt. Es steht im Dateikopf an Byte 60, vier Byte, höchstwertiges zuerst.
+     *
+     * @return der Stand, oder {@code -1}, wenn das keine SQLite-Datei ist
+     */
+    static int schemaVersionOf(byte[] db) {
+        byte[] kennung = "SQLite format 3\0".getBytes(java.nio.charset.StandardCharsets.US_ASCII);
+        if (db == null || db.length < 64) {
+            return -1;
+        }
+        for (int i = 0; i < kennung.length; i++) {
+            if (db[i] != kennung[i]) {
+                return -1;
+            }
+        }
+        return ((db[60] & 0xFF) << 24) | ((db[61] & 0xFF) << 16)
+                | ((db[62] & 0xFF) << 8) | (db[63] & 0xFF);
     }
 
     /**
      * Spielt die (unpräfizierten) Profil-Einstellungen einer Profil-Sicherung ins <b>aktive</b> Profil
      * ein – dessen bisherige Werte werden dabei ersetzt, andere Profile bleiben unangetastet.
+     *
+     * <p>Eine Sicherung aus der Zeit vor den Profilen (Format &lt; {@link BackupArchive#FORMAT_PROFILES})
+     * kennt die Unterscheidung noch nicht: dort stehen Profil- und globale Einstellungen unpräfixiert
+     * nebeneinander, und sie führt zusätzlich die geräteweiten Dateien {@code receipts} und
+     * {@code widget_selection}. Würde man sie wie eine heutige Sicherung behandeln, landeten Sprache,
+     * Nachtmodus, Schriftgröße, Kategoriefarben und App-Sperre unter einem Profil-Präfix – wo sie
+     * niemand mehr liest, während die alten Werte unberührt daneben stehen blieben.</p>
      */
     public static void restoreProfileSettings(Context context, BackupArchive.Content content)
             throws JSONException {
         Context app = context.getApplicationContext();
         String toPrefix = "p_" + new ProfileManager(app).getActiveProfileId() + "_";
+        boolean vorDenProfilen = content.format < BackupArchive.FORMAT_PROFILES;
         for (Map.Entry<String, String> e : content.prefs.entrySet()) {
             if (BackupArchive.PREFS_SECRET.equals(e.getKey())) {
                 Object pw = PrefsCodec.fromJson(e.getValue()).get(BackupArchive.KEY_SERVER_PASSWORD);
@@ -108,14 +192,44 @@ public final class BackupStore {
             if (BackupArchive.PREFS_PROFILES.equals(e.getKey())) {
                 continue; // eine Profil-Sicherung enthält keine Profilliste
             }
+            if (!bekannteEinstellungsdatei(e.getKey())) {
+                continue;
+            }
             SharedPreferences prefs = app.getSharedPreferences(e.getKey(), Context.MODE_PRIVATE);
             SharedPreferences.Editor editor = prefs.edit();
             removePrefixed(prefs, editor, toPrefix);
             for (Map.Entry<String, Object> v : PrefsCodec.fromJson(e.getValue()).entrySet()) {
-                putTyped(editor, toPrefix + v.getKey(), v.getValue());
+                putTyped(editor, zielSchluessel(e.getKey(), v.getKey(), toPrefix, vorDenProfilen),
+                        v.getValue());
             }
             editor.commit();
         }
+    }
+
+    /**
+     * Unter welchem Schlüssel ein Wert aus dem Archiv landet.
+     *
+     * <p>Bei einer heutigen Sicherung immer unter dem Profil-Präfix: sie enthält ausschließlich
+     * Profil-Schlüssel, das Präfix wurde beim Schreiben abgestreift. Bei einer Sicherung von vor den
+     * Profilen entscheidet die Datei und – bei {@code ausgaben_settings} – der Schlüssel selbst.</p>
+     */
+    private static String zielSchluessel(String prefsDatei, String key, String toPrefix,
+                                         boolean vorDenProfilen) {
+        if (!vorDenProfilen) {
+            return toPrefix + key;
+        }
+        for (String global : GLOBAL_ONLY_FILES) {
+            if (global.equals(prefsDatei)) {
+                // receipts/widget_selection hängen am Gerät, nicht am Profil.
+                return key;
+            }
+        }
+        if (!SETTINGS_FILE.equals(prefsDatei)) {
+            // ausgaben_places: war ein einziges globales JSON und gehört heute zum Profil – wie es
+            // ProfileManager.copyLegacySettingsUnderPrefix beim Update auch tut.
+            return toPrefix + key;
+        }
+        return ProfileManager.isProfileSettingsKey(key) ? toPrefix + key : key;
     }
 
     // ---------------- Alle-Profile-Sicherung ----------------
@@ -168,8 +282,10 @@ public final class BackupStore {
                 prefs = SettingsStore.secretPrefs(app);
             } else if (BackupArchive.PREFS_PROFILES.equals(e.getKey())) {
                 prefs = app.getSharedPreferences(PROFILES_FILE, Context.MODE_PRIVATE);
-            } else {
+            } else if (bekannteEinstellungsdatei(e.getKey())) {
                 prefs = app.getSharedPreferences(e.getKey(), Context.MODE_PRIVATE);
+            } else {
+                continue;
             }
             SharedPreferences.Editor editor = prefs.edit().clear();
             for (Map.Entry<String, Object> v : PrefsCodec.fromJson(e.getValue()).entrySet()) {
@@ -182,6 +298,11 @@ public final class BackupStore {
     /** Ersetzt die Datenbankdateien aller in der Sicherung enthaltenen Profile. */
     public static void restoreAllData(Context context, BackupArchive.Content content) throws IOException {
         Context app = context.getApplicationContext();
+        // Erst alle prüfen, dann die erste anfassen: sonst stünden nach dem Abbruch ein paar Profile
+        // auf der Sicherung und der Rest auf dem alten Stand.
+        for (byte[] db : content.dbs.values()) {
+            pruefeSchema(app, db);
+        }
         AppDatabase.closeInstance();
         for (Map.Entry<String, byte[]> e : content.dbs.entrySet()) {
             writeDatabaseFileRaw(app, ProfileManager.dbFileNameFor(e.getKey()), e.getValue());

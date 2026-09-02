@@ -404,7 +404,7 @@ public class SecurityHistoryActivity extends LocalizedActivity {
 
         AlertDialog dialog = new AppDialog(this)
                 .setTitle(getString(R.string.depot_tx_value_title, actionLabel(tx.action)))
-                .setView(box)
+                .setView(AppDialog.scrollable(box))
                 .create();
         dialogRef[0] = dialog;
         // Das fokussierte Betragsfeld darf nicht die System-Tastatur des Dialogfensters hochziehen –

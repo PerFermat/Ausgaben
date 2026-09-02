@@ -705,6 +705,18 @@ public class KmyExporter {
                     de.spahr.ausgaben.R.string.skip_account_not_found, tx.moneyAccount));
             return null;
         }
+        // Die Transaktion wird in der Währung des Verrechnungskontos geschrieben. Steht das Depot in
+        // einer anderen, fehlt für den Wertpapier-Split der Umrechnungskurs — geschrieben würde er
+        // trotzdem, mit „1/1", und stünde betragsmäßig falsch in der Datei. Bei den gewöhnlichen
+        // Buchungen wird das seit jeher geprüft (siehe currencyClash in buildSingle/buildTransfer);
+        // auf dem Wertpapierweg fehlte die Prüfung.
+        String commodity = commodityOf(tx.moneyAccount);
+        String depotClash = currencyClash(commodity, depotId);
+        if (depotClash != null) {
+            result.skipped.add(label + ": " + depotClash);
+            return null;
+        }
+
         boolean dividend = "dividend".equals(tx.action);
         boolean sell = "sell".equals(tx.action);
         long gross = tx.amountCents;
@@ -718,18 +730,19 @@ public class KmyExporter {
             splits.add(securitySplit(splitId(index), stockId, "0/100", "0/1", "1/1", "Dividend"));
             // Der Ertrag steht in KMyMoney mit umgekehrtem Vorzeichen: er kommt von der Kategorie
             // und geht aufs Konto.
-            if (!addCategorySplits(splits, index, tx.partsOf(true), -1, gross, label, result)) {
+            if (!addCategorySplits(splits, index, tx.partsOf(true), -1, gross, label, commodity,
+                    result)) {
                 return null;
             }
-            return addCategorySplits(splits, index, tx.partsOf(false), 1, fee, label, result)
-                    ? splits : null;
+            return addCategorySplits(splits, index, tx.partsOf(false), 1, fee, label, commodity,
+                    result) ? splits : null;
         }
         long stockValue = sell ? -gross : gross;
         String sharesFraction = decimalFraction(tx.shares, SHARE_SCALE);
         splits.add(securitySplit(splitId(index), stockId, fraction(stockValue), sharesFraction,
                 priceFraction(gross, tx.shares), sell ? "Sell" : "Buy"));
-        return addCategorySplits(splits, index, tx.partsOf(false), 1, fee, label, result)
-                ? splits : null;
+        return addCategorySplits(splits, index, tx.partsOf(false), 1, fee, label, commodity,
+                result) ? splits : null;
     }
 
     /**
@@ -744,7 +757,8 @@ public class KmyExporter {
      */
     private boolean addCategorySplits(List<String> splits, int[] index,
                                       List<de.spahr.ausgaben.db.SecurityTxSplit> parts, int sign,
-                                      long total, String label, SecurityResult result) {
+                                      long total, String label, String commodity,
+                                      SecurityResult result) {
         if (total == 0) {
             return true;
         }
@@ -762,7 +776,17 @@ public class KmyExporter {
                         de.spahr.ausgaben.R.string.skip_category_not_found, category));
                 return false;
             }
-            long value = i == parts.size() - 1 ? rest : Math.abs(parts.get(i).amountCents);
+            String clash = currencyClash(commodity, categoryId);
+            if (clash != null) {
+                result.skipped.add(label + ": " + clash);
+                return false;
+            }
+            // Das gespeicherte Vorzeichen zählt. Mit Math.abs traf es nur zu, solange die
+            // gegenläufige Zeile zufällig die letzte war — die bekommt ihr Vorzeichen ohnehin über
+            // den Rest. Stand sie davor, wurde sie zur gleichgerichteten Zeile, und der Rest glich
+            // die Differenz an der letzten wieder aus: die Transaktion ging auf null auf, die Beträge
+            // standen aber auf den falschen Kategorien.
+            long value = i == parts.size() - 1 ? rest : parts.get(i).amountCents;
             rest -= value;
             splits.add(split(splitId(index), categoryId, "", fraction(sign * value), "", ""));
         }

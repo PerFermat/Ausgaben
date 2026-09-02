@@ -20,7 +20,6 @@ import com.google.android.material.textfield.MaterialAutoCompleteTextView;
 import com.google.android.material.textfield.TextInputEditText;
 import com.google.android.material.textfield.TextInputLayout;
 
-import org.json.JSONException;
 
 import java.io.ByteArrayOutputStream;
 import java.io.InputStream;
@@ -29,9 +28,6 @@ import java.util.ArrayList;
 import java.util.List;
 
 import de.spahr.ausgaben.R;
-import de.spahr.ausgaben.backup.BackupArchive;
-import de.spahr.ausgaben.backup.BackupCrypto;
-import de.spahr.ausgaben.backup.BackupStore;
 import de.spahr.ausgaben.db.Booking;
 import de.spahr.ausgaben.db.Language;
 import de.spahr.ausgaben.db.Repository;
@@ -51,7 +47,41 @@ import de.spahr.ausgaben.settings.SettingsStore;
  * On-Boarding importiert eigenständig, damit die kritische Bestandslogik nicht angefasst wird. Da beim
  * ersten Start noch keine Konten existieren, entfällt hier die Filterung schon vorhandener Konten.</p>
  */
-public class OnboardingActivity extends LocalizedActivity implements SmbWizardController.Host {
+public class OnboardingActivity extends LocalizedActivity implements SmbWizardController.Host, HostedDialog.Host {
+    /**
+     * Baut die Dialoge dieser Maske – beim ersten Mal und nach jeder Drehung erneut (siehe
+     * {@link HostedDialog}). Die beiden Browser-Dialoge der Verbindungsfelder liegen im
+     * {@link SyncFieldsController}; er baut sie selbst.
+     */
+    @Override
+    public android.app.Dialog buildDialog(String key, Bundle args) {
+        if (DLG_CSV_PICK.equals(key)) {
+            return buildCsvPick(args);
+        }
+        android.app.Dialog vomWiederherstellen = backupRestore.buildDialog(key, args);
+        if (vomWiederherstellen != null) {
+            return vomWiederherstellen;
+        }
+        if (fullBackupRestoreFlow != null) {
+            android.app.Dialog vomVollablauf = fullBackupRestoreFlow.buildDialog(key, args);
+            if (vomVollablauf != null) {
+                return vomVollablauf;
+            }
+        }
+        return syncFields == null ? null : syncFields.buildDialog(key, args);
+    }
+
+    @Override
+    public void onDialogCancelled(String key, Bundle args) {
+        // Die Browser-Dialoge dürfen weggetippt werden; es folgt nichts daraus.
+    }
+
+    /** Schlüssel und Angaben des Datei-Browsers – siehe {@link HostedDialog}. */
+    private static final String DLG_CSV_PICK = "dlg_csvPick";
+    private static final String ARG_CSV_FOLDER = "a_csvFolder";
+    private static final String ARG_CSV_FOLDERS = "a_csvFolders";
+    private static final String ARG_CSV_FILES = "a_csvFiles";
+
 
     /**
      * Nur gesetzt, wenn dieser Assistent zum Anlegen eines <b>neuen, zusätzlichen</b> Profils gestartet
@@ -96,19 +126,21 @@ public class OnboardingActivity extends LocalizedActivity implements SmbWizardCo
     private TextInputLayout passwordLayout;
     /** Assistent für SMB; ersetzt bei diesem Server-Typ die Felder URL/Benutzer/Passwort. */
     private SmbWizardController smbWizard;
+    private SyncFieldsController syncFields;
     private LinearLayout importStatus;
     private View importProgress;
     private TextView importStatusText;
 
     private List<Language> languages = new ArrayList<>();
     private String selectedExportMode = SettingsStore.MODE_CSV;
-    private String selectedServerType = SettingsStore.SERVER_NEXTCLOUD;
 
     // ---- Standardkonto ----
     private MaterialAutoCompleteTextView editDefaultAccount;
 
     private ActivityResultLauncher<String[]> csvLauncher;
     private ActivityResultLauncher<String[]> restoreBackupLauncher;
+    /** Der gemeinsame Ablauf zum Einspielen einer Sicherung – siehe {@link BackupRestoreController}. */
+    private final BackupRestoreController backupRestore = new BackupRestoreController(this);
     private de.spahr.ausgaben.backup.FullBackupRestoreFlow fullBackupRestoreFlow;
 
     @Override
@@ -161,11 +193,14 @@ public class OnboardingActivity extends LocalizedActivity implements SmbWizardCo
         importStatusText = findViewById(R.id.importStatusText);
 
         smbWizard = new SmbWizardController(this, findViewById(R.id.smbWizard), settings, this);
+        // Serverart, Verbindungsprobe und Ordner-Browser – der gemeinsame Block beider
+        // Einrichtungsmasken, siehe {@link SyncFieldsController}.
+        syncFields = new SyncFieldsController(this, settings, smbWizard);
 
         setupLanguages();
         setupExportMode();
         setupCsvSeparator();
-        setupServerType();
+        syncFields.setupServerType();
         prefillSyncFields();
 
         editDefaultAccount = findViewById(R.id.editDefaultAccount);
@@ -182,24 +217,24 @@ public class OnboardingActivity extends LocalizedActivity implements SmbWizardCo
                 new ActivityResultContracts.OpenDocument(),
                 uri -> {
                     if (uri != null) {
-                        doRestore(uri);
+                        backupRestore.restore(uri);
                     }
                 });
 
         ((MaterialButton) findViewById(R.id.btnTestConnection))
-                .setOnClickListener(v -> testConnection());
+                .setOnClickListener(v -> syncFields.testConnection());
         ((MaterialButton) findViewById(R.id.btnSmbDiagnose))
                 .setOnClickListener(v -> runSmbDiagnostics());
         findViewById(R.id.btnSmbSearch).setOnClickListener(v -> {
             smbWizard.restart();
-            applyServerTypeHints();
+            syncFields.applyServerTypeHints();
         });
         ((MaterialButton) findViewById(R.id.btnBrowseKmy))
-                .setOnClickListener(v -> browseKmy());
+                .setOnClickListener(v -> syncFields.browseKmy());
         ((MaterialButton) findViewById(R.id.btnBrowseFolder))
-                .setOnClickListener(v -> browseFolderInto(editFolder));
+                .setOnClickListener(v -> syncFields.browseFolderInto(editFolder));
         ((MaterialButton) findViewById(R.id.btnBrowseImportFolder))
-                .setOnClickListener(v -> browseFolderInto(editImportFolder));
+                .setOnClickListener(v -> syncFields.browseFolderInto(editImportFolder));
         ((MaterialButton) findViewById(R.id.btnImportAccounts))
                 .setOnClickListener(v -> importAccounts());
         ((MaterialButton) findViewById(R.id.btnDone)).setOnClickListener(v -> {
@@ -404,57 +439,9 @@ public class OnboardingActivity extends LocalizedActivity implements SmbWizardCo
         refreshProfileColorSwatch();
         setupExportMode();
         setupCsvSeparator();
-        setupServerType();
+        syncFields.setupServerType();
         prefillSyncFields();
         editDefaultAccount.setText(settings.getDefaultAccount(), false);
-    }
-
-    private void setupServerType() {
-        String ncLabel = getString(R.string.server_type_nextcloud);
-        String davLabel = getString(R.string.server_type_webdav);
-        String smbLabel = getString(R.string.server_type_smb);
-        PickerAdapters.plain(editServerType, java.util.Arrays.asList(ncLabel, davLabel, smbLabel));
-        selectedServerType = settings.getServerType();
-        editServerType.setText(labelForServerType(ncLabel, davLabel, smbLabel), false);
-        applyServerTypeHints();
-        editServerType.setOnItemClickListener((parent, view, position, id) -> {
-            selectedServerType = position == 1 ? SettingsStore.SERVER_WEBDAV
-                    : position == 2 ? SettingsStore.SERVER_SMB : SettingsStore.SERVER_NEXTCLOUD;
-            settings.setServerType(selectedServerType);
-            applyServerTypeHints();
-        });
-    }
-
-    private String labelForServerType(String nc, String dav, String smb) {
-        if (SettingsStore.SERVER_WEBDAV.equals(selectedServerType)) {
-            return dav;
-        }
-        if (SettingsStore.SERVER_SMB.equals(selectedServerType)) {
-            return smb;
-        }
-        return nc;
-    }
-
-    /** Wie in den Einstellungen: bei SMB übernimmt der Assistent die Felder URL/Benutzer/Passwort. */
-    private void applyServerTypeHints() {
-        boolean smb = SettingsStore.SERVER_SMB.equals(selectedServerType);
-        urlLayout.setHint(getString(smb ? R.string.smb_url_hint : R.string.nextcloud_url_hint));
-        userLayout.setHint(getString(smb ? R.string.smb_user_hint : R.string.nextcloud_user_hint));
-        if (!smb) {
-            smbWizard.resetManual();
-        }
-        boolean wizard = smb && !smbWizard.isManual();
-        int fields = wizard ? View.GONE : View.VISIBLE;
-        urlLayout.setVisibility(fields);
-        userLayout.setVisibility(fields);
-        passwordLayout.setVisibility(fields);
-        findViewById(R.id.btnTestConnection).setVisibility(fields);
-        // Die Diagnose gilt der eingerichteten Verbindung – gerade beim Erststart ist sie das
-        // Werkzeug, mit dem man überhaupt herausfindet, woran es hakt.
-        findViewById(R.id.btnSmbDiagnose).setVisibility(smb ? View.VISIBLE : View.GONE);
-        // Rückweg zum Assistenten nur, solange SMB gewählt und gerade manuell eingegeben wird.
-        findViewById(R.id.btnSmbSearch).setVisibility(smb && !wizard ? View.VISIBLE : View.GONE);
-        smbWizard.setVisible(wizard);
     }
 
     @Override
@@ -475,7 +462,7 @@ public class OnboardingActivity extends LocalizedActivity implements SmbWizardCo
 
     @Override
     public void onSmbManualRequested() {
-        applyServerTypeHints();
+        syncFields.applyServerTypeHints();
     }
 
     private void prefillSyncFields() {
@@ -488,6 +475,12 @@ public class OnboardingActivity extends LocalizedActivity implements SmbWizardCo
         // gespeichert, unter dem Feld „••••••" anzeigen (wie in den Einstellungen).
         if (settings.hasPassword()) {
             passwordLayout.setHelperText(getString(R.string.password_saved_hint));
+        }
+        // Ein defekter Schlüsselspeicher lässt die App weiterlaufen, legt das Server-Passwort dann aber
+        // unverschlüsselt ab. Das gehört gesagt – und zwar dort, wo man es eingibt.
+        if (SettingsStore.isSecretStorageUnencrypted(this)) {
+            passwordLayout.setError(getString(R.string.settings_secret_fallback));
+            passwordLayout.setErrorIconDrawable(null);
         }
     }
 
@@ -507,7 +500,7 @@ public class OnboardingActivity extends LocalizedActivity implements SmbWizardCo
                 defaultAccount,
                 selectedExportMode,
                 textOf(editKmyPath),
-                selectedServerType);
+                syncFields.serverType());
         settings.setCsvSeparator(selectedCsvSeparator);
 
         repository.ensureAccount(defaultAccount);
@@ -556,39 +549,7 @@ public class OnboardingActivity extends LocalizedActivity implements SmbWizardCo
         activity.startActivity(intent);
     }
 
-    /**
-     * Grund einer fehlgeschlagenen Server-Aktion. Bei SMB dieselben klaren Meldungen wie im Assistenten
-     * („Server nicht erreichbar", „Zugriff auf den Ordner wurde verweigert" …) statt der rohen
-     * smbj-Texte; für WebDAV/Nextcloud bleibt es beim bisherigen Text.
-     */
-    private String serverError(Exception e) {
-        if (SettingsStore.SERVER_SMB.equals(selectedServerType)) {
-            return de.spahr.ausgaben.net.smb.SmbErrors.messageFor(this,
-                    de.spahr.ausgaben.net.smb.SmbErrors.Step.FOLDER, e);
-        }
-        return e.getMessage() == null ? e.toString() : e.getMessage();
-    }
-
     // ---- Verbindung testen / .kmy auswählen (gleiches Verhalten wie in den Einstellungen) ----
-
-    private void testConnection() {
-        final String serverType = selectedServerType;
-        final String url = textOf(editUrl);
-        final String user = textOf(editUser);
-        String pw = textOf(editPassword);
-        final String password = pw.isEmpty() ? settings.getPassword() : pw; // leer → gespeichertes nutzen
-        Toast.makeText(this, R.string.conn_testing, Toast.LENGTH_SHORT).show();
-        new Thread(() -> {
-            try {
-                RemoteStorage.from(serverType, url, user, password).testConnection();
-                runOnUiThread(() -> Toast.makeText(this, R.string.conn_ok, Toast.LENGTH_LONG).show());
-            } catch (Exception e) {
-                final String msg = serverError(e);
-                runOnUiThread(() -> Toast.makeText(this,
-                        getString(R.string.conn_failed, msg), Toast.LENGTH_LONG).show());
-            }
-        }).start();
-    }
 
     /**
      * SMB-Diagnose: läuft die ganze Kette in einer Anmeldung durch und zeigt je Schritt Ergebnis und
@@ -603,116 +564,6 @@ public class OnboardingActivity extends LocalizedActivity implements SmbWizardCo
         SmbDiagnosticsDialog.run(this, textOf(editUrl), textOf(editUser),
                 pw.isEmpty() ? settings.getPassword() : pw,
                 kmy ? RemotePath.folderOf(path) : path, kmy ? RemotePath.fileOf(path) : "");
-    }
-
-    private void browseKmy() {
-        browseKmyAt(RemotePath.folderOf(textOf(editKmyPath)));
-    }
-
-    private void browseKmyAt(String folder) {
-        final String serverType = selectedServerType;
-        final String url = textOf(editUrl);
-        final String user = textOf(editUser);
-        String pw = textOf(editPassword);
-        final String password = pw.isEmpty() ? settings.getPassword() : pw;
-        Toast.makeText(this, R.string.loading_files, Toast.LENGTH_SHORT).show();
-        new Thread(() -> {
-            try {
-                // Ordner und Dateien in einem Aufruf: SMB meldet sich sonst zweimal hintereinander an.
-                RemoteStorage.Entries entries = RemoteStorage.from(serverType, url, user, password)
-                        .listEntries(folder, "kmy");
-                List<String> folders = entries.folders;
-                List<String> files = entries.files;
-                java.util.Collections.sort(folders, String.CASE_INSENSITIVE_ORDER);
-                java.util.Collections.sort(files, String.CASE_INSENSITIVE_ORDER);
-                runOnUiThread(() -> {
-                    if (folder.isEmpty() && folders.isEmpty() && files.isEmpty()) {
-                        Toast.makeText(this, R.string.kmy_browse_none, Toast.LENGTH_LONG).show();
-                    } else {
-                        showKmyPick(folder, folders, files);
-                    }
-                });
-            } catch (Exception e) {
-                final String msg = serverError(e);
-                runOnUiThread(() -> Toast.makeText(this,
-                        getString(R.string.conn_failed, msg), Toast.LENGTH_LONG).show());
-            }
-        }).start();
-    }
-
-    private void showKmyPick(String folder, List<String> folders, List<String> files) {
-        final List<String> labels = new ArrayList<>();
-        final List<Runnable> actions = new ArrayList<>();
-        if (!folder.isEmpty()) {
-            labels.add("↑  ..");
-            actions.add(() -> browseKmyAt(RemotePath.parentFolder(folder)));
-        }
-        for (String d : folders) {
-            labels.add("📁  " + d);
-            final String target = folder.isEmpty() ? d : folder + "/" + d;
-            actions.add(() -> browseKmyAt(target));
-        }
-        for (String f : files) {
-            labels.add(f);
-            final String path = folder.isEmpty() ? f : folder + "/" + f;
-            actions.add(() -> editKmyPath.setText(path));
-        }
-        String title = folder.isEmpty() ? getString(R.string.kmy_browse) : "/" + folder;
-        new AppDialog(this)
-                .setTitle(title)
-                .setItems(labels.toArray(new String[0]), (d, w) -> actions.get(w).run())
-                .show();
-    }
-
-    /**
-     * Navigierbarer Ordner-Dialog (nur Ordner) für die CSV-Export-/Import-Ordner. Nutzt – wie der
-     * kmy-Browser – {@link RemoteStorage} mit den aktuell eingegebenen Zugangsdaten, gilt also für
-     * Nextcloud, WebDAV und SMB.
-     */
-    private void browseFolderInto(TextInputEditText target) {
-        browseFolderAt(textOf(target), target);
-    }
-
-    private void browseFolderAt(String folder, TextInputEditText target) {
-        final String serverType = selectedServerType;
-        final String url = textOf(editUrl);
-        final String user = textOf(editUser);
-        String pw = textOf(editPassword);
-        final String password = pw.isEmpty() ? settings.getPassword() : pw;
-        Toast.makeText(this, R.string.loading_files, Toast.LENGTH_SHORT).show();
-        new Thread(() -> {
-            try {
-                RemoteStorage storage = RemoteStorage.from(serverType, url, user, password);
-                List<String> folders = storage.listFolders(folder);
-                java.util.Collections.sort(folders, String.CASE_INSENSITIVE_ORDER);
-                runOnUiThread(() -> showFolderPick(folder, folders, target));
-            } catch (Exception e) {
-                final String msg = serverError(e);
-                runOnUiThread(() -> Toast.makeText(this,
-                        getString(R.string.conn_failed, msg), Toast.LENGTH_LONG).show());
-            }
-        }).start();
-    }
-
-    private void showFolderPick(String folder, List<String> folders, TextInputEditText target) {
-        final List<String> labels = new ArrayList<>();
-        final List<Runnable> actions = new ArrayList<>();
-        labels.add(getString(R.string.folder_choose_this));
-        actions.add(() -> target.setText(folder));
-        if (!folder.isEmpty()) {
-            labels.add("↑  ..");
-            actions.add(() -> browseFolderAt(RemotePath.parentFolder(folder), target));
-        }
-        for (String d : folders) {
-            labels.add("📁  " + d);
-            final String next = folder.isEmpty() ? d : folder + "/" + d;
-            actions.add(() -> browseFolderAt(next, target));
-        }
-        String title = folder.isEmpty() ? getString(R.string.folder_browse) : "/" + folder;
-        new AppDialog(this)
-                .setTitle(title)
-                .setItems(labels.toArray(new String[0]), (d, w) -> actions.get(w).run())
-                .show();
     }
 
     // ---- Konten importieren (gleicher Ablauf wie MainActivity.onAddAccountClicked) ----
@@ -876,7 +727,7 @@ public class OnboardingActivity extends LocalizedActivity implements SmbWizardCo
                     }
                 });
             } catch (Exception e) {
-                final String msg = serverError(e);
+                final String msg = syncFields.serverError(e);
                 runOnUiThread(() -> Toast.makeText(this,
                         getString(R.string.import_failed, msg), Toast.LENGTH_LONG).show());
             }
@@ -884,26 +735,39 @@ public class OnboardingActivity extends LocalizedActivity implements SmbWizardCo
     }
 
     private void showCsvPick(String folder, List<String> folders, List<String> files) {
+        Bundle args = new Bundle();
+        args.putString(ARG_CSV_FOLDER, folder);
+        args.putStringArray(ARG_CSV_FOLDERS, folders.toArray(new String[0]));
+        args.putStringArray(ARG_CSV_FILES, files.toArray(new String[0]));
+        HostedDialog.show(this, DLG_CSV_PICK, args);
+    }
+
+    /**
+     * Baut den Datei-Browser aus dem, was im Bundle steht — beim ersten Mal und nach jeder Drehung.
+     * Der Serverzugriff bleibt dabei aus: Die Liste dieses Ordners steht schon in den Angaben.
+     */
+    private android.app.Dialog buildCsvPick(Bundle args) {
+        final String folder = args.getString(ARG_CSV_FOLDER, "");
         final List<String> labels = new ArrayList<>();
         final List<Runnable> actions = new ArrayList<>();
         if (!folder.isEmpty()) {
             labels.add("↑  ..");
             actions.add(() -> browseCsvAt(RemotePath.parentFolder(folder)));
         }
-        for (String d : folders) {
+        for (String d : args.getStringArray(ARG_CSV_FOLDERS)) {
             labels.add("📁  " + d);
             final String target = folder.isEmpty() ? d : folder + "/" + d;
             actions.add(() -> browseCsvAt(target));
         }
-        for (String f : files) {
+        for (String f : args.getStringArray(ARG_CSV_FILES)) {
             labels.add(f);
             actions.add(() -> downloadAndImportCsv(folder, f));
         }
         String title = folder.isEmpty() ? getString(R.string.choose_import_file) : "/" + folder;
-        new AppDialog(this)
+        return new AppDialog(this)
                 .setTitle(title)
                 .setItems(labels.toArray(new String[0]), (d, w) -> actions.get(w).run())
-                .show();
+                .create();
     }
 
     private void downloadAndImportCsv(String folder, String fileName) {
@@ -956,7 +820,7 @@ public class OnboardingActivity extends LocalizedActivity implements SmbWizardCo
     }
 
     private void postImportError(Exception e) {
-        final String msg = serverError(e);
+        final String msg = syncFields.serverError(e);
         runOnUiThread(() -> {
             hideImportStatus();
             Toast.makeText(this, getString(R.string.import_failed, msg), Toast.LENGTH_LONG).show();
@@ -981,190 +845,9 @@ public class OnboardingActivity extends LocalizedActivity implements SmbWizardCo
 
     // ---- Sicherung/Wiederherstellen (nur das aktive Profil) ----
 
-    private byte[] readBytes(Uri uri) throws Exception {
-        try (InputStream is = getContentResolver().openInputStream(uri)) {
-            ByteArrayOutputStream bos = new ByteArrayOutputStream();
-            byte[] buf = new byte[8192];
-            int n;
-            while (is != null && (n = is.read(buf)) > 0) {
-                bos.write(buf, 0, n);
-            }
-            return bos.toByteArray();
-        }
-    }
-
     private void confirmRestore() {
         restoreBackupLauncher.launch(new String[]{"*/*"});
     }
 
-    private void doRestore(Uri uri) {
-        new Thread(() -> {
-            try {
-                byte[] data = readBytes(uri);
-                if (BackupCrypto.isEncrypted(data)) {
-                    runOnUiThread(() -> askBackupPassword(data));
-                    return;
-                }
-                openRestore(data);
-            } catch (Exception e) {
-                postRestoreError(e);
-            }
-        }).start();
-    }
-
-    private void askBackupPassword(byte[] data) {
-        final TextInputEditText field = new TextInputEditText(this);
-        field.setHint(getString(R.string.backup_password_hint));
-        field.setInputType(android.text.InputType.TYPE_CLASS_TEXT
-                | android.text.InputType.TYPE_TEXT_VARIATION_PASSWORD);
-        int pad = Math.round(24 * getResources().getDisplayMetrics().density);
-        LinearLayout box = new LinearLayout(this);
-        box.setOrientation(LinearLayout.VERTICAL);
-        box.setPadding(pad, pad / 2, pad, 0);
-        box.addView(field);
-        new AppDialog(this)
-                .setTitle(R.string.restore_password_title)
-                .setView(box)
-                .setPositiveButton(R.string.restore_db, (d, w) -> {
-                    String pw = field.getText() == null ? "" : field.getText().toString();
-                    new Thread(() -> {
-                        byte[] plain;
-                        try {
-                            plain = BackupCrypto.decrypt(data, pw);
-                        } catch (Exception e) {
-                            runOnUiThread(() -> Toast.makeText(this, R.string.restore_password_wrong,
-                                    Toast.LENGTH_LONG).show());
-                            return;
-                        }
-                        try {
-                            openRestore(plain);
-                        } catch (Exception e) {
-                            postRestoreError(e);
-                        }
-                    }).start();
-                })
-                .show();
-    }
-
-    /**
-     * Eine Profil-Sicherung geht direkt in die Daten/Einstellungen-Auswahl; eine Alle-Profile-Sicherung
-     * fragt zuerst, welches der darin enthaltenen Profile das aktive ersetzen soll (siehe
-     * {@link BackupStore#restoreProfileFromAllBackup}).
-     */
-    private void openRestore(byte[] zip) throws Exception {
-        final BackupArchive.Content content = BackupArchive.read(zip);
-        if (!content.hasData() && !content.hasSettings()) {
-            runOnUiThread(() -> Toast.makeText(this, R.string.restore_invalid, Toast.LENGTH_LONG).show());
-            return;
-        }
-        if (content.isAllProfiles()) {
-            runOnUiThread(() -> pickProfileFromBackup(content));
-        } else {
-            runOnUiThread(() -> chooseRestoreScope(content));
-        }
-    }
-
-    private void pickProfileFromBackup(BackupArchive.Content content) {
-        List<String[]> profiles;
-        try {
-            profiles = BackupStore.profilesInBackup(content);
-        } catch (JSONException e) {
-            Toast.makeText(this, R.string.restore_invalid, Toast.LENGTH_LONG).show();
-            return;
-        }
-        if (profiles.isEmpty()) {
-            Toast.makeText(this, R.string.restore_invalid, Toast.LENGTH_LONG).show();
-            return;
-        }
-        String[] labels = new String[profiles.size()];
-        for (int i = 0; i < profiles.size(); i++) {
-            labels[i] = profiles.get(i)[1];
-        }
-        new AppDialog(this)
-                .setTitle(R.string.restore_pick_profile_title)
-                .setItems(labels, (d, w) -> confirmRestoreFromAllBackup(content, profiles.get(w)[0]))
-                .show();
-    }
-
-    private void confirmRestoreFromAllBackup(BackupArchive.Content content, String sourceProfileId) {
-        new AppDialog(this)
-                .setTitle(R.string.restore_confirm_title)
-                .setMessage(R.string.restore_confirm_message)
-                .setPositiveButton(R.string.restore_db, (d, w) -> new Thread(() -> {
-                    try {
-                        BackupStore.restoreProfileFromAllBackup(this, content, sourceProfileId);
-                        postRestoreDone();
-                    } catch (Exception e) {
-                        postRestoreError(e);
-                    }
-                }).start())
-                .show();
-    }
-
-    /** „Daten", „Einstellungen" oder „Beides" – nur was die Sicherung auch enthält. */
-    private void chooseRestoreScope(BackupArchive.Content content) {
-        final List<String> labels = new ArrayList<>();
-        final List<Integer> scopes = new ArrayList<>();   // 0 = Daten, 1 = Einstellungen, 2 = beides
-        if (content.hasData()) {
-            labels.add(getString(R.string.restore_what_data));
-            scopes.add(0);
-        }
-        if (content.hasSettings()) {
-            labels.add(getString(R.string.restore_what_settings));
-            scopes.add(1);
-        }
-        if (content.hasData() && content.hasSettings()) {
-            labels.add(getString(R.string.restore_what_both));
-            scopes.add(2);
-        }
-        final int[] choice = {scopes.size() - 1};   // Vorgabe: der umfassendste Eintrag
-        new AppDialog(this)
-                .setTitle(R.string.restore_what_title)
-                .setSingleChoiceItems(labels.toArray(new String[0]), choice[0], (d, w) -> choice[0] = w)
-                .setPositiveButton(R.string.restore_db, (d, w) ->
-                        confirmAndRestore(content, scopes.get(choice[0])))
-                .show();
-    }
-
-    private void confirmAndRestore(BackupArchive.Content content, int scope) {
-        new AppDialog(this)
-                .setTitle(R.string.restore_confirm_title)
-                .setMessage(R.string.restore_confirm_message)
-                .setPositiveButton(R.string.restore_db, (d, w) -> applyRestore(content, scope))
-                .show();
-    }
-
-    private void applyRestore(BackupArchive.Content content, int scope) {
-        new Thread(() -> {
-            try {
-                if (scope == 0 || scope == 2) {
-                    BackupStore.restoreProfileData(this, content.db);
-                }
-                if (scope == 1 || scope == 2) {
-                    BackupStore.restoreProfileSettings(this, content);
-                }
-                postRestoreDone();
-            } catch (Exception e) {
-                postRestoreError(e);
-            }
-        }).start();
-    }
-
-    /** Nach einer Wiederherstellung ist der Activity-Stack auf eine frische MainActivity zu setzen –
-     *  dieselbe Begründung wie in {@link #finishFromProfileMask()}: die Datenbank wurde ersetzt. */
-    private void postRestoreDone() {
-        runOnUiThread(() -> {
-            Toast.makeText(this, R.string.restore_done, Toast.LENGTH_LONG).show();
-            Intent i = new Intent(this, MainActivity.class);
-            i.setFlags(Intent.FLAG_ACTIVITY_NEW_TASK | Intent.FLAG_ACTIVITY_CLEAR_TASK);
-            startActivity(i);
-        });
-    }
-
-    private void postRestoreError(Exception e) {
-        String msg = e.getMessage() == null ? e.toString() : e.getMessage();
-        runOnUiThread(() -> Toast.makeText(this,
-                getString(R.string.restore_failed, msg), Toast.LENGTH_LONG).show());
-    }
 
 }

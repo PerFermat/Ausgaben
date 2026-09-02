@@ -22,7 +22,6 @@ import com.google.android.material.textfield.MaterialAutoCompleteTextView;
 import com.google.android.material.textfield.TextInputEditText;
 import com.google.android.material.textfield.TextInputLayout;
 
-import org.json.JSONException;
 
 import java.io.ByteArrayOutputStream;
 import java.io.InputStream;
@@ -36,8 +35,6 @@ import java.util.Locale;
 import java.util.Map;
 
 import de.spahr.ausgaben.R;
-import de.spahr.ausgaben.backup.BackupArchive;
-import de.spahr.ausgaben.backup.BackupCrypto;
 import de.spahr.ausgaben.backup.BackupStore;
 import de.spahr.ausgaben.db.Booking;
 import de.spahr.ausgaben.db.Language;
@@ -57,7 +54,39 @@ import de.spahr.ausgaben.settings.SettingsStore;
  * {@code SettingsActivity} („Profil ändern") und der lange Druck auf eine Zeile in
  * {@link ProfileSwitchDialog}.
  */
-public class ProfileSettingsActivity extends LocalizedActivity implements SmbWizardController.Host {
+public class ProfileSettingsActivity extends LocalizedActivity implements SmbWizardController.Host, HostedDialog.Host {
+    /**
+     * Baut die Dialoge dieser Maske – beim ersten Mal und nach jeder Drehung erneut (siehe
+     * {@link HostedDialog}). Die beiden Browser-Dialoge der Verbindungsfelder liegen im
+     * {@link SyncFieldsController}; er baut sie selbst.
+     */
+    @Override
+    public android.app.Dialog buildDialog(String key, Bundle args) {
+        if (DLG_CSV_PICK.equals(key)) {
+            return buildCsvPick(args);
+        }
+        if (DLG_BACKUP_OPTIONS.equals(key)) {
+            return buildBackupOptions();
+        }
+        android.app.Dialog vomWiederherstellen = backupRestore.buildDialog(key, args);
+        if (vomWiederherstellen != null) {
+            return vomWiederherstellen;
+        }
+        return syncFields == null ? null : syncFields.buildDialog(key, args);
+    }
+
+    @Override
+    public void onDialogCancelled(String key, Bundle args) {
+        // Die Browser-Dialoge dürfen weggetippt werden; es folgt nichts daraus.
+    }
+
+    /** Schlüssel und Angaben der Dialoge dieser Maske – siehe {@link HostedDialog}. */
+    private static final String DLG_CSV_PICK = "dlg_csvPick";
+    private static final String DLG_BACKUP_OPTIONS = "dlg_backupOptions";
+    private static final String ARG_CSV_FOLDER = "a_csvFolder";
+    private static final String ARG_CSV_FOLDERS = "a_csvFolders";
+    private static final String ARG_CSV_FILES = "a_csvFiles";
+
 
     /**
      * true, solange ein Konten-Import (KMY-Depot oder CSV) im Hintergrund noch läuft. Verlässt man die
@@ -92,13 +121,13 @@ public class ProfileSettingsActivity extends LocalizedActivity implements SmbWiz
     private TextInputLayout passwordLayout;
     /** Assistent für SMB; ersetzt bei diesem Server-Typ die Felder URL/Benutzer/Passwort. */
     private SmbWizardController smbWizard;
+    private SyncFieldsController syncFields;
     private LinearLayout importStatus;
     private View importProgress;
     private TextView importStatusText;
 
     private List<Language> languages = new ArrayList<>();
     private String selectedExportMode = SettingsStore.MODE_CSV;
-    private String selectedServerType = SettingsStore.SERVER_NEXTCLOUD;
 
     // ---- Weitere Profil-Einstellungen (Währung, Dividenden, Budget, Standardkonto, Orte, Alias) ----
     private MaterialAutoCompleteTextView editDefaultAccount;
@@ -112,6 +141,7 @@ public class ProfileSettingsActivity extends LocalizedActivity implements SmbWiz
     private com.google.android.material.materialswitch.MaterialSwitch switchShowCurrency;
     private com.google.android.material.materialswitch.MaterialSwitch switchDividendGross;
     private TextInputEditText editDividendTaxRate;
+    private com.google.android.material.textfield.TextInputLayout dividendTaxLayout;
     private com.google.android.material.materialswitch.MaterialSwitch switchBudgetInternal;
     private com.google.android.material.materialswitch.MaterialSwitch switchAliasPrompt;
 
@@ -125,6 +155,8 @@ public class ProfileSettingsActivity extends LocalizedActivity implements SmbWiz
     private ActivityResultLauncher<String[]> csvLauncher;
     private ActivityResultLauncher<String> backupLauncher;
     private ActivityResultLauncher<String[]> restoreBackupLauncher;
+    /** Der gemeinsame Ablauf zum Einspielen einer Sicherung – siehe {@link BackupRestoreController}. */
+    private final BackupRestoreController backupRestore = new BackupRestoreController(this);
     /** Antworten aus dem Sichern-Dialog – gelten bis der Dateiname gewählt ist. */
     private boolean backupIncludeServerPassword;
     private String backupPassword = "";
@@ -145,9 +177,31 @@ public class ProfileSettingsActivity extends LocalizedActivity implements SmbWiz
         });
         toolbar.setTitle(getString(R.string.settings_profile_change));
 
+        // Nicht onBackPressed überschreiben: Das ist seit API 33 überholt, und mit
+        // android:enableOnBackInvokedCallback würde der Import-Schutz still übersprungen — die Maske
+        // schlösse mitten in einem laufenden Konten-Import, was die App zum Absturz bringt.
+        getOnBackPressedDispatcher().addCallback(this,
+                new androidx.activity.OnBackPressedCallback(true) {
+                    @Override
+                    public void handleOnBackPressed() {
+                        if (!blockIfImporting()) {
+                            finishToMainActivity();
+                        }
+                    }
+                });
+
         setupProfileColor();
         setupDeleteProfile();
+        setupSyncFields();
+        setupProfileFields();
+        setupBudgetAndAliases();
+        setupPlaces();
+        setupLaunchers();
+        setupButtons();
+    }
 
+    /** Datenquelle: Serverart, Zugangsdaten, Ordner und der SMB-Assistent. */
+    private void setupSyncFields() {
         editLanguage = findViewById(R.id.editLanguage);
         editExportMode = findViewById(R.id.editExportMode);
         editServerType = findViewById(R.id.editServerType);
@@ -166,13 +220,19 @@ public class ProfileSettingsActivity extends LocalizedActivity implements SmbWiz
         importStatusText = findViewById(R.id.importStatusText);
 
         smbWizard = new SmbWizardController(this, findViewById(R.id.smbWizard), settings, this);
+        // Serverart, Verbindungsprobe und Ordner-Browser – der gemeinsame Block beider
+        // Einrichtungsmasken, siehe {@link SyncFieldsController}.
+        syncFields = new SyncFieldsController(this, settings, smbWizard);
 
         setupLanguages();
         setupExportMode();
         setupCsvSeparator();
-        setupServerType();
+        syncFields.setupServerType();
         prefillSyncFields();
+    }
 
+    /** Standardkonto, Währung, Zahlenformat und die Dividenden-Einstellungen. */
+    private void setupProfileFields() {
         placesStore = new de.spahr.ausgaben.settings.PlacesStore(this);
         editDefaultAccount = findViewById(R.id.editDefaultAccount);
         editDefaultAccount.setText(settings.getDefaultAccount(), false);
@@ -188,14 +248,20 @@ public class ProfileSettingsActivity extends LocalizedActivity implements SmbWiz
         switchDividendGross = findViewById(R.id.switchDividendGross);
         switchDividendGross.setChecked(settings.isDividendGross());
         editDividendTaxRate = findViewById(R.id.editDividendTaxRate);
+        dividendTaxLayout = findViewById(R.id.dividendTaxLayout);
         // Ziffern und das oben eingestellte Dezimalzeichen – android:inputType="numberDecimal" kennt
         // nur den Punkt und verschluckte ein Komma (siehe AmountField).
         AmountField.preparePercent(editDividendTaxRate);
+        editDividendTaxRate.addTextChangedListener(
+                new SimpleWatcher(() -> dividendTaxLayout.setError(null)));
         double taxPercent = settings.getDividendTaxPercent();
         if (taxPercent > 0) {
             editDividendTaxRate.setText(de.spahr.ausgaben.settings.MoneyFormat.decimal(taxPercent, 0, 5));
         }
+    }
 
+    /** Budget-Schalter samt seinen beiden Knöpfen und die Alias-Einstellung. */
+    private void setupBudgetAndAliases() {
         switchBudgetInternal = findViewById(R.id.switchBudgetInternal);
         switchBudgetInternal.setChecked(settings.isBudgetInternal());
         ((MaterialButton) findViewById(R.id.btnBudgetCompute)).setOnClickListener(v -> {
@@ -219,9 +285,15 @@ public class ProfileSettingsActivity extends LocalizedActivity implements SmbWiz
         switchAliasPrompt.setChecked(settings.isAliasPromptEnabled());
         ((MaterialButton) findViewById(R.id.btnManageAliases)).setOnClickListener(
                 v -> startActivity(new Intent(this, AliasActivity.class)));
+    }
 
-        setupPlaces();
-
+    /**
+     * Die drei Dateiauswahl-Anmeldungen.
+     *
+     * <p>Muss beim Aufbau der Maske geschehen: Ein {@code ActivityResultLauncher} lässt sich später
+     * nicht mehr anmelden.</p>
+     */
+    private void setupLaunchers() {
         csvLauncher = registerForActivityResult(
                 new ActivityResultContracts.OpenDocument(), uri -> {
                     if (uri != null) {
@@ -239,28 +311,31 @@ public class ProfileSettingsActivity extends LocalizedActivity implements SmbWiz
                 new ActivityResultContracts.OpenDocument(),
                 uri -> {
                     if (uri != null) {
-                        doRestore(uri);
+                        backupRestore.restore(uri);
                     }
                 });
+    }
 
+    /** Alle Knöpfe der Maske an einer Stelle. */
+    private void setupButtons() {
         ((MaterialButton) findViewById(R.id.btnTestConnection))
-                .setOnClickListener(v -> testConnection());
+                .setOnClickListener(v -> syncFields.testConnection());
         ((MaterialButton) findViewById(R.id.btnSmbDiagnose))
                 .setOnClickListener(v -> runSmbDiagnostics());
         findViewById(R.id.btnSmbSearch).setOnClickListener(v -> {
             smbWizard.restart();
-            applyServerTypeHints();
+            syncFields.applyServerTypeHints();
         });
         ((MaterialButton) findViewById(R.id.btnBrowseKmy))
-                .setOnClickListener(v -> browseKmy());
+                .setOnClickListener(v -> syncFields.browseKmy());
         ((MaterialButton) findViewById(R.id.btnBrowseFolder))
-                .setOnClickListener(v -> browseFolderInto(editFolder));
+                .setOnClickListener(v -> syncFields.browseFolderInto(editFolder));
         ((MaterialButton) findViewById(R.id.btnBrowseImportFolder))
-                .setOnClickListener(v -> browseFolderInto(editImportFolder));
+                .setOnClickListener(v -> syncFields.browseFolderInto(editImportFolder));
         ((MaterialButton) findViewById(R.id.btnImportAccounts))
                 .setOnClickListener(v -> importAccounts());
         ((MaterialButton) findViewById(R.id.btnDone)).setOnClickListener(v -> {
-            if (blockIfImporting()) {
+            if (blockIfImporting() || !steuersatzIstBrauchbar()) {
                 return;
             }
             saveSettings();
@@ -273,13 +348,6 @@ public class ProfileSettingsActivity extends LocalizedActivity implements SmbWiz
         ((MaterialButton) findViewById(R.id.btnResetProfile)).setOnClickListener(v -> confirmResetProfile());
     }
 
-    @Override
-    public void onBackPressed() {
-        if (blockIfImporting()) {
-            return;
-        }
-        finishToMainActivity();
-    }
 
     /**
      * Ein Konten-Import läuft im Hintergrund auf einer eigenen Datenbankverbindung weiter, auch wenn
@@ -434,54 +502,6 @@ public class ProfileSettingsActivity extends LocalizedActivity implements SmbWiz
         });
     }
 
-    private void setupServerType() {
-        String ncLabel = getString(R.string.server_type_nextcloud);
-        String davLabel = getString(R.string.server_type_webdav);
-        String smbLabel = getString(R.string.server_type_smb);
-        PickerAdapters.plain(editServerType, java.util.Arrays.asList(ncLabel, davLabel, smbLabel));
-        selectedServerType = settings.getServerType();
-        editServerType.setText(labelForServerType(ncLabel, davLabel, smbLabel), false);
-        applyServerTypeHints();
-        editServerType.setOnItemClickListener((parent, view, position, id) -> {
-            selectedServerType = position == 1 ? SettingsStore.SERVER_WEBDAV
-                    : position == 2 ? SettingsStore.SERVER_SMB : SettingsStore.SERVER_NEXTCLOUD;
-            settings.setServerType(selectedServerType);
-            applyServerTypeHints();
-        });
-    }
-
-    private String labelForServerType(String nc, String dav, String smb) {
-        if (SettingsStore.SERVER_WEBDAV.equals(selectedServerType)) {
-            return dav;
-        }
-        if (SettingsStore.SERVER_SMB.equals(selectedServerType)) {
-            return smb;
-        }
-        return nc;
-    }
-
-    /** Wie in den Einstellungen: bei SMB übernimmt der Assistent die Felder URL/Benutzer/Passwort. */
-    private void applyServerTypeHints() {
-        boolean smb = SettingsStore.SERVER_SMB.equals(selectedServerType);
-        urlLayout.setHint(getString(smb ? R.string.smb_url_hint : R.string.nextcloud_url_hint));
-        userLayout.setHint(getString(smb ? R.string.smb_user_hint : R.string.nextcloud_user_hint));
-        if (!smb) {
-            smbWizard.resetManual();
-        }
-        boolean wizard = smb && !smbWizard.isManual();
-        int fields = wizard ? View.GONE : View.VISIBLE;
-        urlLayout.setVisibility(fields);
-        userLayout.setVisibility(fields);
-        passwordLayout.setVisibility(fields);
-        findViewById(R.id.btnTestConnection).setVisibility(fields);
-        // Die Diagnose gilt der eingerichteten Verbindung – gerade beim Erststart ist sie das
-        // Werkzeug, mit dem man überhaupt herausfindet, woran es hakt.
-        findViewById(R.id.btnSmbDiagnose).setVisibility(smb ? View.VISIBLE : View.GONE);
-        // Rückweg zum Assistenten nur, solange SMB gewählt und gerade manuell eingegeben wird.
-        findViewById(R.id.btnSmbSearch).setVisibility(smb && !wizard ? View.VISIBLE : View.GONE);
-        smbWizard.setVisible(wizard);
-    }
-
     @Override
     protected void onDestroy() {
         smbWizard.stopDiscovery();
@@ -500,7 +520,7 @@ public class ProfileSettingsActivity extends LocalizedActivity implements SmbWiz
 
     @Override
     public void onSmbManualRequested() {
-        applyServerTypeHints();
+        syncFields.applyServerTypeHints();
     }
 
     private void prefillSyncFields() {
@@ -513,6 +533,12 @@ public class ProfileSettingsActivity extends LocalizedActivity implements SmbWiz
         // gespeichert, unter dem Feld „••••••" anzeigen (wie in den Einstellungen).
         if (settings.hasPassword()) {
             passwordLayout.setHelperText(getString(R.string.password_saved_hint));
+        }
+        // Ein defekter Schlüsselspeicher lässt die App weiterlaufen, legt das Server-Passwort dann aber
+        // unverschlüsselt ab. Das gehört gesagt – und zwar dort, wo man es eingibt.
+        if (SettingsStore.isSecretStorageUnencrypted(this)) {
+            passwordLayout.setError(getString(R.string.settings_secret_fallback));
+            passwordLayout.setErrorIconDrawable(null);
         }
     }
 
@@ -532,7 +558,7 @@ public class ProfileSettingsActivity extends LocalizedActivity implements SmbWiz
                 defaultAccount,
                 selectedExportMode,
                 textOf(editKmyPath),
-                selectedServerType);
+                syncFields.serverType());
         settings.setCsvSeparator(selectedCsvSeparator);
 
         repository.ensureAccount(defaultAccount);
@@ -540,9 +566,13 @@ public class ProfileSettingsActivity extends LocalizedActivity implements SmbWiz
         settings.setNumberFormat(selectedNumberFormat);
         settings.setCurrencyShown(switchShowCurrency.isChecked());
         settings.setDividendGross(switchDividendGross.isChecked());
-        // Der Steuersatz kommt im eingestellten Zahlenformat herein (Komma oder Punkt); ein unlesbarer
-        // oder unsinniger Wert schaltet die Vorbelegung ab, statt eine falsche Steuer zu erzeugen.
-        settings.setDividendTaxPercent(parsePercent(textOf(editDividendTaxRate)));
+        // Der Steuersatz kommt im eingestellten Zahlenformat herein (Komma oder Punkt). Ein unlesbarer
+        // Wert lässt den gespeicherten stehen – siehe TextValues.percentOrNull; abgeschaltet wird die Vorbelegung
+        // nur durch ein leeres Feld.
+        Double steuersatz = de.spahr.ausgaben.util.TextValues.percentOrNull(textOf(editDividendTaxRate));
+        if (steuersatz != null) {
+            settings.setDividendTaxPercent(steuersatz);
+        }
         settings.setBudgetInternal(switchBudgetInternal.isChecked());
         settings.setAliasPromptEnabled(switchAliasPrompt.isChecked());
         de.spahr.ausgaben.settings.Currencies.refresh(this);
@@ -553,21 +583,19 @@ public class ProfileSettingsActivity extends LocalizedActivity implements SmbWiz
     }
 
     /**
-     * Der Steuersatz in Prozent, im eingestellten Zahlenformat eingegeben. Komma wie Punkt werden
-     * angenommen. Leer, unlesbar oder außerhalb von 0 bis unter 100 ergibt 0 – dann belegt die
-     * Wertpapier-Erfassung die Steuer eben nicht vor.
+     * Meldet einen unbrauchbaren Steuersatz am Feld und verhindert das Verlassen der Maske. Gerufen
+     * wird das nur beim ausdrücklichen „Fertig" – wer die Maske über einen anderen Weg verlässt, soll
+     * an einer Nebensächlichkeit nicht hängenbleiben; dort greift die Regel aus
+     * {@link de.spahr.ausgaben.util.TextValues#percentOrNull}, den gespeicherten Wert stehen zu lassen.
      */
-    private static double parsePercent(String raw) {
-        String t = raw == null ? "" : raw.trim().replace(',', '.');
-        if (t.isEmpty()) {
-            return 0;
+    private boolean steuersatzIstBrauchbar() {
+        if (de.spahr.ausgaben.util.TextValues.percentOrNull(textOf(editDividendTaxRate)) != null) {
+            dividendTaxLayout.setError(null);
+            return true;
         }
-        try {
-            double v = Double.parseDouble(t);
-            return v > 0 && v < 100 ? v : 0;
-        } catch (NumberFormatException e) {
-            return 0;
-        }
+        dividendTaxLayout.setError(getString(R.string.dividend_tax_rate_invalid));
+        editDividendTaxRate.requestFocus();
+        return false;
     }
 
     /** Dropdown mit den vier Zahlenformat-Optionen (Beispiel-Labels); Vorauswahl aus den Einstellungen. */
@@ -715,39 +743,7 @@ public class ProfileSettingsActivity extends LocalizedActivity implements SmbWiz
         activity.startActivity(new Intent(activity, ProfileSettingsActivity.class));
     }
 
-    /**
-     * Grund einer fehlgeschlagenen Server-Aktion. Bei SMB dieselben klaren Meldungen wie im Assistenten
-     * („Server nicht erreichbar", „Zugriff auf den Ordner wurde verweigert" …) statt der rohen
-     * smbj-Texte; für WebDAV/Nextcloud bleibt es beim bisherigen Text.
-     */
-    private String serverError(Exception e) {
-        if (SettingsStore.SERVER_SMB.equals(selectedServerType)) {
-            return de.spahr.ausgaben.net.smb.SmbErrors.messageFor(this,
-                    de.spahr.ausgaben.net.smb.SmbErrors.Step.FOLDER, e);
-        }
-        return e.getMessage() == null ? e.toString() : e.getMessage();
-    }
-
     // ---- Verbindung testen / .kmy auswählen (gleiches Verhalten wie in den Einstellungen) ----
-
-    private void testConnection() {
-        final String serverType = selectedServerType;
-        final String url = textOf(editUrl);
-        final String user = textOf(editUser);
-        String pw = textOf(editPassword);
-        final String password = pw.isEmpty() ? settings.getPassword() : pw; // leer → gespeichertes nutzen
-        Toast.makeText(this, R.string.conn_testing, Toast.LENGTH_SHORT).show();
-        new Thread(() -> {
-            try {
-                RemoteStorage.from(serverType, url, user, password).testConnection();
-                runOnUiThread(() -> Toast.makeText(this, R.string.conn_ok, Toast.LENGTH_LONG).show());
-            } catch (Exception e) {
-                final String msg = serverError(e);
-                runOnUiThread(() -> Toast.makeText(this,
-                        getString(R.string.conn_failed, msg), Toast.LENGTH_LONG).show());
-            }
-        }).start();
-    }
 
     /**
      * SMB-Diagnose: läuft die ganze Kette in einer Anmeldung durch und zeigt je Schritt Ergebnis und
@@ -764,119 +760,14 @@ public class ProfileSettingsActivity extends LocalizedActivity implements SmbWiz
                 kmy ? RemotePath.folderOf(path) : path, kmy ? RemotePath.fileOf(path) : "");
     }
 
-    private void browseKmy() {
-        browseKmyAt(RemotePath.folderOf(textOf(editKmyPath)));
-    }
-
-    private void browseKmyAt(String folder) {
-        final String serverType = selectedServerType;
-        final String url = textOf(editUrl);
-        final String user = textOf(editUser);
-        String pw = textOf(editPassword);
-        final String password = pw.isEmpty() ? settings.getPassword() : pw;
-        Toast.makeText(this, R.string.loading_files, Toast.LENGTH_SHORT).show();
-        new Thread(() -> {
-            try {
-                // Ordner und Dateien in einem Aufruf: SMB meldet sich sonst zweimal hintereinander an.
-                RemoteStorage.Entries entries = RemoteStorage.from(serverType, url, user, password)
-                        .listEntries(folder, "kmy");
-                List<String> folders = entries.folders;
-                List<String> files = entries.files;
-                java.util.Collections.sort(folders, String.CASE_INSENSITIVE_ORDER);
-                java.util.Collections.sort(files, String.CASE_INSENSITIVE_ORDER);
-                runOnUiThread(() -> {
-                    if (folder.isEmpty() && folders.isEmpty() && files.isEmpty()) {
-                        Toast.makeText(this, R.string.kmy_browse_none, Toast.LENGTH_LONG).show();
-                    } else {
-                        showKmyPick(folder, folders, files);
-                    }
-                });
-            } catch (Exception e) {
-                final String msg = serverError(e);
-                runOnUiThread(() -> Toast.makeText(this,
-                        getString(R.string.conn_failed, msg), Toast.LENGTH_LONG).show());
-            }
-        }).start();
-    }
-
-    private void showKmyPick(String folder, List<String> folders, List<String> files) {
-        final List<String> labels = new ArrayList<>();
-        final List<Runnable> actions = new ArrayList<>();
-        if (!folder.isEmpty()) {
-            labels.add("↑  ..");
-            actions.add(() -> browseKmyAt(RemotePath.parentFolder(folder)));
-        }
-        for (String d : folders) {
-            labels.add("📁  " + d);
-            final String target = folder.isEmpty() ? d : folder + "/" + d;
-            actions.add(() -> browseKmyAt(target));
-        }
-        for (String f : files) {
-            labels.add(f);
-            final String path = folder.isEmpty() ? f : folder + "/" + f;
-            actions.add(() -> editKmyPath.setText(path));
-        }
-        String title = folder.isEmpty() ? getString(R.string.kmy_browse) : "/" + folder;
-        new AppDialog(this)
-                .setTitle(title)
-                .setItems(labels.toArray(new String[0]), (d, w) -> actions.get(w).run())
-                .show();
-    }
-
-    /**
-     * Navigierbarer Ordner-Dialog (nur Ordner) für die CSV-Export-/Import-Ordner. Nutzt – wie der
-     * kmy-Browser – {@link RemoteStorage} mit den aktuell eingegebenen Zugangsdaten, gilt also für
-     * Nextcloud, WebDAV und SMB.
-     */
-    private void browseFolderInto(TextInputEditText target) {
-        browseFolderAt(textOf(target), target);
-    }
-
-    private void browseFolderAt(String folder, TextInputEditText target) {
-        final String serverType = selectedServerType;
-        final String url = textOf(editUrl);
-        final String user = textOf(editUser);
-        String pw = textOf(editPassword);
-        final String password = pw.isEmpty() ? settings.getPassword() : pw;
-        Toast.makeText(this, R.string.loading_files, Toast.LENGTH_SHORT).show();
-        new Thread(() -> {
-            try {
-                RemoteStorage storage = RemoteStorage.from(serverType, url, user, password);
-                List<String> folders = storage.listFolders(folder);
-                java.util.Collections.sort(folders, String.CASE_INSENSITIVE_ORDER);
-                runOnUiThread(() -> showFolderPick(folder, folders, target));
-            } catch (Exception e) {
-                final String msg = serverError(e);
-                runOnUiThread(() -> Toast.makeText(this,
-                        getString(R.string.conn_failed, msg), Toast.LENGTH_LONG).show());
-            }
-        }).start();
-    }
-
-    private void showFolderPick(String folder, List<String> folders, TextInputEditText target) {
-        final List<String> labels = new ArrayList<>();
-        final List<Runnable> actions = new ArrayList<>();
-        labels.add(getString(R.string.folder_choose_this));
-        actions.add(() -> target.setText(folder));
-        if (!folder.isEmpty()) {
-            labels.add("↑  ..");
-            actions.add(() -> browseFolderAt(RemotePath.parentFolder(folder), target));
-        }
-        for (String d : folders) {
-            labels.add("📁  " + d);
-            final String next = folder.isEmpty() ? d : folder + "/" + d;
-            actions.add(() -> browseFolderAt(next, target));
-        }
-        String title = folder.isEmpty() ? getString(R.string.folder_browse) : "/" + folder;
-        new AppDialog(this)
-                .setTitle(title)
-                .setItems(labels.toArray(new String[0]), (d, w) -> actions.get(w).run())
-                .show();
-    }
-
     // ---- Konten importieren (gleicher Ablauf wie MainActivity.onAddAccountClicked) ----
 
     private void importAccounts() {
+        // Ohne diese Sperre startet jeder weitere Tipp einen zweiten Download und einen zweiten Import
+        // auf dieselbe Datenbank – während der erste noch schreibt.
+        if (blockIfImporting()) {
+            return;
+        }
         saveSettings();
         if (!settings.isKmyMode()) {
             startCsvImport();
@@ -1044,7 +935,7 @@ public class ProfileSettingsActivity extends LocalizedActivity implements SmbWiz
                     }
                 });
             } catch (Exception e) {
-                final String msg = serverError(e);
+                final String msg = syncFields.serverError(e);
                 runOnUiThread(() -> Toast.makeText(this,
                         getString(R.string.import_failed, msg), Toast.LENGTH_LONG).show());
             }
@@ -1052,26 +943,39 @@ public class ProfileSettingsActivity extends LocalizedActivity implements SmbWiz
     }
 
     private void showCsvPick(String folder, List<String> folders, List<String> files) {
+        Bundle args = new Bundle();
+        args.putString(ARG_CSV_FOLDER, folder);
+        args.putStringArray(ARG_CSV_FOLDERS, folders.toArray(new String[0]));
+        args.putStringArray(ARG_CSV_FILES, files.toArray(new String[0]));
+        HostedDialog.show(this, DLG_CSV_PICK, args);
+    }
+
+    /**
+     * Baut den Datei-Browser aus dem, was im Bundle steht — beim ersten Mal und nach jeder Drehung.
+     * Der Serverzugriff bleibt dabei aus: Die Liste dieses Ordners steht schon in den Angaben.
+     */
+    private android.app.Dialog buildCsvPick(Bundle args) {
+        final String folder = args.getString(ARG_CSV_FOLDER, "");
         final List<String> labels = new ArrayList<>();
         final List<Runnable> actions = new ArrayList<>();
         if (!folder.isEmpty()) {
             labels.add("↑  ..");
             actions.add(() -> browseCsvAt(RemotePath.parentFolder(folder)));
         }
-        for (String d : folders) {
+        for (String d : args.getStringArray(ARG_CSV_FOLDERS)) {
             labels.add("📁  " + d);
             final String target = folder.isEmpty() ? d : folder + "/" + d;
             actions.add(() -> browseCsvAt(target));
         }
-        for (String f : files) {
+        for (String f : args.getStringArray(ARG_CSV_FILES)) {
             labels.add(f);
             actions.add(() -> downloadAndImportCsv(folder, f));
         }
         String title = folder.isEmpty() ? getString(R.string.choose_import_file) : "/" + folder;
-        new AppDialog(this)
+        return new AppDialog(this)
                 .setTitle(title)
                 .setItems(labels.toArray(new String[0]), (d, w) -> actions.get(w).run())
-                .show();
+                .create();
     }
 
     private void downloadAndImportCsv(String folder, String fileName) {
@@ -1124,7 +1028,7 @@ public class ProfileSettingsActivity extends LocalizedActivity implements SmbWiz
     }
 
     private void postImportError(Exception e) {
-        final String msg = serverError(e);
+        final String msg = syncFields.serverError(e);
         runOnUiThread(() -> {
             hideImportStatus();
             Toast.makeText(this, getString(R.string.import_failed, msg), Toast.LENGTH_LONG).show();
@@ -1133,10 +1037,15 @@ public class ProfileSettingsActivity extends LocalizedActivity implements SmbWiz
 
     private String readText(Uri uri) throws Exception {
         try (InputStream is = getContentResolver().openInputStream(uri)) {
+            if (is == null) {
+                // Einmal davor prüfen statt in jedem Schleifendurchlauf – und vor allem: sagen, dass
+                // die Datei nicht lesbar war, statt eine leere Zeichenkette zurückzugeben.
+                throw new java.io.IOException(getString(R.string.backup_source_unreadable));
+            }
             ByteArrayOutputStream bos = new ByteArrayOutputStream();
             byte[] buf = new byte[8192];
             int n;
-            while (is != null && (n = is.read(buf)) > 0) {
+            while ((n = is.read(buf)) > 0) {
                 bos.write(buf, 0, n);
             }
             return new String(bos.toByteArray(), StandardCharsets.UTF_8);
@@ -1149,20 +1058,20 @@ public class ProfileSettingsActivity extends LocalizedActivity implements SmbWiz
 
     // ---- Sicherung/Wiederherstellen (nur das aktive Profil) ----
 
-    private byte[] readBytes(Uri uri) throws Exception {
-        try (InputStream is = getContentResolver().openInputStream(uri)) {
-            ByteArrayOutputStream bos = new ByteArrayOutputStream();
-            byte[] buf = new byte[8192];
-            int n;
-            while (is != null && (n = is.read(buf)) > 0) {
-                bos.write(buf, 0, n);
-            }
-            return bos.toByteArray();
-        }
-    }
-
     /** Vor dem Sichern fragen: Server-Passwort mitsichern? Datei mit eigenem Passwort verschlüsseln? */
     private void askBackupOptions() {
+        HostedDialog.show(this, DLG_BACKUP_OPTIONS, null);
+    }
+
+    /**
+     * Der Sichern-Dialog – nach einer Drehung baut ihn die neue Maske erneut.
+     *
+     * <p>Was eingetippt war, stellt das Fenstersystem selbst wieder her: Die Felder im eingebundenen
+     * Layout haben ids, und ein {@link androidx.fragment.app.DialogFragment} sichert den Zustand seiner
+     * Ansichten mit. Vorher war der Dialog nach der Drehung weg, und das zweimal eingetippte Passwort
+     * mit ihm.</p>
+     */
+    private android.app.Dialog buildBackupOptions() {
         View view = LayoutInflater.from(this).inflate(R.layout.dialog_backup_options, null, false);
         ((TextView) view.findViewById(R.id.backupOptionsMessage))
                 .setText(R.string.backup_options_message_profile);
@@ -1183,19 +1092,37 @@ public class ProfileSettingsActivity extends LocalizedActivity implements SmbWiz
                         Toast.makeText(this, R.string.backup_password_mismatch, Toast.LENGTH_LONG).show();
                         return;
                     }
+                    // Leer heißt „ohne Verschlüsselung" – das bleibt erlaubt. Nur ein Passwort, das
+                    // seinen Zweck nicht erfüllen kann, wird abgelehnt: die Sicherung enthält den
+                    // gesamten Buchungsbestand und liegt danach irgendwo als Datei.
+                    if (!p1.isEmpty() && p1.length() < de.spahr.ausgaben.backup.BackupCrypto.MIN_PASSWORD_LENGTH) {
+                        Toast.makeText(this, getString(R.string.backup_password_too_short,
+                                de.spahr.ausgaben.backup.BackupCrypto.MIN_PASSWORD_LENGTH), Toast.LENGTH_LONG).show();
+                        return;
+                    }
                     backupIncludeServerPassword = include.isChecked();
                     backupPassword = p1;
                     dialog.dismiss();
                     backupLauncher.launch("ausgaben-profil-" + timestamp() + (p1.isEmpty() ? ".zip" : ".abk"));
                 }));
-        dialog.show();
+        return dialog;
     }
 
     private void doBackup(Uri uri) {
+        // Aus dem Feld genommen, bevor der Faden startet: danach hängt das Passwort nur noch am
+        // laufenden Vorgang und nicht mehr an der Maske. Bis 1.12 blieb es dort bis zum Schließen der
+        // Activity stehen, obwohl es nach dem Schreiben der Datei niemand mehr braucht.
+        final String passwort = backupPassword;
+        backupPassword = "";
         new Thread(() -> {
             try {
-                byte[] file = BackupStore.createProfile(this, backupIncludeServerPassword, backupPassword);
+                byte[] file = BackupStore.createProfile(this, backupIncludeServerPassword, passwort);
                 try (OutputStream out = getContentResolver().openOutputStream(uri)) {
+                    if (out == null) {
+                        // Ohne diese Prüfung landete die NullPointerException im catch darunter und
+                        // der Nutzer las „Sicherung fehlgeschlagen: null".
+                        throw new java.io.IOException(getString(R.string.backup_target_unwritable));
+                    }
                     out.write(file);
                 }
                 runOnUiThread(() -> Toast.makeText(this, R.string.backup_done, Toast.LENGTH_LONG).show());
@@ -1213,176 +1140,6 @@ public class ProfileSettingsActivity extends LocalizedActivity implements SmbWiz
 
     private void confirmRestore() {
         restoreBackupLauncher.launch(new String[]{"*/*"});
-    }
-
-    private void doRestore(Uri uri) {
-        new Thread(() -> {
-            try {
-                byte[] data = readBytes(uri);
-                if (BackupCrypto.isEncrypted(data)) {
-                    runOnUiThread(() -> askBackupPassword(data));
-                    return;
-                }
-                openRestore(data);
-            } catch (Exception e) {
-                postRestoreError(e);
-            }
-        }).start();
-    }
-
-    private void askBackupPassword(byte[] data) {
-        final TextInputEditText field = new TextInputEditText(this);
-        field.setHint(getString(R.string.backup_password_hint));
-        field.setInputType(android.text.InputType.TYPE_CLASS_TEXT
-                | android.text.InputType.TYPE_TEXT_VARIATION_PASSWORD);
-        int pad = Math.round(24 * getResources().getDisplayMetrics().density);
-        LinearLayout box = new LinearLayout(this);
-        box.setOrientation(LinearLayout.VERTICAL);
-        box.setPadding(pad, pad / 2, pad, 0);
-        box.addView(field);
-        new AppDialog(this)
-                .setTitle(R.string.restore_password_title)
-                .setView(box)
-                .setPositiveButton(R.string.restore_db, (d, w) -> {
-                    String pw = field.getText() == null ? "" : field.getText().toString();
-                    new Thread(() -> {
-                        byte[] plain;
-                        try {
-                            plain = BackupCrypto.decrypt(data, pw);
-                        } catch (Exception e) {
-                            runOnUiThread(() -> Toast.makeText(this, R.string.restore_password_wrong,
-                                    Toast.LENGTH_LONG).show());
-                            return;
-                        }
-                        try {
-                            openRestore(plain);
-                        } catch (Exception e) {
-                            postRestoreError(e);
-                        }
-                    }).start();
-                })
-                .show();
-    }
-
-    /**
-     * Eine Profil-Sicherung geht direkt in die Daten/Einstellungen-Auswahl; eine Alle-Profile-Sicherung
-     * fragt zuerst, welches der darin enthaltenen Profile das aktive ersetzen soll (siehe
-     * {@link BackupStore#restoreProfileFromAllBackup}).
-     */
-    private void openRestore(byte[] zip) throws Exception {
-        final BackupArchive.Content content = BackupArchive.read(zip);
-        if (!content.hasData() && !content.hasSettings()) {
-            runOnUiThread(() -> Toast.makeText(this, R.string.restore_invalid, Toast.LENGTH_LONG).show());
-            return;
-        }
-        if (content.isAllProfiles()) {
-            runOnUiThread(() -> pickProfileFromBackup(content));
-        } else {
-            runOnUiThread(() -> chooseRestoreScope(content));
-        }
-    }
-
-    private void pickProfileFromBackup(BackupArchive.Content content) {
-        List<String[]> profiles;
-        try {
-            profiles = BackupStore.profilesInBackup(content);
-        } catch (JSONException e) {
-            Toast.makeText(this, R.string.restore_invalid, Toast.LENGTH_LONG).show();
-            return;
-        }
-        if (profiles.isEmpty()) {
-            Toast.makeText(this, R.string.restore_invalid, Toast.LENGTH_LONG).show();
-            return;
-        }
-        String[] labels = new String[profiles.size()];
-        for (int i = 0; i < profiles.size(); i++) {
-            labels[i] = profiles.get(i)[1];
-        }
-        new AppDialog(this)
-                .setTitle(R.string.restore_pick_profile_title)
-                .setItems(labels, (d, w) -> confirmRestoreFromAllBackup(content, profiles.get(w)[0]))
-                .show();
-    }
-
-    private void confirmRestoreFromAllBackup(BackupArchive.Content content, String sourceProfileId) {
-        new AppDialog(this)
-                .setTitle(R.string.restore_confirm_title)
-                .setMessage(R.string.restore_confirm_message)
-                .setPositiveButton(R.string.restore_db, (d, w) -> new Thread(() -> {
-                    try {
-                        BackupStore.restoreProfileFromAllBackup(this, content, sourceProfileId);
-                        postRestoreDone();
-                    } catch (Exception e) {
-                        postRestoreError(e);
-                    }
-                }).start())
-                .show();
-    }
-
-    /** „Daten", „Einstellungen" oder „Beides" – nur was die Sicherung auch enthält. */
-    private void chooseRestoreScope(BackupArchive.Content content) {
-        final List<String> labels = new ArrayList<>();
-        final List<Integer> scopes = new ArrayList<>();   // 0 = Daten, 1 = Einstellungen, 2 = beides
-        if (content.hasData()) {
-            labels.add(getString(R.string.restore_what_data));
-            scopes.add(0);
-        }
-        if (content.hasSettings()) {
-            labels.add(getString(R.string.restore_what_settings));
-            scopes.add(1);
-        }
-        if (content.hasData() && content.hasSettings()) {
-            labels.add(getString(R.string.restore_what_both));
-            scopes.add(2);
-        }
-        final int[] choice = {scopes.size() - 1};   // Vorgabe: der umfassendste Eintrag
-        new AppDialog(this)
-                .setTitle(R.string.restore_what_title)
-                .setSingleChoiceItems(labels.toArray(new String[0]), choice[0], (d, w) -> choice[0] = w)
-                .setPositiveButton(R.string.restore_db, (d, w) ->
-                        confirmAndRestore(content, scopes.get(choice[0])))
-                .show();
-    }
-
-    private void confirmAndRestore(BackupArchive.Content content, int scope) {
-        new AppDialog(this)
-                .setTitle(R.string.restore_confirm_title)
-                .setMessage(R.string.restore_confirm_message)
-                .setPositiveButton(R.string.restore_db, (d, w) -> applyRestore(content, scope))
-                .show();
-    }
-
-    private void applyRestore(BackupArchive.Content content, int scope) {
-        new Thread(() -> {
-            try {
-                if (scope == 0 || scope == 2) {
-                    BackupStore.restoreProfileData(this, content.db);
-                }
-                if (scope == 1 || scope == 2) {
-                    BackupStore.restoreProfileSettings(this, content);
-                }
-                postRestoreDone();
-            } catch (Exception e) {
-                postRestoreError(e);
-            }
-        }).start();
-    }
-
-    /** Nach einer Wiederherstellung ist der Activity-Stack auf eine frische MainActivity zu setzen –
-     *  dieselbe Begründung wie in {@link #finishFromProfileMask()}: die Datenbank wurde ersetzt. */
-    private void postRestoreDone() {
-        runOnUiThread(() -> {
-            Toast.makeText(this, R.string.restore_done, Toast.LENGTH_LONG).show();
-            Intent i = new Intent(this, MainActivity.class);
-            i.setFlags(Intent.FLAG_ACTIVITY_NEW_TASK | Intent.FLAG_ACTIVITY_CLEAR_TASK);
-            startActivity(i);
-        });
-    }
-
-    private void postRestoreError(Exception e) {
-        String msg = e.getMessage() == null ? e.toString() : e.getMessage();
-        runOnUiThread(() -> Toast.makeText(this,
-                getString(R.string.restore_failed, msg), Toast.LENGTH_LONG).show());
     }
 
     // ---- Konto löschen/schließen (nur das aktive Profil, siehe Repository) ----
@@ -1406,19 +1163,11 @@ public class ProfileSettingsActivity extends LocalizedActivity implements SmbWiz
 
     /** Mehrfachauswahl-Dialog; die Aktionsbuttons werden je nach Auswahl dynamisch ein-/ausgeblendet. */
     private void showAccountsDialog(List<de.spahr.ausgaben.db.Account> accounts, Map<String, Long> balances) {
-        String[] items = new String[accounts.size()];
-        for (int i = 0; i < accounts.size(); i++) {
-            de.spahr.ausgaben.db.Account a = accounts.get(i);
-            String status = getString(a.closed
-                    ? R.string.account_status_closed : R.string.account_status_active);
-            String name = a.isDepot() ? getString(R.string.account_status_depot_marker, a.name) : a.name;
-            items[i] = getString(R.string.account_status_line, name, status);
-        }
         final boolean[] checked = new boolean[accounts.size()];
         final Runnable[] updater = new Runnable[1];
         final AlertDialog dlg = AppDialog.destructive(this)
                 .setTitle(R.string.account_manage_choose)
-                .setMultiChoiceItems(items, checked, (d, which, isChecked) -> {
+                .setMultiChoiceItems(kontozeilen(accounts), checked, (d, which, isChecked) -> {
                     checked[which] = isChecked;
                     if (updater[0] != null) {
                         updater[0].run();
@@ -1430,67 +1179,93 @@ public class ProfileSettingsActivity extends LocalizedActivity implements SmbWiz
         dlg.setOnShowListener(dialog -> {
             Button delBtn = dlg.getButton(AlertDialog.BUTTON_POSITIVE);
             Button actBtn = dlg.getButton(AlertDialog.BUTTON_NEUTRAL); // Schließen/Öffnen (dynamisch)
-            updater[0] = () -> {
-                List<de.spahr.ausgaben.db.Account> sel = selectedAccounts(accounts, checked);
-                delBtn.setEnabled(!sel.isEmpty());
-                boolean anyDepot = false;
-                boolean allClosed = !sel.isEmpty();
-                boolean allOpenZero = !sel.isEmpty();
-                for (de.spahr.ausgaben.db.Account a : sel) {
-                    if (a.isDepot()) {
-                        anyDepot = true;
-                    }
-                    long bal = balances.containsKey(a.name) ? balances.get(a.name) : 0L;
-                    if (!a.closed) {
-                        allClosed = false;
-                    }
-                    if (a.closed || bal != 0) {
-                        allOpenZero = false;
-                    }
-                }
-                if (anyDepot) {
-                    actBtn.setVisibility(View.GONE);
-                } else if (allClosed) {
-                    actBtn.setText(R.string.account_reopen);
-                    actBtn.setVisibility(View.VISIBLE);
-                } else if (allOpenZero) {
-                    actBtn.setText(R.string.account_close);
-                    actBtn.setVisibility(View.VISIBLE);
-                } else {
-                    actBtn.setVisibility(View.GONE); // Schließen nur bei Saldo 0 aller Ausgewählten
-                }
-            };
+            updater[0] = () -> zeigeKnoepfe(delBtn, actBtn, selectedAccounts(accounts, checked), balances);
             delBtn.setOnClickListener(v -> {
                 List<de.spahr.ausgaben.db.Account> sel = selectedAccounts(accounts, checked);
-                if (sel.isEmpty()) {
-                    return;
+                if (!sel.isEmpty()) {
+                    dlg.dismiss();
+                    confirmDeleteAccounts(sel);
                 }
-                dlg.dismiss();
-                confirmDeleteAccounts(sel);
             });
             actBtn.setOnClickListener(v -> {
                 List<de.spahr.ausgaben.db.Account> sel = selectedAccounts(accounts, checked);
-                if (sel.isEmpty()) {
-                    return;
+                if (!sel.isEmpty()) {
+                    dlg.dismiss();
+                    schliesseOderOeffne(sel);
                 }
-                boolean allClosed = true;
-                for (de.spahr.ausgaben.db.Account a : sel) {
-                    if (!a.closed) {
-                        allClosed = false;
-                        break;
-                    }
-                }
-                final List<String> names = accountNames(sel);
-                final boolean reopen = allClosed;
-                dlg.dismiss();
-                repository.setAccountsClosed(names, !reopen, () ->
-                        Toast.makeText(this, getString(reopen
-                                ? R.string.accounts_reopened_done : R.string.accounts_closed_done,
-                                names.size()), Toast.LENGTH_SHORT).show());
             });
             updater[0].run();
         });
         dlg.show();
+    }
+
+    /** Je Konto eine Zeile: Name (Depots gekennzeichnet) und ob es offen oder geschlossen ist. */
+    private String[] kontozeilen(List<de.spahr.ausgaben.db.Account> accounts) {
+        String[] items = new String[accounts.size()];
+        for (int i = 0; i < accounts.size(); i++) {
+            de.spahr.ausgaben.db.Account a = accounts.get(i);
+            String status = getString(a.closed
+                    ? R.string.account_status_closed : R.string.account_status_active);
+            String name = a.isDepot() ? getString(R.string.account_status_depot_marker, a.name) : a.name;
+            items[i] = getString(R.string.account_status_line, name, status);
+        }
+        return items;
+    }
+
+    /**
+     * Welche Knöpfe zur getroffenen Auswahl passen.
+     *
+     * <p>Löschen geht immer, sobald etwas ausgewählt ist. Schließen dagegen nur, wenn <b>alle</b>
+     * Ausgewählten offen sind und einen Saldo von 0 haben — ein Konto mit Geld darauf zu schließen
+     * hieße, den Betrag verschwinden zu lassen. Wieder öffnen umgekehrt nur, wenn alle geschlossen
+     * sind. Ein Depot lässt sich gar nicht schließen; sein Bestand hängt an den Wertpapieren.</p>
+     */
+    private void zeigeKnoepfe(Button delBtn, Button actBtn, List<de.spahr.ausgaben.db.Account> sel,
+                              Map<String, Long> balances) {
+        delBtn.setEnabled(!sel.isEmpty());
+        boolean anyDepot = false;
+        boolean allClosed = !sel.isEmpty();
+        boolean allOpenZero = !sel.isEmpty();
+        for (de.spahr.ausgaben.db.Account a : sel) {
+            if (a.isDepot()) {
+                anyDepot = true;
+            }
+            long bal = balances.containsKey(a.name) ? balances.get(a.name) : 0L;
+            if (!a.closed) {
+                allClosed = false;
+            }
+            if (a.closed || bal != 0) {
+                allOpenZero = false;
+            }
+        }
+        if (anyDepot) {
+            actBtn.setVisibility(View.GONE);
+        } else if (allClosed) {
+            actBtn.setText(R.string.account_reopen);
+            actBtn.setVisibility(View.VISIBLE);
+        } else if (allOpenZero) {
+            actBtn.setText(R.string.account_close);
+            actBtn.setVisibility(View.VISIBLE);
+        } else {
+            actBtn.setVisibility(View.GONE);   // Schließen nur bei Saldo 0 aller Ausgewählten
+        }
+    }
+
+    /** Geschlossene wieder öffnen, offene schließen — was von beidem, sagt die Auswahl. */
+    private void schliesseOderOeffne(List<de.spahr.ausgaben.db.Account> sel) {
+        boolean allClosed = true;
+        for (de.spahr.ausgaben.db.Account a : sel) {
+            if (!a.closed) {
+                allClosed = false;
+                break;
+            }
+        }
+        final List<String> names = accountNames(sel);
+        final boolean reopen = allClosed;
+        repository.setAccountsClosed(names, !reopen, () ->
+                Toast.makeText(this, getString(reopen
+                        ? R.string.accounts_reopened_done : R.string.accounts_closed_done,
+                        names.size()), Toast.LENGTH_SHORT).show());
     }
 
     private List<de.spahr.ausgaben.db.Account> selectedAccounts(

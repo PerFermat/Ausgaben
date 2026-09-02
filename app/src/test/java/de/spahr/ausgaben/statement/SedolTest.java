@@ -54,4 +54,23 @@ public class SedolTest {
         assertEquals(2, all.size());
         assertNull(Sedol.single(t));
     }
+
+    /**
+     * Vokale kommen in einer SEDOL nicht vor. Die Einschränkung ist keine Kosmetik: sie nimmt der
+     * Prüfziffer einen guten Teil ihrer Arbeit ab. Vorher bestand jede siebenstellige Referenznummer aus
+     * Buchstaben und Ziffern die Prüfung mit rund einem Zehntel Wahrscheinlichkeit — und ein Treffer
+     * wird über {@code StatementTemplates.rememberSecurity} dauerhaft einem Wertpapier zugeordnet.
+     */
+    @Test
+    public void einKuerzelMitVokalIstKeineSedol() {
+        // Prüfziffer stimmt (nachgerechnet), der Vokal schließt es trotzdem aus.
+        assertFalse(Sedol.isValid("BEAHKS6"));
+        assertNull(Sedol.single(StatementFixtures.of("Referenz BEAHKS6 vom 17.08.2026")));
+    }
+
+    /** Und im Text wird so ein Wort erst gar nicht als Kandidat aufgegriffen. */
+    @Test
+    public void auftragsnummernMitVokalenWerdenNichtGelesen() {
+        assertEquals(0, Sedol.findAll(StatementFixtures.of("Auftrag ORDER14 Auftrag REIHE46")).size());
+    }
 }

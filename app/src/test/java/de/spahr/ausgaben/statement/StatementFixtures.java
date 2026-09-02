@@ -138,6 +138,39 @@ final class StatementFixtures {
                 "Endbetrag zu Ihren Lasten   EUR               537,53");
     }
 
+    /**
+     * Verkauf einer Anleihe mit Stückzinsen: Kurswert 10.000,00 + Stückzinsen 50,00 − Kosten 30,00 =
+     * Endbetrag 10.020,00. Beim Verkauf bekommt man die Stückzinsen, die Kosten gehen ab — die
+     * Richtung, in der die bloße Differenz das Vorzeichen verdreht.
+     */
+    static PdfText ingVerkaufMitStueckzinsen() {
+        return of(
+                "Wertpapierabrechnung        Verkauf",
+                "ISIN (WKN)                  DE0001102580 (110258)",
+                "Nominale                    Stück         10.000,000",
+                "Kurs                        EUR                98,75",
+                "Ausführungstag / -zeit      19.09.2026 um 10:11:12 Uhr",
+                "Kurswert                    EUR            10.000,00",
+                "Stückzinsen                 EUR                50,00",
+                "Provision                   EUR                20,00",
+                "Kapitalertragsteuer 25,00%  EUR                10,00",
+                "Endbetrag zu Ihren Gunsten  EUR            10.020,00");
+    }
+
+    /** Gegenprobe zu {@link #ingVerkaufMitStueckzinsen()}: beim Kauf kommen die Kosten obendrauf. */
+    static PdfText ingKaufMitStueckzinsen() {
+        return of(
+                "Wertpapierabrechnung        Kauf",
+                "ISIN (WKN)                  DE0001102580 (110258)",
+                "Nominale                    Stück         10.000,000",
+                "Kurs                        EUR                98,75",
+                "Ausführungstag / -zeit      19.09.2026 um 10:11:12 Uhr",
+                "Kurswert                    EUR            10.000,00",
+                "Stückzinsen                 EUR                50,00",
+                "Provision                   EUR                30,00",
+                "Endbetrag zu Ihren Lasten   EUR            10.080,00");
+    }
+
     private static String[] dividendeZeilen() {
         return new String[]{
                 "ING-DiBa AG · 60628 Frankfurt am Main",

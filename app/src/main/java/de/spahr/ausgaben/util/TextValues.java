@@ -2,7 +2,7 @@ package de.spahr.ausgaben.util;
 
 import java.math.BigDecimal;
 import java.math.RoundingMode;
-import java.text.ParseException;
+import java.text.ParsePosition;
 import java.text.SimpleDateFormat;
 import java.util.Calendar;
 import java.util.Date;
@@ -65,6 +65,21 @@ public final class TextValues {
     }
 
     /**
+     * Eine bereits gelesene Dezimalzahl → Cent, kaufmännisch gerundet.
+     *
+     * <p>Für die Stellen, an denen der Betrag den Weg über {@code double} schon genommen hat.
+     * {@code Math.round(wert * 100.0)} führt dort in die Irre: {@code 2,675} ist als {@code double}
+     * {@code 2.67499999999999982}, mal 100 ergibt {@code 267.49999999999994}, und daraus wird 267 statt
+     * 268 Cent. Der Umweg über {@link BigDecimal#valueOf(double)} nimmt die kürzeste Dezimaldarstellung,
+     * die den Wert zurückliefert — also wieder {@code 2.675} — und rundet dieselbe HALF_UP-Regel wie
+     * {@link #toCents}.</p>
+     */
+    public static long centsOf(double value) {
+        return BigDecimal.valueOf(value).movePointRight(2)
+                .setScale(0, RoundingMode.HALF_UP).longValue();
+    }
+
+    /**
      * Dezimalzahl → {@code double}; {@code null} bei Fehler. Dieselbe Trennzeichen-Erkennung wie
      * {@link #toCents}, aber <b>ohne</b> Rundung auf Cent: eine Stückzahl wie {@code 1.839,80185} hat
      * mehr Nachkommastellen als Geld, und die dürfen nicht verlorengehen.
@@ -106,26 +121,40 @@ public final class TextValues {
             s = s.substring(1);
         }
         if (!s.isEmpty() && (s.charAt(0) == '-' || s.charAt(0) == '+')) {
-            negative ^= s.charAt(0) == '-';
+            // Verodert, nicht verxodert: Klammer und Minus sind zwei Schreibweisen für „negativ", keine
+            // zwei Rechenzeichen. „(-5,00)" meinte bis 1.12 plus 5,00 — eine Zahl, die es so nirgends
+            // gibt, entstanden aus doppelter Verneinung.
+            negative |= s.charAt(0) == '-';
             s = s.substring(1);
         }
         // 926,40-EUR — Kürzel am Wort, danach erst das nachgestellte Vorzeichen.
-        if (s.length() > 3 && isCurrencyCode(s.substring(s.length() - 3))) {
+        if (s.length() > 3 && Currencies.isCode(s.substring(s.length() - 3))) {
             s = s.substring(0, s.length() - 3);
+        }
+        // EUR158,73 — dieselbe Schreibweise andersherum. Bisher wurde nur hinten abgeschält; ein
+        // vorangestelltes Kürzel machte den ganzen Token unlesbar und die Zahl fiel aus der Zeile.
+        if (s.length() > 3 && Currencies.isCode(s.substring(0, 3))) {
+            s = s.substring(3);
         }
         while (!s.isEmpty() && isCurrencySymbol(s.charAt(s.length() - 1))) {
             s = s.substring(0, s.length() - 1);
         }
         // 1.242,-- — österreichisch für „und keine Cent". Vor dem Vorzeichen behandelt, sonst nähme der
         // nächste Schritt den letzten Strich für ein Minus und ließe „1.242,-" übrig.
+        //
+        // Steht die Endung da, ist das Zeichen davor der Dezimaltrenner — und alles links davon ist
+        // Tausendertrennung, gleich welches Zeichen. Bis 1.12 wurden die Striche nur durch „00"
+        // ersetzt; aus „1.242.--" wurde „1.242.00", und daran scheiterte der Parser, weil er zwei
+        // Punkte nicht auseinanderhalten kann (und auch nicht soll — sonst gingen Belegnummern wie
+        // „1.234.567" als Betrag durch).
         if (s.endsWith(",--") || s.endsWith(".--")) {
-            s = s.substring(0, s.length() - 2) + "00";
+            s = s.substring(0, s.length() - 3).replace(",", "").replace(".", "") + ".00";
         }
         // 32,09- · 144,52+ — in Deutschland und Österreich steht das Vorzeichen hinter der Zahl.
         if (!s.isEmpty()) {
             char last = s.charAt(s.length() - 1);
             if (last == '-' || last == '+') {
-                negative ^= last == '-';
+                negative |= last == '-';
                 s = s.substring(0, s.length() - 1);
             }
         }
@@ -157,16 +186,6 @@ public final class TextValues {
     /** Währungszeichen, die unmittelbar an der Zahl kleben können. */
     private static boolean isCurrencySymbol(char c) {
         return c == '€' || c == '$' || c == '£' || c == '¥' || c == '₣';
-    }
-
-    /** Drei Großbuchstaben am Wortende — ein Währungskürzel wie EUR, CHF, USD. */
-    private static boolean isCurrencyCode(String s) {
-        for (int i = 0; i < s.length(); i++) {
-            if (s.charAt(i) < 'A' || s.charAt(i) > 'Z') {
-                return false;
-            }
-        }
-        return true;
     }
 
     /**
@@ -228,24 +247,28 @@ public final class TextValues {
             // Locale.US auch für die Monatsnamen: „Aug", „Dec" – deutsche Belege schreiben Zahlen.
             SimpleDateFormat fmt = new SimpleDateFormat(pattern, Locale.US);
             fmt.setLenient(false);
-            try {
-                Date d = fmt.parse(s);
-                if (d == null || !plausibel(d)) {
-                    // „06/29/22" ginge sonst als Jahr 22 durch das Muster MM/dd/yyyy, weil
-                    // SimpleDateFormat die Stellenzahl des Jahres nicht erzwingt – und das folgende
-                    // Muster MM/dd/yy käme nie zum Zug.
-                    continue;
-                }
-                Calendar cal = Calendar.getInstance();
-                cal.setTime(d);
-                cal.set(Calendar.HOUR_OF_DAY, 0);
-                cal.set(Calendar.MINUTE, 0);
-                cal.set(Calendar.SECOND, 0);
-                cal.set(Calendar.MILLISECOND, 0);
-                return cal.getTimeInMillis();
-            } catch (ParseException e) {
-                // nächstes Muster versuchen
+            // Über ParsePosition statt parse(String): Letzteres liest nur das Präfix und ist zufrieden,
+            // sobald der Anfang passt. „11.6.2022-01:30:01" ginge so als 11.06.2022 durch – und
+            // schwerer wiegend: „03/08/2026 12:00" umginge die Mehrdeutigkeitssperre in
+            // toUnambiguousDateMillis, deren Muster am Zeilenende verankert ist, und käme als 8. März
+            // zurück statt gar nicht. Ein Datum mit angehängter Uhrzeit ist auf Abrechnungen die Regel.
+            // Nebenbei spart das die ParseException je Muster – bei einem mehrseitigen Beleg werden
+            // sonst Hunderttausende geworfen, nur um verworfen zu werden.
+            ParsePosition pos = new ParsePosition(0);
+            Date d = fmt.parse(s, pos);
+            if (d == null || pos.getIndex() != s.length() || !plausibel(d)) {
+                // „06/29/22" ginge sonst als Jahr 22 durch das Muster MM/dd/yyyy, weil
+                // SimpleDateFormat die Stellenzahl des Jahres nicht erzwingt – und das folgende
+                // Muster MM/dd/yy käme nie zum Zug.
+                continue;
             }
+            Calendar cal = Calendar.getInstance();
+            cal.setTime(d);
+            cal.set(Calendar.HOUR_OF_DAY, 0);
+            cal.set(Calendar.MINUTE, 0);
+            cal.set(Calendar.SECOND, 0);
+            cal.set(Calendar.MILLISECOND, 0);
+            return cal.getTimeInMillis();
         }
         return -1;
     }
@@ -272,5 +295,32 @@ public final class TextValues {
             }
         }
         return toDateMillis(s);
+    }
+
+    /**
+     * Ein Prozentsatz aus einem Eingabefeld — Komma wie Punkt werden angenommen.
+     *
+     * <p>Drei Ausgänge, und der dritte ist der Punkt: <b>leer</b> ergibt 0 und schaltet die zugehörige
+     * Vorbelegung damit ab — das ist eine Ansage. Ein <b>gültiger</b> Wert ergibt sich selbst.
+     * <b>Unlesbar oder außerhalb von 0 bis unter 100</b> ergibt {@code null}, und der Aufrufer lässt
+     * den gespeicherten Wert dann in Ruhe.</p>
+     *
+     * <p>Der Dividenden-Steuersatz in der Profilmaske machte bis 1.12 aus allen drei Fällen eine 0.
+     * Wer „26.375" mit dem falschen Dezimalzeichen tippte oder sich um eine Stelle vertat, hatte seine
+     * Vorbelegung danach kommentarlos abgeschaltet — eine Fehleingabe wirkte als Löschung.</p>
+     */
+    public static Double percentOrNull(String raw) {
+        String t = raw == null ? "" : raw.trim().replace(',', '.');
+        if (t.isEmpty()) {
+            return 0.0;
+        }
+        try {
+            double v = Double.parseDouble(t);
+            // Die ausdrücklich getippte 0 zählt wie das leere Feld – auch das ist eine Ansage. Nur was
+            // gar nicht zu lesen ist oder außerhalb liegt, gilt als Fehleingabe.
+            return v >= 0 && v < 100 ? v : null;
+        } catch (NumberFormatException e) {
+            return null;
+        }
     }
 }

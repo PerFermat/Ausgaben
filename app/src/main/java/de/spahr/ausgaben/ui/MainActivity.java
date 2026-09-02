@@ -46,7 +46,72 @@ import de.spahr.ausgaben.settings.PlacesStore;
 import de.spahr.ausgaben.settings.SettingsStore;
 import de.spahr.ausgaben.voice.VoiceRecognizer;
 
-public class MainActivity extends LocalizedActivity {
+public class MainActivity extends LocalizedActivity implements HostedDialog.Host {
+
+    /** Schlüssel und Angaben der Dialoge dieser Maske – siehe {@link HostedDialog}. */
+    private static final String DLG_CSV_PICK = "dlg_csvPick";
+    private static final String DLG_NUMBER_ENTRY = "dlg_numberEntry";
+
+    /**
+     * Der Stand der stillen Zifferneingabe: eingetippter Betrag und Stelle im Empfänger-Rundlauf.
+     *
+     * <p>Die Felder dieses Dialogs entstehen im Code und tragen keine ids — das Fenstersystem kann sie
+     * deshalb nicht selbst wiederherstellen. Ohne diese drei Werte begänne man nach jeder Drehung von
+     * vorn.</p>
+     */
+    private String numberEntryAmount = "";
+    private int numberEntryPick;
+    private boolean numberEntryTapped;
+    private static final String STATE_NUMBER_AMOUNT = "s_numberAmount";
+    private static final String STATE_NUMBER_PICK = "s_numberPick";
+    private static final String STATE_NUMBER_TAPPED = "s_numberTapped";
+
+    @Override
+    protected void onSaveInstanceState(android.os.Bundle out) {
+        super.onSaveInstanceState(out);
+        out.putString(STATE_NUMBER_AMOUNT, numberEntryAmount);
+        out.putInt(STATE_NUMBER_PICK, numberEntryPick);
+        out.putBoolean(STATE_NUMBER_TAPPED, numberEntryTapped);
+    }
+
+    /**
+     * Den Stand der Zifferneingabe zurücklesen — <b>in {@code onCreate}</b> und nicht in
+     * {@code onRestoreInstanceState}.
+     *
+     * <p>Die Reihenfolge entscheidet: Das Fenstersystem stellt den Dialog beim Wechsel nach
+     * {@code onStart} wieder her und ruft dabei {@code buildNumberEntry}; {@code onRestoreInstanceState}
+     * kommt erst danach. Der Dialog läse dann noch den leeren Anfangswert — was genau der Fehler war,
+     * den ein Test hier zutage gefördert hat.</p>
+     */
+    private void restoreNumberEntryState(android.os.Bundle in) {
+        if (in == null) {
+            return;
+        }
+        numberEntryAmount = in.getString(STATE_NUMBER_AMOUNT, "");
+        numberEntryPick = in.getInt(STATE_NUMBER_PICK, 0);
+        numberEntryTapped = in.getBoolean(STATE_NUMBER_TAPPED, false);
+    }
+    private static final String ARG_CSV_FOLDER = "a_csvFolder";
+    private static final String ARG_CSV_FOLDERS = "a_csvFolders";
+    private static final String ARG_CSV_FILES = "a_csvFiles";
+
+    @Override
+    public android.app.Dialog buildDialog(String key, Bundle args) {
+        if (DLG_CSV_PICK.equals(key)) {
+            return buildCsvPick(args);
+        }
+        return DLG_NUMBER_ENTRY.equals(key) ? buildNumberEntry() : null;
+    }
+
+    @Override
+    public void onDialogCancelled(String key, Bundle args) {
+        if (DLG_NUMBER_ENTRY.equals(key)) {
+            // Weggetippt heißt verworfen – beim nächsten Öffnen soll nicht der alte Betrag dastehen.
+            vergissZifferneingabe();
+        }
+        // Der Datei-Browser darf ebenso weggetippt werden; es folgt nichts daraus.
+    }
+
 
     private Repository repository;
     private SettingsStore settings;
@@ -187,6 +252,9 @@ public class MainActivity extends LocalizedActivity {
     @Override
     protected void onCreate(Bundle savedInstanceState) {
         super.onCreate(savedInstanceState);
+        // Vor allem anderen: der Dialog der Zifferneingabe wird gleich mit der Activity wiederhergestellt
+        // und liest diese Werte (siehe restoreNumberEntryState).
+        restoreNumberEntryState(savedInstanceState);
         setContentView(R.layout.activity_main);
 
         com.google.android.material.appbar.MaterialToolbar toolbar = findViewById(R.id.toolbar);
@@ -605,6 +673,19 @@ public class MainActivity extends LocalizedActivity {
      * da und bleibt beim Tippen stehen – gewählt wird dann allein durch Antippen.
      */
     private void showNumberEntry() {
+        HostedDialog.show(this, DLG_NUMBER_ENTRY, null);
+    }
+
+    /**
+     * Baut die stille Zifferneingabe — beim ersten Mal und nach jeder Drehung erneut (siehe
+     * {@link HostedDialog}).
+     *
+     * <p>Der Dialog hing bis 1.12 am Fenster der Maske. Beim Drehen war er weg und der eingetippte
+     * Betrag mit ihm — man fing von vorn an. Die Felder tragen keine ids (sie entstehen hier im Code),
+     * das Fenstersystem kann sie also nicht selbst wiederherstellen; deshalb merkt sich die Maske den
+     * Betrag und die Stelle im Empfänger-Rundlauf selbst.</p>
+     */
+    private android.app.Dialog buildNumberEntry() {
         final boolean betragZaehlt = settings.isAmountSuggestEnabled();
         if (locationTagger != null && !hasLocationPermission()) {
             locationPermissionLauncher.launch(android.Manifest.permission.ACCESS_FINE_LOCATION);
@@ -615,6 +696,12 @@ public class MainActivity extends LocalizedActivity {
         // Ziffern, das eingestellte Dezimalzeichen und + - * (kleine Rechnung wie 10+20*3); Struktur
         // regelt der CalcInputFilter. Ausgewertet wird beim Speichern über AmountExpression.
         AmountField.prepareCalc(field);
+
+        // Was vor der Drehung dastand, steht wieder da.
+        field.setText(numberEntryAmount);
+        field.setSelection(field.getText() == null ? 0 : field.getText().length());
+        field.addTextChangedListener(new SimpleWatcher(
+                () -> numberEntryAmount = field.getText() == null ? "" : field.getText().toString()));
 
         final android.widget.TextView payeeView = new android.widget.TextView(this);
         payeeView.setText(getString(R.string.voice_payee_resolved, "—"));
@@ -634,8 +721,8 @@ public class MainActivity extends LocalizedActivity {
         // Empfänger anhand von Position und Betrag ermitteln. Vor der Eingabe steht die Anzahl da,
         // beim Tippen der passende Name – 8 € sind die Waschanlage, 80 € die Tankstelle.
         final List<Repository.VoiceResolution> candidates = new ArrayList<>();
-        final int[] pick = {0};                       // Stelle im Rundlauf; hinter dem Ende: ohne Empfänger
-        final boolean[] angetippt = {false};          // ab dem ersten Tipp stehen Namen statt der Anzahl
+        final int[] pick = {numberEntryPick};          // Stelle im Rundlauf; hinter dem Ende: ohne Empfänger
+        final boolean[] angetippt = {numberEntryTapped};   // ab dem ersten Tipp stehen Namen statt der Anzahl
         final boolean[] zeigtAnzahl = {false};        // steht gerade die Anzahl statt eines Namens da?
         final Runnable showPick = () -> {
             String name;
@@ -671,6 +758,8 @@ public class MainActivity extends LocalizedActivity {
                             // Bei gleicher Liste bleibt stehen, was der Nutzer angetippt hat.
                             pick[0] = 0;
                             angetippt[0] = false;
+                            numberEntryPick = 0;
+                            numberEntryTapped = false;
                         }
                         candidates.clear();
                         candidates.addAll(list);
@@ -706,6 +795,8 @@ public class MainActivity extends LocalizedActivity {
             } else {
                 pick[0] = pick[0] >= candidates.size() ? 0 : pick[0] + 1;
             }
+            numberEntryPick = pick[0];
+            numberEntryTapped = angetippt[0];
             showPick.run();
         });
 
@@ -741,6 +832,7 @@ public class MainActivity extends LocalizedActivity {
                 // hinkt sonst um die Entprellung hinterher, wenn OK gleich nach der letzten Ziffer kommt.
                 voiceEntry.handleVoiceResult(amt); // payee leer + Betrag → Betrag-only-Pfad
             }
+            vergissZifferneingabe();
             if (dialogRef[0] != null) {
                 dialogRef[0].dismiss();
             }
@@ -750,7 +842,7 @@ public class MainActivity extends LocalizedActivity {
 
         androidx.appcompat.app.AlertDialog dialog = new AppDialog(this)
                 .setTitle(R.string.new_booking)
-                .setView(box)
+                .setView(AppDialog.scrollable(box))
                 .setOnDismissListener(d -> {
                     if (locationTagger != null) {
                         locationTagger.setOnLocationUpdate(null);
@@ -763,7 +855,14 @@ public class MainActivity extends LocalizedActivity {
             dialog.getWindow().setSoftInputMode(
                     android.view.WindowManager.LayoutParams.SOFT_INPUT_STATE_ALWAYS_HIDDEN);
         }
-        dialog.show();
+        return dialog;
+    }
+
+    /** Der eingetippte Stand ist gebucht (oder verworfen) – beim nächsten Öffnen wieder leer. */
+    private void vergissZifferneingabe() {
+        numberEntryAmount = "";
+        numberEntryPick = 0;
+        numberEntryTapped = false;
     }
 
     private boolean hasLocationPermission() {
@@ -2059,26 +2158,39 @@ public class MainActivity extends LocalizedActivity {
     }
 
     private void showCsvPick(String folder, List<String> folders, List<String> files) {
+        Bundle args = new Bundle();
+        args.putString(ARG_CSV_FOLDER, folder);
+        args.putStringArray(ARG_CSV_FOLDERS, folders.toArray(new String[0]));
+        args.putStringArray(ARG_CSV_FILES, files.toArray(new String[0]));
+        HostedDialog.show(this, DLG_CSV_PICK, args);
+    }
+
+    /**
+     * Baut den Datei-Browser aus dem, was im Bundle steht — beim ersten Mal und nach jeder Drehung.
+     * Der Serverzugriff bleibt dabei aus: Die Liste dieses Ordners steht schon in den Angaben.
+     */
+    private android.app.Dialog buildCsvPick(Bundle args) {
+        final String folder = args.getString(ARG_CSV_FOLDER, "");
         final List<String> labels = new java.util.ArrayList<>();
         final List<Runnable> actions = new java.util.ArrayList<>();
         if (!folder.isEmpty()) {
             labels.add("↑  ..");
             actions.add(() -> browseCsvAt(RemotePath.parentFolder(folder)));
         }
-        for (String d : folders) {
+        for (String d : args.getStringArray(ARG_CSV_FOLDERS)) {
             labels.add("📁  " + d);
             final String target = folder.isEmpty() ? d : folder + "/" + d;
             actions.add(() -> browseCsvAt(target));
         }
-        for (String f : files) {
+        for (String f : args.getStringArray(ARG_CSV_FILES)) {
             labels.add(f);
             actions.add(() -> downloadAndImport(folder, f));
         }
         String title = folder.isEmpty() ? getString(R.string.choose_import_file) : "/" + folder;
-        new AppDialog(this)
+        return new AppDialog(this)
                 .setTitle(title)
                 .setItems(labels.toArray(new String[0]), (d, w) -> actions.get(w).run())
-                .show();
+                .create();
     }
 
     private void downloadAndImport(String folder, String fileName) {

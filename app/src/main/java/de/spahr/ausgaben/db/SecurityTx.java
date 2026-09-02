@@ -15,6 +15,15 @@ import androidx.room.PrimaryKey;
 @Entity(tableName = "security_tx", indices = {@Index(value = "depot")})
 public class SecurityTx {
 
+    /**
+     * Die Arten einer Bewegung. Standen bis 1.12 als Zeichenketten in vier Klassen nebeneinander
+     * ({@code StatementScan}, {@code StatementDraft}, {@code SecurityTxEditActivity},
+     * {@code StatementRulesActivity}) — und die Regeln, die daran hängen, gleich mit.
+     */
+    public static final String BUY = "buy";
+    public static final String SELL = "sell";
+    public static final String DIVIDEND = "dividend";
+
     @PrimaryKey(autoGenerate = true)
     public long id;
 
@@ -48,8 +57,15 @@ public class SecurityTx {
     public long amountCents;
 
     /**
-     * Netto-Betrag in Cent: bei Dividenden das tatsächlich gutgeschriebene Geld (Brutto − Steuer); bei allen
-     * anderen Aktionen gleich {@link #amountCents}. Steuert die Brutto/Netto-Anzeige der Dividenden.
+     * Das tatsächlich bewegte Geld in Cent — der Betrag, der auf dem Geldkonto steht.
+     *
+     * <p>Kauf: Brutto <b>plus</b> Gebühr. Verkauf: Brutto <b>minus</b> Gebühr. Dividende: die
+     * Gutschrift, also Brutto minus Steuer. Ein-/Ausbuchungen bewegen kein Geld und tragen 0.</p>
+     *
+     * <p>Bis 1.12 stand hier bei Kauf und Verkauf der <b>Bruttobetrag</b>, also {@link #amountCents}
+     * noch einmal. Bei jeder Bewegung mit Gebühr wich das von der Geldbuchung ab —
+     * {@link SecurityTxMatch} vergleicht genau dieses Feld gegen den Buchungsbetrag und fand die
+     * Bewegung dann nicht mehr. Eine gelöschte Buchung ließ ihre Bewegung stehen.</p>
      */
     @ColumnInfo(name = "net_cents")
     public long netCents;
@@ -166,8 +182,75 @@ public class SecurityTx {
                 && amountCents == other.amountCents
                 && netCents == other.netCents
                 && feeCents == other.feeCents
-                && Math.abs(shares - other.shares) < 1e-6
+                && Math.abs(shares - other.shares)
+                        < de.spahr.ausgaben.util.SecurityAmounts.SHARE_EPSILON
                 && sameDay(date, other.date);
+    }
+
+    /**
+     * Setzt Art, Stückzahl und Beträge nach den Regeln der Bewegungsart.
+     *
+     * <p>Diese vier Zeilen standen dreimal fast gleichlautend im Code: beim Speichern der
+     * Erfassungsmaske, in ihrer Dublettenprüfung und im Entwurf der Erkennungsliste. Die Kommentare
+     * verwiesen wechselseitig aufeinander („dieselben Regeln wie in …") — das Zeichen dafür, dass die
+     * Regel einen eigenen Ort braucht. Läuft eine der Fassungen auseinander, bucht die Maske etwas
+     * anderes, als ihre eigene Dublettenprüfung sucht.</p>
+     *
+     * <p>Die Regeln selbst: Ein <b>Verkauf</b> bewegt die Stücke aus dem Depot heraus, trägt also ein
+     * Minus. Eine <b>Dividende</b> bewegt gar keine Stücke — der Bestand am Ex-Tag steht nicht in der
+     * Abrechnung — und führt keine Gebühr; ihre Abzüge stecken in der Differenz zwischen Brutto und
+     * Netto. Bei allen anderen Arten sind Brutto und Netto derselbe Betrag; was zusätzlich abgeht,
+     * steht in der Gebühr.</p>
+     *
+     * @param shares     Stückzahl ohne Vorzeichen; {@code null} zählt wie 0
+     * @param grossCents Bruttobetrag
+     * @param netCents   bei einer Dividende der gutgeschriebene Betrag, sonst ohne Bedeutung
+     * @param feeCents   Gebühr ohne Vorzeichen; bei einer Dividende ohne Bedeutung
+     */
+    public void applyAmounts(@NonNull String action, Double shares, long grossCents, long netCents,
+                             long feeCents) {
+        boolean dividend = DIVIDEND.equals(action);
+        double count = shares == null ? 0 : Math.abs(shares);
+        this.action = action;
+        this.shares = dividend ? 0 : (SELL.equals(action) ? -count : count);
+        this.amountCents = grossCents;
+        this.feeCents = dividend ? 0 : Math.abs(feeCents);
+        this.netCents = dividend ? netCents : moneyOf(action, grossCents, this.feeCents);
+    }
+
+    /**
+     * Das Geld, das eine Bewegung bewegt: beim Verkauf geht die Gebühr von der Gutschrift ab, beim Kauf
+     * kommt sie zum Kaufpreis hinzu.
+     *
+     * <p>Für {@code add}/{@code remove} ist beides 0 — sie bewegen keine Stücke gegen Geld —, die
+     * Rechnung liefert dort also von selbst 0.</p>
+     */
+    public static long moneyOf(String action, long grossCents, long feeCents) {
+        long fee = Math.abs(feeCents);
+        return SELL.equals(action) ? grossCents - fee : grossCents + fee;
+    }
+
+    /**
+     * Die Geldbuchung zu dieser Bewegung: eine Umbuchung zwischen Geldkonto und Wertpapier.
+     *
+     * <p>Beim Kauf verlässt das Geld das Konto, bei Verkauf und Dividende kommt es an. Auch das stand
+     * zweimal im Code — siehe {@link #applyAmounts}.</p>
+     *
+     * @param moneyCents der tatsächlich bewegte Betrag: beim Kauf der Gesamtbetrag samt Gebühr, bei
+     *                   einer Dividende der gutgeschriebene Nettobetrag. <b>Nicht</b>
+     *                   {@link #netCents} — das trägt bei Kauf und Verkauf den Bruttobetrag.
+     */
+    public Booking toMoneyBooking(long moneyCents) {
+        Booking b = new Booking();
+        b.account = moneyAccount;
+        b.isTransfer = true;
+        b.transferAccount = securityName;
+        b.isIncome = !BUY.equals(action);
+        b.amountCents = Math.abs(moneyCents);
+        b.payee = securityName;
+        b.createdAt = date;
+        b.category = "";
+        return b;
     }
 
     /** Zwei Zeitstempel am selben Kalendertag (lokale Zeitzone). */

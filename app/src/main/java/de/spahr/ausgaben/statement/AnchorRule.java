@@ -19,7 +19,14 @@ import de.spahr.ausgaben.util.TextValues;
  * <p>Regeln entstehen nicht von Hand, sondern werden von {@link TemplateLearner} aus einer einmal selbst
  * erfassten Abrechnung abgeleitet. Im Code steht deshalb nichts über eine bestimmte Bank.</p>
  */
-public final class AnchorRule {
+/*
+ * Serializable, damit die Erfassungsmaske die gewählte Datumsregel über einen Konfigurationswechsel
+ * hinweg im Bundle halten kann. Bewusst nicht Parcelable: das brächte einen Android-Bezug in eine
+ * Klasse, die sonst reines Java ist und genau deshalb ohne Gerät prüfbar bleibt.
+ */
+public final class AnchorRule implements java.io.Serializable {
+
+    private static final long serialVersionUID = 1L;
 
     /**
      * Welche Zahl der Zeile gemeint ist.
@@ -323,10 +330,10 @@ public final class AnchorRule {
         return summed.length() == 0 ? null : summed.toString();
     }
 
-    /** Der Wert in Cent — für die Geldfelder. */
+    /** Der Wert in Cent — für die Geldfelder; gerundet wie {@link TextValues#toCents}, nicht über double. */
     public Long readCents(PdfText text) {
         Double value = read(text);
-        return value == null ? null : Math.round(value * 100.0);
+        return value == null ? null : TextValues.centsOf(value);
     }
 
     /**
@@ -473,8 +480,18 @@ public final class AnchorRule {
         return TextValues.toUnambiguousDateMillis(joined.toString().replace(",", ""));
     }
 
-    /** Ob die Zeile mit genau dieser Beschriftung beginnt. */
-    private static boolean startsWithAnchor(String line, String anchor) {
+    /**
+     * Ob die Zeile die Beschriftung als eigenes Wort enthält.
+     *
+     * <p>Hieß bis 1.12 {@code startsWithAnchor} und trug den Kommentar „Ob die Zeile mit genau dieser
+     * Beschriftung beginnt". Beides war falsch: {@link #afterAnchor} sucht an jeder <b>Wortgrenze</b>,
+     * nicht nur am Zeilenanfang. Geändert ist der Name, nicht das Verhalten — und zwar mit Absicht:
+     * {@link #hits} zählt ausdrücklich „nach demselben Kriterium, nach dem später gelesen wird", und
+     * gelesen wird über {@code afterAnchor}. Auf den Zeilenanfang einzuschränken hieße, die
+     * Vorlagenauswahl nach einem anderen Maßstab zu treffen als das Lesen danach — und würde jede
+     * Beschriftung ausschließen, die in einer Tabellenzeile hinter anderem Text steht.</p>
+     */
+    private static boolean containsAnchor(String line, String anchor) {
         return afterAnchor(line, anchor) >= 0;
     }
 
@@ -490,22 +507,36 @@ public final class AnchorRule {
     /**
      * Die Stelle unmittelbar hinter der Beschriftung, oder -1. Gesucht wird an <b>Wortgrenzen</b>:
      * „Kurs" darf nicht auf „Kurswert" anschlagen, sonst läse ein Kauf den Kurswert als Kurs.
+     *
+     * <p>Verglichen wird mit {@link String#regionMatches(boolean, int, String, int, int)} auf der
+     * <b>Originalzeile</b>. Vorher wurden dafür bei jedem Aufruf zwei kleingeschriebene Kopien angelegt —
+     * in der innersten Schleife der Erkennung, die pro Zeile das ganze Dokument durchläuft. Und der
+     * zurückgegebene Index galt streng genommen für die Kopie: {@code toLowerCase} ist nicht
+     * längenerhaltend (das türkische „İ" wird zu zwei Zeichen), sodass {@link #afterAnchorText},
+     * {@link #targets} und {@link #anchorSpan} damit an der falschen Stelle geschnitten hätten.</p>
+     *
+     * <p>Die Beschriftung wird getrimmt — dieselbe Länge, mit der {@link #anchorSpan} zurückrechnet.</p>
      */
     private static int afterAnchor(String line, String anchor) {
-        String l = line.toLowerCase(Locale.ROOT);
-        String needle = anchor.toLowerCase(Locale.ROOT);
-        if (needle.isEmpty()) {
+        if (line == null || anchor == null) {
             return -1;
         }
-        int at = l.indexOf(needle);
-        while (at >= 0) {
-            boolean linksFrei = at == 0 || l.charAt(at - 1) == ' ';
-            int end = at + needle.length();
-            boolean rechtsFrei = end == l.length() || l.charAt(end) == ' ';
-            if (linksFrei && rechtsFrei) {
+        String needle = anchor.trim();
+        int n = needle.length();
+        if (n == 0) {
+            return -1;
+        }
+        for (int at = 0; at + n <= line.length(); at++) {
+            if (at > 0 && line.charAt(at - 1) != ' ') {
+                continue;   // keine Wortgrenze links
+            }
+            if (!line.regionMatches(true, at, needle, 0, n)) {
+                continue;
+            }
+            int end = at + n;
+            if (end == line.length() || line.charAt(end) == ' ') {
                 return end;
             }
-            at = l.indexOf(needle, at + 1);
         }
         return -1;
     }
@@ -525,7 +556,7 @@ public final class AnchorRule {
         int found = 0;
         for (String anchor : anchors) {
             for (PdfText.Line line : text.lines()) {
-                if (startsWithAnchor(line.text(), anchor)) {
+                if (containsAnchor(line.text(), anchor)) {
                     found++;
                     break;
                 }
@@ -551,11 +582,23 @@ public final class AnchorRule {
             if (token.equals("€") || token.equals("$")) {
                 return token;
             }
-            if (token.length() == 3 && token.matches("[A-Z]{3}")) {
+            // Zeichenweise statt token.matches(...): das kompiliert bei jedem Aufruf ein Pattern, und
+            // currencyFits ruft diese Methode in der innersten Schleife der Erkennung – je Zeile, je
+            // Beschriftung, je Regel.
+            if (waehrungskuerzel(token)) {
                 return token;
             }
         }
         return "";
+    }
+
+    /**
+     * Ob das Wort ein Währungskürzel ist. Bis 1.12 galt jedes Wort aus drei Großbuchstaben als eines,
+     * und die Regel band sich dann an ein Kürzel, das gar keines war — beim nächsten Beleg passte sie
+     * nicht mehr.
+     */
+    private static boolean waehrungskuerzel(String token) {
+        return de.spahr.ausgaben.util.Currencies.isCode(token);
     }
 
     /**
@@ -772,8 +815,12 @@ public final class AnchorRule {
 
     @Override
     public int hashCode() {
-        return ((((anchors.hashCode() * 31 + direction.hashCode()) * 31 + currency.hashCode()) * 31
-                + position.hashCode()) * 31 + nth) * 31 + lineDistance + (sum ? 1 : 0);
+        // Jedes Feld bekommt seine eigene Runde: Bis 1.12 wurden lineDistance und sum am Ende nur
+        // addiert, weshalb {lineDistance 1, sum false} und {lineDistance 0, sum true} denselben Wert
+        // ergaben — obwohl equals sie unterscheidet.
+        int h = ((((anchors.hashCode() * 31 + direction.hashCode()) * 31 + currency.hashCode()) * 31
+                + position.hashCode()) * 31 + nth) * 31 + lineDistance;
+        return h * 31 + (sum ? 1 : 0);
     }
 
     @Override

@@ -106,35 +106,80 @@ public class ProfileManager {
         }
     }
 
+    /**
+     * Die Schlüssel aus {@code ausgaben_settings}, die seit dem Mehrprofil-Umbau zum <b>Profil</b>
+     * gehören (Datenquelle, Anzeige, Budget). Alles, was hier nicht steht, bleibt global.
+     *
+     * <p>Nach Typ getrennt, weil {@link SharedPreferences} beim Lesen den Typ verlangt. Wer einen
+     * Schlüssel ergänzt, deckt damit zugleich {@link #isProfileSettingsKey} ab – und darüber das
+     * Einspielen einer Sicherung aus der Zeit vor den Profilen ({@code BackupStore}).</p>
+     */
+    private static final String[] PROFILE_STRING_KEYS = {"nextcloud_url", "nextcloud_user",
+            "nextcloud_folder", "nextcloud_import_folder", "local_export_tree", "export_mode",
+            "kmy_path", "server_type", "csv_separator", "default_account", "currency", "number_format"};
+    private static final String[] PROFILE_BOOLEAN_KEYS = {"show_currency", "dividend_gross",
+            "budget_internal", "alias_prompt"};
+    private static final String[] PROFILE_LONG_KEYS = {"account_group", "dividend_tax_rate"};
+
+    /**
+     * Ob ein <b>unpräfixierter</b> Schlüssel aus {@code ausgaben_settings} zum Profil gehört.
+     *
+     * <p>Für {@code BackupStore}: eine Sicherung aus der Zeit vor den Profilen führt alle Schlüssel
+     * unpräfixiert nebeneinander. Ohne diese Unterscheidung landeten beim Einspielen auch Sprache,
+     * Nachtmodus, Schriftgröße und Kategoriefarben unter einem Profil-Präfix – wo sie niemand mehr
+     * liest.</p>
+     */
+    public static boolean isProfileSettingsKey(String key) {
+        return enthaelt(PROFILE_STRING_KEYS, key) || enthaelt(PROFILE_BOOLEAN_KEYS, key)
+                || enthaelt(PROFILE_LONG_KEYS, key);
+    }
+
+    private static boolean enthaelt(String[] keys, String key) {
+        for (String k : keys) {
+            if (k.equals(key)) {
+                return true;
+            }
+        }
+        return false;
+    }
+
     /** Kopiert die bisher unpräfixierten Profil-Keys (Datenquelle + Anzeige/Budget/Orte) einmalig
      *  unter das Profil-Präfix. */
     private static void copyLegacySettingsUnderPrefix(Context app, SharedPreferences legacySettings,
                                                         String profileId) {
         String prefix = "p_" + profileId + "_";
         SharedPreferences.Editor editor = legacySettings.edit();
-        String[] stringKeys = {"nextcloud_url", "nextcloud_user", "nextcloud_folder",
-                "nextcloud_import_folder", "local_export_tree", "export_mode", "kmy_path",
-                "server_type", "csv_separator", "default_account", "currency", "number_format"};
-        for (String key : stringKeys) {
+        for (String key : PROFILE_STRING_KEYS) {
             if (legacySettings.contains(key)) {
                 editor.putString(prefix + key, legacySettings.getString(key, ""));
             }
         }
-        if (legacySettings.contains("account_group")) {
-            editor.putLong(prefix + "account_group", legacySettings.getLong("account_group", 0L));
-        }
-        String[] boolKeys = {"show_currency", "dividend_gross", "budget_internal", "alias_prompt"};
-        for (String key : boolKeys) {
+        for (String key : PROFILE_BOOLEAN_KEYS) {
             if (legacySettings.contains(key)) {
                 editor.putBoolean(prefix + key, legacySettings.getBoolean(key, true));
             }
         }
-        if (legacySettings.contains("dividend_tax_rate")) {
-            editor.putLong(prefix + "dividend_tax_rate", legacySettings.getLong("dividend_tax_rate", 0L));
+        for (String key : PROFILE_LONG_KEYS) {
+            if (legacySettings.contains(key)) {
+                editor.putLong(prefix + key, legacySettings.getLong(key, 0L));
+            }
         }
         editor.apply();
-        // Passwort: liegt (falls vorhanden) bereits verschlüsselt unter ausgaben_secret und wird von
-        // SettingsStore.migratePlaintextPassword()/getPassword() separat behandelt.
+
+        // Server-Passwort: liegt verschlüsselt unter ausgaben_secret, bis 1.11 aber unter dem
+        // unpräfixierten Schlüssel – ab 1.12 liest SettingsStore.getPassword() profilweise über pk().
+        // Ohne diesen Umzug stünde jede Bestandsinstallation mit Serveranbindung nach dem Update ohne
+        // Zugangsdaten da: hasNextcloudConfig() wird false, Sync und Export scheitern mit einem
+        // Auth-Fehler, dessen Ursache nirgends sichtbar wird. Den Klartextstand noch älterer Fassungen
+        // holt weiterhin SettingsStore.migratePlaintextPassword() nach.
+        String passwordKey = "nextcloud_password";
+        SharedPreferences legacySecret = SettingsStore.secretPrefs(app);
+        if (legacySecret.contains(passwordKey)) {
+            legacySecret.edit()
+                    .putString(prefix + passwordKey, legacySecret.getString(passwordKey, ""))
+                    .remove(passwordKey)
+                    .apply();
+        }
 
         // Orte (PlacesStore) waren bisher ein einziges globales JSON-Objekt – unter das Profil-Präfix
         // kopieren, damit sie für das Legacy-Profil erhalten bleiben.
@@ -242,10 +287,38 @@ public class ProfileManager {
         return profiles.isEmpty() ? null : profiles.get(0);
     }
 
-    /** Dateiname der aktuell aktiven Profil-Datenbank – Komfortmethode für {@link AppDatabase}/Backup. */
+    /**
+     * Zwischenspeicher für {@link #currentDbFileName}: Schlüssel ist der Rohzustand der Profil-Prefs,
+     * Wert der daraus errechnete Dateiname.
+     */
+    private static volatile String dbFileNameKey;
+    private static volatile String dbFileNameValue;
+
+    /**
+     * Dateiname der aktuell aktiven Profil-Datenbank – Komfortmethode für {@link AppDatabase}/Backup.
+     *
+     * <p>{@code AppDatabase.getInstance} ruft das bei <b>jedem</b> Zugriff, um einen Profilwechsel
+     * mitzubekommen. Bis 1.12 wurde dabei jedes Mal die Profil-Liste aus JSON gelesen und in
+     * {@link Profile}-Objekte gebaut, nur um ein einziges Feld daraus abzulesen.</p>
+     *
+     * <p>Gespart wird deshalb der <b>Parse</b>, nicht die Abfrage: die beiden Prefs-Werte werden
+     * weiterhin jedes Mal gelesen (nach dem ersten Zugriff hält Android die Datei ohnehin im Speicher)
+     * und dienen als Schlüssel. Damit wirkt jede Änderung sofort — auch eine, die an dieser Klasse
+     * vorbeigeht, wie das Einspielen einer Alle-Profile-Sicherung, das die Prefs-Datei direkt
+     * überschreibt.</p>
+     */
     public static String currentDbFileName(Context context) {
+        SharedPreferences prefs =
+                context.getApplicationContext().getSharedPreferences(PREFS, Context.MODE_PRIVATE);
+        String key = prefs.getString(KEY_ACTIVE, "") + "\n" + prefs.getString(KEY_PROFILES, "[]");
+        if (key.equals(dbFileNameKey)) {
+            return dbFileNameValue;
+        }
         Profile active = new ProfileManager(context).getActiveProfile();
-        return active != null ? active.dbFileName : LEGACY_DB_FILE;
+        String name = active != null ? active.dbFileName : LEGACY_DB_FILE;
+        dbFileNameValue = name;
+        dbFileNameKey = key;
+        return name;
     }
 
     /**
@@ -425,10 +498,13 @@ public class ProfileManager {
 
     /** Werksreset: löscht alle Profile samt ihrer Datenbankdateien und die Profilliste selbst. */
     public void clearAll(Context context) {
+        // Erst schließen, dann löschen: SQLite hält die Datei des aktiven Profils sonst noch offen, und
+        // das spätere close() schreibt den WAL-Puffer zurück – die eben gelöschte Datenbank stünde je
+        // nach Zeitpunkt wieder da, und -wal/-shm blieben ohnehin liegen.
+        AppDatabase.closeInstance();
         for (Profile p : getProfiles()) {
             deleteProfileFiles(context, p.dbFileName);
         }
-        AppDatabase.closeInstance();
         prefs.edit().clear().commit();
     }
 }

@@ -233,8 +233,11 @@ public class KmyImporter {
         // Ein-/Ausbuchungen tragen in KMyMoney keinen Geldwert – dort gibt es folglich auch keine Gebühr.
         long amountCents = moved ? 0 : Math.abs(valueToCents(stock[1]));
         long feeCents = moved ? 0 : fees(splits);
+        // Netto ist auch hier das bewegte Geld, nicht noch einmal das Brutto: beim Kauf kommt die
+        // Gebühr hinzu, beim Verkauf geht sie ab (siehe SecurityTx#netCents).
         SecurityTx tx = new SecurityTx(depotName, sec[0], sec[1],
-                parseDate(postdate, entrydate), action, shares, amountCents, amountCents, feeCents);
+                parseDate(postdate, entrydate), action, shares, amountCents,
+                SecurityTx.moneyOf(action, amountCents, feeCents), feeCents);
         fillOrigin(tx, splits);
         return tx;
     }
@@ -257,8 +260,14 @@ public class KmyImporter {
                 // Herkunftsbeschriftung gibt es hier nicht – die Datei nennt Konten, keine Belegzeilen.
                 String category = orEmpty(doc.categoryPath(s[0]));
                 if (!category.isEmpty()) {
-                    tx.parts.add(new de.spahr.ausgaben.db.SecurityTxSplit(0, type == 12, category,
-                            Math.abs(valueToCents(s[1])), "", tx.parts.size()));
+                    // Die Gegenrechnung zum Export: dort wird der Ertragsteil mit umgekehrtem
+                    // Vorzeichen geschrieben. Also hier durch dasselbe Vorzeichen teilen, statt den
+                    // Betrag über Math.abs einzuebnen — sonst würde aus einer gutgeschriebenen
+                    // Steuer (Erstattung) beim Einlesen ein Abzug.
+                    boolean income = type == 12;
+                    long value = income ? -valueToCents(s[1]) : valueToCents(s[1]);
+                    tx.parts.add(new de.spahr.ausgaben.db.SecurityTxSplit(0, income, category,
+                            value, "", tx.parts.size()));
                 }
             } else if (tx.moneyAccount.isEmpty()) {
                 tx.moneyAccount = orEmpty(doc.accountNameById(s[0])).trim();

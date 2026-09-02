@@ -17,7 +17,7 @@ import de.spahr.ausgaben.settings.ProfileManager;
         AnalysisExtra.class, SecurityTxValueOverride.class, KmyPendingDelete.class, SecurityPrice.class,
         ScheduledAdvance.class, AccountGroup.class, AccountGroupMember.class, AccountKindOrder.class,
         Tag.class, SecurityTxSplit.class},
-        version = 49, exportSchema = false)
+        version = 50, exportSchema = false)
 public abstract class AppDatabase extends RoomDatabase {
 
     /** v1 → v2: Notiz-Spalte ergänzen (bestehende Buchungen bleiben erhalten). */
@@ -665,6 +665,28 @@ public abstract class AppDatabase extends RoomDatabase {
         }
     };
 
+    /**
+     * {@code net_cents} trägt bei Kauf und Verkauf das <b>bewegte Geld</b> statt noch einmal den
+     * Bruttobetrag.
+     *
+     * <p>Bis dahin stand dort {@code amount_cents} — bei jeder Bewegung mit Gebühr wich das von der
+     * Geldbuchung ab, und {@code SecurityTxMatch} fand die Bewegung zu einer Buchung nicht mehr; eine
+     * gelöschte Buchung ließ ihre Bewegung stehen. Nachgerechnet wird aus den vorhandenen Spalten:
+     * beim Verkauf geht die Gebühr ab, sonst kommt sie hinzu. Geraten wird dabei nichts.</p>
+     *
+     * <p>Dividenden bleiben unberührt — dort war {@code net_cents} schon immer die Gutschrift. Ebenso
+     * {@code add}/{@code remove}: Sie bewegen kein Geld und tragen in beiden Spalten 0.</p>
+     */
+    static final Migration MIGRATION_49_50 = new Migration(49, 50) {
+        @Override
+        public void migrate(@NonNull SupportSQLiteDatabase db) {
+            db.execSQL("UPDATE security_tx SET net_cents = amount_cents - ABS(fee_cents) "
+                    + "WHERE action = 'sell'");
+            db.execSQL("UPDATE security_tx SET net_cents = amount_cents + ABS(fee_cents) "
+                    + "WHERE action NOT IN ('sell', 'dividend')");
+        }
+    };
+
     public abstract BookingDao bookingDao();
 
     public abstract AccountDao accountDao();
@@ -732,7 +754,7 @@ public abstract class AppDatabase extends RoomDatabase {
                                 MIGRATION_38_39, MIGRATION_39_40, MIGRATION_40_41,
                                 MIGRATION_41_42, MIGRATION_42_43, MIGRATION_43_44,
                                 MIGRATION_44_45, MIGRATION_45_46, MIGRATION_46_47,
-                                MIGRATION_47_48, MIGRATION_48_49)
+                                MIGRATION_47_48, MIGRATION_48_49, MIGRATION_49_50)
                         .build();
             }
             return instance;

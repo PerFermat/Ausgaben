@@ -57,8 +57,8 @@ class DepotRepository {
                     + (prices == null ? 0 : prices.size());
             final int[] done = new int[1];
             db.runInTransaction(() -> {
-                securityDao.deleteSplitsOf(depot);
-                securityDao.deleteTx(depot);
+                securityDao.deleteImportedSplitsOf(depot);
+                securityDao.deleteImportedTx(depot);
                 securityDao.deleteSecurities(depot);
                 securityDao.deletePrices(depot);
                 for (Security s : securities) {
@@ -186,20 +186,31 @@ class DepotRepository {
      * dem Depot nicht an.
      */
     void saveManualTxBatch(final List<SecurityTx> txs, final List<Booking> bookings,
-                           final Runnable onDone) {
+                           final Runnable onDone, final Runnable onError) {
         executor.execute(() -> {
-            db.runInTransaction(() -> {
-                for (int i = 0; i < txs.size(); i++) {
-                    SecurityTx tx = txs.get(i);
-                    Booking booking = bookings.get(i);
-                    tx.pending = true;
-                    if (booking != null) {
-                        db.accountDao().insertIfAbsent(new Account(booking.account));
-                        tx.bookingId = db.bookingDao().insert(booking);
+            try {
+                db.runInTransaction(() -> {
+                    for (int i = 0; i < txs.size(); i++) {
+                        SecurityTx tx = txs.get(i);
+                        Booking booking = bookings.get(i);
+                        tx.pending = true;
+                        if (booking != null) {
+                            db.accountDao().insertIfAbsent(new Account(booking.account));
+                            tx.bookingId = db.bookingDao().insert(booking);
+                        }
+                        writeParts(tx, securityDao.insertTx(tx));
                     }
-                    writeParts(tx, securityDao.insertTx(tx));
+                });
+            } catch (RuntimeException e) {
+                // Ohne diesen Zweig bliebe die Erkennungsliste stehen: der Speichern-Knopf ist bereits
+                // gesperrt, und ohne Rückmeldung kommt er nie wieder frei. Die Transaktion ist
+                // zurückgerollt, gebucht wurde also nichts.
+                android.util.Log.e("DepotRepository", "Stapel konnte nicht gespeichert werden", e);
+                if (onError != null) {
+                    mainHandler.post(onError);
                 }
-            });
+                return;
+            }
             if (onDone != null) {
                 mainHandler.post(onDone);
             }
@@ -549,7 +560,7 @@ class DepotRepository {
                 long netDeposits = buy - sell - div;
                 // Komplett verkauft = Netto-Bestand am Ende des Zeitraums ~ 0 (spätere Verkäufe zählen noch nicht).
                 double netHeldAtEnd = netSharesAtEnd.containsKey(id) ? netSharesAtEnd.get(id) : 0.0;
-                boolean fullySold = Math.abs(netHeldAtEnd) < 1e-6;
+                boolean fullySold = Math.abs(netHeldAtEnd) < de.spahr.ausgaben.util.SecurityAmounts.SHARE_EPSILON;
                 result.add(new Repository.DepotChartRow(s.name, value, netDeposits, div, buy, fullySold));
             }
             mainHandler.post(() -> callback.onResult(result));

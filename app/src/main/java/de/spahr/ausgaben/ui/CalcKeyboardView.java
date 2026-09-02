@@ -108,6 +108,12 @@ public class CalcKeyboardView extends LinearLayout {
      * <p>Die Aufteilung der Fläche auf die Tasten macht das Layout selbst über Gewichte — hier wird nur
      * der Rahmen gesetzt. Auch die Zentrierung rechnet diese Klasse nicht: der Eltern-Container stellt
      * das Kind nach dessen <b>gemessener</b> Breite und der {@code layout_gravity} auf.</p>
+     *
+     * <p>Die Höhenvorgabe des Containers wird dabei <b>bewusst übergangen</b>. Ein Versuch, sich in
+     * einen quer niedrigen Dialog einzupassen, machte die Tasten so flach, dass die Ziffern nicht mehr
+     * zu lesen waren — eine Tastatur, die hineinpasst, aber nicht mehr zu bedienen ist, hilft niemandem.
+     * Wer sie in einen knappen Container setzt, macht diesen scrollbar; siehe
+     * {@link AppDialog#scrollable(View)}.</p>
      */
     @Override
     protected void onMeasure(int widthSpec, int heightSpec) {

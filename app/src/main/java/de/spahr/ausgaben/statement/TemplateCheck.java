@@ -7,6 +7,7 @@ import java.util.List;
 import java.util.Set;
 
 import de.spahr.ausgaben.pdf.PdfText;
+import de.spahr.ausgaben.util.TextValues;
 
 /**
  * Die Probe aufs Gelernte: greifen die frisch gemerkten Regeln auf der Abrechnung, aus der sie
@@ -264,7 +265,9 @@ public final class TemplateCheck {
         if (field == StatementTemplate.Field.SHARES || field == StatementTemplate.Field.PRICE) {
             return Math.abs(a - b) < EPSILON;
         }
-        return Math.round(a * 100.0) == Math.round(b * 100.0);
+        // Dieselbe Rundung wie AnchorRule.readCents – rechnete die Prüfung anders, vergliche sie den
+        // gelesenen Betrag gegen eine Zahl, die so nie gebucht wird.
+        return TextValues.centsOf(a) == TextValues.centsOf(b);
     }
 
     /** Der Tagesbeginn zu einem Zeitpunkt – die Uhrzeit spielt beim Buchungsdatum keine Rolle. */

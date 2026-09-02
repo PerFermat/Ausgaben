@@ -36,8 +36,14 @@ public final class TemplateLearner {
     /** Höchstens so viele Zeilen werden zu einer Summe zusammengesucht (Steuer + Soli + Kirchensteuer). */
     private static final int MAX_SUMMANDS = 3;
 
-    /** Bis zu dieser Stelle wird in einer Zeile nach dem Wert gesucht (siehe {@code stelleIn}). */
-    private static final int MAX_STELLE = 3;
+    /**
+     * Bis zu dieser Stelle wird beim <b>Lernen</b> in einer Zeile nach dem Wert gesucht (siehe
+     * {@code stelleIn}).
+     *
+     * <p>Von Hand lässt sich auf der Regelseite weiter zählen — bewusst: Wer die Stelle selbst wählt,
+     * weiß, was er meint, während der Lerner nur rät. Siehe {@code StatementRulesActivity}.</p>
+     */
+    static final int MAX_STELLE = 3;
 
     private TemplateLearner() {
     }
@@ -636,11 +642,14 @@ public final class TemplateLearner {
         List<String> labels = new ArrayList<>();
         List<Double> values = new ArrayList<>();
         List<String> currencies = new ArrayList<>();
+        // Über ein Set statt labels.contains(...): das lief je Zeile durch die ganze bisherige Liste und
+        // machte allein das Sammeln quadratisch.
+        java.util.Set<String> gesehen = new java.util.HashSet<>();
         for (PdfText.Line line : text.lines()) {
             Double last = AnchorRule.lastNumber(line.text());
             String label = labelOf(line.text());
             if (last != null && last != 0 && isUsable(label, used, AnchorRule.Position.LAST)
-                    && !labels.contains(label)) {
+                    && gesehen.add(label)) {
                 labels.add(label);
                 values.add(last);
                 currencies.add(bindCurrency ? AnchorRule.currencyOf(line.text()) : "");
@@ -666,28 +675,85 @@ public final class TemplateLearner {
                 currency == null ? "" : currency);
     }
 
-    /** Sucht bis zu {@code max} Zeilen, deren Werte zusammen {@code target} ergeben; null wenn keine. */
+    /**
+     * Sucht bis zu {@code max} Zeilen, deren Werte zusammen {@code target} ergeben; null wenn keine.
+     *
+     * <p>Durchsucht wird <b>aufsteigend sortiert</b>, mit Schranken: Zu jeder Stelle steht fest, welche
+     * Summe die verbleibenden Summanden mindestens und höchstens noch beitragen können (die kleinsten
+     * bzw. größten des Restes, ablesbar an den Präfixsummen). Liegt der gesuchte Rest außerhalb, ist
+     * dieser Ast erledigt — und weil die Werte aufsteigen, ist er es unterhalb der Untergrenze für alle
+     * folgenden gleich mit, die Schleife bricht ab.</p>
+     *
+     * <p>Vorher wurden alle Zweier- und Dreierkombinationen ungefiltert aufgezählt: Θ(n³). Kommt der
+     * gesuchte Betrag als Summe gar nicht vor — bei einem Sammelbeleg oder einer
+     * Jahressteuerbescheinigung der Normalfall — lief der Suchraum vollständig durch, und die App stand.</p>
+     */
     private static List<Integer> subsetSummingTo(List<Double> values, double target, double epsilon,
                                                  int max) {
         int n = values.size();
-        for (int size = 2; size <= max; size++) {
-            List<Integer> found = search(values, target, epsilon, size, 0, new ArrayList<Integer>(), n);
+        if (n < 2) {
+            return null;
+        }
+        // Aufsteigend sortieren, aber die ursprüngliche Stelle mitführen: gemeldet werden am Ende die
+        // Zeilennummern des Belegs, nicht die der sortierten Hilfsliste.
+        Integer[] order = new Integer[n];
+        for (int i = 0; i < n; i++) {
+            order[i] = i;
+        }
+        java.util.Arrays.sort(order, (a, b) -> Double.compare(values.get(a), values.get(b)));
+        double[] sorted = new double[n];
+        for (int i = 0; i < n; i++) {
+            sorted[i] = values.get(order[i]);
+        }
+        // prefix[k] ist die Summe der k kleinsten Werte. Damit steht jede Schranke in einer Subtraktion.
+        double[] prefix = new double[n + 1];
+        for (int i = 0; i < n; i++) {
+            prefix[i + 1] = prefix[i] + sorted[i];
+        }
+
+        for (int size = 2; size <= max && size <= n; size++) {
+            List<Integer> found = search(sorted, prefix, target, epsilon, size, 0,
+                    new ArrayList<Integer>());
             if (found != null) {
-                return found;
+                List<Integer> result = new ArrayList<>();
+                for (int i : found) {
+                    result.add(order[i]);
+                }
+                java.util.Collections.sort(result);
+                return result;
             }
         }
         return null;
     }
 
-    private static List<Integer> search(List<Double> values, double remaining, double epsilon, int left,
-                                        int from, List<Integer> chosen, int n) {
+    /**
+     * Ein Ast der Summensuche: {@code left} weitere Summanden ab Stelle {@code from}, die zusammen
+     * {@code remaining} ergeben sollen.
+     *
+     * <p>Die beiden Schranken tragen die Arbeit. Was die restlichen Summanden mindestens beitragen, sind
+     * die kleinsten des Restes; was sie höchstens beitragen, die grössten. Bleibt zu wenig übrig, ist der
+     * Ast erledigt — und weil die Werte aufsteigen, gilt das für alle folgenden gleich mit, die Schleife
+     * bricht ab statt weiterzuzählen.</p>
+     */
+    private static List<Integer> search(double[] sorted, double[] prefix, double remaining,
+                                        double epsilon, int left, int from, List<Integer> chosen) {
+        int n = sorted.length;
         if (left == 0) {
             return Math.abs(remaining) <= epsilon ? new ArrayList<>(chosen) : null;
         }
         for (int i = from; i <= n - left; i++) {
+            double rest = remaining - sorted[i];
+            int weitere = left - 1;
+            double minRest = weitere == 0 ? 0 : prefix[i + 1 + weitere] - prefix[i + 1];
+            double maxRest = weitere == 0 ? 0 : prefix[n] - prefix[n - weitere];
+            if (rest - epsilon > maxRest) {
+                continue;   // dieser Summand ist zu klein; ein grösserer kommt noch
+            }
+            if (rest + epsilon < minRest) {
+                break;      // zu gross — und alle folgenden sind noch grösser
+            }
             chosen.add(i);
-            List<Integer> found = search(values, remaining - values.get(i), epsilon, left - 1, i + 1,
-                    chosen, n);
+            List<Integer> found = search(sorted, prefix, rest, epsilon, weitere, i + 1, chosen);
             if (found != null) {
                 return found;
             }
@@ -730,6 +796,10 @@ public final class TemplateLearner {
                 direction = AnchorRule.Direction.SAME_LINE;
                 position = where;
                 nthFound = stelle[1];
+                // Der Merker gehört zum zuletzt gefundenen Datum und muss hier mit zurückgesetzt
+                // werden. Sonst blieb er von einer früheren Fundstelle stehen, und die Spaltenregel
+                // gewann am Ende gegen die eigene Beschriftung, die hier gerade gefunden wurde.
+                tabelle = false;
                 continue;
             }
             // Keine eigene Beschriftung – dann trägt sie die Spaltenüberschrift darüber. So steht das
@@ -791,16 +861,6 @@ public final class TemplateLearner {
         List<Long> alle = AnchorRule.allDates(line);
         int vonLinks = alle.indexOf(dateMillis);
         return vonLinks < 0 ? null : new int[]{1, vonLinks + 1};
-    }
-
-    /** Ob dieses Datum irgendwo in der Zeile steht. */
-    private static boolean hasDate(String line, long dateMillis) {
-        for (String token : line.trim().split("\\s+")) {
-            if (TextValues.toUnambiguousDateMillis(token) == dateMillis) {
-                return true;
-            }
-        }
-        return false;
     }
 
     /** Die erste brauchbare unter mehreren Beschriftungen; {@code null}, wenn keine taugt. */
@@ -926,9 +986,14 @@ public final class TemplateLearner {
         return false;
     }
 
+    /**
+     * Ob ein Wort ein Währungskürzel ist. Geprüft wird gegen die vergebenen Kürzel und nicht mehr nur
+     * auf „drei Großbuchstaben": sonst fiel jedes dreibuchstabige Kürzel am Ende einer Beschriftung weg
+     * — bei einem Wertpapier-Ticker (etwa {@code SAP} oder {@code BMW}) genau das Wort, das die Zeile
+     * unterscheidbar macht.
+     */
     private static boolean isCurrencyCode(String s) {
-        return s.length() == 3 && s.equals(s.toUpperCase(Locale.ROOT))
-                && s.matches("[A-Z]{3}");
+        return de.spahr.ausgaben.util.Currencies.isCode(s);
     }
 
     /**

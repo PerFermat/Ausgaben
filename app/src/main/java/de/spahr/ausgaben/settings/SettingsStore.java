@@ -109,11 +109,47 @@ public class SettingsStore {
     }
 
     /**
+     * Die verschlüsselte Prefs-Datei wird einmal je Prozess aufgebaut.
+     *
+     * <p>{@link #createSecretPrefs} kostet einen Keystore-Zugriff und den Aufbau der
+     * {@code EncryptedSharedPreferences} — bis 1.12 bei <b>jedem</b> {@code new SettingsStore(…)}, und
+     * der entsteht an einigen Stellen pro Abfrage neu (Depot-Kennzahlen, GPS-Prüfung beim Buchen). Die
+     * Datei hängt am Gerät und nicht am Profil, ein Zwischenspeichern ist also unbedenklich; die
+     * Instanz ist wie jede {@code SharedPreferences} fadensicher.</p>
+     */
+    private static volatile SharedPreferences secretPrefsCache;
+
+    /**
+     * Ob die verschlüsselte Ablage nicht zustande kam und ersatzweise eine <b>unverschlüsselte</b>
+     * benutzt wird.
+     *
+     * <p>Der Rückfall ist gewollt — ein defekter Keystore soll die App nicht unbrauchbar machen —, aber
+     * er darf nicht unbemerkt bleiben: Betroffen ist das Server-Passwort. Die Masken, die es abfragen,
+     * sagen es dem Nutzer (siehe {@code settings_secret_fallback}).</p>
+     */
+    private static volatile boolean fallbackInUse;
+
+    /** Ob das Server-Passwort gerade unverschlüsselt abgelegt wird – siehe {@link #fallbackInUse}. */
+    public static boolean isSecretStorageUnencrypted(Context context) {
+        secretPrefs(context);   // stellt sicher, dass der Versuch überhaupt gelaufen ist
+        return fallbackInUse;
+    }
+
+    /**
      * Verschlüsselte Prefs-Datei fürs Server-Passwort – auch für {@link ProfileManager#copySettingsFrom}
      * und {@code BackupStore} (Alle-Profile-Sicherung).
      */
     public static SharedPreferences secretPrefs(Context context) {
-        return createSecretPrefs(context.getApplicationContext());
+        SharedPreferences vorhanden = secretPrefsCache;
+        if (vorhanden != null) {
+            return vorhanden;
+        }
+        synchronized (SettingsStore.class) {
+            if (secretPrefsCache == null) {
+                secretPrefsCache = createSecretPrefs(context.getApplicationContext());
+            }
+            return secretPrefsCache;
+        }
     }
 
     private static SharedPreferences createSecretPrefs(Context app) {
@@ -128,7 +164,11 @@ public class SettingsStore {
                     EncryptedSharedPreferences.PrefKeyEncryptionScheme.AES256_SIV,
                     EncryptedSharedPreferences.PrefValueEncryptionScheme.AES256_GCM);
         } catch (Exception e) {
-            // Fallback: lieber unverschlüsselt als Absturz (z. B. bei defektem Keystore)
+            // Lieber unverschlüsselt als Absturz (z. B. bei defektem Keystore) – aber nicht
+            // stillschweigend: Wer sein Server-Passwort hier ablegt, soll wissen, dass es diesmal
+            // ungeschützt liegt. Der Merker wird beim nächsten Blick in die Einstellungen gemeldet.
+            android.util.Log.w("SettingsStore", "Keystore nicht verfügbar – Passwort liegt unverschlüsselt", e);
+            fallbackInUse = true;
             return app.getSharedPreferences(SECRET_PREFS + "_fallback", Context.MODE_PRIVATE);
         }
     }

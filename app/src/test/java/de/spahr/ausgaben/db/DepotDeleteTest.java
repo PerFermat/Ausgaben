@@ -124,6 +124,65 @@ public class DepotDeleteTest {
         assertTrue("Bewegungen des Depots müssen weg sein", transaktionen("Depot A", "S1").isEmpty());
     }
 
+    /**
+     * Regression: Der Löschpfad benutzte dieselben Abfragen wie der Reimport, und die schonen bewusst
+     * die noch nicht exportierten Bewegungen. Beim Reimport ist das richtig – hier nicht: das Depot
+     * kommt nicht wieder. Eine übrig gebliebene Bewegung fände {@code getPendingTx()} bei jedem Export
+     * weiterhin, ohne dass es Depot oder Wertpapier dazu noch gäbe; der Export meldete sie dann bei
+     * jedem Lauf als übersprungen, ohne Möglichkeit, den Zustand aufzulösen.
+     */
+    @Test
+    public void loeschtAuchNochNichtExportierteBewegungen() throws Exception {
+        legeDepotAn("Depot A", "S1");
+        imHintergrund(() -> {
+            SecurityTx offen = new SecurityTx();
+            offen.depot = "Depot A";
+            offen.securityKmyId = "S1";
+            offen.securityName = "Vanguard FTSE All-World";
+            offen.moneyAccount = "Girokonto";
+            offen.action = "dividend";
+            offen.shares = 100.0;
+            offen.amountCents = 5_000L;
+            offen.netCents = 3_681L;
+            offen.date = 0L;
+            offen.pending = true;
+            SecurityTxSplit teil = new SecurityTxSplit();
+            teil.txId = db.securityDao().insertTx(offen);
+            teil.category = "Kapitalertragsteuer";
+            teil.amountCents = 1_319L;
+            db.securityDao().insertSplit(teil);
+            return null;
+        });
+
+        loescheUndWarte(Collections.emptyList(), Collections.singletonList("Depot A"));
+
+        assertTrue("Auch die offene Bewegung muss weg sein",
+                transaktionen("Depot A", "S1").isEmpty());
+        assertTrue("Es darf keine verwaiste pending-Bewegung zurückbleiben",
+                imHintergrund(() -> db.securityDao().getPendingTx().isEmpty()));
+    }
+
+    /**
+     * Regression: {@code security_tx_value_override} hat keinen Fremdschlüssel auf die Bewegungen, ihr
+     * Schlüssel ist das Tupel aus Depot, Wertpapier, Datum, Art und Stückzahl. Beim Löschen des Depots
+     * blieb sie deshalb stehen – und ein später gleichnamig angelegtes Depot bekam Beträge untergeschoben,
+     * die dort niemand eingegeben hat.
+     */
+    @Test
+    public void loeschtAuchManuellGesetzteWerte() throws Exception {
+        legeDepotAn("Depot A", "S1");
+        imHintergrund(() -> {
+            db.securityDao().upsertValueOverride(new SecurityTxValueOverride(
+                    "Depot A", "S1", 0L, "add", 5.0, 12_345L));
+            return null;
+        });
+
+        loescheUndWarte(Collections.emptyList(), Collections.singletonList("Depot A"));
+
+        assertTrue("Der manuell gesetzte Wert darf das Depot nicht überleben",
+                imHintergrund(() -> db.securityDao().getValueOverrides("Depot A").isEmpty()));
+    }
+
     @Test
     public void laesstAndereDepotsUnberuehrt() throws Exception {
         legeDepotAn("Depot A", "S1");

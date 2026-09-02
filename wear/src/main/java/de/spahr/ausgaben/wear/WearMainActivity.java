@@ -76,6 +76,35 @@ public class WearMainActivity extends WearLocalizedActivity {
     private String confirmEntryId;
     private CountDownTimer confirmTimer;
     private SpeechRecognizer speech;
+    /**
+     * Ob der Erkennungsdienst dieses Versuchs schon <b>Sprache angefangen</b> hat.
+     *
+     * <p>Der Unterschied zwischen „nichts gesagt" und „zu früh gesagt": Hat der Dienst nie einen
+     * Sprachanfang gemeldet und trotzdem nichts erkannt, hat er beim Losreden noch gar nicht
+     * aufgenommen. Genau dann lohnt eine stille Wiederholung — siehe {@link #wiederholungsVersuche}.</p>
+     */
+    private boolean speechBegonnen;
+    /**
+     * Wie oft für diese Eingabe schon still wiederholt wurde. Höchstens einmal: eine Uhr, die
+     * unbemerkt immer weiter zuhört, wäre schlimmer als eine, die aufgibt.
+     */
+    private int wiederholungsVersuche;
+    /**
+     * Wache über die Aufnahmebereitschaft: Meldet der Dienst sie nicht, bliebe „Moment…" für immer
+     * stehen — und die Uhr wäre stumm, ohne es zu sagen. Dann lieber in den Zahlenblock, wie bei jedem
+     * anderen Scheitern auch: die Eingabe muss möglich bleiben.
+     */
+    private final android.os.Handler bereitschaftsWache =
+            new android.os.Handler(android.os.Looper.getMainLooper());
+    private final Runnable bereitschaftAbgelaufen = new Runnable() {
+        @Override
+        public void run() {
+            destroySpeech();
+            onListenError(SpeechRecognizer.ERROR_CLIENT);
+        }
+    };
+    /** So lange wird auf die Aufnahmebereitschaft gewartet. Der Kaltstart braucht knapp eine Sekunde. */
+    private static final long BEREITSCHAFT_TIMEOUT_MS = 6000L;
     private ActivityResultLauncher<String> permissionLauncher;
     private WearLocation location;
     private ActivityResultLauncher<String> locationPermissionLauncher;
@@ -180,6 +209,7 @@ public class WearMainActivity extends WearLocalizedActivity {
 
     private void chooseType(String type) {
         pendingType = type;
+        wiederholungsVersuche = 0;
         if (ContextCompat.checkSelfPermission(this, Manifest.permission.RECORD_AUDIO)
                 == PackageManager.PERMISSION_GRANTED) {
             startListening();
@@ -205,9 +235,14 @@ public class WearMainActivity extends WearLocalizedActivity {
             return;
         }
         stopTimer();
-        showListening();
+        // Erst „Moment…", nicht schon „Sprich jetzt": Zwischen dem Tippen und der ersten aufgenommenen
+        // Silbe liegt der Kaltstart des Erkennungsdienstes — über die Kachel gestartet gut eine
+        // Sekunde. Bis 1.13 stand hier sofort „Sprich jetzt…", und wer dem folgte, sprach ins Nichts:
+        // der Dienst meldete „nicht erkannt", und beim zweiten Mal ging es, weil er dann warm war.
+        showWarten();
 
         destroySpeech();
+        speechBegonnen = false;
         // Ist das Offline-Modell laut Opt-in installiert, hat es Vorrang – auch online (nutzt den
         // On-Device-Recognizer, der das per triggerModelDownload geladene Modell zuverlässig verwendet;
         // der Standard-Recognizer greift trotz PREFER_OFFLINE auf Wear OS oft nicht darauf zu). Ist der
@@ -224,6 +259,18 @@ public class WearMainActivity extends WearLocalizedActivity {
             speech = SpeechRecognizer.createSpeechRecognizer(this);
         }
         speech.setRecognitionListener(new SimpleRecognitionListener() {
+            @Override
+            public void onReadyForSpeech(Bundle params) {
+                // Jetzt erst nimmt der Dienst wirklich auf. Das ist der Moment für das Startzeichen.
+                bereitschaftsWache.removeCallbacks(bereitschaftAbgelaufen);
+                showListening();
+            }
+
+            @Override
+            public void onBeginningOfSpeech() {
+                speechBegonnen = true;
+            }
+
             @Override
             public void onResults(Bundle results) {
                 ArrayList<String> list = results == null ? null
@@ -261,6 +308,7 @@ public class WearMainActivity extends WearLocalizedActivity {
         intent.putExtra(RecognizerIntent.EXTRA_MAX_RESULTS, 5);
         try {
             speech.startListening(intent);
+            bereitschaftsWache.postDelayed(bereitschaftAbgelaufen, BEREITSCHAFT_TIMEOUT_MS);
         } catch (Exception e) {
             destroySpeech();
             onListenError(SpeechRecognizer.ERROR_CLIENT);
@@ -308,6 +356,9 @@ public class WearMainActivity extends WearLocalizedActivity {
      * (Sprache erneut versuchen; der Zahlenblock-Knopf steht dort ohnehin bereit).
      */
     private void onListenError(int code) {
+        if (stillWiederholen(code)) {
+            return;
+        }
         boolean offline = !hasValidatedInternet()
                 || !phoneConnected
                 || code == SpeechRecognizer.ERROR_NETWORK
@@ -326,6 +377,29 @@ public class WearMainActivity extends WearLocalizedActivity {
         }
     }
 
+    /**
+     * Noch einmal still zuhören, statt zur Auswahl zurückzuspringen — {@code true}, wenn das gerade
+     * geschieht.
+     *
+     * <p>Nur unter einer Bedingung: Der Dienst hat nichts erkannt und dabei <b>nie einen Sprachanfang
+     * gemeldet</b>. Dann lief er beim Losreden noch nicht, und genau das ist der Fall, den der Nutzer
+     * bisher von Hand ausgeglichen hat („beim zweiten Mal geht es"). Hat er dagegen Sprache gehört und
+     * sie nicht verstanden, wäre eine Wiederholung nur Zeitverlust: dann liegt es nicht am Zeitpunkt.</p>
+     *
+     * <p>Höchstens einmal. Eine Uhr, die unbemerkt immer weiter zuhört, wäre schlimmer als eine, die
+     * aufgibt.</p>
+     */
+    private boolean stillWiederholen(int code) {
+        if (speechBegonnen || wiederholungsVersuche >= 1
+                || (code != SpeechRecognizer.ERROR_NO_MATCH
+                    && code != SpeechRecognizer.ERROR_SPEECH_TIMEOUT)) {
+            return false;
+        }
+        wiederholungsVersuche++;
+        startListening();
+        return true;
+    }
+
     /** Bevorzugt die erste Erkennungs-Alternative mit einer Zahl (sonst die beste), damit ein Betrag nicht
      * verloren geht, falls das Top-Ergebnis keine Ziffer enthält. */
     private String pickBest(ArrayList<String> list) {
@@ -341,17 +415,52 @@ public class WearMainActivity extends WearLocalizedActivity {
         return first.isEmpty() ? null : first;
     }
 
+    /**
+     * Der Zustand zwischen Tippen und Aufnahmebereitschaft: die Art steht schon, gesprochen wird noch
+     * nicht. Dieselbe Fläche wie {@link #showListening()}, nur mit anderem Text — so springt nichts,
+     * wenn gleich darauf umgeschaltet wird.
+     */
+    private void showWarten() {
+        showSprachflaeche();
+        confirmText.setText(R.string.wear_preparing);
+    }
+
     /** „Höre zu"-Zustand: gleiche Fläche wie die Bestätigung, aber ohne Abbrechen/Countdown. */
     private void showListening() {
+        showSprachflaeche();
+        confirmText.setText(R.string.wear_listening);
+        // Das Startzeichen ans Handgelenk: unterwegs schaut man nicht auf die Uhr, um den richtigen
+        // Augenblick abzupassen — man spürt ihn.
+        vibriere();
+    }
+
+    /** Was beiden Zuständen gemeinsam ist. */
+    private void showSprachflaeche() {
         typeSelection.setVisibility(View.GONE);
         confirmView.setVisibility(View.VISIBLE);
         confirmType.setText(typeLabel(pendingType));
         confirmType.setTextColor(typeColor(pendingType));
-        confirmText.setText(R.string.wear_listening);
         btnCancel.setVisibility(View.GONE);
         numberView.setVisibility(View.GONE);
         btnNumberPad.setVisibility(View.VISIBLE); // stille Zifferneingabe anbieten
         keepScreenOn(true);
+    }
+
+    /** Ein kurzer Stoß. Fehlt der Uhr ein Vibrationsmotor, geschieht schlicht nichts. */
+    private void vibriere() {
+        android.os.Vibrator vibrator;
+        if (android.os.Build.VERSION.SDK_INT >= 31) {
+            android.os.VibratorManager manager =
+                    (android.os.VibratorManager) getSystemService(VIBRATOR_MANAGER_SERVICE);
+            vibrator = manager == null ? null : manager.getDefaultVibrator();
+        } else {
+            vibrator = (android.os.Vibrator) getSystemService(VIBRATOR_SERVICE);
+        }
+        if (vibrator == null || !vibrator.hasVibrator()) {
+            return;
+        }
+        vibrator.vibrate(android.os.VibrationEffect.createOneShot(
+                60, android.os.VibrationEffect.DEFAULT_AMPLITUDE));
     }
 
     /** Display während der aktiven Erfassung (Zuhören / 10-s-Timer / Zahlenblock) wach halten – kein
@@ -519,6 +628,7 @@ public class WearMainActivity extends WearLocalizedActivity {
     }
 
     private void destroySpeech() {
+        bereitschaftsWache.removeCallbacks(bereitschaftAbgelaufen);
         if (speech != null) {
             speech.destroy();
             speech = null;

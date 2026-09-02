@@ -7,6 +7,8 @@
     <string name="wear_type_expense">Ausgabe</string>
     <string name="wear_cancel">Abbrechen</string>
     <string name="wear_prompt">Buchung sagen, z. B. „Frisör 20 Euro"</string>
+    <!-- Bis der Erkennungsdienst wirklich aufnimmt; erst danach „Sprich jetzt". -->
+    <string name="wear_preparing">Moment…</string>
     <string name="wear_listening">Sprich jetzt…</string>
     <string name="wear_not_understood">Nicht erkannt</string>
     <string name="wear_no_mic">Mikrofon nötig</string>

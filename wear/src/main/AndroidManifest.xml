@@ -10,6 +10,9 @@
     <uses-permission android:name="android.permission.ACCESS_COARSE_LOCATION" />
     <!-- Um zu erkennen, ob gerade echtes Internet da ist (dann Online-Erkennung, sonst Offline bevorzugen). -->
     <uses-permission android:name="android.permission.ACCESS_NETWORK_STATE" />
+    <!-- Ein kurzer Stoß, sobald der Erkennungsdienst wirklich aufnimmt: unterwegs ist das Handgelenk
+         das verlässlichere Startzeichen als ein Blick aufs Display. -->
+    <uses-permission android:name="android.permission.VIBRATE" />
     <queries>
         <intent>
             <action android:name="android.speech.RecognitionService" />

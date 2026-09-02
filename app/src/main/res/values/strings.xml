@@ -764,6 +764,16 @@
     <string name="statement_show">Show statement</string>
     <string name="statement_date_title">Date from the statement</string>
     <string name="statement_date_other">Choose another date…</string>
+    <!-- Die Auswahl der Beschriftung beim Verlassen eines Wertfeldes (erster Beleg einer Bank). -->
+    <string name="statement_anchor_title">Where does “%1$s” stand in the statement?</string>
+    <string name="statement_anchor_item">%1$s — %2$s</string>
+    <string name="statement_anchor_none">Let the app decide</string>
+    <string name="statement_anchor_column">column heading above it</string>
+    <string name="statement_anchor_heading">heading one line above</string>
+    <string name="statement_anchor_under">label one line below</string>
+    <string name="statement_anchor_same_first">same line, first number</string>
+    <string name="statement_anchor_same_last">same line, last number</string>
+    <string name="statement_anchor_sum">sum of these lines</string>
     <!-- Mehrere Abrechnungen auf einmal: die Erkennungsliste vor dem Buchen. -->
     <string name="statement_batch_title">Statements read</string>
     <string name="statement_batch_reading">Reading %1$d statements…</string>

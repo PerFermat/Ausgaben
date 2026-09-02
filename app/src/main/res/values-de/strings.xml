@@ -763,6 +763,16 @@
     <string name="statement_show">Abrechnung anzeigen</string>
     <string name="statement_date_title">Datum aus der Abrechnung</string>
     <string name="statement_date_other">Anderes Datum wählen…</string>
+    <!-- Die Auswahl der Beschriftung beim Verlassen eines Wertfeldes (erster Beleg einer Bank). -->
+    <string name="statement_anchor_title">Woran steht „%1$s" in der Abrechnung?</string>
+    <string name="statement_anchor_item">%1$s — %2$s</string>
+    <string name="statement_anchor_none">Die App entscheiden lassen</string>
+    <string name="statement_anchor_column">Spaltenüberschrift darüber</string>
+    <string name="statement_anchor_heading">Überschrift eine Zeile darüber</string>
+    <string name="statement_anchor_under">Beschriftung eine Zeile darunter</string>
+    <string name="statement_anchor_same_first">gleiche Zeile, erste Zahl</string>
+    <string name="statement_anchor_same_last">gleiche Zeile, letzte Zahl</string>
+    <string name="statement_anchor_sum">Summe dieser Zeilen</string>
     <!-- Mehrere Abrechnungen auf einmal: die Erkennungsliste vor dem Buchen. -->
     <string name="statement_batch_title">Eingelesene Abrechnungen</string>
     <string name="statement_batch_reading">%1$d Abrechnungen werden gelesen…</string>

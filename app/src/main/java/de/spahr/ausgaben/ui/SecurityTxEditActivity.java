@@ -224,6 +224,24 @@ public class SecurityTxEditActivity extends LocalizedActivity implements HostedD
      */
     private de.spahr.ausgaben.statement.AnchorRule chosenDateRule;
     /**
+     * Dasselbe für die Wertfelder: die beim Verlassen des Feldes gewählte Beschriftung.
+     *
+     * <p>Gefragt wird nur beim <b>ersten</b> Beleg einer Bank — danach steht die Vorlage, und die
+     * kennt die Antwort schon. Siehe {@link #ankerAuswahlAnbieten}.</p>
+     */
+    private final Map<Field, de.spahr.ausgaben.statement.AnchorRule> chosenValueRules =
+            new EnumMap<>(Field.class);
+    /**
+     * Ob für diesen Beleg überhaupt zu fragen ist: {@code null} heißt „noch nicht nachgesehen".
+     *
+     * <p>Die Antwort kostet ein Einlesen des PDF und einen Durchgang durch die gespeicherten Vorlagen;
+     * beim Verlassen jedes Feldes von vorn zu beginnen wäre Verschwendung. {@code volatile}, weil sie
+     * im Hintergrund gefunden und auf dem Bedienfaden gelesen wird — wie {@link #statementText}.</p>
+     */
+    private volatile Boolean ankerAuswahlMoeglich;
+    /** Zu welchem Wert je Feld schon gefragt wurde — sonst fragte jedes Durchqueren erneut. */
+    private final Map<Field, Double> ankerGefragtFuer = new EnumMap<>(Field.class);
+    /**
      * Die einmal gelesene Abrechnung. Ohne sie läse jeder Tipp aufs Datumsfeld das PDF neu ein.
      *
      * <p>{@code volatile}, weil geschrieben und gelesen wird das Feld auf zwei Fäden: das Einlesen läuft
@@ -273,16 +291,21 @@ public class SecurityTxEditActivity extends LocalizedActivity implements HostedD
     private static final String STATE_DATE_RULE = "s_dateRule";
     private static final String STATE_STATEMENT_TAG = "s_statementTag";
     private static final String STATE_FIXED_FEE_CATEGORY = "s_fixedFeeCategory";
+    private static final String STATE_VALUE_RULES = "s_valueRules";
 
     /** Schlüssel der Dialoge dieser Maske – siehe {@link HostedDialog}. */
     private static final String DLG_DATE_CHOICE = "dlg_dateChoice";
     private static final String DLG_CALENDAR = "dlg_calendar";
     private static final String DLG_LEARN = "dlg_learn";
     private static final String DLG_VERIFY = "dlg_verify";
+    private static final String DLG_ANCHOR_CHOICE = "dlg_anchorChoice";
     private static final String ARG_DATE_LABELS = "a_labels";
     private static final String ARG_DATE_MILLIS = "a_millis";
     private static final String ARG_DATE_ANCHORS = "a_anchors";
     private static final String ARG_DATE_RULES = "a_rules";
+    private static final String ARG_ANCHOR_FIELD = "a_anchorField";
+    private static final String ARG_ANCHOR_LABELS = "a_anchorLabels";
+    private static final String ARG_ANCHOR_RULES = "a_anchorRules";
 
     /**
      * Die beiden Rückfragen am Ende des Speicherns hängen an einem gelesenen PDF und an gelernten
@@ -455,6 +478,14 @@ public class SecurityTxEditActivity extends LocalizedActivity implements HostedD
         out.putString(STATE_LAST_COMPUTED, lastComputed == null ? null : lastComputed.name());
         out.putString(STATE_DATE_LABEL, chosenDateLabel);
         out.putSerializable(STATE_DATE_RULE, chosenDateRule);
+        // Als HashMap mit den Feldnamen als Schlüssel: ein EnumMap ist zwar serialisierbar, aber die
+        // Karte geht durch ein Bundle, und dort ist die schlichtere Form die haltbarere.
+        java.util.HashMap<String, de.spahr.ausgaben.statement.AnchorRule> regeln =
+                new java.util.HashMap<>();
+        for (Map.Entry<Field, de.spahr.ausgaben.statement.AnchorRule> e : chosenValueRules.entrySet()) {
+            regeln.put(e.getKey().name(), e.getValue());
+        }
+        out.putSerializable(STATE_VALUE_RULES, regeln);
         out.putString(STATE_STATEMENT_TAG, savedStatementTag);
         out.putString(STATE_FIXED_FEE_CATEGORY, fixedFeeCategory);
         out.putInt(STATE_LIST_HINT, listHint);
@@ -485,6 +516,16 @@ public class SecurityTxEditActivity extends LocalizedActivity implements HostedD
         Object rule = in.getSerializable(STATE_DATE_RULE);
         chosenDateRule = rule instanceof de.spahr.ausgaben.statement.AnchorRule
                 ? (de.spahr.ausgaben.statement.AnchorRule) rule : null;
+        chosenValueRules.clear();
+        Object regeln = in.getSerializable(STATE_VALUE_RULES);
+        if (regeln instanceof java.util.Map) {
+            for (Map.Entry<?, ?> e : ((java.util.Map<?, ?>) regeln).entrySet()) {
+                Field f = fieldOf(String.valueOf(e.getKey()));
+                if (f != null && e.getValue() instanceof de.spahr.ausgaben.statement.AnchorRule) {
+                    chosenValueRules.put(f, (de.spahr.ausgaben.statement.AnchorRule) e.getValue());
+                }
+            }
+        }
         savedStatementTag = in.getString(STATE_STATEMENT_TAG);
         fixedFeeCategory = orEmpty(in.getString(STATE_FIXED_FEE_CATEGORY));
         listHint = in.getInt(STATE_LIST_HINT, 0);
@@ -1096,6 +1137,9 @@ public class SecurityTxEditActivity extends LocalizedActivity implements HostedD
                     // Jetzt erst: wer das Feld leer verlässt, bekommt die Vorbelegung zurück; wer eine
                     // 0 hineingeschrieben hat, behält sie.
                     recompute(null);
+                    // Und erst danach die Frage nach der Beschriftung: sie gilt dem Wert, der jetzt
+                    // dasteht, nicht dem, der vor der Rechnung dastand.
+                    ankerAuswahlAnbieten(field);
                 }
             }
         });
@@ -1727,6 +1771,15 @@ public class SecurityTxEditActivity extends LocalizedActivity implements HostedD
         known.dateMillis = ersteVorlage || dateTyped ? selectedDate.getTimeInMillis() : -1;
         known.dateAnchor = chosenDateLabel;
         known.dateRule = chosenDateRule;
+        // Und die Beschriftungen, die der Nutzer beim Verlassen der Wertfelder ausgewählt hat. Sie
+        // gelten nur für die Felder, aus denen hier überhaupt gelernt wird — was oben auf null gesetzt
+        // wurde, bekommt auch keine Regel.
+        for (Map.Entry<Field, de.spahr.ausgaben.statement.AnchorRule> e : chosenValueRules.entrySet()) {
+            StatementTemplate.Field lernfeld = lernfeldVon(e.getKey());
+            if (lernfeld != null) {
+                known.chosenRules.put(lernfeld, e.getValue());
+            }
+        }
 
         if (known.dateAnchor == null && existing != null
                 && existing.rule(StatementTemplate.Field.DATE) != null) {
@@ -1809,6 +1862,8 @@ public class SecurityTxEditActivity extends LocalizedActivity implements HostedD
         switch (key) {
             case DLG_DATE_CHOICE:
                 return buildDateChoiceDialog(args);
+            case DLG_ANCHOR_CHOICE:
+                return buildAnchorChoiceDialog(args);
             case DLG_CALENDAR:
                 return buildCalendarDialog();
             case DLG_LEARN:
@@ -2243,6 +2298,181 @@ public class SecurityTxEditActivity extends LocalizedActivity implements HostedD
             de.spahr.ausgaben.pdf.PdfText text) {
         return text == null ? java.util.Collections.emptyList()
                 : de.spahr.ausgaben.statement.StatementScan.dates(text);
+    }
+
+    // ---- Die Beschriftung zu einem Wert ----
+
+    /**
+     * Ein Wertfeld wurde verlassen: nachsehen, woran dieser Wert in der Abrechnung hängt — und wählen
+     * lassen, wenn es mehr als eine Möglichkeit gibt.
+     *
+     * <p>Der Lerner müsste sonst raten, und an einer Tabellenzeile ist das nicht zu entscheiden:
+     * „STK 86 … EUR 116,20" unter der Überschrift „Nominale … Kurs" gibt für den Kurs drei
+     * Beschriftungen her, von denen beim nächsten Fonds nur noch eine trifft. Für das Datum fragt die
+     * Maske längst so ({@link #showDatePicker()}).</p>
+     *
+     * <p>Gefragt wird nur beim <b>ersten</b> Beleg einer Bank. Steht die Vorlage, hat sie die Antwort
+     * schon; und bei einer fest programmierten Bank gibt es gar keine Vorlage zu lernen. Ist die Lage
+     * eindeutig, wird die eine Möglichkeit wortlos genommen — und steht der Wert überhaupt nicht im
+     * Dokument (die gerechnete Gutschrift, eine feste Ordergebühr), gibt es nichts zu fragen.</p>
+     */
+    private void ankerAuswahlAnbieten(final Field field) {
+        final StatementTemplate.Field lernfeld = lernfeldVon(field);
+        if (readOnly || !fromStatement || lernfeld == null || !typedFields.contains(field)) {
+            return;
+        }
+        final Double wert = wertVon(field);
+        if (wert == null || wert == 0) {
+            return;
+        }
+        // Zweimal für denselben Wert zu fragen wäre Nörgeln: wer das Feld nur durchquert, hat nichts
+        // Neues gesagt.
+        if (wert.equals(ankerGefragtFuer.get(field))) {
+            return;
+        }
+        ankerGefragtFuer.put(field, wert);
+        repository.executor().execute(() -> {
+            final de.spahr.ausgaben.pdf.PdfText text = readStatementText();
+            if (!ohneVorlage(text)) {
+                return;
+            }
+            final java.util.List<de.spahr.ausgaben.statement.AnchorRule> kandidaten =
+                    de.spahr.ausgaben.statement.TemplateLearner.kandidaten(text, lernfeld, wert);
+            runOnUiThread(() -> {
+                if (isFinishing() || isDestroyed() || kandidaten.isEmpty()) {
+                    return;
+                }
+                if (kandidaten.size() == 1) {
+                    chosenValueRules.put(field, kandidaten.get(0));
+                    return;
+                }
+                showAnchorChoice(field, kandidaten);
+            });
+        });
+    }
+
+    /**
+     * Ob für diesen Beleg überhaupt zu fragen ist — einmal ermittelt, dann gemerkt.
+     *
+     * <p>Läuft auf dem Hintergrundfaden: {@code match} geht durch alle gespeicherten Vorlagen und
+     * lässt jede den Text bewerten.</p>
+     */
+    private boolean ohneVorlage(de.spahr.ausgaben.pdf.PdfText text) {
+        if (text == null) {
+            return false;
+        }
+        Boolean bekannt = ankerAuswahlMoeglich;
+        if (bekannt != null) {
+            return bekannt;
+        }
+        boolean moeglich = de.spahr.ausgaben.statement.bank.BankReaders.find(text) == null
+                && new de.spahr.ausgaben.settings.StatementTemplates(this).match(text, depot) == null;
+        ankerAuswahlMoeglich = moeglich;
+        return moeglich;
+    }
+
+    /** Das Feld der Vorlage zu einem Feld der Maske; {@code null} für die, aus denen nicht gelernt wird. */
+    private static StatementTemplate.Field lernfeldVon(Field field) {
+        switch (field) {
+            case SHARES:
+                return StatementTemplate.Field.SHARES;
+            case PRICE:
+                return StatementTemplate.Field.PRICE;
+            case FEE:
+                return StatementTemplate.Field.FEE;
+            case NET:
+                return StatementTemplate.Field.NET;
+            default:
+                // Das Brutto wird gerechnet, nicht eingetippt – dafür legt der Lerner keine Regel an.
+                return null;
+        }
+    }
+
+    /** Der Wert eines Feldes als Zahl: Geld in Einheiten, keine Cent — so sucht ihn der Lerner. */
+    private Double wertVon(Field field) {
+        if (field == Field.SHARES || field == Field.PRICE) {
+            return number(field);
+        }
+        Long cents = money(field);
+        return cents == null ? null : cents / 100.0;
+    }
+
+    /** Die Auswahl — als {@link HostedDialog}, damit sie eine Drehung übersteht. */
+    private void showAnchorChoice(Field field,
+                                  java.util.List<de.spahr.ausgaben.statement.AnchorRule> kandidaten) {
+        CharSequence[] labels = new CharSequence[kandidaten.size() + 1];
+        for (int i = 0; i < kandidaten.size(); i++) {
+            labels[i] = anchorText(kandidaten.get(i));
+        }
+        labels[kandidaten.size()] = getString(R.string.statement_anchor_none);
+        Bundle args = new Bundle();
+        args.putString(ARG_ANCHOR_FIELD, field.name());
+        args.putCharSequenceArray(ARG_ANCHOR_LABELS, labels);
+        args.putSerializable(ARG_ANCHOR_RULES,
+                new java.util.ArrayList<>(kandidaten));
+        HostedDialog.show(this, DLG_ANCHOR_CHOICE, args);
+    }
+
+    @SuppressWarnings("unchecked")
+    private android.app.Dialog buildAnchorChoiceDialog(Bundle args) {
+        final Field field = fieldOf(args.getString(ARG_ANCHOR_FIELD));
+        CharSequence[] labels = args.getCharSequenceArray(ARG_ANCHOR_LABELS);
+        final java.util.List<de.spahr.ausgaben.statement.AnchorRule> rules =
+                (java.util.List<de.spahr.ausgaben.statement.AnchorRule>)
+                        args.getSerializable(ARG_ANCHOR_RULES);
+        if (field == null || labels == null || rules == null) {
+            return null;
+        }
+        StatementTemplate.Field lernfeld = lernfeldVon(field);
+        return new AppDialog(this)
+                .setTitle(getString(R.string.statement_anchor_title,
+                        StatementFieldNames.of(this, lernfeld, currentAction())))
+                .setItems(labels, (d, which) -> {
+                    if (which >= rules.size()) {
+                        // „Selbst entscheiden": dann sucht der Lerner wie bisher.
+                        chosenValueRules.remove(field);
+                        return;
+                    }
+                    chosenValueRules.put(field, rules.get(which));
+                })
+                .create();
+    }
+
+    /** Ein Eintrag der Auswahl: die Beschriftung und — entscheidend — wo sie steht. */
+    private CharSequence anchorText(de.spahr.ausgaben.statement.AnchorRule rule) {
+        StringBuilder anker = new StringBuilder();
+        for (String a : rule.anchors) {
+            if (anker.length() > 0) {
+                anker.append(" + ");
+            }
+            anker.append(a);
+        }
+        return getString(R.string.statement_anchor_item, anker.toString(), anchorPlace(rule));
+    }
+
+    /**
+     * Wo die Beschriftung zum Wert steht. Ohne diese Angabe wäre die Liste nicht zu lesen: dieselbe
+     * Beschriftung kann als Spaltenüberschrift und als Wort daneben auftauchen, und beide meinen
+     * verschiedene Zahlen.
+     */
+    private String anchorPlace(de.spahr.ausgaben.statement.AnchorRule rule) {
+        if (rule.sum) {
+            return getString(R.string.statement_anchor_sum);
+        }
+        if (rule.position == de.spahr.ausgaben.statement.AnchorRule.Position.COLUMN) {
+            return getString(R.string.statement_anchor_column);
+        }
+        switch (rule.direction) {
+            case LINE_BELOW:
+                return getString(R.string.statement_anchor_heading);
+            case LINE_ABOVE:
+                return getString(R.string.statement_anchor_under);
+            default:
+                return getString(
+                        rule.position == de.spahr.ausgaben.statement.AnchorRule.Position.FIRST
+                                ? R.string.statement_anchor_same_first
+                                : R.string.statement_anchor_same_last);
+        }
     }
 
     private void showCalendar() {

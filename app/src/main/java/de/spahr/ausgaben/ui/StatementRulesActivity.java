@@ -90,18 +90,28 @@ public class StatementRulesActivity extends LocalizedActivity implements HostedD
     private static final String DIVIDEND = "dividend";
 
     /**
-     * Die Felder dieser Art in der Reihenfolge, in der sie auf der Seite stehen.
+     * Die festen Felder dieser Art in der Reihenfolge, in der sie auf der Seite stehen.
      *
-     * <p>Das Datum ganz oben, weil es das einzige Feld ist, das jede Abrechnung trägt — die Geldfelder
-     * folgen von der Endsumme abwärts. Bei einer Dividende fehlen Anzahl und Kurs: eine
-     * Ertragsgutschrift bucht keine Stücke, und ein Kurs je Stück ist dort die Dividende selbst, die
-     * schon als Brutto dasteht.</p>
+     * <p>Maßgeblich ist die Buchungsmaske: Wer hier eine falsch gelernte Regel nachbessert, hat die
+     * Maske im Kopf, und zwei verschieden sortierte Listen für dieselbe Sache muss dann jedes Mal
+     * jemand aufeinander abbilden. Darum genau dieselben Felder in genau derselben Folge wie
+     * {@code activity_edit_security_tx.xml} samt {@code SecurityTxEditActivity#moveTotalField} sie
+     * zeigt — bei Kauf und Verkauf der Gesamtbetrag gleich unter dem Datum, bei einer Dividende das
+     * Netto am Ende der Kette Brutto − Steuer.</p>
+     *
+     * <p>Bei einer Dividende fehlen Anzahl und Kurs: eine Ertragsgutschrift bucht keine Stücke, und ein
+     * Kurs je Stück ist dort die Dividende selbst, die schon als Brutto dasteht. Umgekehrt fehlt bei
+     * Kauf und Verkauf das Brutto — es wird aus Anzahl × Kurs gerechnet, und die Maske blendet es
+     * deshalb aus. Eine dennoch gespeicherte Brutto-Regel bleibt erhalten, siehe {@link #edited()}.</p>
+     *
+     * <p>Die Teilbetrag-Blöcke stehen nicht hier, sondern hinter allen festen Feldern — siehe
+     * {@link #addPartSection}.</p>
      */
     private static Field[] fieldsFor(String action) {
         if (DIVIDEND.equals(action)) {
-            return new Field[]{Field.DATE, Field.NET, Field.FEE, Field.GROSS};
+            return new Field[]{Field.DATE, Field.GROSS, Field.FEE, Field.NET};
         }
-        return new Field[]{Field.DATE, Field.NET, Field.FEE, Field.GROSS, Field.SHARES, Field.PRICE};
+        return new Field[]{Field.DATE, Field.NET, Field.SHARES, Field.PRICE, Field.FEE};
     }
 
     private final SimpleDateFormat dateFormat = new SimpleDateFormat("dd.MM.yyyy", Locale.GERMANY);
@@ -294,23 +304,34 @@ public class StatementRulesActivity extends LocalizedActivity implements HostedD
             FieldForm form = new FieldForm(field, t);
             forms.put(field, form);
             fieldContainer.addView(form.view);
-            if (field == Field.FEE) {
-                addPartSection(Field.FEE, t.feeParts, feePartForms);
-            } else if (field == Field.GROSS && DIVIDEND.equals(t.action)) {
-                addPartSection(Field.GROSS, t.incomeParts, incomePartForms);
-            }
         }
+        // Und dahinter die Blöcke, in denen beliebig viele Zeilen entstehen können — erst die festen
+        // Felder, die es immer gibt. Ertrag vor Gebühr, wie in der Maske (incomeSplitBox steht dort vor
+        // feeSplitBox).
+        if (DIVIDEND.equals(t.action)) {
+            addPartSection(Field.GROSS, t.incomeParts, incomePartForms);
+        }
+        addPartSection(Field.FEE, t.feeParts, feePartForms);
         updateAllFound();
     }
 
     /**
-     * Die Teilbeträge eines Bereichs, gleich unter ihm, und darunter der Knopf für einen weiteren.
+     * Ein Teilbetrag-Block: Überschrift, die vorhandenen Zeilen, darunter der Knopf für eine weitere.
      *
-     * <p>Unter dem Oberbereich und nicht in einem eigenen Abschnitt am Ende: geprüft wird immer im
-     * Zusammenhang — gehen die drei Steuerzeilen zusammen auf die Summe darüber auf?</p>
+     * <p>Am Ende der Seite und nicht mehr unter dem Feld, zu dem er gehört — so steht er auch in der
+     * Buchungsmaske, und beide Listen sollen sich decken. Die Überschrift wird damit unentbehrlich:
+     * bei einer Dividende folgen zwei solche Blöcke aufeinander, und ohne sie wäre nicht zu sehen,
+     * welche Zeile zum Ertrag und welche zur Steuer gehört. Sie nimmt dieselben Wörter wie die Maske
+     * (siehe {@link StatementFieldNames#feeCategoryHeading}).</p>
      */
     private void addPartSection(Field field, List<StatementTemplate.PartRule> parts,
                                 List<FieldForm> into) {
+        TextView heading = (TextView) LayoutInflater.from(this)
+                .inflate(R.layout.item_statement_part_heading, fieldContainer, false);
+        heading.setText(field == Field.FEE
+                ? StatementFieldNames.feeCategoryHeading(this, templates.get(current).action)
+                : getString(R.string.security_tx_income_category));
+        fieldContainer.addView(heading);
         for (StatementTemplate.PartRule part : parts) {
             into.add(addPartForm(field, part, into));
         }
@@ -1020,11 +1041,21 @@ public class StatementRulesActivity extends LocalizedActivity implements HostedD
                 rules.put(form.field(), rule);
             }
         }
+        // Was die Seite gar nicht anzeigt, darf sie auch nicht wegwerfen: bei Kauf und Verkauf steht das
+        // Brutto hier nicht (siehe fieldsFor), eine von Hand angelegte Regel dafür bleibt trotzdem
+        // gültig. Ein leeres Formular ist etwas anderes — dort hat der Nutzer die Regel eben entfernt.
+        StatementTemplate bisher = templates.get(current);
+        for (Field field : Field.values()) {
+            if (!forms.containsKey(field) && bisher.rule(field) != null) {
+                rules.put(field, bisher.rule(field));
+            }
+        }
         long fixedFee = 0;
         String fixedCategory = "";
         boolean inTotal = false;
         String feeCategory = "";
-        String incomeCategory = "";
+        // Dieselbe Überlegung: die Ertragskategorie hängt am Brutto-Formular und überlebt dessen Fehlen.
+        String incomeCategory = forms.containsKey(Field.GROSS) ? "" : bisher.incomeCategory;
         for (FieldForm form : forms.values()) {
             if (form.field() == Field.FEE) {
                 fixedFee = form.fixedFeeCents();

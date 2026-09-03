@@ -1,0 +1,16 @@
+<?xml version="1.0" encoding="utf-8"?>
+<!--
+  Die Überschrift über einem Teilbetrag-Block der Regelseite („Gebührenkategorien",
+  „Ertragskategorien"). Beide Blöcke stehen hinter den festen Feldern und damit unmittelbar
+  nebeneinander — ohne Überschrift wäre nicht zu sehen, welche Zeile zu welchem gehört. Gestaltet wie
+  die gleichnamigen Überschriften der Buchungsmaske (siehe incomeSplitHeading in
+  activity_edit_security_tx.xml), damit beide Seiten auch hier gleich aussehen.
+-->
+<TextView xmlns:android="http://schemas.android.com/apk/res/android"
+    android:id="@+id/textPartHeading"
+    android:layout_width="match_parent"
+    android:layout_height="wrap_content"
+    android:layout_marginTop="20dp"
+    android:textColor="@color/green_primary"
+    android:textSize="15sp"
+    android:textStyle="bold" />

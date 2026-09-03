@@ -239,8 +239,30 @@ public class SecurityTxEditActivity extends LocalizedActivity implements HostedD
      * im Hintergrund gefunden und auf dem Bedienfaden gelesen wird — wie {@link #statementText}.</p>
      */
     private volatile Boolean ankerAuswahlMoeglich;
-    /** Zu welchem Wert je Feld schon gefragt wurde — sonst fragte jedes Durchqueren erneut. */
-    private final Map<Field, Double> ankerGefragtFuer = new EnumMap<>(Field.class);
+    /** Siehe {@link #matchedTemplate(de.spahr.ausgaben.pdf.PdfText)}. */
+    private volatile StatementTemplate matchedTemplate;
+    private volatile boolean matchedTemplateComputed;
+    /**
+     * Wie {@link #ankerAuswahlMoeglich}, nur ohne die Vorlagen-Prüfung — siehe {@link #ankerSucheMoeglich}.
+     */
+    private volatile Boolean ankerSucheMoeglichCache;
+    /**
+     * Sucht die Beschriftung bereits während der Eingabe (siehe {@link #planeAnkerSuche}) — nicht bei
+     * jedem Tastendruck, sondern erst, wenn eine kurze Weile nichts mehr getippt wurde: eine
+     * Volltextsuche im PDF bei jedem einzelnen Zeichen wäre unnötige Arbeit, und während einer Ziffernfolge
+     * ({@code 1}, {@code 10}, {@code 100}, …) will ohnehin nur der zuletzt eingetippte Wert eine Antwort.
+     */
+    private final android.os.Handler ankerHandler = new android.os.Handler(android.os.Looper.getMainLooper());
+    private static final long ANKER_DEBOUNCE_MS = 300;
+    private final Map<Field, Runnable> ankerPending = new EnumMap<>(Field.class);
+    /** Dasselbe für die Teilbetrag-Zeilen einer Aufteilung — mit schwachen Schlüsseln wie unten. */
+    private final Map<TextInputEditText, Runnable> splitAnkerPending = new java.util.WeakHashMap<>();
+    /**
+     * Der ursprüngliche Feldtitel (z. B. „Stückzahl"), bevor {@link #ankerAuswahlAnbieten} ihn durch die
+     * im PDF gefundene Beschriftung ersetzt hat — für die Rückkehr nach „Selbst entscheiden" oder erneuter
+     * Eingabe.
+     */
+    private final Map<Field, CharSequence> originalHints = new EnumMap<>(Field.class);
     /**
      * Ob die Einführung ins Lernen (siehe {@link #DLG_LEARN_INTRO}) schon einmal aufging — sonst käme
      * sie nach jeder Drehung noch einmal, obwohl der Nutzer sie längst weggetippt hat.
@@ -272,6 +294,39 @@ public class SecurityTxEditActivity extends LocalizedActivity implements HostedD
      * sich selbst vorgelegt hat.</p>
      */
     private final Set<Field> typedFields = EnumSet.noneOf(Field.class);
+    /**
+     * Felder, deren live gefundene Beschriftung einer schon in der Bank-Vorlage stehenden, ANDEREN Regel
+     * widerspricht — dort lernt {@link #lernen} nur, wenn das Feld auch in {@link #ersetzteRegeln} steht.
+     */
+    private final Set<Field> konfliktFelder = EnumSet.noneOf(Field.class);
+    /**
+     * Felder, für die der Nutzer übers Stift-Symbol ausdrücklich eine Beschriftung bestätigt hat — nur
+     * dann darf eine in {@link #konfliktFelder} stehende Korrektur die Bank-Vorlage wirklich ersetzen.
+     */
+    private final Set<Field> ersetzteRegeln = EnumSet.noneOf(Field.class);
+    /**
+     * Teilmenge von {@link #ersetzteRegeln}: Felder, bei denen der Schalter im Stift-Dialog auf
+     * „hinzufügen" stand. Dort soll die neue Beschriftung die alte Regel nicht ablösen, sondern als
+     * weitere Möglichkeit in deren Kette stehen — siehe {@link StatementTemplate#appendedTo}.
+     */
+    private final Set<Field> anhaengenFelder = EnumSet.noneOf(Field.class);
+    /**
+     * Felder, für die der Nutzer im Stift-Dialog „Nicht lernen" gewählt hat: der gefundene Wert gilt für
+     * diese eine Buchung, die Bank-Vorlage bleibt unangetastet. Nötig neben {@link #ersetzteRegeln},
+     * weil ohne Widerspruch ({@link #konfliktFelder}) sonst stillschweigend gelernt würde.
+     */
+    private final Set<Field> nichtLernenFelder = EnumSet.noneOf(Field.class);
+    /**
+     * Der Wert, für den der Nutzer im Stift-Dialog entschieden hat — je Feld, das dort war.
+     *
+     * <p>Die Entscheidung hängt am <b>Wert</b>, nicht an einem Merker, den irgendein Textereignis
+     * wieder löscht. Genau daran scheiterte es zuvor: zwischen Wahl und Speichern lief die Suche noch
+     * einmal (das Feld bekommt beim Schließen des Fensters wieder den Fokus, die Maske rechnet und
+     * schreibt zurück) und nahm die Bestätigung wieder heraus — unsichtbar, und beim Speichern war
+     * dann „nichts Neues" zu lernen. Ändert der Nutzer den Wert wirklich, stimmt der Vergleich nicht
+     * mehr und die Entscheidung verfällt von selbst; siehe {@link #entscheidungGilt}.</p>
+     */
+    private final Map<Field, Double> entschiedenFuer = new EnumMap<>(Field.class);
     /** Hat der Nutzer das Datum selbst gewählt? Dann gehört auch dessen Beschriftung gelernt. */
     private boolean dateTyped;
     /** Das Speichern läuft schon — siehe {@link #save()}. */
@@ -299,6 +354,11 @@ public class SecurityTxEditActivity extends LocalizedActivity implements HostedD
     private static final String STATE_SAVING = "s_saving";
     private static final String STATE_USER_SET = "s_userSet";
     private static final String STATE_TYPED_FIELDS = "s_typedFields";
+    private static final String STATE_KONFLIKT_FELDER = "s_konfliktFelder";
+    private static final String STATE_ERSETZTE_REGELN = "s_ersetzteRegeln";
+    private static final String STATE_ANHAENGEN_FELDER = "s_anhaengenFelder";
+    private static final String STATE_NICHT_LERNEN_FELDER = "s_nichtLernenFelder";
+    private static final String STATE_GEWAEHLTE_FELDER = "s_gewaehlteFelder";
     private static final String STATE_LAST_COMPUTED = "s_lastComputed";
     private static final String STATE_DATE_LABEL = "s_dateLabel";
     private static final String STATE_DATE_RULE = "s_dateRule";
@@ -433,6 +493,13 @@ public class SecurityTxEditActivity extends LocalizedActivity implements HostedD
         markierungAufhebenBeimTippen(Field.GROSS, grossLayout);
         markierungAufhebenBeimTippen(Field.NET, netLayout);
         markierungAufhebenBeimTippen(Field.SHARES, sharesLayout);
+        // Gesichert, bevor ankerAuswahlAnbieten() den Titel ggf. durch die erkannte Beschriftung ersetzt.
+        for (Field f : new Field[]{Field.SHARES, Field.PRICE, Field.FEE, Field.NET}) {
+            TextInputLayout layout = layoutFor(f);
+            if (layout != null) {
+                originalHints.put(f, layout.getHint());
+            }
+        }
     }
 
     private void setupDateField() {
@@ -476,17 +543,19 @@ public class SecurityTxEditActivity extends LocalizedActivity implements HostedD
         fromStatement = statementTextPath != null || pendingStatement != null;
         updateStatementButton();
         // Vorlesen, solange der Nutzer noch Aktion/Konto prüft – ohne das läse showDatePicker()/
-        // ankerAuswahlAnbieten() erst beim ersten Antippen, und genau das fror sichtbar ein. Die
-        // Datumskandidaten gleich mit: ihre Suche (StatementScan.dates) kostet bei einer mehrseitigen
-        // Abrechnung selbst noch einmal spürbar Zeit, unabhängig vom reinen PDF-Einlesen.
+        // ankerAuswahlAnbieten() erst beim ersten Antippen, und genau das fror sichtbar ein.
         if (fromStatement) {
             repository.executor().execute(() -> {
-                readStatementDates();
+                de.spahr.ausgaben.pdf.PdfText text = readStatementText();
                 // Fehlt für diese Bank noch eine Vorlage, wartet auf den Nutzer echtes Lernen – bevor er
-                // loslegt, kurz erklären, wie das abläuft (siehe zeigeLernEinfuehrungFallsNoetig).
-                if (ohneVorlage(statementText)) {
+                // loslegt, kurz erklären, wie das abläuft (siehe zeigeLernEinfuehrungFallsNoetig). Das
+                // steht bewusst VOR der Datumssuche unten: die kostet bei einer mehrseitigen Abrechnung
+                // selbst noch einmal spürbar Zeit, und genau die soll nicht mehr zwischen dem Öffnen der
+                // Maske und der Einführung liegen – man will ja oft schon lostippen.
+                if (ohneVorlage(text)) {
                     runOnUiThread(this::zeigeLernEinfuehrungFallsNoetig);
                 }
+                readStatementDates();
             });
         }
     }
@@ -526,6 +595,15 @@ public class SecurityTxEditActivity extends LocalizedActivity implements HostedD
         out.putBoolean(STATE_LEARN_INTRO_SHOWN, learnIntroShown);
         out.putStringArray(STATE_USER_SET, namesOf(userSet));
         out.putStringArray(STATE_TYPED_FIELDS, namesOf(typedFields));
+        out.putStringArray(STATE_KONFLIKT_FELDER, namesOf(konfliktFelder));
+        out.putStringArray(STATE_ERSETZTE_REGELN, namesOf(ersetzteRegeln));
+        out.putStringArray(STATE_ANHAENGEN_FELDER, namesOf(anhaengenFelder));
+        out.putStringArray(STATE_NICHT_LERNEN_FELDER, namesOf(nichtLernenFelder));
+        java.util.HashMap<String, Double> entschieden = new java.util.HashMap<>();
+        for (Map.Entry<Field, Double> e : entschiedenFuer.entrySet()) {
+            entschieden.put(e.getKey().name(), e.getValue());
+        }
+        out.putSerializable(STATE_GEWAEHLTE_FELDER, entschieden);
         out.putString(STATE_LAST_COMPUTED, lastComputed == null ? null : lastComputed.name());
         out.putString(STATE_DATE_LABEL, chosenDateLabel);
         out.putSerializable(STATE_DATE_RULE, chosenDateRule);
@@ -563,6 +641,20 @@ public class SecurityTxEditActivity extends LocalizedActivity implements HostedD
         learnIntroShown = in.getBoolean(STATE_LEARN_INTRO_SHOWN, learnIntroShown);
         readFields(in.getStringArray(STATE_USER_SET), userSet);
         readFields(in.getStringArray(STATE_TYPED_FIELDS), typedFields);
+        readFields(in.getStringArray(STATE_KONFLIKT_FELDER), konfliktFelder);
+        readFields(in.getStringArray(STATE_ERSETZTE_REGELN), ersetzteRegeln);
+        readFields(in.getStringArray(STATE_ANHAENGEN_FELDER), anhaengenFelder);
+        readFields(in.getStringArray(STATE_NICHT_LERNEN_FELDER), nichtLernenFelder);
+        entschiedenFuer.clear();
+        Object entschieden = in.getSerializable(STATE_GEWAEHLTE_FELDER);
+        if (entschieden instanceof java.util.Map) {
+            for (Map.Entry<?, ?> e : ((java.util.Map<?, ?>) entschieden).entrySet()) {
+                Field f = fieldOf(String.valueOf(e.getKey()));
+                if (f != null && e.getValue() instanceof Double) {
+                    entschiedenFuer.put(f, (Double) e.getValue());
+                }
+            }
+        }
         lastComputed = fieldOf(in.getString(STATE_LAST_COMPUTED));
         chosenDateLabel = in.getString(STATE_DATE_LABEL);
         Object rule = in.getSerializable(STATE_DATE_RULE);
@@ -666,7 +758,7 @@ public class SecurityTxEditActivity extends LocalizedActivity implements HostedD
         incomeSplits = new SplitRowController(findViewById(R.id.incomeSplitContainer),
                 numberFields.get(Field.GROSS), getLayoutInflater(), readOnly, this::updateSaveEnabled);
         for (SplitRowController ctl : splitControllers()) {
-            ctl.setAmountBinder(this::bindCalcField);
+            ctl.setAmountBinder(this::bindCalcSplitField);
             if (categoryAdapter != null) {
                 ctl.setAdapter(categoryAdapter);
             }
@@ -699,9 +791,12 @@ public class SecurityTxEditActivity extends LocalizedActivity implements HostedD
 
     /**
      * Hängt ein Teilbetragsfeld an die Rechentastatur — ohne die Rechnung der Maske: ein Teilbetrag
-     * ist keine der Größen, aus denen sie Brutto, Gebühr und Netto auseinander ableitet.
+     * ist keine der Größen, aus denen sie Brutto, Gebühr und Netto auseinander ableitet. Zusätzlich, wie
+     * bei den Hauptfeldern ({@link #wireCalcField}): schon während der Eingabe wird nachgesehen, unter
+     * welcher Beschriftung dieser Teilbetrag in der Abrechnung steht (siehe
+     * {@link #ankerAuswahlAnbietenSplit}).
      */
-    private void bindCalcField(TextInputEditText input) {
+    private void bindCalcSplitField(TextInputLayout layout, TextInputEditText input) {
         AmountField.prepareCalc(input);
         input.setShowSoftInputOnFocus(false);
         input.setOnFocusChangeListener((v, hasFocus) -> {
@@ -716,8 +811,27 @@ public class SecurityTxEditActivity extends LocalizedActivity implements HostedD
                 CalcKeyboardView.hideSystemKeyboard(input);
             } else {
                 calcKeyboard.setVisibility(View.GONE);
+                // Läuft die Suche noch (Wartezeit nach dem letzten Tastendruck), soll sie hier nicht erst
+                // abwarten, sondern sofort antworten.
+                Runnable alt = splitAnkerPending.remove(input);
+                if (alt != null) {
+                    ankerHandler.removeCallbacks(alt);
+                }
+                ankerAuswahlAnbietenSplit(layout, input);
             }
         });
+        // Sucht schon während der Eingabe, mit derselben Wartezeit wie bei den Hauptfeldern (siehe
+        // planeAnkerSuche) — SplitRowControllers eigener TextWatcher (registriert vor diesem hier, siehe
+        // addRow) setzt den „getippt"-Merker und den Rücksetzer auf den Standardtitel bereits synchron.
+        input.addTextChangedListener(new SimpleWatcher(() -> {
+            Runnable alt = splitAnkerPending.remove(input);
+            if (alt != null) {
+                ankerHandler.removeCallbacks(alt);
+            }
+            Runnable lauf = () -> ankerAuswahlAnbietenSplit(layout, input);
+            splitAnkerPending.put(input, lauf);
+            ankerHandler.postDelayed(lauf, ANKER_DEBOUNCE_MS);
+        }));
     }
 
     /**
@@ -1189,9 +1303,9 @@ public class SecurityTxEditActivity extends LocalizedActivity implements HostedD
                     // Jetzt erst: wer das Feld leer verlässt, bekommt die Vorbelegung zurück; wer eine
                     // 0 hineingeschrieben hat, behält sie.
                     recompute(null);
-                    // Und erst danach die Frage nach der Beschriftung: sie gilt dem Wert, der jetzt
-                    // dasteht, nicht dem, der vor der Rechnung dastand.
-                    ankerAuswahlAnbieten(field);
+                    // Die Suche läuft längst während der Eingabe (siehe unten); beim Verlassen soll sie
+                    // aber nicht erst nach der Wartezeit antworten, deshalb hier sofort statt geplant.
+                    ankerSucheSofort(field);
                 }
             }
         });
@@ -1208,8 +1322,42 @@ public class SecurityTxEditActivity extends LocalizedActivity implements HostedD
                 // hat oben schon abgedreht.
                 typedFields.add(field);
             }
+            // Der Wert hat sich geändert: eine schon gezeigte Regel galt dem alten Wert und ist jetzt
+            // hinfällig – Titel und Symbol verschwinden, bis die Suche (unten) einen neuen Treffer meldet.
+            TextInputLayout layout = layoutFor(field);
+            if (layout != null && layout.getEndIconMode() == TextInputLayout.END_ICON_CUSTOM) {
+                layout.setEndIconMode(TextInputLayout.END_ICON_NONE);
+                layout.setHint(originalHints.get(field));
+                chosenValueRules.remove(field);
+                konfliktFelder.remove(field);
+            }
+            // Die im Stift-Fenster getroffene Entscheidung wird hier bewusst NICHT angerührt: dieser
+            // Beobachter meldet sich auch, wenn sich der Wert gar nicht wirklich geändert hat, und
+            // löschte damit eine eben getroffene Wahl. Sie verfällt stattdessen von selbst, sobald der
+            // Wert nicht mehr der ist, für den sie galt – siehe entscheidungGilt.
+            planeAnkerSuche(field);
             recompute(field);
         }));
+    }
+
+    /** Verwirft eine noch anstehende Suche und stößt sie mit Wartezeit neu an (siehe {@link #ankerHandler}). */
+    private void planeAnkerSuche(final Field field) {
+        Runnable alt = ankerPending.remove(field);
+        if (alt != null) {
+            ankerHandler.removeCallbacks(alt);
+        }
+        Runnable lauf = () -> ankerAuswahlAnbieten(field);
+        ankerPending.put(field, lauf);
+        ankerHandler.postDelayed(lauf, ANKER_DEBOUNCE_MS);
+    }
+
+    /** Wie {@link #planeAnkerSuche}, nur ohne Wartezeit — für den Moment, in dem das Feld verlassen wird. */
+    private void ankerSucheSofort(final Field field) {
+        Runnable alt = ankerPending.remove(field);
+        if (alt != null) {
+            ankerHandler.removeCallbacks(alt);
+        }
+        ankerAuswahlAnbieten(field);
     }
 
     /** Ergänzt die fehlenden Zahlen und schreibt sie in die Felder, die der Nutzer nicht selbst gefüllt hat. */
@@ -1689,12 +1837,14 @@ public class SecurityTxEditActivity extends LocalizedActivity implements HostedD
      *
      * <p>Gelernt wird beides — wo der Betrag in der Abrechnung steht und wohin er gebucht gehört. Die
      * Beschriftung fehlt hier mit Absicht: die leitet der Lerner aus der gefundenen Zeile ab, und was
-     * in der Maske steht, kann von einer fest programmierten Bank stammen, die gar keine kennt.</p>
+     * in der Maske steht, kann von einer fest programmierten Bank stammen, die gar keine kennt. Die beim
+     * Verlassen des Feldes erkannte (oder vom Nutzer gewählte) Regel wandert dagegen mit — sie hat wie
+     * bei den Hauptfeldern Vorrang vor der eigenen Suche des Lerners (siehe {@code TemplateLearner.learnParts}).</p>
      */
     private List<StatementTemplate.Part> lernbareTeile(SplitRowController ctl) {
         List<StatementTemplate.Part> out = new ArrayList<>();
         for (SplitRowController.Part part : ctl.collectParts()) {
-            out.add(new StatementTemplate.Part("", Math.abs(part.cents), part.category));
+            out.add(new StatementTemplate.Part("", Math.abs(part.cents), part.category, part.chosenRule));
         }
         return out;
     }
@@ -1791,7 +1941,7 @@ public class SecurityTxEditActivity extends LocalizedActivity implements HostedD
     private void learnFrom(de.spahr.ausgaben.pdf.PdfText text, String action, Double shares,
                            Double price, Long feeCents, Long netCents) {
         final StatementTemplates store = new StatementTemplates(this);
-        final StatementTemplate existing = store.match(text, depot);
+        final StatementTemplate existing = matchedTemplate(text);
 
         // Wieviel gelernt wird, hängt daran, ob es für diese Bank schon eine Vorlage gibt.
         //
@@ -1843,18 +1993,40 @@ public class SecurityTxEditActivity extends LocalizedActivity implements HostedD
         //   hergab (eine fehlende Zeile). Sonst verlernte die App an einer unvollständigen Abrechnung.
         // „Hinzufügen" – die bisherige Reihenfolge behält Vorrang, die neue Beschriftung kommt als
         //   weiterer Rückfall dahinter. Das schützt, was auf der Regelseite von Hand geordnet wurde.
-        final StatementTemplate replaced = raw.mergedOver(existing);
+        // Was der Nutzer im Stift-Dialog schon entschieden hat (siehe buildAnchorChoiceDialog), wird
+        // feldweise eingesetzt, statt es unten noch einmal fürs ganze Formular zu fragen: Felder mit dem
+        // Schalter auf „hinzufügen" bekommen ihre Regel aus `appended`, ausdrücklich ersetzte direkt aus
+        // `raw`. Nur was danach noch strittig ist – Datum, Teilbeträge, ein nicht angetipptes Feld –
+        // geht überhaupt noch in die Rückfrage.
+        //
+        // Ausdrücklich ersetzte Felder gehen bewusst an `mergedOver` vorbei: das behält eine alte Regel,
+        // wenn die neue wie ein Auszug aus ihr aussieht (eine Ankerkette, aus der ein Glied fehlt —
+        // siehe StatementTemplate#isExcerptOf). Gegen eine unvollständige Abrechnung ist das richtig,
+        // gegen eine ausdrückliche Wahl im Stift-Dialog wäre es ein stilles Verwerfen: wer eine
+        // Beschriftung antippt, die schon in der Kette steht, bekäme seine Entscheidung nicht gelernt.
+        Set<StatementTemplate.Field> anhaengen = lernfelder(anhaengenFelder, true);
+        Set<StatementTemplate.Field> ersetzen = lernfelder(ersetzteRegeln, false);
+        final StatementTemplate replaced = raw.mergedOver(existing).withRulesFrom(raw, ersetzen);
         final StatementTemplate appended = raw.appendedTo(existing, text);
+        final StatementTemplate replacedMix = replaced.withRulesFrom(appended, anhaengen);
+        final StatementTemplate appendedMix = appended.withRulesFrom(raw, ersetzen);
         // Nur fragen, wenn dabei wirklich etwas Neues herauskam. Wer nichts korrigiert hat, bekommt
         // dieselben Regeln zurück – dann gibt es nichts zu merken, und die Rückfrage wäre nur Lärm.
         // Dasselbe, wenn der korrigierte Wert im PDF gar nicht vorkommt: dann entsteht keine Regel.
-        if (replaced.isEmpty() || replaced.sameAs(existing)) {
+        if (replacedMix.isEmpty() || replacedMix.sameAs(existing)) {
             finish();
+            return;
+        }
+        // Ohne eine solche Entscheidung bleibt alles beim Alten: dann fragt die Rückfrage auch dann noch,
+        // wenn Ersetzen und Hinzufügen aufs Gleiche hinauslaufen (sie heißt dann schlicht „Regeln merken?").
+        boolean entschieden = !anhaengen.isEmpty() || !ersetzen.isEmpty();
+        if (entschieden && replacedMix.sameAs(appendedMix)) {
+            keep(store, replacedMix, text);
             return;
         }
         // Der Dialog wird nicht hier gebaut, sondern in buildDialog – siehe HostedDialog: nach einer
         // Drehung baut ihn die neue Maske erneut, und zwar aus diesen Angaben.
-        lernAngebot = new LernAngebot(store, raw, existing, replaced, appended, text);
+        lernAngebot = new LernAngebot(store, raw, existing, replacedMix, appendedMix, text);
         HostedDialog.show(this, DLG_LEARN, null);
     }
 
@@ -1890,8 +2062,15 @@ public class SecurityTxEditActivity extends LocalizedActivity implements HostedD
         } else {
             // Es gibt einen echten Widerspruch: die neue Beschriftung tritt an die Stelle einer
             // vorhandenen. Das ist nicht zu entscheiden, ohne zu wissen, ob die alte weiter gebraucht
-            // wird – also wird gefragt, statt zu raten.
-            dialog.setMessage(R.string.statement_learn_conflict);
+            // wird – also wird gefragt, statt zu raten. Der (i)-Knopf zeigt auf Wunsch, welche
+            // Beschriftung je Feld alt und welche neu ist – ohne ihn steht nur der generische Hinweistext.
+            View view = getLayoutInflater().inflate(R.layout.dialog_learn_conflict, null);
+            TextView details = view.findViewById(R.id.learnConflictDetails);
+            details.setText(konfliktDetails(a.raw, a.existing));
+            view.findViewById(R.id.btnLearnConflictInfo).setOnClickListener(v ->
+                    details.setVisibility(details.getVisibility() == View.VISIBLE
+                            ? View.GONE : View.VISIBLE));
+            dialog.setView(view);
             dialog.setPositiveButton(R.string.statement_learn_append,
                     (d, w) -> keep(a.store, a.appended, a.text));
             dialog.setNeutralButton(R.string.statement_learn_replace,
@@ -1899,6 +2078,59 @@ public class SecurityTxEditActivity extends LocalizedActivity implements HostedD
         }
         dialog.setNegativeButton(R.string.cancel, (d, w) -> finish());
         return dialog.create();
+    }
+
+    /**
+     * Der Text hinter dem (i)-Knopf im Widerspruch-Dialog: je Feld und Teilbetrag, wo sich die schon
+     * gemerkte Beschriftung von der neu gefundenen unterscheidet — sonst wüsste man beim Klick auf
+     * „Ersetzen" nicht, was genau man damit aufgibt.
+     */
+    private String konfliktDetails(StatementTemplate raw, StatementTemplate existing) {
+        StringBuilder out = new StringBuilder();
+        for (StatementTemplate.Field f : StatementTemplate.Field.values()) {
+            de.spahr.ausgaben.statement.AnchorRule alt = existing == null ? null : existing.rule(f);
+            de.spahr.ausgaben.statement.AnchorRule neu = raw.rule(f);
+            if (neu == null || neu.equals(alt)) {
+                continue;
+            }
+            if (out.length() > 0) {
+                out.append('\n');
+            }
+            out.append(StatementFieldNames.of(this, f, raw.action)).append(": ")
+                    .append(alt == null ? getString(R.string.statement_anchor_none) : anchorText(alt))
+                    .append(" → ").append(anchorText(neu));
+        }
+        konfliktDetailsTeile(out, raw.feeParts, existing == null ? null : existing.feeParts);
+        konfliktDetailsTeile(out, raw.incomeParts, existing == null ? null : existing.incomeParts);
+        return out.length() == 0 ? getString(R.string.statement_learn_conflict) : out.toString();
+    }
+
+    private void konfliktDetailsTeile(StringBuilder out, List<StatementTemplate.PartRule> neu,
+                                      List<StatementTemplate.PartRule> alt) {
+        for (StatementTemplate.PartRule teil : neu) {
+            StatementTemplate.PartRule alterTeil = alt == null ? null : partMitKategorie(alt, teil.category);
+            if (alterTeil != null && alterTeil.rule.equals(teil.rule)) {
+                continue;
+            }
+            if (out.length() > 0) {
+                out.append('\n');
+            }
+            out.append(teil.category.isEmpty() ? getString(R.string.split_partial_hint) : teil.category)
+                    .append(": ")
+                    .append(alterTeil == null ? getString(R.string.statement_anchor_none)
+                            : anchorText(alterTeil.rule))
+                    .append(" → ").append(anchorText(teil.rule));
+        }
+    }
+
+    private static StatementTemplate.PartRule partMitKategorie(List<StatementTemplate.PartRule> parts,
+                                                                String category) {
+        for (StatementTemplate.PartRule p : parts) {
+            if (p.category.equals(category)) {
+                return p;
+            }
+        }
+        return null;
     }
 
     /**
@@ -1940,9 +2172,62 @@ public class SecurityTxEditActivity extends LocalizedActivity implements HostedD
         }
     }
 
-    /** Ob dieses Feld in den Lernvorgang geht (siehe {@code offerToLearn}). */
+    /**
+     * Ob dieses Feld in den Lernvorgang geht (siehe {@code offerToLearn}).
+     *
+     * <p>Stand für dieses Feld schon eine ANDERE Regel in der Bank-Vorlage ({@link #konfliktFelder}),
+     * zählt die Korrektur nur, wenn der Nutzer sie übers Stift-Symbol ausdrücklich bestätigt hat
+     * ({@link #ersetzteRegeln}) — sonst bucht sie nur diese eine Bewegung richtig, ohne die für künftige
+     * Belege dieser Bank gespeicherte Regel anzutasten. Und wer dort „Nicht lernen" gewählt hat
+     * ({@link #nichtLernenFelder}), bekommt dasselbe auch ohne Widerspruch.</p>
+     */
     private boolean lernen(boolean ersteVorlage, Field field) {
-        return ersteVorlage || typedFields.contains(field);
+        if (!(ersteVorlage || typedFields.contains(field))) {
+            return false;
+        }
+        if (nichtLernenFelder.contains(field) && entscheidungGilt(field)) {
+            return false;
+        }
+        return !konfliktFelder.contains(field)
+                || (ersetzteRegeln.contains(field) && entscheidungGilt(field));
+    }
+
+    /**
+     * Ob die im Stift-Fenster getroffene Entscheidung noch für den Wert gilt, der jetzt im Feld steht.
+     *
+     * <p>Ein Feld, dessen Wert sich seither wirklich geändert hat, braucht eine neue Entscheidung — die
+     * alte galt einer anderen Zahl. Umgekehrt darf sie nicht verfallen, bloß weil die Maske
+     * zwischendurch etwas in das Feld zurückgeschrieben hat: siehe {@link #entschiedenFuer}.</p>
+     */
+    private boolean entscheidungGilt(Field field) {
+        Double entschieden = entschiedenFuer.get(field);
+        return entschieden != null && entschieden.equals(wertVon(field));
+    }
+
+    /**
+     * Die Vorlagenfelder zu einer im Stift-Dialog getroffenen Entscheidung — siehe {@link #learnFrom}.
+     *
+     * <p>Es zählt allein, dass der Nutzer im Stift-Fenster für den Wert entschieden hat, der jetzt im
+     * Feld steht ({@link #entscheidungGilt}). Bewusst <b>nicht</b> zusätzlich {@link #konfliktFelder}:
+     * dieser Merker wird von jedem Textereignis im Feld geleert und danach nur von der Suche wieder
+     * nachgetragen — die aber hält sich hinter einer gültigen Entscheidung heraus. Die Frage wäre
+     * dadurch beim Speichern ein zweites Mal gestellt worden, obwohl sie längst beantwortet war.</p>
+     *
+     * @param anhaengen {@code true} für die Felder mit dem Schalter auf „hinzufügen", {@code false} für
+     *                  die ausdrücklich ersetzten (das sind alle bestätigten <b>ohne</b> jene).
+     */
+    private Set<StatementTemplate.Field> lernfelder(Set<Field> quelle, boolean anhaengen) {
+        Set<StatementTemplate.Field> out = EnumSet.noneOf(StatementTemplate.Field.class);
+        for (Field f : quelle) {
+            if (!entscheidungGilt(f) || (!anhaengen && anhaengenFelder.contains(f))) {
+                continue;
+            }
+            StatementTemplate.Field lernfeld = lernfeldVon(f);
+            if (lernfeld != null) {
+                out.add(lernfeld);
+            }
+        }
+        return out;
     }
 
     /**
@@ -2376,8 +2661,9 @@ public class SecurityTxEditActivity extends LocalizedActivity implements HostedD
     // ---- Die Beschriftung zu einem Wert ----
 
     /**
-     * Ein Wertfeld wurde verlassen: nachsehen, woran dieser Wert in der Abrechnung hängt — und wählen
-     * lassen, wenn es mehr als eine Möglichkeit gibt.
+     * Sucht — mit kurzer Wartezeit während des Tippens (siehe {@link #planeAnkerSuche}), sofort beim
+     * Verlassen des Feldes ({@link #ankerSucheSofort}) — nach, woran der gerade eingegebene Wert in der
+     * Abrechnung hängt.
      *
      * <p>Der Lerner müsste sonst raten, und an einer Tabellenzeile ist das nicht zu entscheiden:
      * „STK 86 … EUR 116,20" unter der Überschrift „Nominale … Kurs" gibt für den Kurs drei
@@ -2387,7 +2673,8 @@ public class SecurityTxEditActivity extends LocalizedActivity implements HostedD
      * <p>Gefragt wird nur beim <b>ersten</b> Beleg einer Bank. Steht die Vorlage, hat sie die Antwort
      * schon; und bei einer fest programmierten Bank gibt es gar keine Vorlage zu lernen. Ist die Lage
      * eindeutig, wird die eine Möglichkeit wortlos genommen — und steht der Wert überhaupt nicht im
-     * Dokument (die gerechnete Gutschrift, eine feste Ordergebühr), gibt es nichts zu fragen.</p>
+     * Dokument (die gerechnete Gutschrift, eine feste Ordergebühr), gibt es nichts zu fragen: der Titel
+     * bleibt beim Standardnamen, den der Feldwechsel oben schon wiederhergestellt hat.</p>
      */
     private void ankerAuswahlAnbieten(final Field field) {
         final StatementTemplate.Field lernfeld = lernfeldVon(field);
@@ -2398,39 +2685,142 @@ public class SecurityTxEditActivity extends LocalizedActivity implements HostedD
         if (wert == null || wert == 0) {
             return;
         }
-        // Zweimal für denselben Wert zu fragen wäre Nörgeln: wer das Feld nur durchquert, hat nichts
-        // Neues gesagt.
-        if (wert.equals(ankerGefragtFuer.get(field))) {
-            return;
-        }
-        ankerGefragtFuer.put(field, wert);
-        // Der Hinweis steht, solange die Prüfung läuft, egal ob am Ende eine Vorlage entscheidet oder
-        // tatsächlich gelernt wird – vorher weiß die App das selbst noch nicht (dafür müsste sie den Text
-        // schon gelesen haben). Er sagt dem Nutzer: hier wird gerade aus der Abrechnung gelesen/gelernt.
-        final TextInputLayout hinweisLayout = layoutFor(field);
-        if (hinweisLayout != null) {
-            hinweisLayout.setError(getString(R.string.statement_learning_preparing,
-                    StatementFieldNames.of(this, lernfeld, currentAction())));
-        }
+        final TextInputLayout layout = layoutFor(field);
         repository.executor().execute(() -> {
             final de.spahr.ausgaben.pdf.PdfText text = readStatementText();
-            final java.util.List<de.spahr.ausgaben.statement.AnchorRule> kandidaten = ohneVorlage(text)
+            final java.util.List<de.spahr.ausgaben.statement.AnchorRule> kandidaten = ankerSucheMoeglich(text)
                     ? de.spahr.ausgaben.statement.TemplateLearner.kandidaten(text, lernfeld, wert)
                     : java.util.Collections.emptyList();
+            // Kennt die Bank-Vorlage für dieses Feld schon eine ANDERE Regel, ist das ein Widerspruch:
+            // die Korrektur gilt dann erst als bestätigt (und damit beim Speichern lernbar), wenn der
+            // Nutzer das Stift-Symbol antippt – siehe die Weiche unten und buildAnchorChoiceDialog.
+            final de.spahr.ausgaben.statement.AnchorRule alt = kandidaten.isEmpty() ? null
+                    : (matchedTemplate(text) == null ? null : matchedTemplate(text).rule(lernfeld));
             runOnUiThread(() -> {
-                if (hinweisLayout != null) {
-                    hinweisLayout.setError(null);
-                }
                 if (isFinishing() || isDestroyed() || kandidaten.isEmpty()) {
                     return;
                 }
-                if (kandidaten.size() == 1) {
-                    chosenValueRules.put(field, kandidaten.get(0));
+                // Der erste Kandidat ist in derselben Reihenfolge gesucht wie der automatische Lerner
+                // selbst sucht (siehe TemplateLearner.kandidaten). Der Feldtitel zeigt ihn sofort, egal
+                // ob es ein Widerspruch ist – nur ob er auch gelernt wird, hängt von ersetzteRegeln ab.
+                de.spahr.ausgaben.statement.AnchorRule top = kandidaten.get(0);
+                boolean widerspruch = alt != null && !alt.equals(top);
+                // Der Widerspruch wird auch dann festgehalten, wenn gleich abgebrochen wird: sonst stünde
+                // beim erneuten Öffnen des Stift-Fensters der Ersetzen/Hinzufügen-Schalter nicht mehr da.
+                if (widerspruch) {
+                    konfliktFelder.add(field);
+                } else {
+                    konfliktFelder.remove(field);
+                }
+                if (entscheidungGilt(field)) {
+                    // Der Nutzer hat für genau diesen Wert schon selbst entschieden. Diese Suche läuft
+                    // beim Verlassen des Feldes noch einmal und ersetzte seine Wahl sonst
+                    // stillschweigend durch ihren eigenen ersten Vorschlag.
                     return;
                 }
-                showAnchorChoice(field, kandidaten);
+                if (widerspruch) {
+                    ersetzteRegeln.remove(field);
+                } else {
+                    ersetzteRegeln.add(field);
+                }
+                chosenValueRules.put(field, top);
+                zeigeErkannteRegel(field, layout, top, kandidaten);
             });
         });
+    }
+
+    /**
+     * Feldtitel durch die im PDF gefundene (oder gewählte) Beschriftung ersetzen, Stift-Symbol daneben,
+     * mit dem sich unter allen gefundenen Kandidaten eine andere wählen lässt.
+     */
+    private void zeigeErkannteRegel(Field field, TextInputLayout layout,
+                                     de.spahr.ausgaben.statement.AnchorRule regel,
+                                     java.util.List<de.spahr.ausgaben.statement.AnchorRule> kandidaten) {
+        if (layout == null) {
+            return;
+        }
+        layout.setHint(anchorText(regel));
+        layout.setEndIconMode(TextInputLayout.END_ICON_CUSTOM);
+        layout.setEndIconDrawable(R.drawable.ic_rules);
+        layout.setEndIconTintList(android.content.res.ColorStateList.valueOf(colorPrimary()));
+        layout.setEndIconContentDescription(getString(R.string.statement_anchor_change));
+        layout.setEndIconOnClickListener(v -> showAnchorChoice(field, kandidaten));
+    }
+
+    /** Auffälliger Ton fürs Stift-Symbol der Anker-Auswahl, dem Tages-/Nachtdesign entsprechend. */
+    private int colorPrimary() {
+        android.util.TypedValue tv = new android.util.TypedValue();
+        getTheme().resolveAttribute(com.google.android.material.R.attr.colorPrimary, tv, true);
+        return getColor(tv.resourceId);
+    }
+
+    /**
+     * Dieselbe Logik wie {@link #ankerAuswahlAnbieten} — nur für eine Kategoriezeile einer Aufteilung
+     * (Gebühr/Steuer oder Ertrag) statt für ein Hauptfeld. Ein Teilbetrag kennt kein {@link Field} und
+     * keine eigene Vorlagen-Spalte; gesucht wird darum mit {@link TemplateLearner#kandidatenFuerBetrag},
+     * derselben Suche, die auch {@code TemplateLearner.learnParts} beim Speichern selbst anstellt.
+     */
+    private void ankerAuswahlAnbietenSplit(final TextInputLayout layout, final TextInputEditText input) {
+        if (readOnly || !fromStatement || !Boolean.TRUE.equals(input.getTag(R.id.splitAmountTyped))) {
+            return;
+        }
+        final Long cents = SplitRowController.parseCents(textOf(input));
+        if (cents == null || cents == 0) {
+            return;
+        }
+        final Double wert = Math.abs(cents) / 100.0;
+        repository.executor().execute(() -> {
+            final de.spahr.ausgaben.pdf.PdfText text = readStatementText();
+            final java.util.List<de.spahr.ausgaben.statement.AnchorRule> kandidaten = ankerSucheMoeglich(text)
+                    ? de.spahr.ausgaben.statement.TemplateLearner.kandidatenFuerBetrag(text, wert)
+                    : java.util.Collections.emptyList();
+            runOnUiThread(() -> {
+                if (isFinishing() || isDestroyed() || kandidaten.isEmpty()) {
+                    return;
+                }
+                zeigeErkannteSplitRegel(layout, input, kandidaten.get(0), kandidaten);
+            });
+        });
+    }
+
+    /** Wie {@link #zeigeErkannteRegel}, aber der Merkposten geht ins Tag der Zeile statt in {@code chosenValueRules}. */
+    private void zeigeErkannteSplitRegel(TextInputLayout layout, TextInputEditText input,
+                                         de.spahr.ausgaben.statement.AnchorRule regel,
+                                         java.util.List<de.spahr.ausgaben.statement.AnchorRule> kandidaten) {
+        layout.setHint(anchorText(regel));
+        input.setTag(R.id.splitAnchorRule, regel);
+        layout.setEndIconMode(TextInputLayout.END_ICON_CUSTOM);
+        layout.setEndIconDrawable(R.drawable.ic_rules);
+        layout.setEndIconTintList(android.content.res.ColorStateList.valueOf(colorPrimary()));
+        layout.setEndIconContentDescription(getString(R.string.statement_anchor_change));
+        layout.setEndIconOnClickListener(v -> showSplitAnchorChoice(layout, input, kandidaten));
+    }
+
+    /**
+     * Die Auswahl für eine Kategoriezeile — anders als {@link #showAnchorChoice} kein {@link HostedDialog}:
+     * die Zeile ist eine zur Laufzeit erzeugte Ansicht ohne über eine Drehung hinweg stabile Kennung, ein
+     * Wiederaufbau lohnte den Aufwand nicht. Übersteht die Drehung nicht — einfach erneut antippen.
+     */
+    private void showSplitAnchorChoice(TextInputLayout layout, TextInputEditText input,
+                                       java.util.List<de.spahr.ausgaben.statement.AnchorRule> kandidaten) {
+        CharSequence[] labels = new CharSequence[kandidaten.size() + 1];
+        for (int i = 0; i < kandidaten.size(); i++) {
+            labels[i] = anchorText(kandidaten.get(i));
+        }
+        labels[kandidaten.size()] = getString(R.string.statement_anchor_none);
+        new AppDialog(this)
+                .setTitle(getString(R.string.statement_anchor_title, getString(R.string.split_partial_hint)))
+                .setItems(labels, (d, which) -> {
+                    if (which >= kandidaten.size()) {
+                        // „Selbst entscheiden": der Lerner sucht beim Speichern selbst (siehe learnParts).
+                        input.setTag(R.id.splitAnchorRule, null);
+                        layout.setHint(getString(R.string.split_partial_hint));
+                        return;
+                    }
+                    zeigeErkannteSplitRegel(layout, input, kandidaten.get(which), kandidaten);
+                })
+                .create()
+                .show();
     }
 
     /** Die Eingabehülle eines Zahlenfelds – für den „wird gelernt"-Hinweis in {@link #ankerAuswahlAnbieten}. */
@@ -2466,8 +2856,46 @@ public class SecurityTxEditActivity extends LocalizedActivity implements HostedD
             return bekannt;
         }
         boolean moeglich = de.spahr.ausgaben.statement.bank.BankReaders.find(text) == null
-                && new de.spahr.ausgaben.settings.StatementTemplates(this).match(text, depot) == null;
+                && matchedTemplate(text) == null;
         ankerAuswahlMoeglich = moeglich;
+        return moeglich;
+    }
+
+    /**
+     * Die zu diesem Beleg passende, schon gespeicherte Vorlage — {@code null}, wenn keine passt. Einmal
+     * ermittelt, dann gemerkt (der Abgleich geht durch alle gespeicherten Vorlagen); gebraucht sowohl beim
+     * Vorschlagen während der Eingabe ({@link #ankerAuswahlAnbieten}, um einen Widerspruch zur Vorlage zu
+     * erkennen) als auch beim Speichern ({@link #learnFrom}).
+     */
+    private StatementTemplate matchedTemplate(de.spahr.ausgaben.pdf.PdfText text) {
+        if (matchedTemplateComputed) {
+            return matchedTemplate;
+        }
+        if (text == null) {
+            return null;
+        }
+        matchedTemplate = new de.spahr.ausgaben.settings.StatementTemplates(this).match(text, depot);
+        matchedTemplateComputed = true;
+        return matchedTemplate;
+    }
+
+    /**
+     * Ob sich für diesen Beleg überhaupt eine Beschriftung suchen lässt. Anders als {@link #ohneVorlage}:
+     * gilt auch, wenn für die Bank schon eine Vorlage besteht — genau dann hilft die Suche beim
+     * Korrigieren eines falsch (oder gar nicht) erkannten Wertes, siehe {@link #ankerAuswahlAnbieten}.
+     * Nur eine fest programmierte Bank ({@code BankReaders}) hat kein lernbares Format und bleibt darum
+     * außen vor.
+     */
+    private boolean ankerSucheMoeglich(de.spahr.ausgaben.pdf.PdfText text) {
+        if (text == null) {
+            return false;
+        }
+        Boolean b = ankerSucheMoeglichCache;
+        if (b != null) {
+            return b;
+        }
+        boolean moeglich = de.spahr.ausgaben.statement.bank.BankReaders.find(text) == null;
+        ankerSucheMoeglichCache = moeglich;
         return moeglich;
     }
 
@@ -2524,16 +2952,72 @@ public class SecurityTxEditActivity extends LocalizedActivity implements HostedD
             return null;
         }
         StatementTemplate.Field lernfeld = lernfeldVon(field);
+        // Stand für dieses Feld schon eine andere Regel in der Bank-Vorlage (siehe konfliktFelder), fällt
+        // hier – genau dort, wo die Beschriftung gewählt wird – auch die Entscheidung, was mit der alten
+        // Regel geschieht: der Schalter wählt zwischen ersetzen und hinzufügen, „Nicht lernen" lässt sie
+        // ganz in Ruhe. Ohne Widerspruch gibt es nichts zu entscheiden, dann bleibt der Schalter weg.
+        final boolean konflikt = konfliktFelder.contains(field);
+        View view = getLayoutInflater().inflate(R.layout.dialog_anchor_choice, null);
+        final android.widget.RadioGroup gruppe = view.findViewById(R.id.anchorChoices);
+        for (int i = 0; i < labels.length; i++) {
+            com.google.android.material.radiobutton.MaterialRadioButton knopf =
+                    new com.google.android.material.radiobutton.MaterialRadioButton(this);
+            knopf.setId(i + 1);
+            knopf.setText(labels[i]);
+            gruppe.addView(knopf);
+        }
+        // Vorausgewählt ist, was schon gilt – so steht nach einer Drehung wieder dasselbe da, ohne dass
+        // die Auswahl eigens durchs Bundle müsste.
+        int vorwahl = rules.indexOf(chosenValueRules.get(field));
+        gruppe.check((vorwahl < 0 ? 0 : vorwahl) + 1);
+        final com.google.android.material.materialswitch.MaterialSwitch schalter =
+                view.findViewById(R.id.anchorReplace);
+        if (konflikt) {
+            view.findViewById(R.id.anchorReplaceRow).setVisibility(View.VISIBLE);
+            schalter.setChecked(!anhaengenFelder.contains(field));
+            schalter.setText(schalter.isChecked()
+                    ? R.string.statement_anchor_replace_on : R.string.statement_anchor_replace_off);
+            schalter.setOnCheckedChangeListener((b, an) -> schalter.setText(an
+                    ? R.string.statement_anchor_replace_on : R.string.statement_anchor_replace_off));
+        }
         return new AppDialog(this)
                 .setTitle(getString(R.string.statement_anchor_title,
                         StatementFieldNames.of(this, lernfeld, currentAction())))
-                .setItems(labels, (d, which) -> {
-                    if (which >= rules.size()) {
-                        // „Selbst entscheiden": dann sucht der Lerner wie bisher.
+                .setView(view)
+                .setPositiveButton(R.string.statement_anchor_learn, (d, w) -> {
+                    TextInputLayout layout = layoutFor(field);
+                    int gewaehlt = gruppe.getCheckedRadioButtonId() - 1;
+                    if (gewaehlt < 0 || gewaehlt >= rules.size()) {
+                        // „Die App entscheiden lassen": der vorgeschlagene Anker wird verworfen, der
+                        // Lerner sucht beim Speichern selbst (der berücksichtigt dann auch, was die
+                        // anderen Felder inzwischen belegt haben). Der Feldtitel bekommt seinen
+                        // ursprünglichen Namen zurück, das Symbol bleibt stehen.
                         chosenValueRules.remove(field);
-                        return;
+                        if (layout != null) {
+                            layout.setHint(originalHints.get(field));
+                        }
+                    } else {
+                        chosenValueRules.put(field, rules.get(gewaehlt));
+                        zeigeErkannteRegel(field, layout, rules.get(gewaehlt), rules);
                     }
-                    chosenValueRules.put(field, rules.get(which));
+                    // Erst dieser Knopf ist die Bestätigung: bestand für dieses Feld ein Widerspruch zur
+                    // Bank-Vorlage, darf jetzt auch tatsächlich gelernt werden (siehe lernen()).
+                    ersetzteRegeln.add(field);
+                    nichtLernenFelder.remove(field);
+                    entschiedenFuer.put(field, wertVon(field));
+                    if (konflikt && !schalter.isChecked()) {
+                        anhaengenFelder.add(field);
+                    } else {
+                        anhaengenFelder.remove(field);
+                    }
+                })
+                .setNegativeButton(R.string.statement_anchor_dont_learn, (d, w) -> {
+                    // Nur diese Buchung bekommt den gefundenen Wert, die für diese Bank gespeicherte
+                    // Regel bleibt unangetastet.
+                    ersetzteRegeln.remove(field);
+                    anhaengenFelder.remove(field);
+                    nichtLernenFelder.add(field);
+                    entschiedenFuer.put(field, wertVon(field));
                 })
                 .create();
     }

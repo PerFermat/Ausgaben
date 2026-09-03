@@ -9,4 +9,9 @@
          LocalizedActivity die System-Tastatur dafür beim Zurückkehren aus einer Fremd-App erneut
          schließen kann. -->
     <item name="calcKeyboardBound" type="id" />
+    <!-- An einer Teilbetrag-Zeile (SplitRowController): die erkannte Anker-Regel dieser Zeile (neben dem
+         Standard-Tag, das schon die reine Beschriftung trägt) und ob der Nutzer den Betrag selbst
+         eingetippt hat (statt ihn nur vorbelegt zu bekommen). -->
+    <item name="splitAnchorRule" type="id" />
+    <item name="splitAmountTyped" type="id" />
 </resources>

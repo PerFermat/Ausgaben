@@ -1,0 +1,51 @@
+<?xml version="1.0" encoding="utf-8"?>
+<!--
+  Der Stift-Dialog eines Wertfeldes: oben die im PDF gefundenen Beschriftungen zur Auswahl, darunter —
+  nur wenn für dieses Feld schon eine Regel gespeichert ist — der Schalter, ob die neue Beschriftung die
+  alte ersetzt oder zu ihr hinzukommt. Die Knöpfe „Nicht lernen" und „Lernen" setzt der Dialog selbst.
+-->
+<LinearLayout xmlns:android="http://schemas.android.com/apk/res/android"
+    android:layout_width="match_parent"
+    android:layout_height="wrap_content"
+    android:orientation="vertical"
+    android:paddingHorizontal="24dp"
+    android:paddingTop="12dp"
+    android:paddingBottom="8dp">
+
+    <!-- Begrenzt, damit die Knöpfe auch bei vielen Kandidaten sichtbar bleiben. -->
+    <ScrollView
+        android:layout_width="match_parent"
+        android:layout_height="wrap_content"
+        android:maxHeight="320dp">
+
+        <RadioGroup
+            android:id="@+id/anchorChoices"
+            android:layout_width="match_parent"
+            android:layout_height="wrap_content"
+            android:orientation="vertical" />
+    </ScrollView>
+
+    <LinearLayout
+        android:id="@+id/anchorReplaceRow"
+        android:layout_width="match_parent"
+        android:layout_height="wrap_content"
+        android:layout_marginTop="12dp"
+        android:orientation="vertical"
+        android:visibility="gone">
+
+        <com.google.android.material.materialswitch.MaterialSwitch
+            android:id="@+id/anchorReplace"
+            android:layout_width="match_parent"
+            android:layout_height="wrap_content"
+            android:text="@string/statement_anchor_replace_on" />
+
+        <TextView
+            android:id="@+id/anchorReplaceHint"
+            android:layout_width="match_parent"
+            android:layout_height="wrap_content"
+            android:layout_marginTop="4dp"
+            android:textSize="14sp"
+            android:text="@string/statement_anchor_replace_hint" />
+    </LinearLayout>
+
+</LinearLayout>

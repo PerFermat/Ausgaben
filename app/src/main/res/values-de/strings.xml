@@ -768,6 +768,11 @@
     <string name="statement_anchor_title">Woran steht „%1$s" in der Abrechnung?</string>
     <string name="statement_anchor_item">%1$s — %2$s</string>
     <string name="statement_anchor_none">Die App entscheiden lassen</string>
+    <string name="statement_anchor_dont_learn">Nicht lernen</string>
+    <string name="statement_anchor_learn">Lernen</string>
+    <string name="statement_anchor_replace_on">Vorhandene Regel ersetzen</string>
+    <string name="statement_anchor_replace_off">Regel zusätzlich hinzufügen</string>
+    <string name="statement_anchor_replace_hint">Beim Hinzufügen bleibt die bisherige Regel erhalten. Die neue Beschriftung wird zuerst geprüft, wenn die alte hier einen falschen Wert lieferte, sonst steht sie dahinter.</string>
     <string name="statement_anchor_column">Spaltenüberschrift darüber</string>
     <string name="statement_anchor_heading">Überschrift eine Zeile darüber</string>
     <string name="statement_anchor_under">Beschriftung eine Zeile darunter</string>
@@ -806,8 +811,9 @@
     <string name="statement_date_missing">Steht nicht in der Abrechnung – bitte wählen</string>
     <string name="statement_action_missing">Steht nicht in der Abrechnung – bitte wählen</string>
     <string name="statement_learning_preparing">Erkennungsregel für „%1$s" noch nicht gefunden – Lernen wird vorbereitet …</string>
+    <string name="statement_anchor_change">Erkannte Erkennungsregel ändern</string>
     <string name="statement_learn_intro_title">Neue Bank – so lernt die App</string>
-    <string name="statement_learn_intro_message">Für diese Bank gibt es noch keine Erkennungsregeln. Beim ersten Beleg lernt die App von Ihnen, woran die Werte stehen:\n\nDatum: Alle im Beleg gefundenen Datumsangaben stehen zur Auswahl – wählen Sie das Wertstellungsdatum.\n\nZahlen: Sobald Sie einen Betrag eingegeben haben, zeigt die App die möglichen Beschriftungen dazu an – wählen Sie die passende. Gibt es nur eine Möglichkeit, fragt sie gar nicht erst nach.\n\nDie Buchung wird beim Speichern gelernt und ganz normal gebucht.</string>
+    <string name="statement_learn_intro_message">Für diese Bank gibt es noch keine Erkennungsregeln. Beim ersten Beleg lernt die App von Ihnen, woran die Werte stehen:\n\nDatum: Alle im Beleg gefundenen Datumsangaben stehen zur Auswahl – wählen Sie das Wertstellungsdatum.\n\nZahlen: Sobald eine Beschriftung im Beleg gefunden wird, ersetzt sie den Feldtitel – das ist der Vorschlag, der beim Speichern gelernt wird. Das Stift-Symbol daneben lässt sich jederzeit antippen, um stattdessen eine andere gefundene Beschriftung zu wählen.\n\nDie Buchung wird beim Speichern gelernt und ganz normal gebucht.</string>
     <string name="security_tx_need_date">Bitte das Datum wählen</string>
     <string name="security_tx_need_action">Bitte Kauf, Verkauf oder Dividende wählen</string>
     <!-- Regelseite: die gelernten Erkennungsregeln von Hand nachbessern. -->
@@ -853,6 +859,7 @@
     <string name="statement_rules_try_nomatch">Die Vorlage greift bei dieser Abrechnung nicht.</string>
     <string name="statement_rules_nothing">—</string>
     <string name="statement_learn_conflict">Eine bereits gemerkte Beschriftung würde ersetzt. Die neue als weiteren Rückfall hinzufügen oder die alte ersetzen?</string>
+    <string name="statement_learn_conflict_details">Zeigen, welche Beschriftung alt und welche neu ist</string>
     <string name="statement_learn_append">Hinzufügen</string>
     <string name="statement_learn_replace">Ersetzen</string>
     <!-- Die Probe aufs Gemerkte, gleich nach dem Merken an derselben Abrechnung -->

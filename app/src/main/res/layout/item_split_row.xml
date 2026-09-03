@@ -46,7 +46,8 @@
     </com.google.android.material.textfield.TextInputLayout>
 
     <com.google.android.material.textfield.TextInputLayout
-        android:layout_width="118dp"
+        android:id="@+id/splitAmountLayout"
+        android:layout_width="140dp"
         android:layout_height="wrap_content"
         android:layout_marginStart="8dp"
         android:hint="@string/split_partial_hint">

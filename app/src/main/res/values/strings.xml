@@ -769,6 +769,11 @@
     <string name="statement_anchor_title">Where does “%1$s” stand in the statement?</string>
     <string name="statement_anchor_item">%1$s — %2$s</string>
     <string name="statement_anchor_none">Let the app decide</string>
+    <string name="statement_anchor_dont_learn">Don\'t learn</string>
+    <string name="statement_anchor_learn">Learn</string>
+    <string name="statement_anchor_replace_on">Replace existing rule</string>
+    <string name="statement_anchor_replace_off">Add rule in addition</string>
+    <string name="statement_anchor_replace_hint">When adding, the existing rule is kept. The new label is checked first if the old rule returned a wrong value here, otherwise it stays behind it.</string>
     <string name="statement_anchor_column">column heading above it</string>
     <string name="statement_anchor_heading">heading one line above</string>
     <string name="statement_anchor_under">label one line below</string>
@@ -811,8 +816,9 @@
     <string name="statement_date_missing">Not in the statement – please choose</string>
     <string name="statement_action_missing">Not in the statement – please choose</string>
     <string name="statement_learning_preparing">No recognition rule for "%1$s" yet — learning in progress…</string>
+    <string name="statement_anchor_change">Change recognized rule</string>
     <string name="statement_learn_intro_title">New bank — how the app learns</string>
-    <string name="statement_learn_intro_message">There are no recognition rules for this bank yet. With the first statement, the app learns from you where the values sit:\n\nDate: every date found in the statement is offered — choose the value date.\n\nNumbers: as soon as you enter an amount, the app shows the possible labels for it — choose the right one. If there is only one possibility, it won\'t even ask.\n\nThe entry is learned when you save it, and booked as usual.</string>
+    <string name="statement_learn_intro_message">There are no recognition rules for this bank yet. With the first statement, the app learns from you where the values sit:\n\nDate: every date found in the statement is offered — choose the value date.\n\nNumbers: as soon as a label is found in the statement, it replaces the field\'s title — that\'s the suggestion that gets learned when you save. Tap the pencil icon next to it any time to pick a different label instead.\n\nThe entry is learned when you save it, and booked as usual.</string>
     <string name="security_tx_need_date">Please choose the date</string>
     <string name="security_tx_need_action">Please choose buy, sell or dividend</string>
     <!-- Regelseite: die gelernten Erkennungsregeln von Hand nachbessern. -->
@@ -858,6 +864,7 @@
     <string name="statement_rules_try_nomatch">The template does not apply to this statement.</string>
     <string name="statement_rules_nothing">—</string>
     <string name="statement_learn_conflict">A label already stored would be replaced. Add the new one as a further fallback, or replace the old one?</string>
+    <string name="statement_learn_conflict_details">Show which label is old and which is new</string>
     <string name="statement_learn_append">Add</string>
     <string name="statement_learn_replace">Replace</string>
     <!-- Checking what was just learned, right away and on the same statement -->

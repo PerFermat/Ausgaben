@@ -6,6 +6,7 @@ import android.widget.LinearLayout;
 
 import com.google.android.material.textfield.MaterialAutoCompleteTextView;
 import com.google.android.material.textfield.TextInputEditText;
+import com.google.android.material.textfield.TextInputLayout;
 
 import java.math.BigDecimal;
 import java.math.RoundingMode;
@@ -13,6 +14,7 @@ import java.util.ArrayList;
 import java.util.List;
 
 import de.spahr.ausgaben.R;
+import de.spahr.ausgaben.statement.AnchorRule;
 
 /**
  * Verwaltet die dynamische Kategorie-/Teilbetrag-Liste (Splitbuchung) im Buchungseditor: fügt Zeilen an,
@@ -37,6 +39,12 @@ class SplitRowController {
          * Geldbuchungen bleibt sie immer leer.
          */
         final String label;
+        /**
+         * Die erkannte Anker-Regel dieser Zeile — der Vorschlag, den {@link #labelTag} als Text zeigt.
+         * {@code null}, wenn keine (mehr) gilt; siehe {@link StatementTemplate.Part#chosenRule}, wohin
+         * sie beim Speichern weiterwandert.
+         */
+        final AnchorRule chosenRule;
 
         Part(String category, long cents) {
             this(category, cents, null);
@@ -47,10 +55,15 @@ class SplitRowController {
         }
 
         Part(String category, long cents, Boolean categoryIsIncome, String label) {
+            this(category, cents, categoryIsIncome, label, null);
+        }
+
+        Part(String category, long cents, Boolean categoryIsIncome, String label, AnchorRule chosenRule) {
             this.category = category;
             this.cents = cents;
             this.categoryIsIncome = categoryIsIncome;
             this.label = label == null ? "" : label;
+            this.chosenRule = chosenRule;
         }
     }
 
@@ -78,7 +91,7 @@ class SplitRowController {
 
     /** Hängt ein Teilbetrag-Feld an die gemeinsame Rechentastatur (von der Activity gesetzt). */
     interface AmountFieldBinder {
-        void bind(TextInputEditText field);
+        void bind(TextInputLayout layout, TextInputEditText field);
     }
 
     SplitRowController(LinearLayout container, TextInputEditText totalField, LayoutInflater inflater,
@@ -146,6 +159,7 @@ class SplitRowController {
         View row = inflater.inflate(R.layout.item_split_row, container, false);
         MaterialAutoCompleteTextView cat = row.findViewById(R.id.splitCategory);
         TextInputEditText amt = row.findViewById(R.id.splitAmount);
+        TextInputLayout amtLayout = row.findViewById(R.id.splitAmountLayout);
         amt.setTag(label == null || label.trim().isEmpty() ? null : label.trim());
         View remove = row.findViewById(R.id.btnRemoveSplit);
         if (categoryAdapter != null) {
@@ -183,11 +197,22 @@ class SplitRowController {
             cat.setTag(item != null ? item.groupIsIncome : null);
         });
         amt.addTextChangedListener(new SimpleWatcher(() -> {
+            if (!prefilling && !suppressSplitEvents && !syncingAmounts) {
+                // Ein echter Handgriff des Nutzers: der Betrag hat sich geändert, eine vorher gezeigte
+                // erkannte Regel gilt jetzt nicht mehr für DIESEN Wert – Titel und Symbol verschwinden,
+                // bis das Feld erneut verlassen wird (siehe SecurityTxEditActivity#ankerAuswahlAnbietenSplit).
+                amt.setTag(R.id.splitAmountTyped, Boolean.TRUE);
+                if (amtLayout.getEndIconMode() == TextInputLayout.END_ICON_CUSTOM) {
+                    amtLayout.setEndIconMode(TextInputLayout.END_ICON_NONE);
+                    amtLayout.setHint(amtLayout.getResources().getString(R.string.split_partial_hint));
+                    amt.setTag(R.id.splitAnchorRule, null);
+                }
+            }
             noteUserEdit();
             onPartialChanged(row);
         }));
         if (amountBinder != null) {
-            amountBinder.bind(amt);   // Teilbetrag-Feld an die Rechentastatur binden
+            amountBinder.bind(amtLayout, amt);   // Teilbetrag-Feld an die Rechentastatur binden
         }
         remove.setOnClickListener(v -> {
             categoryAuto = false;      // von Hand entfernt – hier wird nichts mehr nachgezogen
@@ -430,7 +455,7 @@ class SplitRowController {
             }
             Long cents = parseCents(amtText(r));
             if (cents != null) {
-                parts.add(new Part(c, cents, categoryIsIncomeTag(r), labelTag(r)));
+                parts.add(new Part(c, cents, categoryIsIncomeTag(r), labelTag(r), ruleTag(r)));
             }
         }
         return parts;
@@ -441,6 +466,13 @@ class SplitRowController {
         TextInputEditText amt = row.findViewById(R.id.splitAmount);
         Object tag = amt.getTag();
         return tag instanceof String ? (String) tag : "";
+    }
+
+    /** Die erkannte Anker-Regel der Zeile (siehe {@link Part#chosenRule}); {@code null}, wenn keine gilt. */
+    private AnchorRule ruleTag(View row) {
+        TextInputEditText amt = row.findViewById(R.id.splitAmount);
+        Object tag = amt.getTag(R.id.splitAnchorRule);
+        return tag instanceof AnchorRule ? (AnchorRule) tag : null;
     }
 
     /** Gemerkter Kategorietyp der Zeile (aus der Auswahlliste angetippt oder vorbelegt), sonst {@code null}. */
@@ -519,8 +551,12 @@ class SplitRowController {
         return de.spahr.ausgaben.settings.MoneyFormat.plain(cents);
     }
 
-    /** Teilbetrag in Cent; akzeptiert wie das Gesamtfeld auch eine kleine Rechnung (z. B. {@code 12,50+3,20}). */
-    private static Long parseCents(String raw) {
+    /**
+     * Teilbetrag in Cent; akzeptiert wie das Gesamtfeld auch eine kleine Rechnung (z. B. {@code 12,50+3,20}).
+     * Paketsichtbar: {@code SecurityTxEditActivity} liest damit denselben Betrag, den auch diese Klasse
+     * beim Sammeln der Zeilen benutzt (siehe {@code ankerAuswahlAnbietenSplit}).
+     */
+    static Long parseCents(String raw) {
         BigDecimal value = de.spahr.ausgaben.settings.AmountExpression.evaluate(raw);
         if (value == null) {
             return null;

@@ -329,7 +329,8 @@ public class BookingEditActivity extends LocalizedActivity {
                 || getIntent().getLongExtra(EXTRA_SCHEDULED_ID, -1) >= 0;
         splitCtl = new SplitRowController(splitContainer, editAmount, getLayoutInflater(),
                 readOnly, this::updateSaveEnabled);
-        splitCtl.setAmountBinder(field -> wireCalcField(field, null));   // Teilbeträge an die Rechentastatur
+        // Teilbeträge an die Rechentastatur; der Feldrahmen wird hier nicht gebraucht (keine PDF-Erkennung).
+        splitCtl.setAmountBinder((layout, field) -> wireCalcField(field, null));
         editNote = findViewById(R.id.editNote);
         editDate = findViewById(R.id.editDate);
         switchExported = findViewById(R.id.switchExported);

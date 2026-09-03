@@ -138,4 +138,31 @@ public class AnchorCandidateTest {
                     86.0, gelesen == null ? Double.NaN : gelesen, SecurityAmounts.SHARE_EPSILON);
         }
     }
+
+    /**
+     * Regression: Wer übers Stift-Symbol eine andere Beschriftung wählt, muss sie auch gelernt bekommen.
+     * Im Beleg steht die Stückzahl als „STK 86" unter der Spaltenüberschrift „Nominale" — der Lerner
+     * schlägt von sich aus „STK" vor, wählt der Nutzer aber die Spalte, gilt seine Wahl.
+     */
+    @Test
+    public void diePerHandGewaehlteBeschriftungWirdGelernt() {
+        PdfText text = StatementFixtures.scalableKauf();
+        AnchorRule spalte = null;
+        for (AnchorRule rule : TemplateLearner.kandidaten(
+                text, 86.0, SecurityAmounts.SHARE_EPSILON, false)) {
+            if ("Nominale".equalsIgnoreCase(rule.anchors.get(0))) {
+                spalte = rule;
+                break;
+            }
+        }
+        assertTrue("die Spaltenüberschrift wird gar nicht angeboten", spalte != null);
+
+        TemplateLearner.Known k = new TemplateLearner.Known();
+        k.action = StatementScan.BUY;
+        k.shares = 86.0;
+        k.chosenRules.put(StatementTemplate.Field.SHARES, spalte);
+        StatementTemplate t = TemplateLearner.learn(text, k);
+
+        assertEquals(spalte, t.rule(StatementTemplate.Field.SHARES));
+    }
 }

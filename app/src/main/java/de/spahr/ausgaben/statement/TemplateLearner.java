@@ -220,7 +220,13 @@ public final class TemplateLearner {
         }
         List<String> used = new ArrayList<>();
         for (StatementTemplate.Part part : parts) {
-            AnchorRule rule = forValue(text, part.cents / 100.0, MONEY_EPSILON, true, used);
+            // Wie bei den Hauptfeldern (siehe regelFuer): hat der Nutzer beim Verlassen des Feldes eine
+            // Beschriftung gewählt (oder wurde nur eine gefunden), gilt sie — sofern sie den Betrag noch
+            // liest. Sonst sucht der Lerner wie bisher selbst.
+            AnchorRule rule = part.chosenRule != null
+                    && liestSichSelbst(part.chosenRule, text, Math.abs(part.cents) / 100.0, MONEY_EPSILON)
+                    ? part.chosenRule
+                    : forValue(text, part.cents / 100.0, MONEY_EPSILON, true, used);
             if (rule == null) {
                 out.ungefunden.add(part);
                 continue;
@@ -699,6 +705,15 @@ public final class TemplateLearner {
                 // Die Währung wird nur dort festgehalten, wo sie feststeht: Gesamtsumme und Steuer
                 // gehen aufs Konto, der Stückpreis ist die Notierung des Papiers (siehe learn).
                 geld);
+    }
+
+    /**
+     * Wie {@link #kandidaten(PdfText, StatementTemplate.Field, Double)}, für einen Betrag ohne eigenes
+     * Feld der Vorlage — einen Teilbetrag einer Aufteilung (Gebühr/Steuer, Ertrag). Bindet die Währung
+     * wie Gebühr und Netto, denn ein Teilbetrag geht immer aufs Konto, nie in die Notierung des Papiers.
+     */
+    public static List<AnchorRule> kandidatenFuerBetrag(PdfText text, Double value) {
+        return kandidaten(text, value, MONEY_EPSILON, true);
     }
 
     public static List<AnchorRule> kandidaten(PdfText text, Double value, double epsilon,

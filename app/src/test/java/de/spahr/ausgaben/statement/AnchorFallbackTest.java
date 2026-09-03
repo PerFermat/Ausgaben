@@ -377,4 +377,41 @@ public class AnchorFallbackTest {
         assertEquals(Arrays.asList("Valuta", "Zahltag"),
                 template(neu).appendedTo(template(alt), PdfText.fromLines("")).rule(StatementTemplate.Field.DATE).anchors);
     }
+
+    /**
+     * Ersetzen und Hinzufügen feldweise gemischt: im Stift-Dialog entscheidet der Nutzer je Feld, und
+     * beim Speichern muss beides in <b>einer</b> Vorlage zusammenkommen.
+     */
+    @Test
+    public void ersetzenUndAnhaengenLassenSichFeldweiseMischen() {
+        Map<StatementTemplate.Field, AnchorRule> alt = new EnumMap<>(StatementTemplate.Field.class);
+        alt.put(StatementTemplate.Field.DATE, kette("Valuta"));
+        alt.put(StatementTemplate.Field.NET, kette("Endbetrag"));
+        Map<StatementTemplate.Field, AnchorRule> neu = new EnumMap<>(StatementTemplate.Field.class);
+        neu.put(StatementTemplate.Field.DATE, kette("Zahltag"));
+        neu.put(StatementTemplate.Field.NET, kette("Gesamtbetrag"));
+
+        PdfText text = PdfText.fromLines("Zahltag 100,00");
+        StatementTemplate ersetzt = template(neu).mergedOver(template(alt));
+        StatementTemplate angehaengt = template(neu).appendedTo(template(alt), text);
+
+        // Das Datum wird ersetzt, der Gesamtbetrag nur ergänzt.
+        StatementTemplate gemischt = ersetzt.withRulesFrom(angehaengt,
+                java.util.EnumSet.of(StatementTemplate.Field.NET));
+        assertEquals(Arrays.asList("Zahltag"),
+                gemischt.rule(StatementTemplate.Field.DATE).anchors);
+        assertEquals(Arrays.asList("Endbetrag", "Gesamtbetrag"),
+                gemischt.rule(StatementTemplate.Field.NET).anchors);
+    }
+
+    /** Ohne genannte Felder bleibt die Vorlage, wie sie ist — sonst wäre jede Rückfrage gefährlich. */
+    @Test
+    public void ohneGenannteFelderAendertSichNichts() {
+        Map<StatementTemplate.Field, AnchorRule> rules = new EnumMap<>(StatementTemplate.Field.class);
+        rules.put(StatementTemplate.Field.DATE, kette("Valuta"));
+        StatementTemplate t = template(rules);
+
+        assertTrue(t.sameAs(t.withRulesFrom(template(new EnumMap<>(StatementTemplate.Field.class)),
+                java.util.EnumSet.noneOf(StatementTemplate.Field.class))));
+    }
 }

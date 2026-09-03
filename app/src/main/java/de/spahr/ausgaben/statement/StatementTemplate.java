@@ -96,15 +96,27 @@ public final class StatementTemplate {
         public final String label;
         public final long cents;
         public final String category;
+        /**
+         * Die vom Nutzer in der Maske gewählte (oder automatisch als erste gefundene) Anker-Regel für
+         * diese Zeile; {@code null}, wenn keine feststeht — dann sucht {@link TemplateLearner} beim
+         * Lernen selbst danach, wie bisher. Siehe {@code chosenRules} in {@link TemplateLearner.Known}
+         * für dasselbe Prinzip bei den Hauptfeldern.
+         */
+        public final AnchorRule chosenRule;
 
         public Part(String label, long cents) {
             this(label, cents, "");
         }
 
         public Part(String label, long cents, String category) {
+            this(label, cents, category, null);
+        }
+
+        public Part(String label, long cents, String category, AnchorRule chosenRule) {
             this.label = label == null ? "" : label;
             this.cents = cents;
             this.category = category == null ? "" : category;
+            this.chosenRule = chosenRule;
         }
     }
 
@@ -180,6 +192,31 @@ public final class StatementTemplate {
     public StatementTemplate withParts(List<PartRule> newFeeParts, List<PartRule> newIncomeParts) {
         return new StatementTemplate(action, rules, fixedFeeCents, fixedFeeCategory, fixedFeeInTotal,
                 newFeeParts, newIncomeParts, feeCategory, incomeCategory);
+    }
+
+    /**
+     * Dieselbe Vorlage, aber für die genannten Felder mit den Regeln aus {@code other}.
+     *
+     * <p>Damit lässt sich je Feld zwischen „ersetzen" ({@link #mergedOver}) und „hinzufügen"
+     * ({@link #appendedTo}) wählen: beide liefern eine ganze Vorlage, und diese Methode setzt die
+     * eine feldweise in die andere ein. Alles außer den Feldregeln — Aufteilungen, feste Gebühr,
+     * Kategorien — bleibt aus {@code this}.</p>
+     */
+    public StatementTemplate withRulesFrom(StatementTemplate other, java.util.Set<Field> fields) {
+        if (other == null || fields == null || fields.isEmpty()) {
+            return this;
+        }
+        Map<Field, AnchorRule> gemischt = new EnumMap<>(rules);
+        for (Field field : fields) {
+            AnchorRule fremd = other.rules.get(field);
+            if (fremd == null) {
+                gemischt.remove(field);
+            } else {
+                gemischt.put(field, fremd);
+            }
+        }
+        return new StatementTemplate(action, gemischt, fixedFeeCents, fixedFeeCategory,
+                fixedFeeInTotal, feeParts, incomeParts, feeCategory, incomeCategory);
     }
 
     public Map<Field, AnchorRule> rules() {

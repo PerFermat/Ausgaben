@@ -57,6 +57,16 @@ public final class TemplateLearner {
         /** Kategorie der Gebühr — nur gebraucht, wenn daraus eine feste Ordergebühr wird. */
         public String feeCategory = "";
         public Long netCents;
+        /**
+         * Der Bruttobetrag einer Dividende — nur gesetzt, wenn der Nutzer für ihn <b>ausdrücklich</b>
+         * eine Beschriftung gewählt hat (siehe {@link #chosenRules}).
+         *
+         * <p>Von selbst sucht der Lerner dafür weiterhin nichts: Das Brutto steht in der Maske
+         * meistens als gerechnete Zahl, und eine daran geratene Beschriftung träfe irgendeine Zeile
+         * mit demselben Betrag — siehe {@link StatementTemplate.Field#GROSS}. Hat der Nutzer die Zeile
+         * dagegen selbst angetippt, ist nichts mehr zu raten.</p>
+         */
+        public Long grossCents;
         public long dateMillis = -1;
         /**
          * Die Beschriftung, die der Nutzer für das Datum ausgewählt hat — sie hat Vorrang. Nötig, weil
@@ -145,6 +155,13 @@ public final class TemplateLearner {
                 text, known.price, MONEY_EPSILON, false, used), used);
         put(rules, StatementTemplate.Field.SHARES, regelFuer(known, StatementTemplate.Field.SHARES,
                 text, known.shares, SHARE_EPSILON, false, used), used);
+        // Das Brutto nur aus der Wahl des Nutzers, ohne eigene Suche (siehe Known#grossCents).
+        AnchorRule brutto = known.chosenRules == null ? null
+                : known.chosenRules.get(StatementTemplate.Field.GROSS);
+        if (brutto != null && known.grossCents != null
+                && liestSichSelbst(brutto, text, Math.abs(known.grossCents) / 100.0, MONEY_EPSILON)) {
+            put(rules, StatementTemplate.Field.GROSS, brutto, used);
+        }
         put(rules, StatementTemplate.Field.DATE,
                 known.dateRule != null && known.dateRule.readDate(text) == known.dateMillis
                         ? known.dateRule

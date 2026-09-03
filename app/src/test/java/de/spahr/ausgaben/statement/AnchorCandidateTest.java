@@ -165,4 +165,34 @@ public class AnchorCandidateTest {
 
         assertEquals(spalte, t.rule(StatementTemplate.Field.SHARES));
     }
+
+    /**
+     * Das Brutto einer Dividende: von selbst legt der Lerner dafür keine Regel an — der Betrag steht in
+     * der Maske meist als gerechnete Zahl, und eine daran geratene Beschriftung träfe irgendeine Zeile
+     * mit demselben Wert. Tippt der Nutzer die Zeile dagegen selbst an, ist nichts mehr zu raten.
+     */
+    @Test
+    public void dasBruttoWirdNurAufAusdrueckicheWahlGelernt() {
+        PdfText text = StatementFixtures.ingDividende();
+        TemplateLearner.Known ohneWahl = new TemplateLearner.Known();
+        ohneWahl.action = StatementScan.DIVIDEND;
+        ohneWahl.grossCents = 90699L;
+        assertTrue("ohne Wahl darf keine Brutto-Regel entstehen",
+                TemplateLearner.learn(text, ohneWahl).rule(StatementTemplate.Field.GROSS) == null);
+
+        AnchorRule gewaehlt = null;
+        for (AnchorRule rule : TemplateLearner.kandidaten(
+                text, StatementTemplate.Field.GROSS, 906.99)) {
+            gewaehlt = rule;
+            break;
+        }
+        assertTrue("für das Brutto wird gar nichts angeboten", gewaehlt != null);
+
+        TemplateLearner.Known mitWahl = new TemplateLearner.Known();
+        mitWahl.action = StatementScan.DIVIDEND;
+        mitWahl.grossCents = 90699L;
+        mitWahl.chosenRules.put(StatementTemplate.Field.GROSS, gewaehlt);
+        assertEquals(gewaehlt,
+                TemplateLearner.learn(text, mitWahl).rule(StatementTemplate.Field.GROSS));
+    }
 }

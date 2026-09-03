@@ -394,11 +394,13 @@ public class SecurityTxEditActivity extends LocalizedActivity implements HostedD
     private Double learnPrice;
     private Long learnFeeCents;
     private Long learnNetCents;
+    private Long learnGrossCents;
     private static final String STATE_LEARN_ACTION = "s_learnAction";
     private static final String STATE_LEARN_SHARES = "s_learnShares";
     private static final String STATE_LEARN_PRICE = "s_learnPrice";
     private static final String STATE_LEARN_FEE = "s_learnFee";
     private static final String STATE_LEARN_NET = "s_learnNet";
+    private static final String STATE_LEARN_GROSS = "s_learnGross";
     private static final String STATE_LIST_HINT = "s_listHint";
     private static final String STATE_LIST_HINT_KEY = "s_listHintKey";
     private static final String STATE_LAST_DUP_KEY = "s_lastDupKey";
@@ -494,7 +496,7 @@ public class SecurityTxEditActivity extends LocalizedActivity implements HostedD
         markierungAufhebenBeimTippen(Field.NET, netLayout);
         markierungAufhebenBeimTippen(Field.SHARES, sharesLayout);
         // Gesichert, bevor ankerAuswahlAnbieten() den Titel ggf. durch die erkannte Beschriftung ersetzt.
-        for (Field f : new Field[]{Field.SHARES, Field.PRICE, Field.FEE, Field.NET}) {
+        for (Field f : new Field[]{Field.SHARES, Field.PRICE, Field.FEE, Field.NET, Field.GROSS}) {
             TextInputLayout layout = layoutFor(f);
             if (layout != null) {
                 originalHints.put(f, layout.getHint());
@@ -625,6 +627,7 @@ public class SecurityTxEditActivity extends LocalizedActivity implements HostedD
         putBoxed(out, STATE_LEARN_PRICE, learnPrice);
         putBoxed(out, STATE_LEARN_FEE, learnFeeCents);
         putBoxed(out, STATE_LEARN_NET, learnNetCents);
+        putBoxed(out, STATE_LEARN_GROSS, learnGrossCents);
     }
 
     private void restoreState(Bundle in) {
@@ -680,6 +683,7 @@ public class SecurityTxEditActivity extends LocalizedActivity implements HostedD
         learnPrice = in.containsKey(STATE_LEARN_PRICE) ? in.getDouble(STATE_LEARN_PRICE) : null;
         learnFeeCents = in.containsKey(STATE_LEARN_FEE) ? in.getLong(STATE_LEARN_FEE) : null;
         learnNetCents = in.containsKey(STATE_LEARN_NET) ? in.getLong(STATE_LEARN_NET) : null;
+        learnGrossCents = in.containsKey(STATE_LEARN_GROSS) ? in.getLong(STATE_LEARN_GROSS) : null;
         if (saving) {
             btnSave.setEnabled(false);
             wiederaufnahme();
@@ -711,7 +715,8 @@ public class SecurityTxEditActivity extends LocalizedActivity implements HostedD
         if (learnAction == null) {
             return;
         }
-        offerToLearn(learnAction, learnShares, learnPrice, learnFeeCents, learnNetCents);
+        offerToLearn(learnAction, learnShares, learnPrice, learnFeeCents, learnNetCents,
+                learnGrossCents);
     }
 
     private static String[] namesOf(Set<Field> fields) {
@@ -1407,6 +1412,12 @@ public class SecurityTxEditActivity extends LocalizedActivity implements HostedD
         }
         writeUnset(Field.NET, r.netCents == null ? null : MoneyFormat.plain(r.netCents));
         writingBack = false;
+        // Für das gerechnete Feld sucht sein eigener Beobachter nicht: der schweigt bei allem, was die
+        // Maske selbst schreibt (writingBack). Die Suche gehört hier angestoßen — sonst bliebe bei einer
+        // Dividende gerade die Zahl ohne Beschriftung, die aus den beiden getippten herausfällt.
+        if (r.computed != null && fromStatement && !readOnly) {
+            planeAnkerSuche(r.computed);
+        }
         checkDuplicate();
     }
 
@@ -1748,6 +1759,7 @@ public class SecurityTxEditActivity extends LocalizedActivity implements HostedD
         final Double priceGiven = number(Field.PRICE);
         final Long feeGiven = money(Field.FEE);
         final Long netGiven = money(Field.NET);
+        final Long grossGiven = money(Field.GROSS);
         Runnable done = () -> {
             if (de.spahr.ausgaben.receipt.SingleReceipt.attach(this, beleg)) {
                 pendingStatement = null;
@@ -1755,7 +1767,7 @@ public class SecurityTxEditActivity extends LocalizedActivity implements HostedD
                 Toast.makeText(this, R.string.statement_receipt_failed, Toast.LENGTH_LONG).show();
             }
             Toast.makeText(this, R.string.security_tx_saved, Toast.LENGTH_SHORT).show();
-            offerToLearn(action, sharesGiven, priceGiven, feeGiven, netGiven);
+            offerToLearn(action, sharesGiven, priceGiven, feeGiven, netGiven, grossGiven);
         };
         // Ab hier ist geschrieben; erst jetzt sperren, damit eine abgebrochene Prüfung oben den Knopf
         // nicht für immer stilllegt.
@@ -1902,12 +1914,14 @@ public class SecurityTxEditActivity extends LocalizedActivity implements HostedD
      * genau daraus lernt die App die Beschriftungen. Eine Markier-Oberfläche, in der man auf dem Handy
      * kleine Zahlen antippt, wird damit überflüssig.</p>
      */
-    private void offerToLearn(String action, Double shares, Double price, Long feeCents, Long netCents) {
+    private void offerToLearn(String action, Double shares, Double price, Long feeCents, Long netCents,
+                              Long grossCents) {
         learnAction = action;
         learnShares = shares;
         learnPrice = price;
         learnFeeCents = feeCents;
         learnNetCents = netCents;
+        learnGrossCents = grossCents;
         if (statementTextPath == null && statementPdf() == null) {
             finish();
             return;
@@ -1932,14 +1946,14 @@ public class SecurityTxEditActivity extends LocalizedActivity implements HostedD
                     finish();
                     return;
                 }
-                learnFrom(text, action, shares, price, feeCents, netCents);
+                learnFrom(text, action, shares, price, feeCents, netCents, grossCents);
             });
         });
     }
 
     /** Der zweite Teil von {@link #offerToLearn}: die Abrechnung liegt gelesen vor. */
     private void learnFrom(de.spahr.ausgaben.pdf.PdfText text, String action, Double shares,
-                           Double price, Long feeCents, Long netCents) {
+                           Double price, Long feeCents, Long netCents, Long grossCents) {
         final StatementTemplates store = new StatementTemplates(this);
         final StatementTemplate existing = matchedTemplate(text);
 
@@ -1961,6 +1975,11 @@ public class SecurityTxEditActivity extends LocalizedActivity implements HostedD
         known.price = DIVIDEND.equals(action) || !lernen(ersteVorlage, Field.PRICE) ? null : price;
         known.feeCents = lernen(ersteVorlage, Field.FEE) ? feeCents : null;
         known.netCents = lernen(ersteVorlage, Field.NET) ? netCents : null;
+        // Das Brutto nur bei einer Dividende — sonst ist es die gerechnete dritte Zahl und steht nicht
+        // einmal in der Maske. Und auch dort nur als Rückhalt für eine ausdrücklich gewählte
+        // Beschriftung: von selbst sucht der Lerner dafür nichts (siehe TemplateLearner.Known#grossCents).
+        known.grossCents = DIVIDEND.equals(action) && lernen(ersteVorlage, Field.GROSS)
+                ? grossCents : null;
         // Wird aus der Gebühr eine feste Ordergebühr, braucht sie eine Kategorie – und die steht hier.
         known.feeCategory = firstCategory(feeSplits);
         // Die Aufteilung wird immer gelernt, gleich ob es schon eine Vorlage gibt: sie steht nur dann
@@ -2188,7 +2207,10 @@ public class SecurityTxEditActivity extends LocalizedActivity implements HostedD
      * ({@link #nichtLernenFelder}), bekommt dasselbe auch ohne Widerspruch.</p>
      */
     private boolean lernen(boolean ersteVorlage, Field field) {
-        if (!(ersteVorlage || typedFields.contains(field))) {
+        // Selbst getippt, erster Beleg dieser Bank — oder im Stift-Fenster ausdrücklich entschieden.
+        // Letzteres zählt auch für ein gerechnetes Feld: Bei einer Dividende fällt eine der drei Zahlen
+        // aus den beiden anderen heraus, und wer für sie eine Beschriftung antippt, meint sie.
+        if (!(ersteVorlage || typedFields.contains(field) || entscheidungGilt(field))) {
             return false;
         }
         if (nichtLernenFelder.contains(field) && entscheidungGilt(field)) {
@@ -2684,7 +2706,7 @@ public class SecurityTxEditActivity extends LocalizedActivity implements HostedD
      */
     private void ankerAuswahlAnbieten(final Field field) {
         final StatementTemplate.Field lernfeld = lernfeldVon(field);
-        if (readOnly || !fromStatement || lernfeld == null || !typedFields.contains(field)) {
+        if (readOnly || !fromStatement || lernfeld == null || !ankerSuchbar(field)) {
             return;
         }
         final Double wert = wertVon(field);
@@ -2845,6 +2867,30 @@ public class SecurityTxEditActivity extends LocalizedActivity implements HostedD
         return false;
     }
 
+    /**
+     * Ob für dieses Feld überhaupt nach einer Beschriftung gesucht werden darf.
+     *
+     * <p>Selbst getippt: immer. Dazu ein von der Maske <b>gerechnetes</b> Feld — bei einer Dividende
+     * sind Brutto und Netto genau das (getippt werden zwei der drei Zahlen, die dritte fällt heraus),
+     * und beide stehen trotzdem schwarz auf weiß in der Abrechnung. Ohne diesen Zusatz blieben sie
+     * stumm, obwohl der Gesamtbetrag beim ersten Beleg ohnehin gelernt wird — der Nutzer bekäme also
+     * keine Wahl über etwas, das ihn betrifft.</p>
+     *
+     * <p>Was die Vorlage selbst vorgelegt hat, bleibt dagegen außen vor: dort fände die Suche nur den
+     * eigenen Vorschlag wieder und hielte ihn für eine Bestätigung. Vorbelegte Werte stehen in
+     * {@code userSet} (siehe {@code prefillMoney}), gerechnete nimmt {@link #recompute} dort heraus.</p>
+     *
+     * <p>Und ein ausgeblendetes Feld gar nicht: bei Kauf und Verkauf ist das Brutto die gerechnete
+     * dritte Zahl und steht nicht in der Maske — eine Regel dafür füllte nur etwas Unsichtbares.</p>
+     */
+    private boolean ankerSuchbar(Field field) {
+        TextInputLayout layout = layoutFor(field);
+        if (layout == null || layout.getVisibility() != View.VISIBLE) {
+            return false;
+        }
+        return typedFields.contains(field) || !userSet.contains(field);
+    }
+
     /** Wie {@link #zeigeErkannteRegel}, aber der Merkposten geht ins Tag der Zeile statt in {@code chosenValueRules}. */
     private void zeigeErkannteSplitRegel(TextInputLayout layout, TextInputEditText input,
                                          de.spahr.ausgaben.statement.AnchorRule regel,
@@ -3003,8 +3049,14 @@ public class SecurityTxEditActivity extends LocalizedActivity implements HostedD
                 return StatementTemplate.Field.FEE;
             case NET:
                 return StatementTemplate.Field.NET;
+            case GROSS:
+                // Bei einer Dividende steht das Brutto als eigene Zeile in der Abrechnung und ist damit
+                // so suchbar wie jede andere Zahl. Bei Kauf und Verkauf ist das Feld ausgeblendet (es
+                // wird aus Anzahl × Kurs gerechnet) – dort kommt die Suche gar nicht erst dazu, siehe
+                // ankerSuchbar(). Von selbst lernt der Lerner dafür weiterhin nichts, nur die
+                // ausdrückliche Wahl des Nutzers (siehe TemplateLearner.Known#grossCents).
+                return StatementTemplate.Field.GROSS;
             default:
-                // Das Brutto wird gerechnet, nicht eingetippt – dafür legt der Lerner keine Regel an.
                 return null;
         }
     }

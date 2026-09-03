@@ -42,7 +42,7 @@ public final class LocaleManager {
             {"wear_type_transfer", "Umbuchung", "Transfer", "Traspaso"},
             {"wear_type_expense", "Ausgabe", "Expense", "Gasto"},
             {"wear_cancel", "Abbrechen", "Cancel", "Cancelar"},
-            {"wear_prompt", "Buchung sagen, z. B. „Frisör 20 Euro"", "Say a booking, e.g. \"Barber 20 euros\"", "Di un apunte, p. ej. \"peluquería 20 euros\""},
+            {"wear_prompt", "Buchung sagen, z. B. „Frisör 20 Euro\"", "Say a booking, e.g. \"Barber 20 euros\"", "Di un apunte, p. ej. \"peluquería 20 euros\""},
             {"wear_listening", "Sprich jetzt…", "Speak now…", "Habla ahora…"},
             {"wear_not_understood", "Nicht erkannt", "Not recognized", "No reconocido"},
             {"wear_no_mic", "Mikrofon nötig", "Mic needed", "Se necesita micrófono"},

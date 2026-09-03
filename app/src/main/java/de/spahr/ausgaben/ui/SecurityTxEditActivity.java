@@ -2014,6 +2014,12 @@ public class SecurityTxEditActivity extends LocalizedActivity implements HostedD
         // dieselben Regeln zurück – dann gibt es nichts zu merken, und die Rückfrage wäre nur Lärm.
         // Dasselbe, wenn der korrigierte Wert im PDF gar nicht vorkommt: dann entsteht keine Regel.
         if (replacedMix.isEmpty() || replacedMix.sameAs(existing)) {
+            // Wer im Stift-Fenster ausdrücklich „Lernen" gedrückt hat, darf hier nicht ins Leere laufen:
+            // dass dabei nichts herauskam, ist dann eine Nachricht wert. Ohne eigene Entscheidung ist es
+            // dagegen der Normalfall (nichts korrigiert) und bliebe besser still.
+            if (!entschiedenFuer.isEmpty()) {
+                Toast.makeText(this, R.string.statement_learn_nothing_new, Toast.LENGTH_LONG).show();
+            }
             finish();
             return;
         }
@@ -2769,18 +2775,74 @@ public class SecurityTxEditActivity extends LocalizedActivity implements HostedD
             return;
         }
         final Double wert = Math.abs(cents) / 100.0;
+        final String kategorie = kategorieVon(layout);
         repository.executor().execute(() -> {
             final de.spahr.ausgaben.pdf.PdfText text = readStatementText();
             final java.util.List<de.spahr.ausgaben.statement.AnchorRule> kandidaten = ankerSucheMoeglich(text)
                     ? de.spahr.ausgaben.statement.TemplateLearner.kandidatenFuerBetrag(text, wert)
                     : java.util.Collections.emptyList();
+            // Was für diese Zeile schon in der Vorlage steht — für „Nicht lernen" im Stift-Fenster.
+            final de.spahr.ausgaben.statement.AnchorRule alt =
+                    alteTeilregel(matchedTemplate(text), layout, kategorie);
             runOnUiThread(() -> {
                 if (isFinishing() || isDestroyed() || kandidaten.isEmpty()) {
+                    return;
+                }
+                input.setTag(R.id.splitAltRule, alt);
+                if (cents.equals(input.getTag(R.id.splitEntschiedenFuer))) {
+                    // Für genau diesen Betrag hat der Nutzer im Stift-Fenster schon entschieden; diese
+                    // Suche läuft beim Verlassen des Feldes noch einmal und ersetzte seine Wahl sonst
+                    // durch ihren eigenen ersten Vorschlag. Wie bei den Hauptfeldern, siehe
+                    // entscheidungGilt.
                     return;
                 }
                 zeigeErkannteSplitRegel(layout, input, kandidaten.get(0), kandidaten);
             });
         });
+    }
+
+    /** Die Kategorie, die in dieser Teilbetrag-Zeile steht — leer, solange keine gewählt ist. */
+    private static String kategorieVon(TextInputLayout layout) {
+        View zeile = layout.getParent() instanceof View ? (View) layout.getParent() : null;
+        android.widget.TextView cat = zeile == null ? null : zeile.findViewById(R.id.splitCategory);
+        return cat == null ? "" : cat.getText().toString().trim();
+    }
+
+    /**
+     * Die schon gelernte Regel dieser Teilbetrag-Zeile, gefunden über ihre <b>Kategorie</b>.
+     *
+     * <p>Anders als ein Hauptfeld hat ein Teilbetrag keine feste Spalte in der Vorlage: dort stehen die
+     * Zeilen unter ihrer Beschriftung, und die entsteht erst beim Lernen aus der gefundenen Zeile (siehe
+     * {@code TemplateLearner.learnParts}). Was beide Seiten kennen, ist die Kategorie — sie gehört zur
+     * Bank und wird mitgelernt ({@link StatementTemplate.PartRule#category}).</p>
+     */
+    private static de.spahr.ausgaben.statement.AnchorRule alteTeilregel(StatementTemplate vorlage,
+                                                                       TextInputLayout layout,
+                                                                       String kategorie) {
+        if (vorlage == null || kategorie.isEmpty()) {
+            return null;
+        }
+        boolean ertrag = istErtragsZeile(layout);
+        for (StatementTemplate.PartRule teil : ertrag ? vorlage.incomeParts : vorlage.feeParts) {
+            if (kategorie.equalsIgnoreCase(teil.category)) {
+                return teil.rule;
+            }
+        }
+        return null;
+    }
+
+    /** Ob diese Zeile zur Ertragsaufteilung gehört (sonst zur Gebühren-/Steueraufteilung). */
+    private static boolean istErtragsZeile(TextInputLayout layout) {
+        for (android.view.ViewParent p = layout.getParent(); p instanceof View; p = p.getParent()) {
+            int id = ((View) p).getId();
+            if (id == R.id.incomeSplitContainer) {
+                return true;
+            }
+            if (id == R.id.feeSplitContainer) {
+                return false;
+            }
+        }
+        return false;
     }
 
     /** Wie {@link #zeigeErkannteRegel}, aber der Merkposten geht ins Tag der Zeile statt in {@code chosenValueRules}. */
@@ -2801,23 +2863,54 @@ public class SecurityTxEditActivity extends LocalizedActivity implements HostedD
      * die Zeile ist eine zur Laufzeit erzeugte Ansicht ohne über eine Drehung hinweg stabile Kennung, ein
      * Wiederaufbau lohnte den Aufwand nicht. Übersteht die Drehung nicht — einfach erneut antippen.
      */
-    private void showSplitAnchorChoice(TextInputLayout layout, TextInputEditText input,
+    private void showSplitAnchorChoice(TextInputLayout layout, final TextInputEditText input,
                                        java.util.List<de.spahr.ausgaben.statement.AnchorRule> kandidaten) {
-        CharSequence[] labels = new CharSequence[kandidaten.size() + 1];
-        for (int i = 0; i < kandidaten.size(); i++) {
-            labels[i] = anchorText(kandidaten.get(i));
+        View view = getLayoutInflater().inflate(R.layout.dialog_anchor_choice, null);
+        final android.widget.RadioGroup gruppe = view.findViewById(R.id.anchorChoices);
+        for (int i = 0; i <= kandidaten.size(); i++) {
+            com.google.android.material.radiobutton.MaterialRadioButton knopf =
+                    new com.google.android.material.radiobutton.MaterialRadioButton(this);
+            knopf.setId(i + 1);
+            knopf.setText(i < kandidaten.size() ? anchorText(kandidaten.get(i))
+                    : getString(R.string.statement_anchor_none));
+            gruppe.addView(knopf);
         }
-        labels[kandidaten.size()] = getString(R.string.statement_anchor_none);
+        Object gilt = input.getTag(R.id.splitAnchorRule);
+        int vorwahl = gilt instanceof de.spahr.ausgaben.statement.AnchorRule
+                ? kandidaten.indexOf(gilt) : -1;
+        gruppe.check((vorwahl < 0 ? 0 : vorwahl) + 1);
+        // Der Ersetzen/Hinzufügen-Schalter der Hauptfelder bleibt hier weg: eine Teilbetrag-Regel wird
+        // über ihre Beschriftung wiedergefunden, und eine Kette aus alter und neuer Beschriftung stünde
+        // in der Vorlage als zwei Zeilen — die Bank zählte dieselbe Steuer beim nächsten Beleg doppelt.
         new AppDialog(this)
                 .setTitle(getString(R.string.statement_anchor_title, getString(R.string.split_partial_hint)))
-                .setItems(labels, (d, which) -> {
-                    if (which >= kandidaten.size()) {
-                        // „Selbst entscheiden": der Lerner sucht beim Speichern selbst (siehe learnParts).
+                .setView(view)
+                .setPositiveButton(R.string.statement_anchor_learn, (d, w) -> {
+                    input.setTag(R.id.splitEntschiedenFuer, SplitRowController.parseCents(textOf(input)));
+                    int gewaehlt = gruppe.getCheckedRadioButtonId() - 1;
+                    if (gewaehlt < 0 || gewaehlt >= kandidaten.size()) {
+                        // „Die App entscheiden lassen": der Lerner sucht beim Speichern selbst
+                        // (siehe learnParts).
                         input.setTag(R.id.splitAnchorRule, null);
                         layout.setHint(getString(R.string.split_partial_hint));
                         return;
                     }
-                    zeigeErkannteSplitRegel(layout, input, kandidaten.get(which), kandidaten);
+                    zeigeErkannteSplitRegel(layout, input, kandidaten.get(gewaehlt), kandidaten);
+                })
+                .setNegativeButton(R.string.statement_anchor_dont_learn, (d, w) -> {
+                    input.setTag(R.id.splitEntschiedenFuer, SplitRowController.parseCents(textOf(input)));
+                    // „Nicht lernen": die für diese Kategorie gespeicherte Regel bleibt stehen — sie geht
+                    // als Wahl in den Lernvorgang, kommt also unverändert wieder heraus. Kennt die Vorlage
+                    // für die Zeile noch gar keine, gibt es nichts zu bewahren, und der Lerner sucht wie
+                    // bisher selbst.
+                    Object alt = input.getTag(R.id.splitAltRule);
+                    if (alt instanceof de.spahr.ausgaben.statement.AnchorRule) {
+                        zeigeErkannteSplitRegel(layout, input,
+                                (de.spahr.ausgaben.statement.AnchorRule) alt, kandidaten);
+                    } else {
+                        input.setTag(R.id.splitAnchorRule, null);
+                        layout.setHint(getString(R.string.split_partial_hint));
+                    }
                 })
                 .create()
                 .show();

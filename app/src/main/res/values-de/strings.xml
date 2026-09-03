@@ -770,6 +770,7 @@
     <string name="statement_anchor_none">Die App entscheiden lassen</string>
     <string name="statement_anchor_dont_learn">Nicht lernen</string>
     <string name="statement_anchor_learn">Lernen</string>
+    <string name="statement_learn_nothing_new">Die gewählte Beschriftung ergibt dieselbe Regel wie bisher — es wurde nichts Neues gelernt.</string>
     <string name="statement_anchor_replace_on">Vorhandene Regel ersetzen</string>
     <string name="statement_anchor_replace_off">Regel zusätzlich hinzufügen</string>
     <string name="statement_anchor_replace_hint">Beim Hinzufügen bleibt die bisherige Regel erhalten. Die neue Beschriftung wird zuerst geprüft, wenn die alte hier einen falschen Wert lieferte, sonst steht sie dahinter.</string>

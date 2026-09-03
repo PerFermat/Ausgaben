@@ -771,6 +771,7 @@
     <string name="statement_anchor_none">Let the app decide</string>
     <string name="statement_anchor_dont_learn">Don\'t learn</string>
     <string name="statement_anchor_learn">Learn</string>
+    <string name="statement_learn_nothing_new">The chosen label yields the same rule as before — nothing new was learned.</string>
     <string name="statement_anchor_replace_on">Replace existing rule</string>
     <string name="statement_anchor_replace_off">Add rule in addition</string>
     <string name="statement_anchor_replace_hint">When adding, the existing rule is kept. The new label is checked first if the old rule returned a wrong value here, otherwise it stays behind it.</string>

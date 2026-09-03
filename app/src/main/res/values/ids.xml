@@ -14,4 +14,12 @@
          eingetippt hat (statt ihn nur vorbelegt zu bekommen). -->
     <item name="splitAnchorRule" type="id" />
     <item name="splitAmountTyped" type="id" />
+    <!-- Und die Regel, die für die Kategorie dieser Zeile schon in der Bank-Vorlage steht — über die
+         Kategorie gefunden, denn die Beschriftung entsteht erst beim Lernen; leer, wenn es keine gibt.
+         Gebraucht für „Nicht lernen": dann bleibt genau sie stehen. -->
+    <item name="splitAltRule" type="id" />
+    <!-- Der Betrag, für den der Nutzer im Stift-Fenster dieser Zeile entschieden hat. Wie
+         SecurityTxEditActivity#entschiedenFuer bei den Hauptfeldern: die Entscheidung hängt am Wert,
+         damit die erneut laufende Suche sie nicht stillschweigend überschreibt. -->
+    <item name="splitEntschiedenFuer" type="id" />
 </resources>

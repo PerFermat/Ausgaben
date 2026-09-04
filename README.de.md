@@ -27,7 +27,7 @@ Funktion im Detail, mit Bildschirmfotos.
 - ⌚ **Wear-OS-App mit Spracheingabe** – Ausgabe direkt vom Handgelenk sprechen
 - ➗ **Splitbuchungen und Umbuchungen**, Kategorien, Orte/Bestände und Depot-Import
 - 📈 **Auswertungen**: Verlauf je Konto, Kategorien-Kreisdiagramm, Budget (Ist/Soll), Depot-Rendite
-- 🌍 **Mehrsprachig** – Deutsch und Englisch eingebaut, weitere Sprachen per Übersetzungs-Upload
+- 🌍 **Mehrsprachig** – Deutsch, Englisch und Spanisch eingebaut, weitere Sprachen per Übersetzungs-Upload
 - 👆 **Biometrische Sperre**, verschlüsselte Zugangsdaten, Backup & Wiederherstellung
 - 🆓 **Keine Werbung. Open Source.**
 
@@ -100,8 +100,8 @@ stehen im **[Benutzerhandbuch](docs/Handbuch-Ausgaben-de.pdf)**.
   gebucht wird auf dem Handy. Offline erfaßtes wird nachgereicht, ohne Verlust und ohne Dopplung.
 - **Sicherheit & Sicherung** – optionale biometrische Sperre, GPS standardmäßig aus, verschlüsselte
   Zugangsdaten; Sicherung von Daten und Einstellungen in eine (auf Wunsch verschlüsselte) Datei.
-- **Darstellung & Sprache** – helles und dunkles Design, app-weite Schriftgröße, Deutsch und Englisch
-  eingebaut, weitere Sprachen per Übersetzungsdatei.
+- **Darstellung & Sprache** – helles und dunkles Design, app-weite Schriftgröße, Deutsch, Englisch und
+  Spanisch eingebaut, weitere Sprachen per Übersetzungsdatei.
 
 ## CSV-Format (Export)
 

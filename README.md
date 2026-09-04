@@ -30,7 +30,7 @@ detail, with screenshots.
 - ⌚ **Wear OS app with voice input** — speak an expense right from your wrist
 - ➗ **Split bookings and transfers**, categories, places/holdings and portfolio import
 - 📈 **Analysis**: history per account, category pie chart, budget (actual/planned), portfolio return
-- 🌍 **Multilingual** — ships in English and German, more languages via translation upload
+- 🌍 **Multilingual** — ships in English, German and Spanish, more languages via translation upload
 - 👆 **Biometric lock**, encrypted credentials, backup & restore
 - 🆓 **No ads. Open source.**
 
@@ -102,8 +102,8 @@ This list names the main features only. The exact behaviour, every detail and sc
   the phone creates the booking. Anything recorded offline is sent on later, without loss or duplication.
 - **Security & backup** — optional biometric lock, GPS off by default, encrypted credentials; data and
   settings can be backed up into a file that may be encrypted.
-- **Appearance & language** — light and dark theme, app-wide font size, English and German built in,
-  further languages via a translation file.
+- **Appearance & language** — light and dark theme, app-wide font size, English, German and Spanish
+  built in, further languages via a translation file.
 
 ## CSV format (export)
 

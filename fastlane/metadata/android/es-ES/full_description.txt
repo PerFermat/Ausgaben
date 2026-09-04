@@ -1,4 +1,4 @@
-Ausgaben (\"gastos\" en alemán) es un complemento móvil del software de finanzas de escritorio KMyMoney. Registra gastos en efectivo, ingresos y traspasos sobre la marcha y expórtalos a KMyMoney, en lugar de teclearlos a mano después.
+Ausgaben ("gastos" en alemán) es un complemento móvil del software de finanzas de escritorio KMyMoney. Registra gastos en efectivo, ingresos y traspasos sobre la marcha y expórtalos a KMyMoney, en lugar de teclearlos a mano después.
 
 La app funciona completamente sin conexión y sin cuentas de proveedor: los datos se intercambian con KMyMoney a través de una carpeta que tú mismo proporcionas (WebDAV, Nextcloud o SMB/Samba). Sin anuncios, sin seguimiento.
 
@@ -6,7 +6,7 @@ Funciones:
 
 * Integración perfecta con KMyMoney mediante archivos .kmy o importación CSV
 * Sincronización a través de una carpeta WebDAV o SMB compartida: tu propio servidor, tus datos
-* Apuntes divididos (split) y traspasos, categorías y \"lugares\" por cuenta (sigue dónde está tu efectivo físicamente)
+* Apuntes divididos (split) y traspasos, categorías y "lugares" por cuenta (sigue dónde está tu efectivo físicamente)
 * Gráficos y análisis por cuenta, lugar o total
 * Importación de cartera (valores con compras/ventas/dividendos, últimos precios, patrimonio neto)
 * Entrada por voz difusa con sugerencia opcional de beneficiario basada en ubicación

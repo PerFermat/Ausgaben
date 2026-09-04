@@ -764,6 +764,12 @@
     <string name="statement_anchor_title">¿Dónde está \"%1$s\" en el extracto?</string>
     <string name="statement_anchor_item">%1$s — %2$s</string>
     <string name="statement_anchor_none">Dejar que la app decida</string>
+    <string name="statement_anchor_dont_learn">No aprender</string>
+    <string name="statement_anchor_learn">Aprender</string>
+    <string name="statement_learn_nothing_new">La etiqueta elegida da la misma regla que antes — no se ha aprendido nada nuevo.</string>
+    <string name="statement_anchor_replace_on">Reemplazar la regla existente</string>
+    <string name="statement_anchor_replace_off">Añadir la regla adicionalmente</string>
+    <string name="statement_anchor_replace_hint">Al añadirla, la regla existente se conserva. La nueva etiqueta se comprueba primero si la anterior dio aquí un valor incorrecto; en caso contrario queda detrás de ella.</string>
     <string name="statement_anchor_column">encabezado de columna encima</string>
     <string name="statement_anchor_heading">encabezado una línea arriba</string>
     <string name="statement_anchor_under">etiqueta una línea abajo</string>
@@ -799,6 +805,7 @@
     <string name="statement_date_missing">No está en el extracto – elige</string>
     <string name="statement_action_missing">No está en el extracto – elige</string>
     <string name="statement_learning_preparing">Aún no hay regla de reconocimiento para \"%1$s\" – aprendiendo…</string>
+    <string name="statement_anchor_change">Cambiar la regla de reconocimiento detectada</string>
     <string name="statement_learn_intro_title">Nuevo banco – cómo aprende la app</string>
     <string name="statement_learn_intro_message">Aún no hay reglas de reconocimiento para este banco. Con el primer extracto, la app aprende de ti dónde están los valores:\n\nFecha: cada fecha encontrada en el extracto se ofrece – elige la fecha de valor.\n\nNúmeros: en cuanto introduces un importe, la app muestra las etiquetas posibles – elige la correcta. Si solo hay una posibilidad, ni siquiera preguntará.\n\nLa entrada se aprende al guardarla, y se apunta como de costumbre.</string>
     <string name="security_tx_need_date">Elige la fecha</string>
@@ -845,6 +852,7 @@
     <string name="statement_rules_try_nomatch">La plantilla no se aplica a este extracto.</string>
     <string name="statement_rules_nothing">—</string>
     <string name="statement_learn_conflict">Una etiqueta ya almacenada sería reemplazada. Añadir la nueva como respaldo adicional, o reemplazar la anterior?</string>
+    <string name="statement_learn_conflict_details">Mostrar qué etiqueta es la antigua y cuál la nueva</string>
     <string name="statement_learn_append">Añadir</string>
     <string name="statement_learn_replace">Reemplazar</string>
     <string name="statement_check_title">Las reglas aún no funcionan</string>

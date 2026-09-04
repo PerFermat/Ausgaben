@@ -32,10 +32,9 @@ public final class LocaleManager {
     public static final String LANG_ES = "es";
 
     /**
-     * Wear-Texte (Schlüssel, Deutsch, Englisch). Das Phone kann die Wear-Ressourcen nicht lesen, daher hier
-     * fest hinterlegt – für DB, Export-Vorlage und die Sprach-Übertragung an die Uhr.
+     * Wear-Texte (Schlüssel, Deutsch, Englisch, Spanisch). Das Phone kann die Wear-Ressourcen nicht lesen,
+     * daher hier fest hinterlegt – für DB, Export-Vorlage und die Sprach-Übertragung an die Uhr.
      */
-    /** Wear-Texte (Schlüssel, Deutsch, Englisch, Spanisch). */
     public static final String[][] WEAR = {
             {"wear_title", "Buchung erfassen", "Record booking", "Registrar apunte"},
             {"wear_type_income", "Einnahme", "Income", "Ingreso"},

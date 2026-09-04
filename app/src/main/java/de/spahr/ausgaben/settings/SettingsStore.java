@@ -521,14 +521,16 @@ public class SettingsStore {
 
     /**
      * Sprachcode der App-Texte. Ist noch keine Sprache gewählt (Erststart), bestimmt die Handy-Sprache:
-     * Deutsch → „de", jede andere Sprache → „en" (Standardsprache Englisch).
+     * jede mitgelieferte Sprache wird übernommen, jede andere fällt auf „en" zurück (Standardsprache
+     * Englisch). Nachgeladene Sprachen zählen hier nicht – die gibt es beim Erststart noch nicht.
      */
     public String getLanguage() {
         String stored = prefs.getString(KEY_LANGUAGE, "");
         if (!stored.isEmpty()) {
             return stored;
         }
-        return "de".equals(java.util.Locale.getDefault().getLanguage()) ? "de" : "en";
+        String phone = java.util.Locale.getDefault().getLanguage();
+        return "de".equals(phone) || "es".equals(phone) ? phone : "en";
     }
 
     public void setLanguage(String code) {

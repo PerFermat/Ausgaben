@@ -80,6 +80,11 @@ android {
                 it.systemProperty 'kmy.corpus', System.getProperty('kmy.corpus')
                 it.outputs.upToDateWhen { false }
             }
+            // Ohne eigene Grenze erbt der Test-Worker die 2048 MB des Gradle-Daemons
+            // (org.gradle.jvmargs) – zu knapp für BackupArchiveTest, der testweise ein
+            // Gigabyte-Archiv entpackt (bricht bei 256 MB ab, aber ByteArrayOutputStream
+            // verdoppelt beim Wachsen kurzzeitig auf mehr).
+            it.maxHeapSize = '3072m'
         }
     }
 }

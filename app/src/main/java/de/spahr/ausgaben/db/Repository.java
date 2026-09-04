@@ -411,17 +411,34 @@ public class Repository {
         });
     }
 
-    /** Baut die JSON-Export-Vorlage (alle Schlüssel mit DE/EN + leerem „value"). */
-    public void buildLanguageTemplate(final Callback<String> callback) {
+    /**
+     * Baut die JSON-Export-Vorlage (alle Schlüssel mit DE/EN als Referenz). Bei einer hochgeladenen
+     * Sprache ist sie mit deren Texten vorbelegt, bei einer eingebauten bleibt sie leer.
+     */
+    public void buildLanguageTemplate(final String lang,
+                                      final Callback<de.spahr.ausgaben.i18n.TranslationIo.Template>
+                                              callback) {
         executor.execute(() -> {
-            String json;
+            de.spahr.ausgaben.i18n.TranslationIo.Template template;
             try {
-                json = de.spahr.ausgaben.i18n.TranslationIo.buildTemplate(
-                        translationDao.getPairsOrdered("de"), translationDao.getPairsOrdered("en"));
+                List<TranslationDao.KeyValue> current = null;
+                Language language = null;
+                if (!de.spahr.ausgaben.i18n.LocaleManager.isBuiltIn(lang)) {
+                    current = translationDao.getPairsOrdered(lang);
+                    for (Language l : translationDao.getLanguages()) {
+                        if (l.code.equals(lang)) {
+                            language = l;
+                            break;
+                        }
+                    }
+                }
+                template = de.spahr.ausgaben.i18n.TranslationIo.buildTemplate(
+                        translationDao.getPairsOrdered("de"), translationDao.getPairsOrdered("en"),
+                        current, language);
             } catch (Exception e) {
-                json = null;
+                template = null;
             }
-            final String result = json;
+            final de.spahr.ausgaben.i18n.TranslationIo.Template result = template;
             mainHandler.post(() -> callback.onResult(result));
         });
     }

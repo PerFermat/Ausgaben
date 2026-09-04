@@ -506,6 +506,8 @@
     <string name="language_export">Plantilla de exportación</string>
     <string name="language_upload">Subir idioma</string>
     <string name="language_export_done">Plantilla guardada</string>
+    <string name="language_export_missing">Todavía faltan %1$d de %2$d textos en este idioma. Complétalos en el archivo y vuelve a subirlo.</string>
+    <string name="language_export_complete">Los %1$d textos están todos disponibles en este idioma.</string>
     <string name="language_upload_done">Idioma \"%1$s\" cargado</string>
     <string name="language_upload_failed">Archivo de idioma no válido: %1$s</string>
     <string name="currency_hint">Indicador de moneda (por defecto)</string>

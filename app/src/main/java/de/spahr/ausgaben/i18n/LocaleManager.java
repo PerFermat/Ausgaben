@@ -32,6 +32,14 @@ public final class LocaleManager {
     public static final String LANG_ES = "es";
 
     /**
+     * Ist die Sprache mit der App ausgeliefert? Diese drei werden bei jedem Start aus den kompilierten
+     * Ressourcen neu geseedet; alle anderen stammen aus einer hochgeladenen Datei und leben nur in der DB.
+     */
+    public static boolean isBuiltIn(String code) {
+        return LANG_DE.equals(code) || LANG_EN.equals(code) || LANG_ES.equals(code);
+    }
+
+    /**
      * Wear-Texte (Schlüssel, Deutsch, Englisch, Spanisch). Das Phone kann die Wear-Ressourcen nicht lesen,
      * daher hier fest hinterlegt – für DB, Export-Vorlage und die Sprach-Übertragung an die Uhr.
      */

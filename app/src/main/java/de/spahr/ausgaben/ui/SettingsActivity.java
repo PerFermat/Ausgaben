@@ -173,7 +173,8 @@ public class SettingsActivity extends LocalizedActivity implements HostedDialog.
         setupFontSize();
         setupLanguages();
         ((MaterialButton) findViewById(R.id.btnExportTemplate)).setOnClickListener(
-                v -> templateExportLauncher.launch("ausgaben-language-template.json"));
+                v -> templateExportLauncher.launch(
+                        "ausgaben-language-" + settings.getLanguage() + ".json"));
         ((MaterialButton) findViewById(R.id.btnUploadLanguage)).setOnClickListener(
                 v -> languageUploadLauncher.launch(new String[]{"application/json"}));
 
@@ -340,19 +341,34 @@ public class SettingsActivity extends LocalizedActivity implements HostedDialog.
     }
 
     private void writeTemplate(Uri uri) {
-        repository.buildLanguageTemplate(json -> {
-            if (json == null) {
+        String lang = settings.getLanguage();
+        repository.buildLanguageTemplate(lang, template -> {
+            if (template == null) {
                 return;
             }
             try (OutputStream out = getContentResolver().openOutputStream(uri)) {
                 if (out != null) {
-                    out.write(json.getBytes(StandardCharsets.UTF_8));
+                    out.write(template.json.getBytes(StandardCharsets.UTF_8));
                 }
-                Toast.makeText(this, R.string.language_export_done, Toast.LENGTH_LONG).show();
             } catch (Exception e) {
                 Toast.makeText(this, getString(R.string.language_upload_failed, reason(e)),
                         Toast.LENGTH_LONG).show();
+                return;
             }
+            // Bei einer eingebauten Sprache ist die Vorlage leer; „alle 821 fehlen" wäre dort keine
+            // Auskunft. Gezählt wird nur, wo vorbelegt wurde – also bei einer hochgeladenen Sprache.
+            if (de.spahr.ausgaben.i18n.LocaleManager.isBuiltIn(lang)) {
+                Toast.makeText(this, R.string.language_export_done, Toast.LENGTH_LONG).show();
+                return;
+            }
+            new AppDialog(this)
+                    .setTitle(R.string.language_export_done)
+                    .setMessage(template.missing == 0
+                            ? getString(R.string.language_export_complete, template.total)
+                            : getString(R.string.language_export_missing,
+                                    template.missing, template.total))
+                    .setPositiveButton(android.R.string.ok, null)
+                    .show();
         });
     }
 

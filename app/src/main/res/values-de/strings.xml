@@ -509,6 +509,8 @@
     <string name="language_export">Vorlage exportieren</string>
     <string name="language_upload">Sprache hochladen</string>
     <string name="language_export_done">Vorlage gespeichert</string>
+    <string name="language_export_missing">%1$d von %2$d Texten fehlen noch in dieser Sprache. Trage sie in der Datei nach und lade sie wieder hoch.</string>
+    <string name="language_export_complete">Alle %1$d Texte liegen in dieser Sprache vor.</string>
     <string name="language_upload_done">Sprache „%1$s" geladen</string>
     <string name="language_upload_failed">Sprachdatei ungültig: %1$s</string>
     <string name="currency_hint">Währungskennzeichen (Standard)</string>

@@ -510,6 +510,8 @@
     <string name="language_export">Export template</string>
     <string name="language_upload">Upload language</string>
     <string name="language_export_done">Template saved</string>
+    <string name="language_export_missing">%1$d of %2$d texts are still missing in this language. Fill them in and upload the file again.</string>
+    <string name="language_export_complete">All %1$d texts are present in this language.</string>
     <string name="language_upload_done">Language “%1$s” loaded</string>
     <string name="language_upload_failed">Invalid language file: %1$s</string>
     <string name="currency_hint">Currency indicator (default)</string>

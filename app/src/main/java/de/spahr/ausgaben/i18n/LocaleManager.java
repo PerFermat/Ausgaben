@@ -29,26 +29,28 @@ public final class LocaleManager {
 
     public static final String LANG_DE = "de";
     public static final String LANG_EN = "en";
+    public static final String LANG_ES = "es";
 
     /**
      * Wear-Texte (Schlüssel, Deutsch, Englisch). Das Phone kann die Wear-Ressourcen nicht lesen, daher hier
      * fest hinterlegt – für DB, Export-Vorlage und die Sprach-Übertragung an die Uhr.
      */
+    /** Wear-Texte (Schlüssel, Deutsch, Englisch, Spanisch). */
     public static final String[][] WEAR = {
-            {"wear_title", "Buchung erfassen", "Record booking"},
-            {"wear_type_income", "Einnahme", "Income"},
-            {"wear_type_transfer", "Umbuchung", "Transfer"},
-            {"wear_type_expense", "Ausgabe", "Expense"},
-            {"wear_cancel", "Abbrechen", "Cancel"},
-            {"wear_prompt", "Buchung sagen, z. B. „Frisör 20 Euro\"", "Say a booking, e.g. \"Barber 20 euros\""},
-            {"wear_listening", "Sprich jetzt…", "Speak now…"},
-            {"wear_not_understood", "Nicht erkannt", "Not recognized"},
-            {"wear_no_mic", "Mikrofon nötig", "Mic needed"},
-            {"wear_no_recognizer", "Keine Erkennung", "No recognizer"},
-            {"wear_pending", "%1$d offen · %2$s", "%1$d pending · %2$s"},
-            {"wear_reason_gps", "GPS", "GPS"},
-            {"wear_reason_no_phone", "Kein Handy", "No phone"},
-            {"wear_reason_sending", "sendet…", "sending…"},
+            {"wear_title", "Buchung erfassen", "Record booking", "Registrar apunte"},
+            {"wear_type_income", "Einnahme", "Income", "Ingreso"},
+            {"wear_type_transfer", "Umbuchung", "Transfer", "Traspaso"},
+            {"wear_type_expense", "Ausgabe", "Expense", "Gasto"},
+            {"wear_cancel", "Abbrechen", "Cancel", "Cancelar"},
+            {"wear_prompt", "Buchung sagen, z. B. „Frisör 20 Euro\"", "Say a booking, e.g. \"Barber 20 euros\"", "Di un apunte, p. ej. \"peluquería 20 euros\""},
+            {"wear_listening", "Sprich jetzt…", "Speak now…", "Habla ahora…"},
+            {"wear_not_understood", "Nicht erkannt", "Not recognized", "No reconocido"},
+            {"wear_no_mic", "Mikrofon nötig", "Mic needed", "Se necesita micrófono"},
+            {"wear_no_recognizer", "Keine Erkennung", "No recognizer", "Sin reconocimiento"},
+            {"wear_pending", "%1$d offen · %2$s", "%1$d pending · %2$s", "%1$d pendiente(s) · %2$s"},
+            {"wear_reason_gps", "GPS", "GPS", "GPS"},
+            {"wear_reason_no_phone", "Kein Handy", "No phone", "Sin teléfono"},
+            {"wear_reason_sending", "sendet…", "sending…", "enviando…"},
     };
 
     private static final ExecutorService EXEC = Executors.newSingleThreadExecutor();
@@ -100,22 +102,26 @@ public final class LocaleManager {
         List<Translation> rows = new ArrayList<>();
         Context de = localeContext(app, Locale.GERMAN);
         Context en = localeContext(app, Locale.ENGLISH);
+        Context es = localeContext(app, new Locale("es"));
         for (Field field : R.string.class.getFields()) {
             try {
                 int id = field.getInt(null);
                 String key = field.getName();
                 rows.add(new Translation(LANG_DE, key, de.getString(id)));
                 rows.add(new Translation(LANG_EN, key, en.getString(id)));
+                rows.add(new Translation(LANG_ES, key, es.getString(id)));
             } catch (Exception ignored) {
             }
         }
         for (String[] w : WEAR) {
             rows.add(new Translation(LANG_DE, w[0], w[1]));
             rows.add(new Translation(LANG_EN, w[0], w[2]));
+            rows.add(new Translation(LANG_ES, w[0], w[3]));
         }
         dao.insertAll(rows);
         dao.upsertLanguage(new Language(LANG_DE, "Deutsch", "€", SettingsStore.NUMBER_FORMAT_DE_GROUP));
         dao.upsertLanguage(new Language(LANG_EN, "English", "$", SettingsStore.NUMBER_FORMAT_EN_GROUP));
+        dao.upsertLanguage(new Language(LANG_ES, "Español", "€", SettingsStore.NUMBER_FORMAT_DE_GROUP));
     }
 
     private static Context localeContext(Context app, Locale locale) {

@@ -160,7 +160,7 @@
                 android:layout_marginTop="10dp"
                 android:background="@drawable/bg_circle"
                 android:backgroundTint="#455A64"
-                android:contentDescription="@string/number_entry"
+                android:contentDescription="@string/wear_number_entry"
                 android:scaleType="center"
                 android:src="@drawable/ic_dialpad"
                 android:visibility="gone" />

@@ -22,5 +22,5 @@
     <string name="wear_model_downloading">Downloading offline speech model…</string>
     <string name="wear_model_hint">Enable offline speech for this language in the watch settings (System → Languages &amp; input).</string>
     <string name="wear_model_unsupported">This watch does not support offline speech recognition. The number pad is used when offline.</string>
-    <string name="number_entry">Enter amount by digits</string>
+    <string name="wear_number_entry">Enter amount by digits</string>
 </resources>

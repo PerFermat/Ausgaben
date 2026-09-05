@@ -42,6 +42,11 @@ public final class LocaleManager {
     /**
      * Wear-Texte (Schlüssel, Deutsch, Englisch, Spanisch). Das Phone kann die Wear-Ressourcen nicht lesen,
      * daher hier fest hinterlegt – für DB, Export-Vorlage und die Sprach-Übertragung an die Uhr.
+     *
+     * <p>Die Liste muß jeden {@code wear_*}-Schlüssel aus {@code wear/src/main/res/values/strings.xml}
+     * enthalten: {@code Repository} überträgt genau diese Präfix-Schlüssel an die Uhr, und was hier fehlt,
+     * fällt dort auf die gebündelte DE/EN/ES-Ressource zurück – eine hochgeladene Sprache kann es also nie
+     * übersetzen. {@code WearStringsCompleteTest} nagelt das fest.
      */
     public static final String[][] WEAR = {
             {"wear_title", "Buchung erfassen", "Record booking", "Registrar apunte"},
@@ -49,11 +54,18 @@ public final class LocaleManager {
             {"wear_type_transfer", "Umbuchung", "Transfer", "Traspaso"},
             {"wear_type_expense", "Ausgabe", "Expense", "Gasto"},
             {"wear_cancel", "Abbrechen", "Cancel", "Cancelar"},
+            {"wear_switch", "Konto/Ort wechseln", "Switch account/place", "Cambiar cuenta/lugar"},
             {"wear_prompt", "Buchung sagen, z. B. „Frisör 20 Euro\"", "Say a booking, e.g. \"Barber 20 euros\"", "Di un apunte, p. ej. \"peluquería 20 euros\""},
+            {"wear_preparing", "Moment…", "One moment…", "Un momento…"},
             {"wear_listening", "Sprich jetzt…", "Speak now…", "Habla ahora…"},
             {"wear_not_understood", "Nicht erkannt", "Not recognized", "No reconocido"},
             {"wear_no_mic", "Mikrofon nötig", "Mic needed", "Se necesita micrófono"},
             {"wear_no_recognizer", "Keine Erkennung", "No recognizer", "Sin reconocimiento"},
+            {"wear_offline_number", "Offline – Betrag eingeben", "Offline – enter amount", "Sin conexión – introduce importe"},
+            {"wear_number_entry", "Betrag per Ziffern", "Enter amount by digits", "Introduce el importe con el teclado"},
+            {"wear_model_downloading", "Offline-Sprachmodell wird geladen…", "Downloading offline speech model…", "Descargando modelo de voz sin conexión…"},
+            {"wear_model_hint", "Offline-Sprache für diese Sprache in den Uhr-Einstellungen aktivieren (System → Sprachen & Eingabe).", "Enable offline speech for this language in the watch settings (System → Languages & input).", "Activa el reconocimiento de voz sin conexión para este idioma en los ajustes del reloj (Sistema → Idiomas y entrada)."},
+            {"wear_model_unsupported", "Diese Uhr unterstützt keine Offline-Spracherkennung. Ohne Verbindung greift die Zifferneingabe.", "This watch does not support offline speech recognition. The number pad is used when offline.", "Este reloj no admite reconocimiento de voz sin conexión. Se usa el teclado numérico cuando no hay conexión."},
             {"wear_pending", "%1$d offen · %2$s", "%1$d pending · %2$s", "%1$d pendiente(s) · %2$s"},
             {"wear_reason_gps", "GPS", "GPS", "GPS"},
             {"wear_reason_no_phone", "Kein Handy", "No phone", "Sin teléfono"},

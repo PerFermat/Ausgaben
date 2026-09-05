@@ -22,5 +22,5 @@
     <string name="wear_model_downloading">Descargando modelo de voz sin conexión…</string>
     <string name="wear_model_hint">Activa el reconocimiento de voz sin conexión para este idioma en los ajustes del reloj (Sistema → Idiomas y entrada).</string>
     <string name="wear_model_unsupported">Este reloj no admite reconocimiento de voz sin conexión. Se usa el teclado numérico cuando no hay conexión.</string>
-    <string name="number_entry">Introduce el importe con el teclado</string>
+    <string name="wear_number_entry">Introduce el importe con el teclado</string>
 </resources>

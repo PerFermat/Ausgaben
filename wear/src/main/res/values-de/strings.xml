@@ -22,5 +22,5 @@
     <string name="wear_model_downloading">Offline-Sprachmodell wird geladen…</string>
     <string name="wear_model_hint">Offline-Sprache für diese Sprache in den Uhr-Einstellungen aktivieren (System → Sprachen &amp; Eingabe).</string>
     <string name="wear_model_unsupported">Diese Uhr unterstützt keine Offline-Spracherkennung. Ohne Verbindung greift die Zifferneingabe.</string>
-    <string name="number_entry">Betrag per Ziffern</string>
+    <string name="wear_number_entry">Betrag per Ziffern</string>
 </resources>

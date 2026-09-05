@@ -749,7 +749,7 @@ public class KmyExporter {
         // eine, und weil actionStringToAction sie nicht auflösen konnte, zeigte das Depotbuch jeden
         // Verkauf als „Anteile kaufen" — bei richtigen Beträgen, weshalb es lange nicht auffiel.
         splits.add(securitySplit(splitId(index), stockId, fraction(stockValue), sharesFraction,
-                priceFraction(gross, tx.shares), "Buy"));
+                priceFraction(gross, tx.shares, doc.securityPricePrecision(tx.securityKmyId)), "Buy"));
         return addCategorySplits(splits, index, tx.partsOf(false), 1, fee, label, commodity,
                 result) ? splits : null;
     }
@@ -836,19 +836,27 @@ public class KmyExporter {
     private static final long SHARE_SCALE = 1000000L;
 
     /**
-     * Der Stückpreis als <b>exakter</b> Bruch {@code Betrag / Stückzahl}, damit {@code shares × price}
-     * genau den {@code value} des Splits ergibt. Ein gerundeter Dezimalkurs täte das nicht.
+     * Der Stückpreis {@code Betrag / Stückzahl}, gerundet auf die Kursgenauigkeit des Wertpapiers
+     * ({@code precision} = Attribut {@code pp} am {@code SECURITY}).
      *
-     * <p>Gerundet wird hier mit demselben Nenner wie die Stückzahl selbst – sonst passte der Kurs nicht
-     * mehr zu der Stückzahl, die daneben im Split steht.</p>
+     * <p>Bis 1.13 stand hier der <b>exakte</b> Bruch, mit der Begründung, {@code shares × price} müsse
+     * genau den {@code value} des Splits ergeben. Das ist nicht KMyMoneys Sicht: Bei einer Sparplan-
+     * Ausführung über 1.000,00 € auf 24,91591 Stück wurde daraus {@code 100000000/2491591}, und die
+     * Oberfläche zeigte 40,13499 statt der 40,135 der Abrechnung. In einer echten KMyMoney-Datei stehen
+     * durchweg <b>gerundete</b> Kurse mit kleinen Nennern (19,52 = {@code 488/25}), die von
+     * {@code value/shares} in der vierten bis sechsten Stelle abweichen – Betrag und Stückzahl stehen ja
+     * ohnehin exakt daneben im Split, der Kurs ist die abgeleitete Angabe.</p>
      */
-    private static String priceFraction(long grossCents, double shares) {
-        long scaled = Math.round(Math.abs(shares) * (double) SHARE_SCALE);
-        if (scaled == 0) {
+    private static String priceFraction(long grossCents, double shares, int precision) {
+        double count = Math.abs(shares);
+        if (count == 0) {
             return "1/1";
         }
-        // Betrag/100 geteilt durch scaled/SHARE_SCALE  →  (Betrag · SHARE_SCALE) / (100 · scaled)
-        return reduced(Math.abs(grossCents) * SHARE_SCALE, 100L * scaled);
+        long scale = 1L;
+        for (int i = 0; i < precision; i++) {
+            scale *= 10L;
+        }
+        return decimalFraction(Math.abs(grossCents) / 100.0 / count, scale);
     }
 
     /** Eine Dezimalzahl als gekürzter Bruch mit {@code scale} als Nenner. */

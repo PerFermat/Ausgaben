@@ -68,6 +68,8 @@ public class KmyDocument {
     private final Map<String, String[]> securityInfo = new LinkedHashMap<>(); // {name, symbol, currency}
     /** Wertpapier-ID → ISIN aus {@code <PAIR key="kmm-security-id">}; leer, wenn nicht gepflegt. */
     private final Map<String, String> securityIsin = new LinkedHashMap<>();
+    /** Wertpapier-ID → Nachkommastellen für Kurse (Attribut {@code pp} am SECURITY). */
+    private final Map<String, Integer> securityPricePrecision = new LinkedHashMap<>();
     /** Wertpapier-ID → letzter Kurs {price, dateMillis}. */
     private final Map<String, double[]> securityPrice = new LinkedHashMap<>();
     /** Wertpapier-ID → vollständige Kurshistorie (je Eintrag {price, dateMillis}), zeitlich aufsteigend. */
@@ -340,6 +342,33 @@ public class KmyDocument {
         return isin == null ? "" : isin;
     }
 
+    /** KMyMoneys eigener Standard, wenn ein Wertpapier keine Preisgenauigkeit trägt. */
+    public static final int DEFAULT_PRICE_PRECISION = 4;
+
+    /**
+     * Nachkommastellen, mit denen KMyMoney die Kurse dieses Wertpapiers führt (Attribut {@code pp} am
+     * {@code SECURITY}). Auf diese Stelle wird beim Export gerundet – KMyMoney tut in der eigenen Datei
+     * dasselbe. Unbekanntes Wertpapier oder fehlendes Attribut → {@link #DEFAULT_PRICE_PRECISION}.
+     */
+    public int securityPricePrecision(String kmyId) {
+        Integer pp = securityPricePrecision.get(kmyId);
+        return pp == null ? DEFAULT_PRICE_PRECISION : pp;
+    }
+
+    /** {@code pp} als Stellenzahl; unbrauchbare oder unsinnige Werte → {@code null} (Standard greift). */
+    private static Integer parsePrecision(String raw) {
+        if (raw == null || raw.trim().isEmpty()) {
+            return null;
+        }
+        try {
+            int v = Integer.parseInt(raw.trim());
+            // 0 wäre ein ganzzahliger Kurs, mehr als 9 sprengt den long-Nenner in decimalFraction.
+            return v >= 0 && v <= 9 ? v : null;
+        } catch (NumberFormatException e) {
+            return null;
+        }
+    }
+
     /** Letzter Kurs {price, dateMillis} zur Wertpapier-ID, oder {@code null}. */
     public double[] securityPrice(String kmyId) {
         return securityPrice.get(kmyId);
@@ -457,6 +486,10 @@ public class KmyDocument {
                                     orEmpty(parser.getAttributeValue(null, "name")).trim(),
                                     orEmpty(parser.getAttributeValue(null, "symbol")).trim(),
                                     orEmpty(parser.getAttributeValue(null, "trading-currency")).trim()});
+                            Integer pp = parsePrecision(parser.getAttributeValue(null, "pp"));
+                            if (pp != null) {
+                                securityPricePrecision.put(id, pp);
+                            }
                         }
                         openSecurity = id;
                     } else if ("PAIR".equals(tag) && openSecurity != null

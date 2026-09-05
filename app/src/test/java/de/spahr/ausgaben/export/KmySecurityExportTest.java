@@ -293,26 +293,87 @@ public class KmySecurityExportTest {
         assertEquals(100000L, tx.amountCents);
     }
 
-    /** Im Wertpapier-Split muss {@code shares × price} genau den {@code value} ergeben. */
+    /**
+     * Stückzahl und Betrag stehen exakt in der Datei, der Kurs auf die Genauigkeit des Wertpapiers
+     * gerundet — und beides passt bis auf die Rundung zusammen.
+     *
+     * <p>Bis 1.13 stand hier {@code shares × price == value} auf 1e-6 genau, denn der Kurs wurde als
+     * exakter Bruch {@code Betrag/Stückzahl} geschrieben. Das ist nicht KMyMoneys Sicht: In einer echten
+     * Datei stehen gerundete Kurse mit kleinen Nennern (19,52 = {@code 488/25}), die von
+     * {@code value/shares} in der vierten bis sechsten Stelle abweichen. Der exakte Bruch führte dazu,
+     * dass eine Sparplan-Ausführung mit dem Belegkurs 40,135 in KMyMoney als 40,13499 erschien.</p>
+     */
     @Test
-    public void stueckzahlMalKursErgibtDenSplitbetrag() throws IOException {
-        KmyDocument original = doc();
-        KmyExporter.SecurityResult res = new KmyExporter(original, ctx).buildSecurityTransactions(
-                original.xml(), Collections.singletonList(pending("buy", 6.09607, 100000L, 100000L, 0L)));
-        assertEquals(1, res.writtenIds.size());
+    public void stueckzahlUndBetragBleibenExaktDerKursWirdGerundet() throws IOException {
+        String split = buySplit(doc(), pending("buy", 6.09607, 100000L, 100000L, 0L));
+        double shares = fractionOf(split, "shares");
+        double price = fractionOf(split, "price");
+        double value = fractionOf(split, "value");
 
-        // Die Testdatei bringt selbst einen Kauf mit; der neue wird hinten angehängt, also den letzten nehmen.
+        assertEquals("Stückzahl exakt", 6.09607, shares, 1e-9);
+        assertEquals("Betrag exakt", 1000.00, value, 1e-9);
+        // Ohne pp am Wertpapier gilt KMyMoneys Standard: vier Nachkommastellen.
+        assertEquals("Kurs auf vier Stellen", "1640401/10000", attributeOf(split, "price"));
+        // Die Rundung darf höchstens eine halbe Kursstelle je Stück ausmachen.
+        assertEquals(value, shares * price, shares * 0.5e-4);
+    }
+
+    /**
+     * Der Fall aus der Praxis: ING-Sparplan über 1.000,00 € auf 24,91591 Stück, Belegkurs 40,135.
+     * Vorher stand dort {@code 100000000/2491591} und KMyMoney zeigte 40,13499.
+     *
+     * <p>Die Genauigkeit kommt vom Wertpapier ({@code pp}); geprüft werden 4, 5 und das Fehlen des
+     * Attributs. Bei allen dreien muss der Belegkurs herauskommen, denn {@code value/shares} liegt nur
+     * rund 1e-6 daneben.</p>
+     */
+    @Test
+    public void derBelegkursUeberstehtDenExport() throws IOException {
+        for (String pp : new String[]{null, "4", "5"}) {
+            String split = buySplit(mitPreisgenauigkeit(pp),
+                    pending("buy", 24.91591, 100000L, 100000L, 0L));
+            assertEquals("pp=" + pp, "8027/200", attributeOf(split, "price"));
+            assertEquals("pp=" + pp + ": Stückzahl exakt", 24.91591, fractionOf(split, "shares"), 1e-9);
+            assertEquals("pp=" + pp + ": Betrag exakt", 1000.00, fractionOf(split, "value"), 1e-9);
+        }
+    }
+
+    /** Ein grobes {@code pp} schlägt durch – der Beleg dient hier als Gegenprobe zur Rundung. */
+    @Test
+    public void einGrobesPpRundetDenKursMit() throws IOException {
+        String split = buySplit(mitPreisgenauigkeit("2"),
+                pending("buy", 24.91591, 100000L, 100000L, 0L));
+        assertEquals("40,13 statt 40,135", "4013/100", attributeOf(split, "price"));
+    }
+
+    /** Die Testdatei mit einer Preisgenauigkeit am Wertpapier; {@code null} lässt das Attribut weg. */
+    private KmyDocument mitPreisgenauigkeit(String pp) throws IOException {
+        String xml = new String(KmyRobustnessTest.fixture("security-tx.xml"), StandardCharsets.UTF_8);
+        if (pp != null) {
+            xml = xml.replace("<SECURITY id=\"E000001\"", "<SECURITY pp=\"" + pp + "\" id=\"E000001\"");
+        }
+        return new KmyDocument(xml.getBytes(StandardCharsets.UTF_8), ctx);
+    }
+
+    /** Schreibt die Bewegung und liefert den zuletzt angehängten Wertpapier-Split. */
+    private String buySplit(KmyDocument document, SecurityTx tx) {
+        KmyExporter.SecurityResult res = new KmyExporter(document, ctx)
+                .buildSecurityTransactions(document.xml(), Collections.singletonList(tx));
+        assertEquals("Bewegung wurde übersprungen: " + res.skipped, 1, res.writtenIds.size());
+        // Die Testdatei bringt selbst einen Kauf mit; der neue wird hinten angehängt.
         Matcher m = Pattern.compile("<SPLIT\\b[^>]*action=\"Buy\"[^>]*/>").matcher(res.xml);
         String split = null;
         while (m.find()) {
             split = m.group();
         }
         assertNotNull("kein Buy-Split gefunden", split);
-        double shares = fractionOf(split, "shares");
-        double price = fractionOf(split, "price");
-        double value = fractionOf(split, "value");
-        assertEquals(6.09607, shares, 1e-9);
-        assertEquals(value, shares * price, 1e-6);
+        return split;
+    }
+
+    /** Der Rohwert eines Split-Attributs, ungekürzt – für Brüche, bei denen die Schreibweise zählt. */
+    private static String attributeOf(String splitXml, String attribute) {
+        Matcher m = Pattern.compile("\\b" + attribute + "=\"([^\"]*)\"").matcher(splitXml);
+        assertTrue(attribute + " fehlt", m.find());
+        return m.group(1);
     }
 
     /**

@@ -195,7 +195,13 @@ public class SecurityTxEditActivity extends LocalizedActivity implements HostedD
     private CategoryFilterAdapter categoryAdapter;
     private MaterialButton btnSave;
     private MaterialButton btnDelete;
-    private MaterialButton btnShowStatement;
+    /** Gelbe Statuszeile beim Nachladen der Abrechnung – dieselbe wie im Konto. */
+    private ImportBanner receiptBanner;
+    /** Notiz der Bewegung – nur zum Ansehen; geändert wird sie auf dem Verrechnungskonto. */
+    private android.widget.TextView textNote;
+    private LinearLayout rowReceipt;
+    private android.widget.TextView textReceipt;
+    private LinearLayout receiptPageIcons;
     private LinearLayout detailBox;
     private CalcKeyboardView calcKeyboard;
 
@@ -475,8 +481,15 @@ public class SecurityTxEditActivity extends LocalizedActivity implements HostedD
         btnSave = findViewById(R.id.btnSave);
         btnDelete = findViewById(R.id.btnDelete);
         sharesRow = findViewById(R.id.sharesRow);
-        btnShowStatement = findViewById(R.id.btnShowStatement);
-        btnShowStatement.setOnClickListener(v -> showStatement());
+        ShimmerView receiptShimmer = findViewById(R.id.receiptShimmer);
+        receiptShimmer.setColors(getColor(R.color.import_banner_bg),
+                getColor(R.color.import_banner_shimmer));
+        receiptBanner = new ImportBanner(findViewById(R.id.receiptBanner), receiptShimmer,
+                findViewById(R.id.receiptStatus), null);
+        textNote = findViewById(R.id.textNote);
+        rowReceipt = findViewById(R.id.rowReceipt);
+        textReceipt = findViewById(R.id.textReceipt);
+        receiptPageIcons = findViewById(R.id.receiptPageIcons);
         detailBox = findViewById(R.id.detailBox);
         calcKeyboard = findViewById(R.id.calcKeyboard);
         // Im Hochformat haelt der Platzhalter die Hoehe der Tastatur frei, damit das Formular
@@ -2468,12 +2481,13 @@ public class SecurityTxEditActivity extends LocalizedActivity implements HostedD
     // ---- Die Abrechnung als Beleg ----
 
     /**
-     * Öffnet die zugehörige Abrechnung in einem PDF-Betrachter — beim Eintippen der Werte hat man sie
-     * damit nebenher offen, und später ist sie der Beleg zur Buchung.
+     * Ein PDF im Betrachter des Geräts öffnen; {@code null} oder fehlend meldet sich als Fehler.
+     *
+     * <p>Beim Eintippen der Werte hat man die Abrechnung damit nebenher offen, und später ist sie der
+     * Beleg zur Buchung. Aufgerufen wird sie über die Symbole der Belegzeile.</p>
      */
-    private void showStatement() {
-        java.io.File file = statementPdf();
-        if (file == null) {
+    private void oeffnePdf(java.io.File file) {
+        if (file == null || !file.exists()) {
             Toast.makeText(this, R.string.receipt_error, Toast.LENGTH_SHORT).show();
             return;
         }
@@ -2501,15 +2515,20 @@ public class SecurityTxEditActivity extends LocalizedActivity implements HostedD
         if (savedStatementTag == null) {
             return null;
         }
-        java.io.File file = statementFile();
+        java.io.File file = statementFile(savedStatementTag, yearOf(selectedDate.getTimeInMillis()));
         return file != null && file.exists() ? file : null;
     }
 
-    /** Die gespeicherte Belegdatei zum Tag aus der Notiz; {@code null}, wenn sie nicht (mehr) lokal liegt. */
-    private java.io.File statementFile() {
+    /**
+     * Die gespeicherte Belegdatei zum Tag aus der Notiz; {@code null}, wenn sie sich nicht auftreiben
+     * läßt.
+     *
+     * <p><b>Nicht auf dem Bedienfaden rufen:</b> Liegt die Datei nicht lokal, holt
+     * {@code ReceiptPages.find} sie vom Netzlaufwerk.</p>
+     */
+    private java.io.File statementFile(String tag, int jahr) {
         java.util.List<String> pages = de.spahr.ausgaben.receipt.ReceiptPages.find(
-                this, savedStatementTag, yearOf(selectedDate.getTimeInMillis()),
-                de.spahr.ausgaben.receipt.NoteReceipt.PDF);
+                this, tag, jahr, de.spahr.ausgaben.receipt.NoteReceipt.PDF);
         if (pages.isEmpty()) {
             return null;
         }
@@ -2522,10 +2541,13 @@ public class SecurityTxEditActivity extends LocalizedActivity implements HostedD
         return c.get(Calendar.YEAR);
     }
 
-    /** Den Knopf nur zeigen, wenn es wirklich eine Abrechnung zu sehen gibt. */
+    /**
+     * Die Belegzeile neu aufbauen. Hieß bis 1.13 {@code updateStatementButton} und schaltete einen
+     * eigenen Knopf „Abrechnung anzeigen" sichtbar; seit die Zeile je Seite ein Symbol trägt, wäre der
+     * Knopf ein zweiter Weg zum selben PDF.
+     */
     private void updateStatementButton() {
-        boolean available = pendingStatement != null || savedStatementTag != null;
-        btnShowStatement.setVisibility(available ? View.VISIBLE : View.GONE);
+        fuelleBelegzeile();
     }
 
     /**
@@ -2534,15 +2556,118 @@ public class SecurityTxEditActivity extends LocalizedActivity implements HostedD
      * samt Abgleich und Export.
      */
     private void loadSavedStatement(long bookingId) {
+        // Seit 1.13 trägt die Bewegung ihre Notiz selbst (siehe SecurityTx#note) – nur so übersteht der
+        // Beleg-Tag den Weg durch die KMyMoney-Datei. Sie hat deshalb Vorrang; die Gegenbuchung wird nur
+        // noch für Bewegungen befragt, die vor der Umstellung entstanden sind.
+        String note = loaded == null || loaded.note == null ? "" : loaded.note;
+        if (!note.isEmpty()) {
+            uebernehmeNotiz(note);
+            return;
+        }
         if (bookingId <= 0) {
+            zeigeNotiz("");
             return;
         }
         repository.getBookingById(bookingId, b -> {
             if (b != null) {
-                savedStatementTag = de.spahr.ausgaben.receipt.NoteReceipt.pdfName(b.note);
-                updateStatementButton();
+                uebernehmeNotiz(b.note == null ? "" : b.note);
             }
         });
+    }
+
+    /** Beleg-Tag und Anzeige aus einer Notiz ableiten. */
+    private void uebernehmeNotiz(String note) {
+        savedStatementTag = de.spahr.ausgaben.receipt.NoteReceipt.pdfName(note);
+        updateStatementButton();
+        zeigeNotiz(note);
+    }
+
+    /**
+     * Notiz und Belegzeile der gespeicherten Bewegung — beides nur zum Ansehen.
+     *
+     * <p>Der Beleg-Tag steht in der Notiz und wäre dort als {@code BELEG (PDF): …} nur Rauschen; gezeigt
+     * wird deshalb der Text ohne ihn, und der Beleg bekommt seine eigene Zeile. Bleibt nach dem Entfernen
+     * nichts übrig, entfällt die Notizzeile ganz.</p>
+     */
+    private void zeigeNotiz(String note) {
+        String sichtbar = de.spahr.ausgaben.receipt.NoteReceipt.strip(note).trim();
+        textNote.setText(sichtbar);
+        textNote.setVisibility(sichtbar.isEmpty() ? View.GONE : View.VISIBLE);
+        fuelleBelegzeile();
+    }
+
+    /**
+     * Je Belegseite ein Symbol, wie im Konto. Ein PDF öffnet der Betrachter des Geräts — genauso hält es
+     * die Buchungsmaske ({@code openPdf}), ein eingebauter Betrachter zeigt dort nur Bilder.
+     *
+     * <p>Gezeigt wird auch die noch <b>nicht abgelegte</b> Abrechnung: Während der Eingabe will man sie
+     * nebenher ansehen, und abgelegt wird sie erst beim Speichern (siehe {@code SingleReceipt.plan}).</p>
+     */
+    private void fuelleBelegzeile() {
+        receiptPageIcons.removeAllViews();
+        // Nur der Verweis entscheidet, nicht die Frage, wo die Datei gerade liegt: Ob sie lokal
+        // vorliegt oder erst vom Netzlaufwerk zu holen ist, darf man der Zeile nicht ansehen. Und
+        // nachsehen dürfte man hier ohnehin nicht — ReceiptPages.find lädt bei Bedarf selbst nach,
+        // und das ist Netzverkehr auf dem Bedienfaden.
+        boolean vorhanden = pendingStatement != null || savedStatementTag != null;
+        if (!vorhanden) {
+            rowReceipt.setVisibility(View.GONE);
+            return;
+        }
+        rowReceipt.setVisibility(View.VISIBLE);
+        textReceipt.setText(getString(R.string.receipt_pdf_label, 1));
+        android.widget.ImageButton icon = new android.widget.ImageButton(this);
+        icon.setLayoutParams(new LinearLayout.LayoutParams(dp(44), dp(44)));
+        icon.setImageResource(R.drawable.ic_pdf);
+        android.util.TypedValue tv = new android.util.TypedValue();
+        getTheme().resolveAttribute(androidx.appcompat.R.attr.selectableItemBackgroundBorderless,
+                tv, true);
+        icon.setBackgroundResource(tv.resourceId);
+        icon.setContentDescription(getString(R.string.statement_show));
+        icon.setOnClickListener(v -> oeffneAbrechnung());
+        receiptPageIcons.addView(icon);
+    }
+
+    /**
+     * Die Abrechnung öffnen — und sie dafür notfalls erst holen.
+     *
+     * <p>Eine Abrechnung ist genau <b>ein</b> PDF ({@code SingleReceipt}), deshalb genügt ein Symbol.
+     * Liegt die Datei nicht lokal, holt {@code ReceiptPages.find} sie vom Netzlaufwerk; das darf nicht
+     * auf dem Bedienfaden geschehen und wird deshalb im Hintergrund erledigt. Mißlingt es, sagt es die
+     * Meldung — angezeigt wird das Symbol trotzdem, denn ob die Datei erreichbar ist, weiß man vorher
+     * nicht.</p>
+     */
+    private void oeffneAbrechnung() {
+        if (pendingStatement != null && pendingStatement.exists()) {
+            oeffnePdf(pendingStatement);
+            return;
+        }
+        final int jahr = yearOf(selectedDate.getTimeInMillis());
+        final String tag = savedStatementTag;
+        // Das Holen vom Netzlaufwerk kann dauern – dieselbe gelbe Statuszeile wie im Konto.
+        receiptBanner.start(getString(R.string.receipt_loading_wait));
+        repository.executor().execute(() -> {
+            final java.io.File datei = statementFile(tag, jahr);
+            final boolean offline = datei == null
+                    && !de.spahr.ausgaben.net.Net.isOnline(getApplicationContext());
+            runOnUiThread(() -> {
+                if (isFinishing() || isDestroyed()) {
+                    return;
+                }
+                receiptBanner.finishNow();
+                if (datei == null) {
+                    // Ohne Verbindung ist der Beleg nur gerade nicht da; online heißt es, er fehlt.
+                    Toast.makeText(this, offline ? R.string.receipt_offline : R.string.receipt_error,
+                            Toast.LENGTH_SHORT).show();
+                    return;
+                }
+                oeffnePdf(datei);
+            });
+        });
+    }
+
+    private int dp(int wert) {
+        return Math.round(wert * getResources().getDisplayMetrics().density);
     }
 
     /**

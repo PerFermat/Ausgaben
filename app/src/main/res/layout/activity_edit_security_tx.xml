@@ -23,6 +23,29 @@
             app:title="@string/security_tx_new_title"
             app:titleTextColor="@color/white" />
 
+        <!-- Statuszeile beim Nachladen der Abrechnung (unbestimmt, ohne Prozent) – wie im Konto. -->
+        <FrameLayout
+            android:id="@+id/receiptBanner"
+            android:layout_width="match_parent"
+            android:layout_height="48dp"
+            android:visibility="gone">
+
+            <de.spahr.ausgaben.ui.ShimmerView
+                android:id="@+id/receiptShimmer"
+                android:layout_width="match_parent"
+                android:layout_height="match_parent" />
+
+            <TextView
+                android:id="@+id/receiptStatus"
+                android:layout_width="match_parent"
+                android:layout_height="match_parent"
+                android:gravity="center_vertical"
+                android:paddingHorizontal="16dp"
+                android:textStyle="bold"
+                android:textColor="@color/import_banner_text"
+                android:text="@string/receipt_loading_wait" />
+        </FrameLayout>
+
         <ScrollView
             android:layout_width="match_parent"
             android:layout_height="0dp"
@@ -283,19 +306,44 @@
                         android:orientation="vertical" />
                 </LinearLayout>
 
-                <!-- Nur wenn eine Abrechnung angehängt ist: sie beim Eintippen nebenher ansehen. -->
-                <com.google.android.material.button.MaterialButton
-                    android:id="@+id/btnShowStatement"
-                    style="?attr/materialButtonOutlinedStyle"
+                <!--
+                    Notiz und Beleg der gespeicherten Bewegung – nur zum Ansehen. Geändert wird beides
+                    auf dem Verrechnungskonto, dort hängt die Buchung mit dem Belegwerkzeug.
+                -->
+                <TextView
+                    android:id="@+id/textNote"
                     android:layout_width="match_parent"
                     android:layout_height="wrap_content"
                     android:layout_marginTop="16dp"
-                    android:textColor="@color/button_accent"
-                    app:strokeColor="@color/button_accent"
-                    app:icon="@drawable/ic_pdf"
-                    app:iconTint="@color/button_accent"
-                    android:text="@string/statement_show"
+                    android:textColor="?android:attr/textColorSecondary"
+                    android:textSize="14sp"
                     android:visibility="gone" />
+
+                <!-- Belegzeile wie im Konto: Beschriftung links, je Seite ein Symbol rechts. -->
+                <LinearLayout
+                    android:id="@+id/rowReceipt"
+                    android:layout_width="match_parent"
+                    android:layout_height="wrap_content"
+                    android:layout_marginTop="8dp"
+                    android:gravity="center_vertical"
+                    android:orientation="horizontal"
+                    android:visibility="gone">
+
+                    <TextView
+                        android:id="@+id/textReceipt"
+                        android:layout_width="0dp"
+                        android:layout_height="wrap_content"
+                        android:layout_weight="1"
+                        android:textColor="?android:attr/textColorSecondary"
+                        android:textSize="14sp" />
+
+                    <LinearLayout
+                        android:id="@+id/receiptPageIcons"
+                        android:layout_width="wrap_content"
+                        android:layout_height="wrap_content"
+                        android:gravity="end|center_vertical"
+                        android:orientation="horizontal" />
+                </LinearLayout>
 
                 <com.google.android.material.button.MaterialButton
                     android:id="@+id/btnSave"

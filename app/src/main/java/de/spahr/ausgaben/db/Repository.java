@@ -960,11 +960,13 @@ public class Repository {
                                               String coords) {
         // Bei ausgeschaltetem GPS keinen Standort verwenden: reiner Betrag von der Uhr → leerer Empfänger,
         // keine GPS-Notiz. (Auf der Uhr bleibt die Betrag-only-Erfassung damit möglich.)
-        if (!new de.spahr.ausgaben.settings.SettingsStore(appContext).isGpsEnabled()) {
+        de.spahr.ausgaben.settings.SettingsStore settings =
+                new de.spahr.ausgaben.settings.SettingsStore(appContext);
+        if (!settings.isGpsEnabled()) {
             coords = null;
         }
         de.spahr.ausgaben.voice.VoiceInput.Result parsed =
-                de.spahr.ausgaben.voice.VoiceInput.parse(spokenText);
+                de.spahr.ausgaben.voice.VoiceInput.parse(spokenText, settings.getCurrency());
         String term = parsed.payee == null ? "" : parsed.payee.trim();
         long amountCents = parsed.amountCents == null ? 0 : parsed.amountCents;
         if (term.isEmpty() && amountCents <= 0) {

@@ -78,7 +78,7 @@ class VoiceEntryController {
      * Aliase/Buchungen aufgelöst; bei <b>reinem Betrag</b> über den aktuellen Standort (100 m).
      */
     void handleVoiceResult(String spoken) {
-        VoiceInput.Result parsed = VoiceInput.parse(spoken);
+        VoiceInput.Result parsed = VoiceInput.parse(spoken, settings.getCurrency());
         final long amount = parsed.amountCents == null ? -1 : parsed.amountCents;
         if (parsed.payee.isEmpty()) {
             // Reiner Betrag ohne Standort ist am Handy nicht auflösbar → bei GPS aus abweisen.

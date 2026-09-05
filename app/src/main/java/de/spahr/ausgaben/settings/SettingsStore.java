@@ -530,7 +530,7 @@ public class SettingsStore {
             return stored;
         }
         String phone = java.util.Locale.getDefault().getLanguage();
-        return "de".equals(phone) || "es".equals(phone) ? phone : "en";
+        return de.spahr.ausgaben.i18n.LocaleManager.isBuiltIn(phone) ? phone : "en";
     }
 
     public void setLanguage(String code) {

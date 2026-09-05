@@ -2197,16 +2197,15 @@ public class MainActivity extends LocalizedActivity implements HostedDialog.Host
         // Ohne das Banner sah ein CSV-Reimport nach nichts aus – anders als der KMY-Reimport
         // (reimportDepot/runKmyImport), der immer schon importBanner.start()/finish() nutzt.
         importBanner.start(getString(R.string.import_running_banner));
+        // Bewußt ein eigener Faden und nicht repository.executor(): der ist einfach besetzt
+        // (newSingleThreadExecutor) und trägt die gesamte Datenbankarbeit. Ein hängender Server
+        // würde dort jede andere Abfrage der App mit blockieren, bis der Timeout greift.
         new Thread(() -> {
             try {
                 String content = RemoteStorage.from(settings).downloadText(folder, fileName);
                 processImport(content);
             } catch (Exception e) {
-                final String msg = e.getMessage() == null ? e.toString() : e.getMessage();
-                runOnUiThread(() -> {
-                    importBanner.finishNow();
-                    Toast.makeText(this, getString(R.string.import_failed, msg), Toast.LENGTH_LONG).show();
-                });
+                importFehlgeschlagen(e);
             }
         }).start();
     }
@@ -2217,11 +2216,7 @@ public class MainActivity extends LocalizedActivity implements HostedDialog.Host
             try {
                 processImport(readText(uri));
             } catch (Exception e) {
-                final String msg = e.getMessage() == null ? e.toString() : e.getMessage();
-                runOnUiThread(() -> {
-                    importBanner.finishNow();
-                    Toast.makeText(this, getString(R.string.import_failed, msg), Toast.LENGTH_LONG).show();
-                });
+                importFehlgeschlagen(e);
             }
         }).start();
     }
@@ -2232,18 +2227,35 @@ public class MainActivity extends LocalizedActivity implements HostedDialog.Host
             CsvImporter importer = new CsvImporter(this);
             List<Booking> bookings = importer.parse(content);
             String account = importer.getParsedAccount();
-            runOnUiThread(() -> repository.replaceImport(account, bookings, count -> {
-                importBanner.finish();
-                Toast.makeText(this, getString(R.string.import_done, count), Toast.LENGTH_LONG).show();
-                refreshBookings();
-            }));
-        } catch (Exception e) {
-            final String msg = e.getMessage() == null ? e.toString() : e.getMessage();
             runOnUiThread(() -> {
-                importBanner.finishNow();
-                Toast.makeText(this, getString(R.string.import_failed, msg), Toast.LENGTH_LONG).show();
+                if (isFinishing() || isDestroyed()) {
+                    return;
+                }
+                repository.replaceImport(account, bookings, count -> {
+                    importBanner.finish();
+                    Toast.makeText(this, getString(R.string.import_done, count), Toast.LENGTH_LONG).show();
+                    refreshBookings();
+                });
             });
+        } catch (Exception e) {
+            importFehlgeschlagen(e);
         }
+    }
+
+    /**
+     * Meldet einen gescheiterten Import auf dem Bedienfaden. Der Import läuft im Hintergrund weiter,
+     * auch wenn der Nutzer die Maske inzwischen verlassen hat – am geschlossenen Fenster darf dann
+     * weder das Banner noch ein Toast mehr angefaßt werden.
+     */
+    private void importFehlgeschlagen(Exception e) {
+        final String msg = e.getMessage() == null ? e.toString() : e.getMessage();
+        runOnUiThread(() -> {
+            if (isFinishing() || isDestroyed()) {
+                return;
+            }
+            importBanner.finishNow();
+            Toast.makeText(this, getString(R.string.import_failed, msg), Toast.LENGTH_LONG).show();
+        });
     }
 
     private String readText(Uri uri) throws Exception {

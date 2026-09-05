@@ -51,6 +51,28 @@ public final class ReceiptExportName {
                 NoteReceipt.isPdf(pageFile) ? NoteReceipt.PDF : NoteReceipt.JPG);
     }
 
+    /**
+     * Der Eintragsname einer Wertpapier-Abrechnung:
+     * {@code <jjjj-mm-tt>_<Art>_<Wertpapier>_<Betrag>_<Buchungsnummer>_p<n>.pdf}, also etwa
+     * {@code 2026-09-01_Kauf_Vanguard-FTSE-All-World_500_00_12232_p1.pdf}.
+     *
+     * <p>Warum hier nicht der Empfänger steht wie sonst: Die Geldbuchung einer Depot-Bewegung geht
+     * <b>ohne</b> Empfänger in die KMyMoney-Datei — so hält es KMyMoney bei eigenen Wertpapierbuchungen
+     * auch. Nach dem nächsten Import hieße jeder solche Beleg deshalb „ohne-Empfaenger". Bewegungsart und
+     * Wertpapiername stehen dagegen an der Bewegung selbst und sagen ohnehin mehr.</p>
+     *
+     * @param action       die Bewegungsart, bereits übersetzt („Kauf", „Verkauf", „Dividende")
+     * @param securityName Name des Wertpapiers
+     */
+    public static String ofSecurity(long createdAt, String action, String securityName,
+                                    long amountCents, long bookingId, String pageFile) {
+        return NoteReceipt.pageName(
+                date(createdAt) + "_" + payee(action) + "_" + payee(securityName) + "_"
+                        + amount(amountCents) + "_" + bookingId,
+                NoteReceipt.pageOf(pageFile),
+                NoteReceipt.isPdf(pageFile) ? NoteReceipt.PDF : NoteReceipt.JPG);
+    }
+
     /** Buchungsdatum als {@code jjjj-mm-tt} – so sortiert der Dateimanager von selbst richtig. */
     public static String date(long createdAt) {
         // Locale.US: es geht um die Ziffern, nicht um eine Landesschreibweise.

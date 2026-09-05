@@ -35,8 +35,21 @@ public final class ReceiptExportJobs {
         public final long amountCents;
         public final long bookingId;
 
+        /**
+         * Bewegungsart einer Depot-Buchung, schon übersetzt („Kauf"); {@code null} bei allen übrigen
+         * Buchungen. Zusammen mit {@link #securityName} entscheidet sie über das Namensschema.
+         */
+        public final String action;
+        /** Name des Wertpapiers; {@code null}, wenn die Buchung zu keiner Bewegung gehört. */
+        public final String securityName;
+
         Job(String tagName, String ext, int year, long createdAt, String payee, long amountCents,
             long bookingId) {
+            this(tagName, ext, year, createdAt, payee, amountCents, bookingId, null, null);
+        }
+
+        Job(String tagName, String ext, int year, long createdAt, String payee, long amountCents,
+            long bookingId, String action, String securityName) {
             this.tagName = tagName;
             this.ext = ext;
             this.year = year;
@@ -44,6 +57,14 @@ public final class ReceiptExportJobs {
             this.payee = payee;
             this.amountCents = amountCents;
             this.bookingId = bookingId;
+            this.action = action;
+            this.securityName = securityName;
+        }
+
+        /** Trägt dieser Beleg eine Depot-Bewegung? Dann gilt das Wertpapier-Namensschema. */
+        public boolean istWertpapier() {
+            return action != null && !action.trim().isEmpty()
+                    && securityName != null && !securityName.trim().isEmpty();
         }
     }
 
@@ -56,6 +77,18 @@ public final class ReceiptExportJobs {
      * @param bookings die gefilterten Buchungen
      */
     public static List<Job> collect(List<Booking> bookings) {
+        return collect(bookings, null);
+    }
+
+    /**
+     * Wie {@link #collect(List)}, kennt aber die Depot-Bewegungen zu den Buchungen.
+     *
+     * @param securityByBooking Buchungsnummer → {@code {Bewegungsart, Wertpapiername}}; die Art ist schon
+     *                          übersetzt. {@code null} oder ein fehlender Eintrag heißt: gewöhnliche
+     *                          Buchung, es gilt das Empfänger-Schema.
+     */
+    public static List<Job> collect(List<Booking> bookings,
+                                    java.util.Map<Long, String[]> securityByBooking) {
         List<Job> out = new ArrayList<>();
         if (bookings == null) {
             return out;
@@ -75,8 +108,10 @@ public final class ReceiptExportJobs {
             if (!seenTags.add(tag.toLowerCase(Locale.ROOT))) {
                 continue;
             }
+            String[] wp = securityByBooking == null ? null : securityByBooking.get(b.id);
             out.add(new Job(tag, pdf != null ? NoteReceipt.PDF : NoteReceipt.JPG,
-                    yearOf(b.createdAt), b.createdAt, b.payee, b.amountCents, b.id));
+                    yearOf(b.createdAt), b.createdAt, b.payee, b.amountCents, b.id,
+                    wp == null ? null : wp[0], wp == null ? null : wp[1]));
         }
         return out;
     }

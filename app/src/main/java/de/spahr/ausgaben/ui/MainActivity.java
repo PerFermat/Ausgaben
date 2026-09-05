@@ -1177,13 +1177,47 @@ public class MainActivity extends LocalizedActivity implements HostedDialog.Host
                 filtered.add(b);
             }
         }
-        receiptExportJobs = de.spahr.ausgaben.receipt.ReceiptExportJobs.collect(filtered);
-        if (receiptExportJobs.isEmpty()) {
+        // Zweimal sammeln ist billig (reine Rechnung) und erspart eine Datenbankabfrage je Umbuchung:
+        // Erst steht fest, welche Buchungen überhaupt einen Beleg tragen, und nur die werden nachgeschlagen.
+        java.util.List<de.spahr.ausgaben.receipt.ReceiptExportJobs.Job> vorlaeufig =
+                de.spahr.ausgaben.receipt.ReceiptExportJobs.collect(filtered);
+        if (vorlaeufig.isEmpty()) {
             Toast.makeText(this, R.string.receipt_export_none, Toast.LENGTH_LONG).show();
             return;
         }
-        receiptZipLauncher.launch("belege-" + new java.text.SimpleDateFormat("yyyyMMdd-HHmmss",
-                java.util.Locale.US).format(new java.util.Date()) + ".zip");
+        java.util.Set<Long> mitBeleg = new java.util.HashSet<>();
+        for (de.spahr.ausgaben.receipt.ReceiptExportJobs.Job j : vorlaeufig) {
+            mitBeleg.add(j.bookingId);
+        }
+        java.util.List<Booking> kandidaten = new ArrayList<>();
+        for (Booking b : filtered) {
+            if (mitBeleg.contains(b.id)) {
+                kandidaten.add(b);
+            }
+        }
+        repository.securityInfoForBookings(kandidaten, info -> {
+            receiptExportJobs = de.spahr.ausgaben.receipt.ReceiptExportJobs.collect(
+                    filtered, uebersetzteBewegungsarten(info));
+            receiptZipLauncher.launch("belege-" + new java.text.SimpleDateFormat("yyyyMMdd-HHmmss",
+                    java.util.Locale.US).format(new java.util.Date()) + ".zip");
+        });
+    }
+
+    /**
+     * Die Bewegungsarten aus der Datenbank in die Sprache der App übersetzen – sie stehen später im
+     * Dateinamen des Belegs, und dort will man „Kauf" lesen, nicht „buy".
+     */
+    private java.util.Map<Long, String[]> uebersetzteBewegungsarten(
+            java.util.Map<Long, String[]> roh) {
+        java.util.Map<Long, String[]> out = new java.util.HashMap<>();
+        for (java.util.Map.Entry<Long, String[]> e : roh.entrySet()) {
+            String art = e.getValue()[0];
+            int text = de.spahr.ausgaben.db.SecurityTx.SELL.equals(art) ? R.string.action_sell
+                    : de.spahr.ausgaben.db.SecurityTx.DIVIDEND.equals(art) ? R.string.action_dividend
+                    : R.string.action_buy;
+            out.put(e.getKey(), new String[]{getString(text), e.getValue()[1]});
+        }
+        return out;
     }
 
     /** Packt die vorgemerkten Belege in die gewählte Datei; das Holen vom Server kann dauern. */

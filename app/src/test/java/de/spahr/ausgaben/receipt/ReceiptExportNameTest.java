@@ -27,6 +27,39 @@ public class ReceiptExportNameTest {
                 ReceiptExportName.of(am(2026, 8, 16), "Bäckerei Mayer", -823, 1487, "abc_p1.jpg"));
     }
 
+    /**
+     * Eine Wertpapier-Abrechnung trägt Bewegungsart und Wertpapiername statt des Empfängers.
+     *
+     * <p>Der Grund steht an {@link ReceiptExportName#ofSecurity}: Die Geldbuchung einer Bewegung geht
+     * ohne Empfänger in die KMyMoney-Datei, und nach dem Reimport hieß jeder solche Beleg
+     * „ohne-Empfaenger" — bei einem Depot mit vielen Käufen also fast alle gleich.</p>
+     */
+    @Test
+    public void eineWertpapierAbrechnungTraegtArtUndPapier() {
+        assertEquals("2026-09-01_Kauf_Vanguard-FTSE-All-World_500_00_12232_p1.pdf",
+                ReceiptExportName.ofSecurity(am(2026, 9, 1), "Kauf", "Vanguard FTSE All-World",
+                        50000, 12232, "abc_p1.pdf"));
+    }
+
+    /** Verkauf und Dividende genauso – und der Betrag bleibt ohne Vorzeichen. */
+    @Test
+    public void auchVerkaufUndDividende() {
+        assertEquals("2026-09-01_Verkauf_Musterfonds_120_00_7_p1.pdf",
+                ReceiptExportName.ofSecurity(am(2026, 9, 1), "Verkauf", "Musterfonds",
+                        -12000, 7, "abc_p1.pdf"));
+        assertEquals("2026-09-01_Dividende_Musterfonds_73_62_8_p2.pdf",
+                ReceiptExportName.ofSecurity(am(2026, 9, 1), "Dividende", "Musterfonds",
+                        7362, 8, "abc_p2.pdf"));
+    }
+
+    /** Ein Wertpapiername mit Schrägstrich oder Doppelpunkt darf den Pfad nicht sprengen. */
+    @Test
+    public void derWertpapiernameWirdDateinamentauglich() {
+        assertEquals("2026-09-01_Kauf_iShares-Core-MSCI-World_10_00_1_p1.pdf",
+                ReceiptExportName.ofSecurity(am(2026, 9, 1), "Kauf", "iShares Core: MSCI/World",
+                        1000, 1, "abc_p1.pdf"));
+    }
+
     @Test
     public void derBetragTraegtKeinVorzeichen() {
         // Ausgabe wie Einnahme sehen gleich aus; das Vorzeichen sagt im Dateinamen nichts.

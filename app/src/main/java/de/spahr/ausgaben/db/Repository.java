@@ -920,6 +920,32 @@ public class Repository {
                 booking.id, booking.transferAccount, booking.account, from, day.getTimeInMillis()));
     }
 
+    /**
+     * Zu welchen dieser Buchungen gehört eine Depot-Bewegung? Buchungsnummer →
+     * {@code {Bewegungsart, Wertpapiername}}, die Art unübersetzt („buy"/„sell"/„dividend").
+     *
+     * <p>Für den Beleg-Export: Die Geldbuchung einer Bewegung geht ohne Empfänger in die KMyMoney-Datei
+     * und hieße nach dem Reimport „ohne-Empfaenger". Art und Wertpapier stehen an der Bewegung — siehe
+     * {@code ReceiptExportName#ofSecurity}.</p>
+     */
+    public void securityInfoForBookings(final List<Booking> bookings,
+                                        final Callback<java.util.Map<Long, String[]>> callback) {
+        executor.execute(() -> {
+            java.util.Map<Long, String[]> out = new java.util.HashMap<>();
+            if (bookings != null) {
+                for (Booking b : bookings) {
+                    // findSecurityTx steigt bei allem aus, was keine Umbuchung ist – der Regelfall.
+                    SecurityTx tx = findSecurityTx(b);
+                    if (tx != null) {
+                        out.put(b.id, new String[]{tx.action, tx.securityName});
+                    }
+                }
+            }
+            final java.util.Map<Long, String[]> result = out;
+            mainHandler.post(() -> callback.onResult(result));
+        });
+    }
+
     /** Beide Seiten einer Umbuchung (für die Ort-Vorbelegung im Editor). */
     public void getTransferGroup(final String group, final Callback<List<Booking>> callback) {
         executor.execute(() -> {

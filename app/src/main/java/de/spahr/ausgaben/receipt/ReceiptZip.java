@@ -85,8 +85,10 @@ public final class ReceiptZip {
      * beim Auspacken, und ein {@link HashSet} dagegen kostet nichts.
      */
     private static String entryName(ReceiptExportJobs.Job job, String page, Set<String> used) {
-        String name = ReceiptExportName.of(job.createdAt, job.payee, job.amountCents, job.bookingId,
-                page);
+        String name = job.istWertpapier()
+                ? ReceiptExportName.ofSecurity(job.createdAt, job.action, job.securityName,
+                        job.amountCents, job.bookingId, page)
+                : ReceiptExportName.of(job.createdAt, job.payee, job.amountCents, job.bookingId, page);
         String candidate = name;
         int n = 2;
         while (!used.add(candidate.toLowerCase(Locale.ROOT))) {

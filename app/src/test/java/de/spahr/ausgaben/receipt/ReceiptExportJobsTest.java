@@ -1,6 +1,7 @@
 package de.spahr.ausgaben.receipt;
 
 import static org.junit.Assert.assertEquals;
+import static org.junit.Assert.assertFalse;
 import static org.junit.Assert.assertTrue;
 
 import org.junit.Test;
@@ -118,5 +119,31 @@ public class ReceiptExportJobsTest {
     public void leereEingabeIstKeinFehler() {
         assertTrue(ReceiptExportJobs.collect(null).isEmpty());
         assertTrue(ReceiptExportJobs.collect(new ArrayList<>()).isEmpty());
+    }
+
+    /** Ist eine Depot-Bewegung bekannt, trägt der Auftrag Art und Wertpapier. */
+    @Test
+    public void eineDepotBuchungBringtArtUndPapierMit() {
+        java.util.Map<Long, String[]> wp = new java.util.HashMap<>();
+        wp.put(2L, new String[]{"Kauf", "Vanguard FTSE All-World"});
+
+        List<ReceiptExportJobs.Job> jobs = ReceiptExportJobs.collect(Arrays.asList(
+                buchung(1, "Bäcker", 250, "BELEG: abc"),
+                buchung(2, "Vanguard FTSE All-World", 50000, "BELEG (PDF): dok")), wp);
+
+        assertEquals(2, jobs.size());
+        assertFalse("die Bäckerei ist keine Bewegung", jobs.get(0).istWertpapier());
+        assertTrue(jobs.get(1).istWertpapier());
+        assertEquals("Kauf", jobs.get(1).action);
+        assertEquals("Vanguard FTSE All-World", jobs.get(1).securityName);
+    }
+
+    /** Ohne Zuordnung bleibt alles beim Empfänger-Schema – auch wenn die Karte leer oder {@code null} ist. */
+    @Test
+    public void ohneZuordnungBleibtEsBeimEmpfaenger() {
+        List<Booking> eine = java.util.Collections.singletonList(
+                buchung(1, "Bäcker", 250, "BELEG: abc"));
+        assertFalse(ReceiptExportJobs.collect(eine, null).get(0).istWertpapier());
+        assertFalse(ReceiptExportJobs.collect(eine, new java.util.HashMap<>()).get(0).istWertpapier());
     }
 }

@@ -729,11 +729,16 @@ public class KmyExporter {
         long fee = dividend ? gross - tx.netCents : tx.feeCents;
         long money = dividend ? tx.netCents : (sell ? gross - fee : -(gross + fee));
 
+        // Die Notiz steht auf beiden Seiten: Sie trägt den Beleg-Tag der eingelesenen Abrechnung, und
+        // ohne sie ginge er beim nächsten Import verloren – die Geldbuchung wird nach dem Export als
+        // geschrieben markiert, obwohl ihre Notiz die Datei nie erreicht hätte.
+        String memo = esc(tx.note == null ? "" : tx.note);
+
         List<String> splits = new ArrayList<>();
-        splits.add(split("S0001", moneyId, "", fraction(money), "", ""));
+        splits.add(split("S0001", moneyId, "", fraction(money), memo, ""));
         int[] index = {2};
         if (dividend) {
-            splits.add(securitySplit(splitId(index), stockId, "0/100", "0/1", "1/1", "Dividend"));
+            splits.add(securitySplit(splitId(index), stockId, "0/100", "0/1", "1/1", "Dividend", memo));
             // Der Ertrag steht in KMyMoney mit umgekehrtem Vorzeichen: er kommt von der Kategorie
             // und geht aufs Konto.
             if (!addCategorySplits(splits, index, tx.partsOf(true), -1, gross, label, commodity,
@@ -749,7 +754,8 @@ public class KmyExporter {
         // eine, und weil actionStringToAction sie nicht auflösen konnte, zeigte das Depotbuch jeden
         // Verkauf als „Anteile kaufen" — bei richtigen Beträgen, weshalb es lange nicht auffiel.
         splits.add(securitySplit(splitId(index), stockId, fraction(stockValue), sharesFraction,
-                priceFraction(gross, tx.shares, doc.securityPricePrecision(tx.securityKmyId)), "Buy"));
+                priceFraction(gross, tx.shares, doc.securityPricePrecision(tx.securityKmyId)), "Buy",
+                memo));
         return addCategorySplits(splits, index, tx.partsOf(false), 1, fee, label, commodity,
                 result) ? splits : null;
     }
@@ -822,8 +828,9 @@ public class KmyExporter {
      * und eine Aktion – die drei Angaben, die eine Depot-Bewegung überhaupt erst ausmachen.
      */
     private String securitySplit(String id, String accountId, String value, String shares,
-                                 String price, String action) {
-        return "<SPLIT reconcileflag=\"0\" payee=\"\" number=\"\" bankid=\"\" memo=\"\" value=\"" + value
+                                 String price, String action, String memo) {
+        return "<SPLIT reconcileflag=\"0\" payee=\"\" number=\"\" bankid=\"\" memo=\"" + memo
+                + "\" value=\"" + value
                 + "\" reconciledate=\"\" account=\"" + esc(accountId) + "\" id=\"" + id
                 + "\" price=\"" + price + "\" shares=\"" + shares + "\" action=\"" + action + "\"/>";
     }

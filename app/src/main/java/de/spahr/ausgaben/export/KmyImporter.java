@@ -125,7 +125,7 @@ public class KmyImporter {
             boolean inLedger = false;
             String postdate = null;
             String entrydate = null;
-            List<String[]> splits = null; // je Split: {account, value, action, shares}
+            List<String[]> splits = null; // je Split: {account, value, action, shares, memo}
             int seen = 0;
             while (event != XmlPullParser.END_DOCUMENT) {
                 if (event == XmlPullParser.START_TAG) {
@@ -141,7 +141,8 @@ public class KmyImporter {
                                 orEmpty(parser.getAttributeValue(null, "account")),
                                 orEmpty(parser.getAttributeValue(null, "value")),
                                 orEmpty(parser.getAttributeValue(null, "action")),
-                                orEmpty(parser.getAttributeValue(null, "shares"))});
+                                orEmpty(parser.getAttributeValue(null, "shares")),
+                                orEmpty(parser.getAttributeValue(null, "memo"))});
                     }
                 } else if (event == XmlPullParser.END_TAG) {
                     String tag = parser.getName();
@@ -226,6 +227,7 @@ public class KmyImporter {
             }
             SecurityTx tx = new SecurityTx(depotName, sec[0], sec[1],
                     parseDate(postdate, entrydate), action, shares, gross, net);
+            tx.note = memoOf(stock);
             fillOrigin(tx, splits);
             return tx;
         }
@@ -238,8 +240,17 @@ public class KmyImporter {
         SecurityTx tx = new SecurityTx(depotName, sec[0], sec[1],
                 parseDate(postdate, entrydate), action, shares, amountCents,
                 SecurityTx.moneyOf(action, amountCents, feeCents), feeCents);
+        tx.note = memoOf(stock);
         fillOrigin(tx, splits);
         return tx;
+    }
+
+    /**
+     * Das Memo des Wertpapier-Splits – dort steht der Beleg-Tag einer eingelesenen Abrechnung
+     * (siehe {@link SecurityTx#note}). Ältere Dateien haben die Spalte nicht, dann bleibt sie leer.
+     */
+    private static String memoOf(String[] split) {
+        return split.length > 4 ? orEmpty(split[4]) : "";
     }
 
     /**

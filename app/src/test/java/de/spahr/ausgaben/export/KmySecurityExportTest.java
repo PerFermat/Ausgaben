@@ -377,6 +377,86 @@ public class KmySecurityExportTest {
     }
 
     /**
+     * Der Beleg-Tag einer eingelesenen Abrechnung übersteht den Rundlauf durch die Datei.
+     *
+     * <p>Bis 1.13 hing er allein an der Gegenbuchung, und beide Splits der Wertpapier-Transaktion
+     * wurden mit leerem Memo geschrieben — {@code securitySplit} hatte {@code memo=""} sogar fest
+     * verdrahtet. Die Geldbuchung wurde nach dem Export trotzdem als geschrieben markiert, obwohl
+     * ihre Notiz die Datei nie erreicht hatte. Beim nächsten Import stand die Bewegung ohne ihre
+     * Abrechnung da: das Memo leer, und {@code booking_id} stellt {@code importDepot} nicht wieder
+     * her.</p>
+     */
+    @Test
+    public void derBelegTagUeberstehtDenRundlauf() throws IOException {
+        SecurityTx tx = pending("buy", 10.0, 25000L, 25000L, 500L);
+        tx.note = "BELEG (PDF): abc123_p1";
+
+        // In der Datei muss der Tag auf beiden Seiten stehen: am Wertpapier und am Geldkonto.
+        KmyDocument original = doc();
+        KmyExporter.SecurityResult res = new KmyExporter(original, ctx)
+                .buildSecurityTransactions(original.xml(), Collections.singletonList(tx));
+        assertEquals("Bewegung wurde übersprungen: " + res.skipped, 1, res.writtenIds.size());
+        String block = neueTransaktion(res.xml);
+        assertEquals("Wertpapier-Split", "BELEG (PDF): abc123_p1",
+                attributeOf(splitOf(block, "A000003"), "memo"));
+        assertEquals("Geld-Split", "BELEG (PDF): abc123_p1",
+                attributeOf(splitOf(block, "A000001"), "memo"));
+
+        // Und nach dem Wiedereinlesen trägt die Bewegung ihn selbst.
+        SecurityTx zurueck = findWritten(roundtrip(pending2("buy", 10.0, 25000L, 500L,
+                "BELEG (PDF): abc123_p1")));
+        assertNotNull(zurueck);
+        assertEquals("BELEG (PDF): abc123_p1", zurueck.note);
+    }
+
+    /** Anführungszeichen und Kaufmanns-Und dürfen die Datei nicht zerreißen. */
+    @Test
+    public void eineNotizMitSonderzeichenBleibtHeil() throws IOException {
+        SecurityTx zurueck = findWritten(roundtrip(pending2("buy", 10.0, 25000L, 500L,
+                "Kauf \"Fonds\" & Co. BELEG (PDF): abc123_p1")));
+        assertNotNull(zurueck);
+        assertEquals("Kauf \"Fonds\" & Co. BELEG (PDF): abc123_p1", zurueck.note);
+    }
+
+    /** Ohne Notiz bleibt das Attribut leer – und die Transaktion trotzdem lesbar. */
+    @Test
+    public void ohneNotizBleibtDasMemoLeer() throws IOException {
+        SecurityTx zurueck = findWritten(roundtrip(pending("buy", 10.0, 25000L, 25000L, 500L)));
+        assertNotNull(zurueck);
+        assertEquals("", zurueck.note);
+    }
+
+    /** Auch die Dividende trägt ihre Notiz – dort entsteht der Wertpapier-Split im anderen Zweig. */
+    @Test
+    public void auchDieDividendeTraegtIhreNotiz() throws IOException {
+        SecurityTx div = dividende();
+        div.note = "BELEG (PDF): div999_p1";
+        KmyDocument original = doc();
+        KmyExporter.SecurityResult res = new KmyExporter(original, ctx)
+                .buildSecurityTransactions(original.xml(), Collections.singletonList(div));
+        assertEquals("Bewegung wurde übersprungen: " + res.skipped, 1, res.writtenIds.size());
+        String block = dividendenBlock(res.xml);
+        assertEquals("BELEG (PDF): div999_p1", attributeOf(splitOf(block, "A000003"), "memo"));
+        assertEquals("BELEG (PDF): div999_p1", attributeOf(splitOf(block, "A000001"), "memo"));
+    }
+
+    /** Wie {@link #pending}, dazu die Notiz der Bewegung. */
+    private static SecurityTx pending2(String action, double shares, long gross, long fee,
+                                       String note) {
+        SecurityTx tx = pending(action, shares, gross, gross, fee);
+        tx.note = note;
+        return tx;
+    }
+
+    /** Der Split auf einem bestimmten Konto innerhalb einer Transaktion. */
+    private static String splitOf(String block, String accountId) {
+        Matcher m = Pattern.compile("<SPLIT\\b[^>]*\\baccount=\"" + accountId + "\"[^>]*/>")
+                .matcher(block);
+        assertTrue("kein Split auf " + accountId, m.find());
+        return m.group();
+    }
+
+    /**
      * Die Aktionen, die KMyMoney kennt — wörtlich aus {@code actionNamesLUT} in
      * {@code kmymoney/mymoney/mymoneysplit.cpp}. Dort steht auch der Satz, um den es hier geht:
      * <i>„SellShares is not present as action"</i>.

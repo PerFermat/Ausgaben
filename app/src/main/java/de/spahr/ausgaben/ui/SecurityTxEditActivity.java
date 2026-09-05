@@ -1755,6 +1755,10 @@ public class SecurityTxEditActivity extends LocalizedActivity implements HostedD
             // danach wird aus dieser Abrechnung gelernt und an ihr nachgeprüft.
             savedStatementTag = de.spahr.ausgaben.receipt.NoteReceipt.pdfName(booking.note);
         }
+        // Dieselbe Notiz auch an der Bewegung: Nur so übersteht der Beleg-Tag den Rundlauf durch die
+        // KMyMoney-Datei. Der Weg über booking_id tut es nicht – importDepot stellt die Verknüpfung
+        // nicht wieder her (siehe SecurityTx#note).
+        tx.note = booking.note == null ? "" : booking.note;
         final Double sharesGiven = number(Field.SHARES);
         final Double priceGiven = number(Field.PRICE);
         final Long feeGiven = money(Field.FEE);

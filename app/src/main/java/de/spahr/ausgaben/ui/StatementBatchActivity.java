@@ -443,7 +443,11 @@ public class StatementBatchActivity extends LocalizedActivity {
                                 booking.note, booking.createdAt);
                 booking.note = beleg.note;
                 belege.add(beleg);
-                txs.add(d.toTx());
+                SecurityTx tx = d.toTx();
+                // Dieselbe Notiz auch an der Bewegung, damit der Beleg-Tag den Rundlauf durch die
+                // KMyMoney-Datei übersteht (siehe SecurityTx#note).
+                tx.note = booking.note == null ? "" : booking.note;
+                txs.add(tx);
                 bookings.add(booking);
             }
             final int count = txs.size();

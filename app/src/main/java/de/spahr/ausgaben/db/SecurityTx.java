@@ -115,6 +115,20 @@ public class SecurityTx {
     public long bookingId;
 
     /**
+     * Notiz der Bewegung – dieselbe wie an der Geldbuchung, und damit der Ort für den Beleg-Tag einer
+     * eingelesenen Abrechnung ({@code BELEG (PDF): …}, siehe {@code NoteReceipt}).
+     *
+     * <p>Warum doppelt zur Buchung: Bis 1.13 hing der Tag allein an der Gegenbuchung, und der Weg
+     * dorthin führte über {@link #bookingId}. Beide gingen beim Rundlauf durch die KMyMoney-Datei
+     * verloren — das Memo wurde gar nicht erst geschrieben, und {@code importDepot} stellt
+     * {@code bookingId} nicht wieder her. Nach einem Depot-Reimport stand die Bewegung ohne ihre
+     * Abrechnung da. Mit eigener Notiz trägt sie den Verweis selbst.</p>
+     */
+    @NonNull
+    @ColumnInfo(name = "note")
+    public String note = "";
+
+    /**
      * Die Kategoriezeilen dieser Bewegung – Ertrag und Steuer/Gebühr, siehe {@link SecurityTxSplit}.
      * Wie {@code Booking.parts} nicht in dieser Tabelle gespeichert, sondern in ihrer eigenen; das
      * Repository füllt sie beim Laden und schreibt sie beim Speichern mit.
